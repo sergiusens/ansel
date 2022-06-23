@@ -88,14 +88,14 @@ typedef struct dt_iop_colorequal_params_t
   // So we do it the tedious way here, and let the introspection magic connect sliders to params automatically,
   // then we pack the params in arrays in commit_params().
 
-  float sat_red;       // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "red"
-  float sat_orange;    // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "orange"
-  float sat_lime;      // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "lime"
-  float sat_green;     // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "green"
-  float sat_turquoise; // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "turquoise"
-  float sat_blue;      // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "blue"
-  float sat_lavender;  // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "lavender"
-  float sat_purple;    // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "purple"
+  float sat_red;       // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "red"
+  float sat_orange;    // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "orange"
+  float sat_lime;      // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "lime"
+  float sat_green;     // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "green"
+  float sat_turquoise; // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "turquoise"
+  float sat_blue;      // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "blue"
+  float sat_lavender;  // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "lavender"
+  float sat_purple;    // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "purple"
 
   float hue_red;       // $MIN: -180. $MAX: 180 $DEFAULT: 0. $DESCRIPTION: "red"
   float hue_orange;    // $MIN: -180. $MAX: 180 $DEFAULT: 0. $DESCRIPTION: "orange"
@@ -106,14 +106,14 @@ typedef struct dt_iop_colorequal_params_t
   float hue_lavender;  // $MIN: -180. $MAX: 180 $DEFAULT: 0. $DESCRIPTION: "lavender"
   float hue_purple;    // $MIN: -180. $MAX: 180 $DEFAULT: 0. $DESCRIPTION: "purple"
 
-  float bright_red;       // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "red"
-  float bright_orange;    // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "orange"
-  float bright_lime;      // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "lime"
-  float bright_green;     // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "green"
-  float bright_turquoise; // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "turquoise"
-  float bright_blue;      // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "blue"
-  float bright_lavender;  // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "lavender"
-  float bright_purple;    // $MIN: 0. $MAX: 2. $DEFAULT: 1.0 $DESCRIPTION: "purple"
+  float bright_red;       // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "red"
+  float bright_orange;    // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "orange"
+  float bright_lime;      // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "lime"
+  float bright_green;     // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "green"
+  float bright_turquoise; // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "turquoise"
+  float bright_blue;      // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "blue"
+  float bright_lavender;  // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "lavender"
+  float bright_purple;    // $MIN: -1. $MAX: 1. $DEFAULT: 0.0 $DESCRIPTION: "purple"
 } dt_iop_colorequal_params_t;
 
 
@@ -250,10 +250,10 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
     dt_UCS_LUV_to_JCH(L[k], white, UV_out, JCH);
     dt_UCS_JCH_to_HSB(JCH, pix_out);
 
-    // Get the boosts
-    corrections_out[1] = lookup_gamut(d->LUT_saturation, pix_out[0]);
-    corrections_out[0] = lookup_gamut(d->LUT_hue, pix_out[0]);
-    corrections_out[2] = lookup_gamut(d->LUT_brightness, pix_out[0]);
+    // Get the boosts - if chroma = 0, we have a neutral grey so set everything to 0
+    corrections_out[0] = (JCH[1] > 0.f) ? lookup_gamut(d->LUT_hue, pix_out[0]) : 0.f;
+    corrections_out[1] = (JCH[1] > 0.f) ? lookup_gamut(d->LUT_saturation, pix_out[0]) : 0.f;
+    corrections_out[2] = (JCH[1] > 0.f) ? lookup_gamut(d->LUT_brightness, pix_out[0]) : 0.f;
 
     // Copy alpha
     pix_out[3] = pix_in[3];
@@ -277,8 +277,8 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
 
     // Apply the corrections
     pix_out[0] += corrections_out[0]; // WARNING: hue is an offset
-    pix_out[1] *= corrections_out[1]; // the brightness and saturation are gains
-    pix_out[2] *= corrections_out[2];
+    pix_out[1] *= 1.f + corrections_out[1]; // the brightness and saturation are gains
+    pix_out[2] *= 1.f + corrections_out[2];
 
     // Sanitize gamut
     gamut_map_HSB(pix_out, d->gamut_LUT, white);
@@ -309,7 +309,7 @@ static inline float _cosine_coeffs(const float l, const float c)
 }
 
 
-static inline void _periodic_RBF_interpolate(float nodes[NODES], const float smoothing, float *const LUT, const gboolean clip)
+static inline void _periodic_RBF_interpolate(float nodes[NODES], const float smoothing, float *const LUT)
 {
   // Perform a periodic interpolation across hue angles using radial-basis functions
   // see https://eng.aurelienpierre.com/2022/06/interpolating-hue-angles/#Refined-approach
@@ -354,8 +354,6 @@ static inline void _periodic_RBF_interpolate(float nodes[NODES], const float smo
       }
       LUT[i] += nodes[k] * expf(result);
     }
-
-    if(clip) LUT[i] = fmaxf(0.f, LUT[i]);
   }
 }
 
@@ -436,13 +434,13 @@ void commit_params(struct dt_iop_module_t *self, dt_iop_params_t *p1, dt_dev_pix
   float bright_values[NODES];
 
   _pack_saturation(p, sat_values);
-  _periodic_RBF_interpolate(sat_values, 1.f / p->smoothing_saturation * M_PI_F, d->LUT_saturation, TRUE);
+  _periodic_RBF_interpolate(sat_values, 1.f / p->smoothing_saturation * M_PI_F, d->LUT_saturation);
 
   _pack_hue(p, hue_values);
-  _periodic_RBF_interpolate(hue_values, 1.f / p->smoothing_hue * M_PI_F, d->LUT_hue, FALSE);
+  _periodic_RBF_interpolate(hue_values, 1.f / p->smoothing_hue * M_PI_F, d->LUT_hue);
 
   _pack_brightness(p, bright_values);
-  _periodic_RBF_interpolate(bright_values, 1.f / p->smoothing_brightness * M_PI_F, d->LUT_brightness, TRUE);
+  _periodic_RBF_interpolate(bright_values, 1.f / p->smoothing_brightness * M_PI_F, d->LUT_brightness);
 
   // Check if the RGB working profile has changed in pipe
   // WARNING: this function is not triggered upon working profile change,
@@ -555,7 +553,6 @@ static inline void _init_sliders(dt_iop_module_t *self)
     _draw_sliders_saturation_gradient(0.f, g->max_saturation, _get_hue_node(k), SLIDER_BRIGHTNESS, slider, g->white_adapted_profile, g->gamut_LUT);
     dt_bauhaus_slider_set_feedback(slider, 0);
     dt_bauhaus_slider_set_format(slider, " %");
-    dt_bauhaus_slider_set_offset(slider, -100.0f);
     dt_bauhaus_slider_set_digits(slider, 2);
     gtk_widget_queue_draw(slider);
   }
@@ -578,7 +575,6 @@ static inline void _init_sliders(dt_iop_module_t *self)
     _draw_sliders_brightness_gradient(g->max_saturation, _get_hue_node(k), slider, g->white_adapted_profile, g->gamut_LUT);
     dt_bauhaus_slider_set_feedback(slider, 0);
     dt_bauhaus_slider_set_format(slider, " %");
-    dt_bauhaus_slider_set_offset(slider, -100.0f);
     dt_bauhaus_slider_set_digits(slider, 2);
     gtk_widget_queue_draw(slider);
   }
@@ -775,7 +771,6 @@ static gboolean dt_iop_tonecurve_draw(GtkWidget *widget, cairo_t *crf, gpointer 
   float smoothing;
   float offset;
   float factor;
-  gboolean clip;
 
   switch(g->channel)
   {
@@ -783,8 +778,7 @@ static gboolean dt_iop_tonecurve_draw(GtkWidget *widget, cairo_t *crf, gpointer 
     {
       _pack_saturation(p, values);
       smoothing = p->smoothing_saturation;
-      clip = TRUE;
-      offset = 1.f;
+      offset = 0.5f;
       factor = 0.5f;
       break;
     }
@@ -792,7 +786,6 @@ static gboolean dt_iop_tonecurve_draw(GtkWidget *widget, cairo_t *crf, gpointer 
     {
       _pack_hue(p, values);
       smoothing = p->smoothing_hue;
-      clip = FALSE;
       offset = 0.5f;
       factor = 1.f / (2.f * M_PI_F);
       break;
@@ -802,14 +795,13 @@ static gboolean dt_iop_tonecurve_draw(GtkWidget *widget, cairo_t *crf, gpointer 
     {
       _pack_brightness(p, values);
       smoothing = p->smoothing_brightness;
-      clip = TRUE;
-      offset = 1.0f;
+      offset = 0.5f;
       factor = 0.5f;
       break;
     }
   }
 
-  _periodic_RBF_interpolate(values, 1.f / smoothing * M_PI_F, g->LUT, clip);
+  _periodic_RBF_interpolate(values, 1.f / smoothing * M_PI_F, g->LUT);
 
   for(int k = 0; k < LUT_ELEM; k++)
   {
