@@ -926,7 +926,7 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   gui->scroll_mask = GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK;
 
   // Init focus peaking
-  gui->show_focus_peaking = dt_conf_get_bool("ui/show_focus_peaking");
+  gui->show_focus_peaking = FALSE;
 
   // Initializing widgets
   _init_widgets(gui);
