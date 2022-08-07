@@ -260,7 +260,7 @@ static void _culling_preview_reload_overlays(dt_view_t *self)
 
   // change overlays if needed for culling and preview
   gchar *otxt = g_strdup("plugins/lighttable/overlays/global");
-  dt_thumbnail_overlay_t over = dt_conf_get_int(otxt);
+  dt_thumbnail_overlay_t over = MIN(dt_conf_get_int(otxt), DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL);
   dt_culling_set_overlays_mode(lib->culling, over);
   dt_culling_set_overlays_mode(lib->preview, over);
   g_free(otxt);
@@ -385,6 +385,9 @@ void expose(dt_view_t *self, cairo_t *cr, int32_t width, int32_t height, int32_t
       case DT_LIGHTTABLE_LAYOUT_FILEMANAGER:
         if(!gtk_widget_get_visible(dt_ui_thumbtable(darktable.gui->ui)->widget))
           gtk_widget_hide(dt_ui_thumbtable(darktable.gui->ui)->widget);
+
+        // No filmstrip in file manager
+        dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, FALSE, FALSE);
         break;
       case DT_LIGHTTABLE_LAYOUT_CULLING_DYNAMIC:
         if(!gtk_widget_get_visible(lib->culling->widget)) gtk_widget_show(lib->culling->widget);

@@ -152,6 +152,7 @@ Why that? Just because it's a developer choice and most classes use underscore i
 
 /* GTK Buttons and tabs */
 @define-color button_bg @grey_55;
+@define-color button_fg alpha(@fg_color, 0.55);
 @define-color button_border shade(@button_bg, 1.04);
 @define-color button_hover_bg @grey_70;
 @define-color button_hover_fg @grey_30;
@@ -343,7 +344,6 @@ textview,
   border-radius: 0.21em;
   background-color: @button_bg;
   font-weight: normal;
-  font-family: sans-serif;
 }
 
 /* then set specific settings for all text zones and combo */
@@ -377,7 +377,7 @@ header button,
 .dt_module_btn,
 .dt_ignore_fg_state:checked
 {
-  color: alpha(@fg_color, 0.55);
+  color: @button_fg;
 }
 
 spinbutton > button
@@ -418,9 +418,8 @@ popover spinbutton  /* needed to set some margin on overlay popover between it a
 entry,
 textview
 {
-  font-family: sans;
-  margin: 0.07em 0;
-  padding: 0.14em;
+  padding: 2px;
+  min-height: 1em;
 }
 
 label selection,
@@ -921,17 +920,17 @@ notebook header /* add space between notebook tabs and options below */
 scrollbar slider
 {
   background-color: @scroll_bar_inactive;
-  border: 0.14em solid transparent;
-  min-width: 0.42em;
+  border: 1px solid transparent;
+  min-width: 0.6em;
   min-height: 1em;
 }
 
 scale contents trough
 {
   background-color: @scroll_bar_bg;
-  border-radius: 0.14em;
-  min-width: 0.5em;
-  min-height: 0.5em;
+  border-radius: 0.3em;
+  min-width: 0.6em;
+  min-height: 0.6em;
 }
 
 scale contents trough highlight
@@ -944,7 +943,7 @@ scale contents trough highlight
 scale contents trough slider
 {
   background-color: @scroll_bar_inactive;
-  border: 0.035em solid @border_color;
+  border: 0.1em solid @border_color;
   font-size: 1em;
   min-height: 0.5em;
   min-width: 0.5em;
@@ -954,10 +953,10 @@ scrollbar
 {
   border-color: @scroll_bar_bg;
   background: @scroll_bar_bg;
-  border-radius: 0.35em;
-  min-height: 0.42em;
-  min-width: 0.42em;
-  margin: 0.07em;
+  border-radius: 0.6em;
+  min-height: 0.6em;
+  min-width: 0.6em;
+  margin: 0.1em;
 }
 
 /* Scrollbars hover state */

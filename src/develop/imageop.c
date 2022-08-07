@@ -1059,6 +1059,7 @@ static void _iop_panel_label(dt_iop_module_t *module)
     g_free(saved_old_name);
   }
 
+  dt_capitalize_label(module_name);
   gtk_label_set_markup(GTK_LABEL(lab), module_name);
   g_free(module_name);
 
@@ -1996,18 +1997,24 @@ void dt_iop_gui_update_expanded(dt_iop_module_t *module)
 static gboolean _iop_plugin_body_button_press(GtkWidget *w, GdkEventButton *e, gpointer user_data)
 {
   dt_iop_module_t *module = (dt_iop_module_t *)user_data;
+
+  /* Reset the scrolling focus. If the click happened on any bauhaus element,
+   * its internal button_press method will set it for itself */
+  darktable.gui->has_scroll_focus = NULL;
+
+  gboolean handled = FALSE;
+
   if(e->button == 1)
   {
     dt_iop_request_focus(module);
-    return TRUE;
+    handled = TRUE;
   }
   else if(e->button == 3)
   {
     _presets_popup_callback(NULL, module);
-
-    return TRUE;
+    handled = TRUE;
   }
-  return FALSE;
+  return handled;
 }
 
 static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e, gpointer user_data)
@@ -2015,6 +2022,10 @@ static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e,
   if(e->type == GDK_2BUTTON_PRESS || e->type == GDK_3BUTTON_PRESS) return TRUE;
 
   dt_iop_module_t *module = (dt_iop_module_t *)user_data;
+
+  /* Reset the scrolling focus. If the click happened on any bauhaus element,
+   * its internal button_press method will set it for itself */
+  darktable.gui->has_scroll_focus = NULL;
 
   if(e->button == 1)
   {

@@ -3126,9 +3126,9 @@ static float _process_shortcut(float move_size)
 {
   float return_value = NAN;
 
-  dt_print(DT_DEBUG_INPUT,
-           "  [_process_shortcut] processing shortcut: %s\n",
-           _shortcut_description(&_sc));
+  dt_vprint(DT_DEBUG_INPUT,
+            "  [_process_shortcut] processing shortcut: %s\n",
+            _shortcut_description(&_sc));
 
   dt_shortcut_t fsc = _sc;
   fsc.action = NULL;
@@ -3691,10 +3691,6 @@ gboolean dt_shortcut_dispatcher(GtkWidget *w, GdkEvent *event, gpointer user_dat
 
     _sc.mods = _key_modifiers_clean(event->key.state);
 
-    // FIXME: for vimkeys and game. Needs generalising for non-bauhaus/non-darkroom
-    if(!_grab_widget && !darktable.control->mapping_widget &&
-       dt_control_key_pressed_override(event->key.keyval, dt_gui_translated_key_state(&event->key))) return TRUE;
-
     dt_shortcut_key_press(DT_SHORTCUT_DEVICE_KEYBOARD_MOUSE, event->key.time, _fix_keyval(event));
     break;
   case GDK_KEY_RELEASE:
@@ -4234,7 +4230,10 @@ void dt_action_cleanup_instance_iop(dt_iop_module_t *module)
 
 GtkWidget *dt_action_button_new(dt_lib_module_t *self, const gchar *label, gpointer callback, gpointer data, const gchar *tooltip, guint accel_key, GdkModifierType mods)
 {
-  GtkWidget *button = gtk_button_new_with_label(_(label));
+  gchar *label_copy = g_strdup(_(label));
+  dt_capitalize_label(label_copy);
+  GtkWidget *button = gtk_button_new_with_label(label_copy);
+  g_free(label_copy);
   gtk_label_set_ellipsize(GTK_LABEL(gtk_bin_get_child(GTK_BIN(button))), PANGO_ELLIPSIZE_END);
   if(tooltip) gtk_widget_set_tooltip_text(button, tooltip);
   g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(callback), data);

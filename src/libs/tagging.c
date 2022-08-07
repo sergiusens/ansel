@@ -105,13 +105,8 @@ const char *name(dt_lib_module_t *self)
 
 const char **views(dt_lib_module_t *self)
 {
-  static const char *v1[] = {"lighttable", "darkroom", "map", "tethering", NULL};
-  static const char *v2[] = {"lighttable", "map", "tethering", NULL};
-
-  if(dt_conf_get_bool("plugins/darkroom/tagging/visible"))
-    return v1;
-  else
-    return v2;
+  static const char *v[] = {"lighttable", "map", NULL};
+  return v;
 }
 
 uint32_t container(dt_lib_module_t *self)
@@ -2990,8 +2985,6 @@ static gboolean _event_dnd_motion(GtkWidget *widget, GdkDragContext *context,
         if(!gtk_tree_view_row_expanded(tree, path))
           d->drag.expand_timeout = g_timeout_add(200, (GSourceFunc)_dnd_expand_timeout, self);
       }
-      else
-        gtk_tree_view_collapse_all(d->dictionary_view);
     }
 
     GtkTreeSelection *selection = gtk_tree_view_get_selection(d->dictionary_view);

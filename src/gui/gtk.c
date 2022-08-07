@@ -366,24 +366,12 @@ static void _toggle_bottom_all_accel_callback(dt_action_t *action)
 
 gboolean dt_gui_ignore_scroll(GdkEventScroll *event)
 {
-  const gboolean ignore_without_mods = dt_conf_get_bool("darkroom/ui/sidebar_scroll_default");
-  const GdkModifierType mods_pressed = (event->state & gtk_accelerator_get_default_mod_mask());
+  // TODO: records which GtkScrollWindow is capturing scroll events,
+  // if it's not the current instance, ignore.
+  // This will need a rewrite of the logic and possibly thread mutex locks,
+  // with a timer that releases the lock after some time of inactivity.
 
-  if(mods_pressed == 0)
-  {
-    return ignore_without_mods;
-  }
-  else
-  {
-    if(mods_pressed == darktable.gui->sidebar_scroll_mask)
-    {
-      if(!ignore_without_mods) return TRUE;
-
-      event->state &= ~darktable.gui->sidebar_scroll_mask;
-    }
-
-    return FALSE;
-  }
+  return FALSE;
 }
 
 gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x, gdouble *delta_y)
@@ -629,11 +617,6 @@ int dt_gui_gtk_load_config()
       gtk_window_unmaximize(GTK_WINDOW(widget));
   }
 
-  if(dt_conf_key_exists("ui/show_focus_peaking"))
-    darktable.gui->show_focus_peaking = dt_conf_get_bool("ui/show_focus_peaking");
-  else
-    darktable.gui->show_focus_peaking = FALSE;
-
   dt_pthread_mutex_unlock(&darktable.gui->mutex);
 
   return 0;
@@ -808,6 +791,11 @@ guint dt_gui_translated_key_state(GdkEventKey *event)
 
 static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer user_data)
 {
+  /* Reset Gtk focus */
+  gtk_window_set_focus(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), NULL);
+  darktable.gui->has_scroll_focus = NULL;
+  fprintf(stdout, "focus 2\n");
+
   double pressure = 1.0;
   GdkDevice *device = gdk_event_get_source_device((GdkEvent *)event);
 
@@ -942,11 +930,12 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // smooth scrolling must be enabled to handle trackpad/touch events
   gui->scroll_mask = GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK;
 
-  // key accelerator that enables scrolling of side panels
-  gui->sidebar_scroll_mask = GDK_MOD1_MASK | GDK_CONTROL_MASK;
+  // Emulates the same feature as Gtk focus but for scrolling events
+  // The GtkWidget capturing scrolling events will write its address in this pointer
+  gui->has_scroll_focus = NULL;
 
   // Init focus peaking
-  gui->show_focus_peaking = dt_conf_get_bool("ui/show_focus_peaking");
+  gui->show_focus_peaking = FALSE;
 
   // Initializing widgets
   _init_widgets(gui);
@@ -1229,7 +1218,7 @@ static void _init_widgets(dt_gui_gtk_t *gui)
   gtk_window_set_default_size(GTK_WINDOW(widget), DT_PIXEL_APPLY_DPI(900), DT_PIXEL_APPLY_DPI(500));
 
   gtk_window_set_icon_name(GTK_WINDOW(widget), "darktable");
-  gtk_window_set_title(GTK_WINDOW(widget), "darktable");
+  gtk_window_set_title(GTK_WINDOW(widget), "R&Darktable");
 
   g_signal_connect(G_OBJECT(widget), "delete_event", G_CALLBACK(dt_gui_quit_callback), NULL);
   g_signal_connect(G_OBJECT(widget), "focus-in-event", G_CALLBACK(_focus_in_out_event), widget);
@@ -1732,7 +1721,7 @@ static GtkWidget *_ui_init_panel_container_top(GtkWidget *container)
 static gboolean _ui_init_panel_container_center_scroll_event(GtkWidget *widget, GdkEventScroll *event)
 {
   // just make sure nothing happens unless ctrl-alt are pressed:
-  return (((event->state & gtk_accelerator_get_default_mod_mask()) != darktable.gui->sidebar_scroll_mask) != dt_conf_get_bool("darkroom/ui/sidebar_scroll_default"));
+  return (event->state & gtk_accelerator_get_default_mod_mask());
 }
 
 // this should work as long as everything happens in the gui thread
@@ -1741,7 +1730,7 @@ static void _ui_panel_size_changed(GtkAdjustment *adjustment, GParamSpec *pspec,
   GtkAllocation allocation;
   static float last_height[2] = { 0 };
 
-  int side = GPOINTER_TO_INT(user_data);
+  const int side = GPOINTER_TO_INT(user_data);
 
   // don't do anything when the size didn't actually change.
   const float height = gtk_adjustment_get_upper(adjustment) - gtk_adjustment_get_lower(adjustment);
@@ -2468,6 +2457,7 @@ void dt_gui_load_theme(const char *theme)
     [DT_GUI_COLOR_PRINT_BG] = { "print_bg_color", { .2, .2, .2, 1.0 } },
     [DT_GUI_COLOR_BRUSH_CURSOR] = { "brush_cursor", { 1., 1., 1., 0.9 } },
     [DT_GUI_COLOR_BRUSH_TRACE] = { "brush_trace", { 0., 0., 0., 0.8 } },
+    [DT_GUI_COLOR_BUTTON_FG] = { "button_fg", { 0.7, 0.7, 0.7, 0.55 } },
     [DT_GUI_COLOR_THUMBNAIL_BG] = { "thumbnail_bg_color", { 0.4, 0.4, 0.4, 1.0 } },
     [DT_GUI_COLOR_THUMBNAIL_SELECTED_BG] = { "thumbnail_selected_bg_color", { 0.8, 0.8, 0.8, 1.0 } },
     [DT_GUI_COLOR_THUMBNAIL_HOVER_BG] = { "thumbnail_hover_bg_color", { 0.65, 0.65, 0.65, 1.0 } },
@@ -2639,18 +2629,6 @@ GtkNotebook *dt_ui_notebook_new(dt_action_def_t *def)
   return _current_notebook;
 }
 
-static gboolean _notebook_scroll_callback(GtkNotebook *notebook, GdkEventScroll *event, gpointer user_data)
-{
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
-  int delta = 0;
-  if(dt_gui_get_scroll_unit_delta(event, &delta) && delta)
-    _action_process_tabs(notebook, DT_ACTION_EFFECT_DEFAULT_KEY,
-                         delta < 0 ? DT_ACTION_EFFECT_NEXT : DT_ACTION_EFFECT_PREVIOUS, delta);
-
-  return TRUE;
-}
-
 GtkWidget *dt_ui_notebook_page(GtkNotebook *notebook, const char *text, const char *tooltip)
 {
   if(notebook != _current_notebook)
@@ -2658,11 +2636,14 @@ GtkWidget *dt_ui_notebook_page(GtkNotebook *notebook, const char *text, const ch
     _current_notebook = 0;
     _current_action_def = 0;
   }
-  GtkWidget *label = gtk_label_new(_(text));
+  gchar *text_cpy = g_strdup(_(text));
+  dt_capitalize_label(text_cpy);
+  GtkWidget *label = gtk_label_new(text_cpy);
+  g_free(text_cpy);
   GtkWidget *page = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   if(strlen(text) > 2)
     gtk_label_set_ellipsize(GTK_LABEL(label), PANGO_ELLIPSIZE_END);
-  gtk_widget_set_tooltip_text(label, tooltip ? tooltip : text);
+  gtk_widget_set_tooltip_text(label, tooltip ? tooltip : _(text));
   gtk_widget_set_has_tooltip(GTK_WIDGET(notebook), FALSE);
 
   gint page_num = gtk_notebook_append_page(notebook, page, label);
@@ -2672,19 +2653,6 @@ GtkWidget *dt_ui_notebook_page(GtkNotebook *notebook, const char *text, const ch
   {
     g_signal_connect(G_OBJECT(notebook), "size-allocate", G_CALLBACK(_notebook_size_callback), NULL);
     g_signal_connect(G_OBJECT(notebook), "motion-notify-event", G_CALLBACK(_notebook_motion_notify_callback), NULL);
-    g_signal_connect(G_OBJECT(notebook), "scroll-event", G_CALLBACK(_notebook_scroll_callback), NULL);
-    gtk_widget_add_events(GTK_WIDGET(notebook), darktable.gui->scroll_mask);
-  }
-  if(_current_action_def)
-  {
-    dt_action_element_def_t *elements = calloc(page_num + 2, sizeof(dt_action_element_def_t));
-    if(_current_action_def->elements)
-      memcpy(elements, _current_action_def->elements, page_num * sizeof(dt_action_element_def_t));
-    elements[page_num].name = text;
-    elements[page_num].effects = dt_action_effect_tabs;
-    if(_current_action_def->elements)
-      free((void *)_current_action_def->elements);
-    _current_action_def->elements = elements;
   }
 
   return page;
@@ -3047,6 +3015,12 @@ void dt_gui_new_collapsible_section(dt_gui_collapsible_section_t *cs,
   g_signal_connect(G_OBJECT(header_evb), "button-release-event",
                    G_CALLBACK(_coeffs_expander_click),
                    (gpointer)cs);
+}
+
+void dt_capitalize_label(gchar *text)
+{
+  if(text)
+    text[0] = g_unichar_toupper(text[0]);
 }
 
 // clang-format off
