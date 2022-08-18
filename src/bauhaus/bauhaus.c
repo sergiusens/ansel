@@ -751,7 +751,8 @@ void dt_bauhaus_init()
                                                            | GDK_BUTTON_RELEASE_MASK | GDK_KEY_PRESS_MASK
                                                            | GDK_LEAVE_NOTIFY_MASK | darktable.gui->scroll_mask);
 
-  GObject *window = G_OBJECT(darktable.bauhaus->popup_window), *area = G_OBJECT(darktable.bauhaus->popup_area);
+  GObject *window = G_OBJECT(darktable.bauhaus->popup_window);
+  GObject *area = G_OBJECT(darktable.bauhaus->popup_area);
   g_signal_connect(window, "show", G_CALLBACK(dt_bauhaus_window_show), area);
   g_signal_connect(area, "draw", G_CALLBACK(dt_bauhaus_popup_draw), NULL);
   g_signal_connect(area, "motion-notify-event", G_CALLBACK(dt_bauhaus_popup_motion_notify), NULL);
@@ -2537,10 +2538,10 @@ static void _slider_add_step(GtkWidget *widget, float delta, guint state, gboole
   {
     if(d->factor > 0 ? d->pos < 0.0001 : d->pos > 0.9999) d->min = d->soft_min;
     if(d->factor < 0 ? d->pos < 0.0001 : d->pos > 0.9999) d->max = d->soft_max;
-    dt_bauhaus_slider_set(widget, value + delta);
   }
-  else
-    dt_bauhaus_slider_set(widget, CLAMP(value + delta, d->min, d->max));
+
+  const float rawval = (CLAMP(value + delta, d->min, d->max) - d->min) / (d->max - d->min);
+  dt_bauhaus_slider_set_normalized(w, d->curve(rawval, DT_BAUHAUS_SET), TRUE);
 }
 
 static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
