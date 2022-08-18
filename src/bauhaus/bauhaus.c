@@ -468,7 +468,8 @@ static gboolean dt_bauhaus_popup_motion_notify(GtkWidget *widget, GdkEventMotion
         // remember mouse position for motion effects in draw
         darktable.bauhaus->mouse_x = event_x;
         darktable.bauhaus->mouse_y = event_y;
-        dt_bauhaus_slider_set_normalized(w, d->oldpos + mouse_off, TRUE);
+        dt_bauhaus_slider_set_normalized(w, d->oldpos + mouse_off, FALSE);
+        dt_print(DT_DEBUG_GUI, "[bauhaus] absolute motion recorded in popup on widget %s\n", w->label);
       }
       break;
     }
@@ -2570,6 +2571,7 @@ static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
     else
       _combobox_next_sensitive(w, delta_y, FALSE);
   }
+
   return TRUE; // Ensure that scrolling the combobox cannot move side panel
 }
 
@@ -2909,8 +2911,6 @@ static gboolean _bauhaus_slider_value_change_dragging(gpointer data)
 
 static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, gboolean commit)
 {
-  dt_print(DT_DEBUG_GUI, "[bauhaus] slider_set_normalized triggered on widget %s\n", w->label);
-
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   float rpos = CLAMP(pos, 0.0f, 1.0f);
   rpos = d->curve(rpos, DT_BAUHAUS_GET);
@@ -2927,7 +2927,11 @@ static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, 
 
   // Commiting will trigger the gui_changed methods, updates params and possibly recompute the pipe
   // not commiting we only redraw the widget to give feedback
-  if(commit) _bauhaus_slider_value_change(w);
+  if(commit)
+  {
+    _bauhaus_slider_value_change(w);
+    dt_print(DT_DEBUG_GUI, "[bauhaus] slider value changed on widget %s\n", w->label);
+  }
 }
 
 static gboolean dt_bauhaus_popup_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
