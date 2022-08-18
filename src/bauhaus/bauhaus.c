@@ -250,7 +250,7 @@ static void _stop_cursor()
 // -------------------------------
 
 
-static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos);
+static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, gboolean commit);
 
 static float slider_position_from_right(float width, dt_bauhaus_widget_t *w)
 {
@@ -471,7 +471,7 @@ static gboolean dt_bauhaus_popup_motion_notify(GtkWidget *widget, GdkEventMotion
         // remember mouse position for motion effects in draw
         darktable.bauhaus->mouse_x = event_x;
         darktable.bauhaus->mouse_y = event_y;
-        dt_bauhaus_slider_set_normalized(w, d->oldpos + mouse_off);
+        dt_bauhaus_slider_set_normalized(w, d->oldpos + mouse_off, TRUE);
       }
       break;
     }
@@ -1471,6 +1471,8 @@ static void _bauhaus_combobox_set(dt_bauhaus_widget_t *w, const int pos, const g
   {
     if(w->field)
     {
+      g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+
       switch(w->field_type)
       {
         case DT_INTROSPECTION_TYPE_ENUM:;
@@ -1497,7 +1499,6 @@ static void _bauhaus_combobox_set(dt_bauhaus_widget_t *w, const int pos, const g
           fprintf(stderr, "[_bauhaus_combobox_set] unsupported combo data type\n");
       }
     }
-    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
   }
 }
 
@@ -1795,6 +1796,7 @@ static void dt_bauhaus_draw_baseline(dt_bauhaus_widget_t *w, cairo_t *cr, float 
 
 static void dt_bauhaus_widget_reject(dt_bauhaus_widget_t *w)
 {
+  dt_print(DT_DEBUG_GUI, "[bauhaus] reject change on widget %s\n", w->label);
   switch(w->type)
   {
     case DT_BAUHAUS_COMBOBOX:
@@ -1802,7 +1804,7 @@ static void dt_bauhaus_widget_reject(dt_bauhaus_widget_t *w)
     case DT_BAUHAUS_SLIDER:
     {
       dt_bauhaus_slider_data_t *d = &w->data.slider;
-      dt_bauhaus_slider_set_normalized(w, d->oldpos);
+      dt_bauhaus_slider_set_normalized(w, d->oldpos, TRUE);
     }
     break;
     default:
@@ -1812,6 +1814,8 @@ static void dt_bauhaus_widget_reject(dt_bauhaus_widget_t *w)
 
 static void dt_bauhaus_widget_accept(dt_bauhaus_widget_t *w)
 {
+  dt_print(DT_DEBUG_GUI, "[bauhaus] accept change on widget %s\n", w->label);
+
   GtkWidget *widget = GTK_WIDGET(w);
 
   GtkAllocation allocation_popup_window;
@@ -1880,7 +1884,7 @@ static void dt_bauhaus_widget_accept(dt_bauhaus_widget_t *w)
           = get_slider_line_offset(d->oldpos, 5.0 * powf(10.0f, -d->digits) / (d->max - d->min) / d->factor,
                                    darktable.bauhaus->end_mouse_x / width, darktable.bauhaus->end_mouse_y / height,
                                    base_height / (float)height, allocation_popup_window.width, w);
-      dt_bauhaus_slider_set_normalized(w, d->oldpos + mouse_off);
+      dt_bauhaus_slider_set_normalized(w, d->oldpos + mouse_off, TRUE);
       d->oldpos = d->pos;
       break;
     }
@@ -1900,6 +1904,7 @@ static gchar *_build_label(const dt_bauhaus_widget_t *w)
 static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer user_data)
 {
   dt_bauhaus_widget_t *w = darktable.bauhaus->current;
+  dt_print(DT_DEBUG_GUI, "[bauhaus] draw popup on widget %s\n", w->label);
 
   // dimensions of the popup
   GtkAllocation allocation;
@@ -2159,6 +2164,8 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
   GtkAllocation allocation;
   gtk_widget_get_allocation(widget, &allocation);
   dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
+  dt_print(DT_DEBUG_GUI, "[bauhaus] redraw widget %s\n", w->label);
+
   const double width = allocation.width, height = allocation.height;
   cairo_surface_t *cst = dt_cairo_image_surface_create(CAIRO_FORMAT_ARGB32, width, height);
   cairo_t *cr = cairo_create(cst);
@@ -2694,7 +2701,7 @@ void dt_bauhaus_slider_set(GtkWidget *widget, float pos)
   d->min = MIN(d->min, rpos);
   d->max = MAX(d->max, rpos);
   const float rawval = (rpos - d->min) / (d->max - d->min);
-  dt_bauhaus_slider_set_normalized(w, d->curve(rawval, DT_BAUHAUS_SET));
+  dt_bauhaus_slider_set_normalized(w, d->curve(rawval, DT_BAUHAUS_SET), TRUE);
 }
 
 void dt_bauhaus_slider_set_val(GtkWidget *widget, float val)
@@ -2864,6 +2871,9 @@ static void _bauhaus_slider_value_change(dt_bauhaus_widget_t *w)
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   if(d->is_changed && !d->timeout_handle && !darktable.gui->reset)
   {
+    dt_print(DT_DEBUG_GUI, "[bauhaus] value-changed signal emitted on widget %s\n", w->label);
+    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+
     if(w->field)
     {
       float val = dt_bauhaus_slider_get(GTK_WIDGET(w));
@@ -2884,9 +2894,8 @@ static void _bauhaus_slider_value_change(dt_bauhaus_widget_t *w)
         default:
           fprintf(stderr, "[_bauhaus_slider_value_change] unsupported slider data type\n");
       }
+      dt_print(DT_DEBUG_GUI, "[bauhaus] new value commited on widget %s\n", w->label);
     }
-    darktable.gui->has_scroll_focus = GTK_WIDGET(w);
-    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
     d->is_changed = 0;
   }
 
@@ -2901,13 +2910,17 @@ static void _bauhaus_slider_value_change(dt_bauhaus_widget_t *w)
 static gboolean _bauhaus_slider_value_change_dragging(gpointer data)
 {
   dt_bauhaus_widget_t *w = data;
+  dt_print(DT_DEBUG_GUI, "[bauhaus] dragging triggered on widget %s\n", w->label);
+
   w->data.slider.timeout_handle = 0;
   _bauhaus_slider_value_change(data);
   return G_SOURCE_REMOVE;
 }
 
-static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos)
+static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, gboolean commit)
 {
+  dt_print(DT_DEBUG_GUI, "[bauhaus] slider_set_normalized triggered on widget %s\n", w->label);
+
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   float rpos = CLAMP(pos, 0.0f, 1.0f);
   rpos = d->curve(rpos, DT_BAUHAUS_GET);
@@ -2918,9 +2931,13 @@ static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos)
   rpos = (rpos - d->min) / (d->max - d->min);
   d->pos = d->curve(rpos, DT_BAUHAUS_SET);
   gtk_widget_queue_draw(GTK_WIDGET(w));
-  d->is_changed = 1;
 
-  _bauhaus_slider_value_change(w);
+  d->is_changed = 1;
+  darktable.gui->has_scroll_focus = GTK_WIDGET(w);
+
+  // Commiting will trigger the gui_changed methods, updates params and possibly recompute the pipe
+  // not commiting we only redraw the widget to give feedback
+  if(commit) _bauhaus_slider_value_change(w);
 }
 
 static gboolean dt_bauhaus_popup_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
@@ -3050,12 +3067,13 @@ static gboolean dt_bauhaus_popup_key_press(GtkWidget *widget, GdkEventKey *event
 static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
   dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)widget;
+  dt_print(DT_DEBUG_GUI, "[bauhaus] button pressed on widget %s\n", w->label);
+
   bauhaus_request_focus(w);
   gtk_widget_grab_focus(widget);
 
   GtkAllocation allocation;
   gtk_widget_get_allocation(widget, &allocation);
-  const double slider_width = allocation.width - w->margin->left - w->padding->left - w->margin->right - w->padding->right;
   const double event_x = event->x - w->margin->left - w->padding->left;
   const double event_y = event->y - w->margin->top - w->padding->top;
   if(event->x > allocation.width - _widget_get_quad_width(w) - w->margin->right - w->padding->right)
@@ -3084,18 +3102,10 @@ static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton
     }
     else if(event_y > darktable.bauhaus->line_height * 0.9) // allow some margin of inaccuracy when clicking
     {
+      // If the click happened on the slider bar, start recording a dragging event
+      // we update the cursor position and wait for button_released to commit the parameter final value
       d->is_dragging = 1;
-
-      if(!dt_modifier_is(event->state, 0))
-      {
-        darktable.bauhaus->mouse_x = event_x;
-      }
-      else
-      {
-        const float x_from_right = slider_position_from_right(slider_width, w);
-        dt_bauhaus_slider_set_normalized(w, (event_x / slider_width) / x_from_right);
-        darktable.bauhaus->mouse_x = NAN;
-      }
+      darktable.bauhaus->mouse_x = event_x;
     }
     else // we clicked on the header name : do nothing but give focus
     {
@@ -3109,7 +3119,12 @@ static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton
 static gboolean dt_bauhaus_slider_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
   dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)widget;
+  dt_print(DT_DEBUG_GUI, "[bauhaus] button released on widget %s\n", w->label);
+
   dt_bauhaus_slider_data_t *d = &w->data.slider;
+  GtkAllocation allocation;
+  gtk_widget_get_allocation(widget, &allocation);
+  const double slider_width = allocation.width - w->margin->left - w->padding->left - w->margin->right - w->padding->right - _widget_get_quad_width(w);
 
   dt_bauhaus_widget_release_quad(widget);
   if(event->button == 1 && d->is_dragging)
@@ -3117,7 +3132,8 @@ static gboolean dt_bauhaus_slider_button_release(GtkWidget *widget, GdkEventButt
     d->is_dragging = 0;
     if(d->timeout_handle) g_source_remove(d->timeout_handle);
     d->timeout_handle = 0;
-    dt_bauhaus_slider_set_normalized(w, d->pos);
+    dt_bauhaus_slider_set_normalized(w, darktable.bauhaus->mouse_x / slider_width, TRUE);
+    darktable.bauhaus->mouse_x = NAN;
 
     return TRUE;
   }
@@ -3131,27 +3147,15 @@ static gboolean dt_bauhaus_slider_motion_notify(GtkWidget *widget, GdkEventMotio
 
   GtkAllocation allocation;
   gtk_widget_get_allocation(widget, &allocation);
-  const double slider_width = allocation.width - w->margin->left - w->padding->left - w->margin->right - w->padding->right;
+  const double slider_width = allocation.width - w->margin->left - w->padding->left - w->margin->right - w->padding->right - _widget_get_quad_width(w);
   const double event_x = event->x - w->margin->left - w->padding->left;
-  if(d->is_dragging && event->state & GDK_BUTTON1_MASK)
+  if(d->is_dragging)
   {
-    const float r = slider_position_from_right((float)slider_width, w);
-
-    if(isnan(darktable.bauhaus->mouse_x))
-    {
-      if(dt_modifier_is(event->state, 0))
-        dt_bauhaus_slider_set_normalized(w, (event_x / slider_width) / r);
-      else
-        darktable.bauhaus->mouse_x = event_x;
-    }
-    else
-    {
-      const float scaled_step = slider_width * r * dt_bauhaus_slider_get_step(widget) / (d->max - d->min);
-      const float steps = floorf((event_x - darktable.bauhaus->mouse_x) / scaled_step);
-      _slider_add_step(widget, copysignf(1, d->factor) * steps, event->state, FALSE);
-
-      darktable.bauhaus->mouse_x += steps * scaled_step;
-    }
+    // If we are dragging, only redraw the slider and wait for button_released
+    // to capture the final coordinate and update the parameter value
+    darktable.bauhaus->mouse_x = event_x;
+    dt_bauhaus_slider_set_normalized(w, event_x / slider_width, FALSE);
+    dt_print(DT_DEBUG_GUI, "[bauhaus] motion : dragging event recorded on widget %s\n", w->label);
   }
 
   if(event_x <= slider_width - _widget_get_quad_width(w))
