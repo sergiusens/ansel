@@ -2820,6 +2820,7 @@ static void _bauhaus_slider_value_change(dt_bauhaus_widget_t *w)
   {
     dt_print(DT_DEBUG_GUI, "[bauhaus] value-changed signal emitted on widget %s\n", w->label);
     g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+    darktable.gui->has_scroll_focus = GTK_WIDGET(w);
 
     if(w->field)
     {
@@ -3116,10 +3117,9 @@ static gboolean dt_bauhaus_slider_motion_notify(GtkWidget *widget, GdkEventMotio
     dt_print(DT_DEBUG_GUI, "[bauhaus] motion : dragging event recorded on widget %s\n", w->label);
   }
 
-  if(event_x <= slider_width - _widget_get_quad_width(w))
+  if(event_x <= slider_width)
   {
-    darktable.control->element = event_x > (0.1 * (slider_width - _widget_get_quad_width(w)))
-                                         && event_x < (0.9 * (slider_width - _widget_get_quad_width(w)))
+    darktable.control->element = event_x > (0.1 * slider_width) && event_x < (0.9 * slider_width)
                                      ? DT_ACTION_ELEMENT_VALUE
                                      : DT_ACTION_ELEMENT_FORCE;
   }
