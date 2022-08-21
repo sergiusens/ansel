@@ -251,28 +251,19 @@ static void _stop_cursor()
 
 static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, gboolean commit);
 
-static float slider_position_from_right(float width, dt_bauhaus_widget_t *w)
-{
-  // relative position (in widget) of the right bound of the slider corrected with the inner padding
-  return 1.0f - _widget_get_quad_width(w) / width;
-}
-
 static float slider_coordinate(const float abs_position, const float width, dt_bauhaus_widget_t *w)
 {
   // Translates an horizontal position relative to the slider
-  // in an horizontal position relative to the widget
-  const float left_bound = 0.0f;
-  const float right_bound = slider_position_from_right(width, w); // exclude the quad area on the right
-  return (left_bound + abs_position * (right_bound - left_bound)) * width;
+  // to an horizontal position relative to the whole widget
+  return abs_position * (width - _widget_get_quad_width(w)); // exclude the quad area on the right
 }
-
 
 static float get_slider_line_offset(float pos, float scale, float x, float y, float ht, const int width,
                                     dt_bauhaus_widget_t *w)
 {
   // ht is in [0,1] scale here
   const float l = 0.0f;
-  const float r = slider_position_from_right(width, w);
+  const float r = 1.0f - _widget_get_quad_width(w) / width;
 
   float offset = 0.0f;
   // handle linear startup and rescale y to fit the whole range again
@@ -300,15 +291,15 @@ static void draw_slider_line(cairo_t *cr, float pos, float off, float scale, con
 {
   // pos is normalized position [0,1], offset is on that scale.
   // ht is in pixels here
-  const float r = slider_position_from_right(width, w);
+  const float scaling = width - _widget_get_quad_width(w); // width of the slider line
 
   const int steps = 64;
-  cairo_move_to(cr, width * (pos + off) * r, ht * .7f);
-  cairo_line_to(cr, width * (pos + off) * r, ht);
+  cairo_move_to(cr, (pos + off) * scaling, ht * .7f);
+  cairo_line_to(cr, (pos + off) * scaling, ht);
   for(int j = 1; j < steps; j++)
   {
     const float y = j / (steps - 1.0f);
-    const float x = y * y * .5f * (1.f + off / scale) + (1.0f - y * y) * (pos + off) * r;
+    const float x = y * y * .5f * (1.f + off / scale) + (1.0f - y * y) * (pos + off) * scaling / width;
     cairo_line_to(cr, x * width, ht + y * (height - ht));
   }
 }
