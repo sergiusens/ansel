@@ -684,7 +684,7 @@ int set_params(dt_imageio_module_format_t *self, const void *params, const int s
 
   dt_bauhaus_combobox_set(g->compress, d->compress);
 
-  dt_bauhaus_slider_set(g->compresslevel, d->compresslevel);
+  dt_bauhaus_slider_set_from_param(g->compresslevel, d->compresslevel);
 
   dt_bauhaus_combobox_set(g->shortfiles, d->shortfile);
   return 0;
@@ -829,7 +829,7 @@ void gui_init(dt_imageio_module_format_t *self)
                                                       dt_confgen_get_int("plugins/imageio/format/tiff/compresslevel", DT_DEFAULT),
                                                       0);
   dt_bauhaus_widget_set_label(gui->compresslevel, NULL, N_("compression level"));
-  dt_bauhaus_slider_set(gui->compresslevel, compresslevel);
+  dt_bauhaus_slider_set_from_param(gui->compresslevel, compresslevel);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(gui->compresslevel), TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(gui->compresslevel), "value-changed", G_CALLBACK(compress_level_changed), NULL);
 
@@ -857,7 +857,7 @@ void gui_reset(dt_imageio_module_format_t *self)
 {
   dt_imageio_tiff_gui_t *gui = (dt_imageio_tiff_gui_t *)self->gui_data;
   dt_bauhaus_combobox_set(gui->bpp, 0); //8bpp
-  dt_bauhaus_slider_set(gui->compresslevel, dt_confgen_get_int("plugins/imageio/format/tiff/compresslevel", DT_DEFAULT));
+  dt_bauhaus_slider_set_from_param(gui->compresslevel, dt_confgen_get_int("plugins/imageio/format/tiff/compresslevel", DT_DEFAULT));
   dt_bauhaus_combobox_set(gui->shortfiles, dt_confgen_get_int("plugins/imageio/format/tiff/shortfile", DT_DEFAULT));
 }
 

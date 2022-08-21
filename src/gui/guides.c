@@ -219,7 +219,7 @@ static GtkWidget *_guides_gui_grid(dt_iop_module_t *self, void *user_data)
   gtk_widget_set_tooltip_text(grid_horizontal, _("number of horizontal guide lines"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(grid_horizontal), TRUE, TRUE, 0);
   gchar *key = _conf_get_path("global", "grid_nbh", NULL);
-  dt_bauhaus_slider_set(grid_horizontal, dt_conf_key_exists(key) ? dt_conf_get_int(key) : 3);
+  dt_bauhaus_slider_set_from_param(grid_horizontal, dt_conf_key_exists(key) ? dt_conf_get_int(key) : 3);
   g_free(key);
   g_signal_connect(G_OBJECT(grid_horizontal), "value-changed", G_CALLBACK(_grid_horizontal_changed), user_data);
 
@@ -229,7 +229,7 @@ static GtkWidget *_guides_gui_grid(dt_iop_module_t *self, void *user_data)
   gtk_widget_set_tooltip_text(grid_vertical, _("number of vertical guide lines"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(grid_vertical), TRUE, TRUE, 0);
   key = _conf_get_path("global", "grid_nbv", NULL);
-  dt_bauhaus_slider_set(grid_vertical, dt_conf_key_exists(key) ? dt_conf_get_int(key) : 3);
+  dt_bauhaus_slider_set_from_param(grid_vertical, dt_conf_key_exists(key) ? dt_conf_get_int(key) : 3);
   g_free(key);
   g_signal_connect(G_OBJECT(grid_vertical), "value-changed", G_CALLBACK(_grid_vertical_changed), user_data);
 
@@ -239,7 +239,7 @@ static GtkWidget *_guides_gui_grid(dt_iop_module_t *self, void *user_data)
   gtk_widget_set_tooltip_text(grid_subdiv, _("number of subdivisions per grid rectangle"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(grid_subdiv), TRUE, TRUE, 0);
   key = _conf_get_path("global", "grid_subdiv", NULL);
-  dt_bauhaus_slider_set(grid_subdiv, dt_conf_key_exists(key) ? dt_conf_get_int(key) : 3);
+  dt_bauhaus_slider_set_from_param(grid_subdiv, dt_conf_key_exists(key) ? dt_conf_get_int(key) : 3);
   g_free(key);
   g_signal_connect(G_OBJECT(grid_subdiv), "value-changed", G_CALLBACK(_grid_subdiv_changed), user_data);
 
@@ -739,7 +739,7 @@ GtkWidget *dt_guides_popover(dt_view_t *self, GtkWidget *button)
   GtkWidget *contrast = darktable.view_manager->guides_contrast = dt_bauhaus_slider_new_action(DT_ACTION(self), 0, 1, 0.005, 0.5, 3);
   dt_bauhaus_widget_set_label(contrast, N_("guide lines"), N_("contrast"));
   gtk_widget_set_tooltip_text(contrast, N_("set the contrast between the lightest and darkest part of the guide overlays"));
-  dt_bauhaus_slider_set(contrast, dt_conf_get_float("darkroom/ui/overlay_contrast"));
+  dt_bauhaus_slider_set_from_param(contrast, dt_conf_get_float("darkroom/ui/overlay_contrast"));
   gtk_box_pack_start(GTK_BOX(vbox), contrast, TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(contrast), "value-changed", G_CALLBACK(_settings_contrast_changed), NULL);
 
@@ -935,11 +935,10 @@ void dt_guides_update_popover_values()
   dt_bauhaus_combobox_set(darktable.view_manager->guides, i);
   // colors
   dt_bauhaus_combobox_set(darktable.view_manager->guides_colors, dt_conf_get_int("darkroom/ui/overlay_color"));
-  dt_bauhaus_slider_set(darktable.view_manager->guides_contrast, dt_conf_get_float("darkroom/ui/overlay_contrast"));
+  dt_bauhaus_slider_set_from_param(darktable.view_manager->guides_contrast, dt_conf_get_float("darkroom/ui/overlay_contrast"));
 }
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

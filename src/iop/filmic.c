@@ -689,7 +689,7 @@ static void sanitize_latitude(dt_iop_filmic_params_t *p, dt_iop_filmic_gui_data_
     // it can never be higher than the dynamic range
     p->latitude_stops =  (p->white_point_source - p->black_point_source) * 0.99f;
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->latitude_stops, p->latitude_stops);
+    dt_bauhaus_slider_set_from_param(g->latitude_stops, p->latitude_stops);
     --darktable.gui->reset;
   }
 }
@@ -711,9 +711,9 @@ static void apply_auto_grey(dt_iop_module_t *self)
   p->white_point_source = p->white_point_source + grey_var;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->grey_point_source, p->grey_point_source);
-  dt_bauhaus_slider_set(g->black_point_source, p->black_point_source);
-  dt_bauhaus_slider_set(g->white_point_source, p->white_point_source);
+  dt_bauhaus_slider_set_from_param(g->grey_point_source, p->grey_point_source);
+  dt_bauhaus_slider_set_from_param(g->black_point_source, p->black_point_source);
+  dt_bauhaus_slider_set_from_param(g->white_point_source, p->white_point_source);
   --darktable.gui->reset;
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -738,7 +738,7 @@ static void apply_auto_black(dt_iop_module_t *self)
   p->black_point_source = EVmin;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->black_point_source, p->black_point_source);
+  dt_bauhaus_slider_set_from_param(g->black_point_source, p->black_point_source);
   --darktable.gui->reset;
 
   sanitize_latitude(p, g);
@@ -766,7 +766,7 @@ static void apply_auto_white_point_source(dt_iop_module_t *self)
   p->white_point_source = EVmax;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->white_point_source, p->white_point_source);
+  dt_bauhaus_slider_set_from_param(g->white_point_source, p->white_point_source);
   --darktable.gui->reset;
 
   sanitize_latitude(p, g);
@@ -796,8 +796,8 @@ static void security_threshold_callback(GtkWidget *slider, gpointer user_data)
   p->black_point_source = EVmin;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->white_point_source, p->white_point_source);
-  dt_bauhaus_slider_set(g->black_point_source, p->black_point_source);
+  dt_bauhaus_slider_set_from_param(g->white_point_source, p->white_point_source);
+  dt_bauhaus_slider_set_from_param(g->black_point_source, p->black_point_source);
   --darktable.gui->reset;
 
   sanitize_latitude(p, g);
@@ -837,9 +837,9 @@ static void apply_autotune(dt_iop_module_t *self)
   p->white_point_source = EVmax;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->grey_point_source, p->grey_point_source);
-  dt_bauhaus_slider_set(g->black_point_source, p->black_point_source);
-  dt_bauhaus_slider_set(g->white_point_source, p->white_point_source);
+  dt_bauhaus_slider_set_from_param(g->grey_point_source, p->grey_point_source);
+  dt_bauhaus_slider_set_from_param(g->black_point_source, p->black_point_source);
+  dt_bauhaus_slider_set_from_param(g->white_point_source, p->white_point_source);
   --darktable.gui->reset;
 
   sanitize_latitude(p, g);
@@ -877,8 +877,8 @@ static void grey_point_source_callback(GtkWidget *slider, gpointer user_data)
   p->white_point_source = p->white_point_source + grey_var;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->white_point_source, p->white_point_source);
-  dt_bauhaus_slider_set(g->black_point_source, p->black_point_source);
+  dt_bauhaus_slider_set_from_param(g->white_point_source, p->white_point_source);
+  dt_bauhaus_slider_set_from_param(g->black_point_source, p->black_point_source);
   --darktable.gui->reset;
 
   dt_iop_color_picker_reset(self, TRUE);
@@ -1373,19 +1373,19 @@ void gui_update(dt_iop_module_t *self)
 
   dt_iop_color_picker_reset(self, TRUE);
 
-  dt_bauhaus_slider_set(g->white_point_source, p->white_point_source);
-  dt_bauhaus_slider_set(g->grey_point_source, p->grey_point_source);
-  dt_bauhaus_slider_set(g->black_point_source, p->black_point_source);
-  dt_bauhaus_slider_set(g->security_factor, p->security_factor);
-  dt_bauhaus_slider_set(g->white_point_target, p->white_point_target);
-  dt_bauhaus_slider_set(g->grey_point_target, p->grey_point_target);
-  dt_bauhaus_slider_set(g->black_point_target, p->black_point_target);
-  dt_bauhaus_slider_set(g->output_power, p->output_power);
-  dt_bauhaus_slider_set(g->latitude_stops, p->latitude_stops);
-  dt_bauhaus_slider_set(g->contrast, p->contrast);
-  dt_bauhaus_slider_set(g->global_saturation, p->global_saturation);
-  dt_bauhaus_slider_set(g->saturation, (powf(10.0f, p->saturation/100.0f) - 1.0f) / 9.0f * 100.0f);
-  dt_bauhaus_slider_set(g->balance, p->balance);
+  dt_bauhaus_slider_set_from_param(g->white_point_source, p->white_point_source);
+  dt_bauhaus_slider_set_from_param(g->grey_point_source, p->grey_point_source);
+  dt_bauhaus_slider_set_from_param(g->black_point_source, p->black_point_source);
+  dt_bauhaus_slider_set_from_param(g->security_factor, p->security_factor);
+  dt_bauhaus_slider_set_from_param(g->white_point_target, p->white_point_target);
+  dt_bauhaus_slider_set_from_param(g->grey_point_target, p->grey_point_target);
+  dt_bauhaus_slider_set_from_param(g->black_point_target, p->black_point_target);
+  dt_bauhaus_slider_set_from_param(g->output_power, p->output_power);
+  dt_bauhaus_slider_set_from_param(g->latitude_stops, p->latitude_stops);
+  dt_bauhaus_slider_set_from_param(g->contrast, p->contrast);
+  dt_bauhaus_slider_set_from_param(g->global_saturation, p->global_saturation);
+  dt_bauhaus_slider_set_from_param(g->saturation, (powf(10.0f, p->saturation/100.0f) - 1.0f) / 9.0f * 100.0f);
+  dt_bauhaus_slider_set_from_param(g->balance, p->balance);
 
   dt_bauhaus_combobox_set(g->interpolator, p->interpolator);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->preserve_color), p->preserve_color);
@@ -1775,4 +1775,3 @@ void gui_init(dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

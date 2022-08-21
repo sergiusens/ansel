@@ -1357,39 +1357,39 @@ void color_picker_apply(dt_iop_module_t *self, GtkWidget *picker, dt_dev_pixelpi
   {
     p->global_H = hue;
     p->global_C = Ych[1] * Ych[0];
-    dt_bauhaus_slider_set(g->global_H, p->global_H);
-    dt_bauhaus_slider_set(g->global_C, p->global_C);
+    dt_bauhaus_slider_set_from_param(g->global_H, p->global_H);
+    dt_bauhaus_slider_set_from_param(g->global_C, p->global_C);
   }
   else if(picker == g->shadows_H)
   {
     p->shadows_H = hue;
     p->shadows_C = Ych[1] * Ych[0];
-    dt_bauhaus_slider_set(g->shadows_H, p->shadows_H);
-    dt_bauhaus_slider_set(g->shadows_C, p->shadows_C);
+    dt_bauhaus_slider_set_from_param(g->shadows_H, p->shadows_H);
+    dt_bauhaus_slider_set_from_param(g->shadows_C, p->shadows_C);
   }
   else if(picker == g->midtones_H)
   {
     p->midtones_H = hue;
     p->midtones_C = Ych[1] * Ych[0];
-    dt_bauhaus_slider_set(g->midtones_H, p->midtones_H);
-    dt_bauhaus_slider_set(g->midtones_C, p->midtones_C);
+    dt_bauhaus_slider_set_from_param(g->midtones_H, p->midtones_H);
+    dt_bauhaus_slider_set_from_param(g->midtones_C, p->midtones_C);
   }
   else if(picker == g->highlights_H)
   {
     p->highlights_H = hue;
     p->highlights_C = Ych[1] * Ych[0];
-    dt_bauhaus_slider_set(g->highlights_H, p->highlights_H);
-    dt_bauhaus_slider_set(g->highlights_C, p->highlights_C);
+    dt_bauhaus_slider_set_from_param(g->highlights_H, p->highlights_H);
+    dt_bauhaus_slider_set_from_param(g->highlights_C, p->highlights_C);
   }
   else if(picker == g->white_fulcrum)
   {
     p->white_fulcrum = log2f(max_Ych[0]);
-    dt_bauhaus_slider_set(g->white_fulcrum, p->white_fulcrum);
+    dt_bauhaus_slider_set_from_param(g->white_fulcrum, p->white_fulcrum);
   }
   else if(picker == g->grey_fulcrum)
   {
     p->grey_fulcrum = Ych[0];
-    dt_bauhaus_slider_set(g->grey_fulcrum, p->grey_fulcrum);
+    dt_bauhaus_slider_set_from_param(g->grey_fulcrum, p->grey_fulcrum);
   }
   else
     fprintf(stderr, "[colorbalancergb] unknown color picker\n");
@@ -1694,46 +1694,46 @@ void gui_update(dt_iop_module_t *self)
   dt_iop_colorbalancergb_gui_data_t *g = (dt_iop_colorbalancergb_gui_data_t *)self->gui_data;
   dt_iop_colorbalancergb_params_t *p = (dt_iop_colorbalancergb_params_t *)self->params;
 
-  dt_bauhaus_slider_set(g->hue_angle, p->hue_angle);
-  dt_bauhaus_slider_set(g->vibrance, p->vibrance);
-  dt_bauhaus_slider_set(g->contrast, p->contrast);
+  dt_bauhaus_slider_set_from_param(g->hue_angle, p->hue_angle);
+  dt_bauhaus_slider_set_from_param(g->vibrance, p->vibrance);
+  dt_bauhaus_slider_set_from_param(g->contrast, p->contrast);
 
-  dt_bauhaus_slider_set(g->chroma_global, p->chroma_global);
-  dt_bauhaus_slider_set(g->chroma_highlights, p->chroma_highlights);
-  dt_bauhaus_slider_set(g->chroma_midtones, p->chroma_midtones);
-  dt_bauhaus_slider_set(g->chroma_shadows, p->chroma_shadows);
+  dt_bauhaus_slider_set_from_param(g->chroma_global, p->chroma_global);
+  dt_bauhaus_slider_set_from_param(g->chroma_highlights, p->chroma_highlights);
+  dt_bauhaus_slider_set_from_param(g->chroma_midtones, p->chroma_midtones);
+  dt_bauhaus_slider_set_from_param(g->chroma_shadows, p->chroma_shadows);
 
-  dt_bauhaus_slider_set(g->saturation_global, p->saturation_global);
-  dt_bauhaus_slider_set(g->saturation_highlights, p->saturation_highlights);
-  dt_bauhaus_slider_set(g->saturation_midtones, p->saturation_midtones);
-  dt_bauhaus_slider_set(g->saturation_shadows, p->saturation_shadows);
+  dt_bauhaus_slider_set_from_param(g->saturation_global, p->saturation_global);
+  dt_bauhaus_slider_set_from_param(g->saturation_highlights, p->saturation_highlights);
+  dt_bauhaus_slider_set_from_param(g->saturation_midtones, p->saturation_midtones);
+  dt_bauhaus_slider_set_from_param(g->saturation_shadows, p->saturation_shadows);
 
-  dt_bauhaus_slider_set(g->brilliance_global, p->brilliance_global);
-  dt_bauhaus_slider_set(g->brilliance_highlights, p->brilliance_highlights);
-  dt_bauhaus_slider_set(g->brilliance_midtones, p->brilliance_midtones);
-  dt_bauhaus_slider_set(g->brilliance_shadows, p->brilliance_shadows);
+  dt_bauhaus_slider_set_from_param(g->brilliance_global, p->brilliance_global);
+  dt_bauhaus_slider_set_from_param(g->brilliance_highlights, p->brilliance_highlights);
+  dt_bauhaus_slider_set_from_param(g->brilliance_midtones, p->brilliance_midtones);
+  dt_bauhaus_slider_set_from_param(g->brilliance_shadows, p->brilliance_shadows);
 
-  dt_bauhaus_slider_set(g->global_C, p->global_C);
-  dt_bauhaus_slider_set(g->global_H, p->global_H);
-  dt_bauhaus_slider_set(g->global_Y, p->global_Y);
+  dt_bauhaus_slider_set_from_param(g->global_C, p->global_C);
+  dt_bauhaus_slider_set_from_param(g->global_H, p->global_H);
+  dt_bauhaus_slider_set_from_param(g->global_Y, p->global_Y);
 
-  dt_bauhaus_slider_set(g->shadows_C, p->shadows_C);
-  dt_bauhaus_slider_set(g->shadows_H, p->shadows_H);
-  dt_bauhaus_slider_set(g->shadows_Y, p->shadows_Y);
-  dt_bauhaus_slider_set(g->shadows_weight, p->shadows_weight);
+  dt_bauhaus_slider_set_from_param(g->shadows_C, p->shadows_C);
+  dt_bauhaus_slider_set_from_param(g->shadows_H, p->shadows_H);
+  dt_bauhaus_slider_set_from_param(g->shadows_Y, p->shadows_Y);
+  dt_bauhaus_slider_set_from_param(g->shadows_weight, p->shadows_weight);
 
-  dt_bauhaus_slider_set(g->midtones_C, p->midtones_C);
-  dt_bauhaus_slider_set(g->midtones_H, p->midtones_H);
-  dt_bauhaus_slider_set(g->midtones_Y, p->midtones_Y);
-  dt_bauhaus_slider_set(g->white_fulcrum, p->white_fulcrum);
+  dt_bauhaus_slider_set_from_param(g->midtones_C, p->midtones_C);
+  dt_bauhaus_slider_set_from_param(g->midtones_H, p->midtones_H);
+  dt_bauhaus_slider_set_from_param(g->midtones_Y, p->midtones_Y);
+  dt_bauhaus_slider_set_from_param(g->white_fulcrum, p->white_fulcrum);
 
-  dt_bauhaus_slider_set(g->highlights_C, p->highlights_C);
-  dt_bauhaus_slider_set(g->highlights_H, p->highlights_H);
-  dt_bauhaus_slider_set(g->highlights_Y, p->highlights_Y);
-  dt_bauhaus_slider_set(g->highlights_weight, p->highlights_weight);
+  dt_bauhaus_slider_set_from_param(g->highlights_C, p->highlights_C);
+  dt_bauhaus_slider_set_from_param(g->highlights_H, p->highlights_H);
+  dt_bauhaus_slider_set_from_param(g->highlights_Y, p->highlights_Y);
+  dt_bauhaus_slider_set_from_param(g->highlights_weight, p->highlights_weight);
 
-  dt_bauhaus_slider_set(g->mask_grey_fulcrum, p->mask_grey_fulcrum);
-  dt_bauhaus_slider_set(g->grey_fulcrum, p->grey_fulcrum);
+  dt_bauhaus_slider_set_from_param(g->mask_grey_fulcrum, p->mask_grey_fulcrum);
+  dt_bauhaus_slider_set_from_param(g->grey_fulcrum, p->grey_fulcrum);
   dt_bauhaus_combobox_set(g->saturation_formula, p->saturation_formula);
 
   gui_changed(self, NULL, NULL);
@@ -1760,7 +1760,7 @@ void gui_update(dt_iop_module_t *self)
 
   gtk_color_chooser_set_rgba(GTK_COLOR_CHOOSER(g->checker_color_2_picker), &color);
 
-  dt_bauhaus_slider_set(g->checker_size, dt_conf_get_int("plugins/darkroom/colorbalancergb/checker/size"));
+  dt_bauhaus_slider_set_from_param(g->checker_size, dt_conf_get_int("plugins/darkroom/colorbalancergb/checker/size"));
 }
 
 

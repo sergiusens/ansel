@@ -1031,7 +1031,7 @@ static void reset_mix(dt_iop_module_t *self)
   dt_iop_atrous_params_t *p = (dt_iop_atrous_params_t *)self->params;
   c->drag_params = *p;
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(c->mix, p->mix);
+  dt_bauhaus_slider_set_from_param(c->mix, p->mix);
   --darktable.gui->reset;
 }
 
@@ -1782,4 +1782,3 @@ void gui_cleanup(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

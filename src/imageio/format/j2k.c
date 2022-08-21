@@ -584,7 +584,7 @@ int set_params(dt_imageio_module_format_t *self, const void *params, const int s
   dt_imageio_j2k_gui_t *g = (dt_imageio_j2k_gui_t *)self->gui_data;
   dt_bauhaus_combobox_set(g->format, d->format);
   dt_bauhaus_combobox_set(g->preset, d->preset);
-  dt_bauhaus_slider_set(g->quality, d->quality);
+  dt_bauhaus_slider_set_from_param(g->quality, d->quality);
   return 0;
 }
 
@@ -663,7 +663,7 @@ void gui_init(dt_imageio_module_format_t *self)
                                                   0);
   dt_bauhaus_widget_set_label(gui->quality, NULL, N_("quality"));
   dt_bauhaus_slider_set_default(gui->quality, dt_confgen_get_int("plugins/imageio/format/j2k/quality", DT_DEFAULT));
-  if(quality_last > 0 && quality_last <= 100) dt_bauhaus_slider_set(gui->quality, quality_last);
+  if(quality_last > 0 && quality_last <= 100) dt_bauhaus_slider_set_from_param(gui->quality, quality_last);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(gui->quality), TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(gui->quality), "value-changed", G_CALLBACK(quality_changed), NULL);
 
@@ -707,4 +707,3 @@ int flags(dt_imageio_module_data_t *data)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

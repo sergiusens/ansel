@@ -861,26 +861,26 @@ void _colorchecker_update_sliders(struct dt_iop_module_t *self)
 
   if(g->absolute_target)
   {
-    dt_bauhaus_slider_set(g->scale_L, p->target_L[g->patch]);
-    dt_bauhaus_slider_set(g->scale_a, p->target_a[g->patch]);
-    dt_bauhaus_slider_set(g->scale_b, p->target_b[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_L, p->target_L[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_a, p->target_a[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_b, p->target_b[g->patch]);
     const float Cout = sqrtf(
         p->target_a[g->patch]*p->target_a[g->patch]+
         p->target_b[g->patch]*p->target_b[g->patch]);
-    dt_bauhaus_slider_set(g->scale_C, Cout);
+    dt_bauhaus_slider_set_from_param(g->scale_C, Cout);
   }
   else
   {
-    dt_bauhaus_slider_set(g->scale_L, p->target_L[g->patch] - p->source_L[g->patch]);
-    dt_bauhaus_slider_set(g->scale_a, p->target_a[g->patch] - p->source_a[g->patch]);
-    dt_bauhaus_slider_set(g->scale_b, p->target_b[g->patch] - p->source_b[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_L, p->target_L[g->patch] - p->source_L[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_a, p->target_a[g->patch] - p->source_a[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_b, p->target_b[g->patch] - p->source_b[g->patch]);
     const float Cin = sqrtf(
         p->source_a[g->patch]*p->source_a[g->patch] +
         p->source_b[g->patch]*p->source_b[g->patch]);
     const float Cout = sqrtf(
         p->target_a[g->patch]*p->target_a[g->patch]+
         p->target_b[g->patch]*p->target_b[g->patch]);
-    dt_bauhaus_slider_set(g->scale_C, Cout-Cin);
+    dt_bauhaus_slider_set_from_param(g->scale_C, Cout-Cin);
   }
 }
 
@@ -989,7 +989,7 @@ static void target_a_callback(GtkWidget *slider, gpointer user_data)
         p->target_a[g->patch]*p->target_a[g->patch]+
         p->target_b[g->patch]*p->target_b[g->patch]);
     ++darktable.gui->reset; // avoid history item
-    dt_bauhaus_slider_set(g->scale_C, Cout);
+    dt_bauhaus_slider_set_from_param(g->scale_C, Cout);
     --darktable.gui->reset;
   }
   else
@@ -1002,7 +1002,7 @@ static void target_a_callback(GtkWidget *slider, gpointer user_data)
         p->target_a[g->patch]*p->target_a[g->patch]+
         p->target_b[g->patch]*p->target_b[g->patch]);
     ++darktable.gui->reset; // avoid history item
-    dt_bauhaus_slider_set(g->scale_C, Cout-Cin);
+    dt_bauhaus_slider_set_from_param(g->scale_C, Cout-Cin);
     --darktable.gui->reset;
   }
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -1021,7 +1021,7 @@ static void target_b_callback(GtkWidget *slider, gpointer user_data)
         p->target_a[g->patch]*p->target_a[g->patch]+
         p->target_b[g->patch]*p->target_b[g->patch]);
     ++darktable.gui->reset; // avoid history item
-    dt_bauhaus_slider_set(g->scale_C, Cout);
+    dt_bauhaus_slider_set_from_param(g->scale_C, Cout);
     --darktable.gui->reset;
   }
   else
@@ -1034,7 +1034,7 @@ static void target_b_callback(GtkWidget *slider, gpointer user_data)
         p->target_a[g->patch]*p->target_a[g->patch]+
         p->target_b[g->patch]*p->target_b[g->patch]);
     ++darktable.gui->reset; // avoid history item
-    dt_bauhaus_slider_set(g->scale_C, Cout-Cin);
+    dt_bauhaus_slider_set_from_param(g->scale_C, Cout-Cin);
     --darktable.gui->reset;
   }
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -1059,8 +1059,8 @@ static void target_C_callback(GtkWidget *slider, gpointer user_data)
     p->target_a[g->patch] = CLAMP(p->target_a[g->patch]*Cnew/Cout, -128.0, 128.0);
     p->target_b[g->patch] = CLAMP(p->target_b[g->patch]*Cnew/Cout, -128.0, 128.0);
     ++darktable.gui->reset; // avoid history item
-    dt_bauhaus_slider_set(g->scale_a, p->target_a[g->patch]);
-    dt_bauhaus_slider_set(g->scale_b, p->target_b[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_a, p->target_a[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_b, p->target_b[g->patch]);
     --darktable.gui->reset;
   }
   else
@@ -1069,8 +1069,8 @@ static void target_C_callback(GtkWidget *slider, gpointer user_data)
     p->target_a[g->patch] = CLAMP(p->target_a[g->patch]*Cnew/Cout, -128.0, 128.0);
     p->target_b[g->patch] = CLAMP(p->target_b[g->patch]*Cnew/Cout, -128.0, 128.0);
     ++darktable.gui->reset; // avoid history item
-    dt_bauhaus_slider_set(g->scale_a, p->target_a[g->patch] - p->source_a[g->patch]);
-    dt_bauhaus_slider_set(g->scale_b, p->target_b[g->patch] - p->source_b[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_a, p->target_a[g->patch] - p->source_a[g->patch]);
+    dt_bauhaus_slider_set_from_param(g->scale_b, p->target_b[g->patch] - p->source_b[g->patch]);
     --darktable.gui->reset;
   }
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -1404,4 +1404,3 @@ void gui_init(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

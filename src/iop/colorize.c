@@ -259,8 +259,8 @@ void color_picker_apply(dt_iop_module_t *self, GtkWidget *picker, dt_dev_pixelpi
   p->saturation = S;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->hue, p->hue);
-  dt_bauhaus_slider_set(g->saturation, p->saturation);
+  dt_bauhaus_slider_set_from_param(g->hue, p->hue);
+  dt_bauhaus_slider_set_from_param(g->saturation, p->saturation);
   update_saturation_slider_end_color(g->saturation, p->hue);
   --darktable.gui->reset;
 

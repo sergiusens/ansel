@@ -507,7 +507,7 @@ int set_params(dt_imageio_module_format_t *self, const void *params, const int s
   if(size != self->params_size(self)) return 1;
   const dt_imageio_jpeg_t *d = (dt_imageio_jpeg_t *)params;
   dt_imageio_jpeg_gui_data_t *g = (dt_imageio_jpeg_gui_data_t *)self->gui_data;
-  dt_bauhaus_slider_set(g->quality, d->quality);
+  dt_bauhaus_slider_set_from_param(g->quality, d->quality);
   return 0;
 }
 
@@ -577,7 +577,7 @@ void gui_init(dt_imageio_module_format_t *self)
                                                 0);
   dt_bauhaus_widget_set_label(g->quality, NULL, N_("quality"));
   dt_bauhaus_slider_set_default(g->quality, dt_confgen_get_int("plugins/imageio/format/jpeg/quality", DT_DEFAULT));
-  dt_bauhaus_slider_set(g->quality, dt_conf_get_int("plugins/imageio/format/jpeg/quality"));
+  dt_bauhaus_slider_set_from_param(g->quality, dt_conf_get_int("plugins/imageio/format/jpeg/quality"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(g->quality), TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(g->quality), "value-changed", G_CALLBACK(quality_changed), NULL);
   // TODO: add more options: subsample dreggn
@@ -591,7 +591,7 @@ void gui_cleanup(dt_imageio_module_format_t *self)
 void gui_reset(dt_imageio_module_format_t *self)
 {
   dt_imageio_jpeg_gui_data_t *g = (dt_imageio_jpeg_gui_data_t *)self->gui_data;
-  dt_bauhaus_slider_set(g->quality, dt_confgen_get_int("plugins/imageio/format/jpeg/quality", DT_DEFAULT));
+  dt_bauhaus_slider_set_from_param(g->quality, dt_confgen_get_int("plugins/imageio/format/jpeg/quality", DT_DEFAULT));
 }
 
 // clang-format off

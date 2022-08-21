@@ -298,8 +298,8 @@ void gui_update(struct dt_iop_module_t *self)
 {
   dt_iop_rlce_gui_data_t *g = (dt_iop_rlce_gui_data_t *)self->gui_data;
   dt_iop_rlce_params_t *p = (dt_iop_rlce_params_t *)self->params;
-  dt_bauhaus_slider_set(g->scale1, p->radius);
-  dt_bauhaus_slider_set(g->scale2, p->slope);
+  dt_bauhaus_slider_set_from_param(g->scale1, p->radius);
+  dt_bauhaus_slider_set_from_param(g->scale2, p->slope);
 }
 
 void init(dt_iop_module_t *module)
@@ -355,4 +355,3 @@ void gui_init(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

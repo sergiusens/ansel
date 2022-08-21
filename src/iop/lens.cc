@@ -1983,7 +1983,7 @@ static void lens_menu_select(GtkMenuItem *menuitem, gpointer user_data)
   if(darktable.gui->reset) return;
   p->modified = 1;
   const float scale = get_autoscale(self, p, g->camera);
-  dt_bauhaus_slider_set(g->scale, scale);
+  dt_bauhaus_slider_set_from_param(g->scale, scale);
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
 
@@ -2208,7 +2208,7 @@ static void autoscale_pressed(GtkWidget *button, gpointer user_data)
   dt_iop_lensfun_params_t *p = (dt_iop_lensfun_params_t *)self->params;
   const float scale = get_autoscale(self, p, g->camera);
   p->modified = 1;
-  dt_bauhaus_slider_set(g->scale, scale);
+  dt_bauhaus_slider_set_from_param(g->scale, scale);
 }
 
 static void corrections_done(gpointer instance, gpointer user_data)

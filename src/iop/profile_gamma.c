@@ -344,7 +344,7 @@ static void apply_auto_grey(dt_iop_module_t *self)
   p->grey_point = 100.f * grey;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->grey_point, p->grey_point);
+  dt_bauhaus_slider_set_from_param(g->grey_point, p->grey_point);
   --darktable.gui->reset;
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -366,7 +366,7 @@ static void apply_auto_black(dt_iop_module_t *self)
   p->shadows_range = EVmin;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->shadows_range, p->shadows_range);
+  dt_bauhaus_slider_set_from_param(g->shadows_range, p->shadows_range);
   --darktable.gui->reset;
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -391,7 +391,7 @@ static void apply_auto_dynamic_range(dt_iop_module_t *self)
   p->dynamic_range = EVmax - EVmin;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->dynamic_range, p->dynamic_range);
+  dt_bauhaus_slider_set_from_param(g->dynamic_range, p->dynamic_range);
   --darktable.gui->reset;
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -422,9 +422,9 @@ static void apply_autotune(dt_iop_module_t *self)
   p->dynamic_range = EVmax - EVmin;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->grey_point, p->grey_point);
-  dt_bauhaus_slider_set(g->shadows_range, p->shadows_range);
-  dt_bauhaus_slider_set(g->dynamic_range, p->dynamic_range);
+  dt_bauhaus_slider_set_from_param(g->grey_point, p->grey_point);
+  dt_bauhaus_slider_set_from_param(g->shadows_range, p->shadows_range);
+  dt_bauhaus_slider_set_from_param(g->dynamic_range, p->dynamic_range);
   --darktable.gui->reset;
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -462,8 +462,8 @@ void gui_changed(dt_iop_module_t *self, GtkWidget *w, void *previous)
     p->shadows_range = EVmin;
 
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->dynamic_range, p->dynamic_range);
-    dt_bauhaus_slider_set(g->shadows_range, p->shadows_range);
+    dt_bauhaus_slider_set_from_param(g->dynamic_range, p->dynamic_range);
+    dt_bauhaus_slider_set_from_param(g->shadows_range, p->shadows_range);
     --darktable.gui->reset;
   }
 }
@@ -685,4 +685,3 @@ void gui_init(dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

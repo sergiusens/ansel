@@ -202,7 +202,7 @@ void commit_params(dt_iop_module_t *self, dt_iop_params_t *p1, dt_dev_pixelpipe_
 
 #if 0
 /** optional, always needed if tiling is permitted by setting IOP_FLAGS_ALLOW_TILING
-    Also define this if the module uses more memory on the OpenCl device than the in& output buffers. 
+    Also define this if the module uses more memory on the OpenCl device than the in& output buffers.
 */
 void tiling_callback(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
                      const dt_iop_roi_t *roi_in, const dt_iop_roi_t *roi_out,
@@ -416,7 +416,7 @@ static void extra_callback(GtkWidget *w, dt_iop_module_t *self)
   // Setting a widget value will trigger a callback that will update params.
   // If this is not desirable (because it might result in a cycle) then use
   // ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->factor, p->factor + extra);
+  dt_bauhaus_slider_set_from_param(g->factor, p->factor + extra);
   // and reverse with --darktable.gui->reset;
 
   // If any params updated directly, not via a callback, then
@@ -478,13 +478,13 @@ void gui_update(dt_iop_module_t *self)
   dt_iop_useless_gui_data_t *g = (dt_iop_useless_gui_data_t *)self->gui_data;
   dt_iop_useless_params_t *p = (dt_iop_useless_params_t *)self->params;
 
-  dt_bauhaus_slider_set(g->scale, p->checker_scale);
+  dt_bauhaus_slider_set_from_param(g->scale, p->checker_scale);
 
   // For introspection based widgets (dt_bauhaus_slider_from_params) do not use
   // any transformations here (for example *100 for percentages) because that will
   // break enforcement of $MIN/$MAX.
   // Use dt_bauhaus_slider_set_factor/offset in gui_init instead.
-  dt_bauhaus_slider_set(g->factor, p->factor);
+  dt_bauhaus_slider_set_from_param(g->factor, p->factor);
 
   // dt_bauhaus_toggle_from_params creates a standard gtk_toggle_button.
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->check), p->check);
@@ -644,4 +644,3 @@ GSList *mouse_actions(dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

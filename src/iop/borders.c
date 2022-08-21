@@ -789,7 +789,7 @@ static void aspect_changed(GtkWidget *combo, dt_iop_module_t *self)
     g_strlcpy(p->aspect_text, text, sizeof(p->aspect_text));
     p->aspect = g->aspect_ratios[which];
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->aspect_slider,p->aspect);
+    dt_bauhaus_slider_set_from_param(g->aspect_slider,p->aspect);
     --darktable.gui->reset;
   }
   dt_iop_color_picker_reset(self, TRUE);
@@ -811,7 +811,7 @@ static void position_h_changed(GtkWidget *combo, dt_iop_module_t *self)
     g_strlcpy(p->pos_h_text, text, sizeof(p->pos_h_text));
     p->pos_h = g->pos_h_ratios[which];
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->pos_h_slider,p->pos_h);
+    dt_bauhaus_slider_set_from_param(g->pos_h_slider,p->pos_h);
     --darktable.gui->reset;
   }
   dt_iop_color_picker_reset(self, TRUE);
@@ -833,7 +833,7 @@ static void position_v_changed(GtkWidget *combo, dt_iop_module_t *self)
     g_strlcpy(p->pos_v_text, text, sizeof(p->pos_v_text));
     p->pos_v = g->pos_v_ratios[which];
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->pos_v_slider,p->pos_v);
+    dt_bauhaus_slider_set_from_param(g->pos_v_slider,p->pos_v);
     --darktable.gui->reset;
   }
   dt_iop_color_picker_reset(self, TRUE);
@@ -1121,4 +1121,3 @@ void init(dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

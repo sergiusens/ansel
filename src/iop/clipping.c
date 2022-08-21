@@ -2996,13 +2996,13 @@ int mouse_moved(struct dt_iop_module_t *self, double x, double y, double pressur
 
           ++darktable.gui->reset;
 
-          dt_bauhaus_slider_set(g->cx, g->clip_x);
+          dt_bauhaus_slider_set_from_param(g->cx, g->clip_x);
           dt_bauhaus_slider_set_soft_min(g->cw, g->clip_x + 0.10);
-          dt_bauhaus_slider_set(g->cy, g->clip_y);
+          dt_bauhaus_slider_set_from_param(g->cy, g->clip_y);
           dt_bauhaus_slider_set_soft_min(g->ch, g->clip_y + 0.10);
-          dt_bauhaus_slider_set(g->cw, g->clip_x + g->clip_w);
+          dt_bauhaus_slider_set_from_param(g->cw, g->clip_x + g->clip_w);
           dt_bauhaus_slider_set_soft_max(g->cx, g->clip_x + g->clip_w - 0.10);
-          dt_bauhaus_slider_set(g->ch, g->clip_y + g->clip_h);
+          dt_bauhaus_slider_set_from_param(g->ch, g->clip_y + g->clip_h);
           dt_bauhaus_slider_set_soft_max(g->cy, g->clip_y + g->clip_h - 0.10);
 
           --darktable.gui->reset;
@@ -3175,7 +3175,7 @@ int button_released(struct dt_iop_module_t *self, double x, double y, int which,
     if(a < -180.0) a += 360.0;
     if(a > 180.0) a -= 360.0;
 
-    dt_bauhaus_slider_set(g->angle, a);
+    dt_bauhaus_slider_set_from_param(g->angle, a);
     dt_control_change_cursor(GDK_LEFT_PTR);
   }
   if(g->k_drag) g->k_drag = FALSE;
@@ -3370,4 +3370,3 @@ GSList *mouse_actions(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

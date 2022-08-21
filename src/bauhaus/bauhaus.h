@@ -56,12 +56,6 @@ typedef enum dt_bauhaus_type_t
   // TODO: all the fancy color sliders..
 } dt_bauhaus_type_t;
 
-typedef enum dt_bauhaus_curve_t
-{
-  DT_BAUHAUS_SET = 1,
-  DT_BAUHAUS_GET = 2
-} dt_bauhaus_curve_t;
-
 // data portion for a slider
 typedef struct dt_bauhaus_slider_data_t
 {
@@ -87,7 +81,6 @@ typedef struct dt_bauhaus_slider_data_t
   int is_dragging : 1;  // indicates is mouse is dragging slider
   int is_changed : 1;   // indicates new data
   guint timeout_handle; // used to store id of timeout routine
-  float (*curve)(float, dt_bauhaus_curve_t); // callback function
 } dt_bauhaus_slider_data_t;
 
 typedef enum dt_bauhaus_combobox_alignment_t
@@ -294,7 +287,7 @@ GtkWidget *dt_bauhaus_slider_new_action(dt_action_t *self, float min, float max,
                                         float defval, int digits);
 
 // outside doesn't see the real type, we cast it internally.
-void dt_bauhaus_slider_set(GtkWidget *w, float pos);
+void dt_bauhaus_slider_set_from_param(GtkWidget *w, float pos);
 void dt_bauhaus_slider_set_val(GtkWidget *w, float val);
 float dt_bauhaus_slider_get(GtkWidget *w);
 float dt_bauhaus_slider_get_val(GtkWidget *w);
@@ -327,7 +320,6 @@ void dt_bauhaus_slider_set_stop(GtkWidget *widget, float stop, float r, float g,
 void dt_bauhaus_slider_clear_stops(GtkWidget *widget);
 void dt_bauhaus_slider_set_default(GtkWidget *widget, float def);
 float dt_bauhaus_slider_get_default(GtkWidget *widget);
-void dt_bauhaus_slider_set_curve(GtkWidget *widget, float (*curve)(float value, dt_bauhaus_curve_t dir));
 
 // combobox:
 void dt_bauhaus_combobox_from_widget(struct dt_bauhaus_widget_t* widget,dt_iop_module_t *self);

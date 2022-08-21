@@ -1151,15 +1151,15 @@ void gui_update(struct dt_iop_module_t *self)
   float tempK, tint;
   mul2temp(self, p, &tempK, &tint);
 
-  dt_bauhaus_slider_set(g->scale_k, tempK);
-  dt_bauhaus_slider_set(g->scale_tint, tint);
-  dt_bauhaus_slider_set(g->scale_r, p->red);
-  dt_bauhaus_slider_set(g->scale_g, p->green);
-  dt_bauhaus_slider_set(g->scale_b, p->blue);
-  dt_bauhaus_slider_set(g->scale_g2, p->g2);
+  dt_bauhaus_slider_set_from_param(g->scale_k, tempK);
+  dt_bauhaus_slider_set_from_param(g->scale_tint, tint);
+  dt_bauhaus_slider_set_from_param(g->scale_r, p->red);
+  dt_bauhaus_slider_set_from_param(g->scale_g, p->green);
+  dt_bauhaus_slider_set_from_param(g->scale_b, p->blue);
+  dt_bauhaus_slider_set_from_param(g->scale_g2, p->g2);
 
   dt_bauhaus_combobox_set(g->presets, -1);
-  dt_bauhaus_slider_set(g->finetune, 0);
+  dt_bauhaus_slider_set_from_param(g->finetune, 0);
 
   gboolean show_finetune = FALSE;
 
@@ -1214,7 +1214,7 @@ void gui_update(struct dt_iop_module_t *self)
             }
           }
 
-          dt_bauhaus_slider_set(g->finetune, wb_preset[i].tuning);
+          dt_bauhaus_slider_set_from_param(g->finetune, wb_preset[i].tuning);
           found = TRUE;
           break;
         }
@@ -1267,7 +1267,7 @@ void gui_update(struct dt_iop_module_t *self)
                   dt_bauhaus_slider_set_default(g->finetune, wb_preset[preset->no_ft_pos].tuning);
                 }
               }
-              dt_bauhaus_slider_set(g->finetune, tune);
+              dt_bauhaus_slider_set_from_param(g->finetune, tune);
               found = TRUE;
               break;
             }
@@ -1756,12 +1756,12 @@ static void preset_tune_callback(GtkWidget *widget, dt_iop_module_t *self)
   }
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->scale_k, TempK);
-  dt_bauhaus_slider_set(g->scale_tint, tint);
-  dt_bauhaus_slider_set(g->scale_r, p->red);
-  dt_bauhaus_slider_set(g->scale_g, p->green);
-  dt_bauhaus_slider_set(g->scale_b, p->blue);
-  dt_bauhaus_slider_set(g->scale_g2, p->g2);
+  dt_bauhaus_slider_set_from_param(g->scale_k, TempK);
+  dt_bauhaus_slider_set_from_param(g->scale_tint, tint);
+  dt_bauhaus_slider_set_from_param(g->scale_r, p->red);
+  dt_bauhaus_slider_set_from_param(g->scale_g, p->green);
+  dt_bauhaus_slider_set_from_param(g->scale_b, p->blue);
+  dt_bauhaus_slider_set_from_param(g->scale_g2, p->g2);
   --darktable.gui->reset;
 
   color_temptint_sliders(self);

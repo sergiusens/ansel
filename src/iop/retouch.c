@@ -477,7 +477,7 @@ static void rt_shape_selection_changed(dt_iop_module_t *self)
   const int index = rt_get_selected_shape_index(p);
   if(index >= 0)
   {
-    dt_bauhaus_slider_set(g->sl_mask_opacity, rt_get_shape_opacity(self, p->rt_forms[index].formid));
+    dt_bauhaus_slider_set_from_param(g->sl_mask_opacity, rt_get_shape_opacity(self, p->rt_forms[index].formid));
 
     if(p->rt_forms[index].algorithm == DT_IOP_RETOUCH_BLUR)
     {
@@ -485,7 +485,7 @@ static void rt_shape_selection_changed(dt_iop_module_t *self)
       p->blur_radius = p->rt_forms[index].blur_radius;
 
       dt_bauhaus_combobox_set(g->cmb_blur_type, p->blur_type);
-      dt_bauhaus_slider_set(g->sl_blur_radius, p->blur_radius);
+      dt_bauhaus_slider_set_from_param(g->sl_blur_radius, p->blur_radius);
 
       selection_changed = 1;
     }
@@ -497,7 +497,7 @@ static void rt_shape_selection_changed(dt_iop_module_t *self)
       p->fill_color[1] = p->rt_forms[index].fill_color[1];
       p->fill_color[2] = p->rt_forms[index].fill_color[2];
 
-      dt_bauhaus_slider_set(g->sl_fill_brightness, p->fill_brightness);
+      dt_bauhaus_slider_set_from_param(g->sl_fill_brightness, p->fill_brightness);
       dt_bauhaus_combobox_set(g->cmb_fill_mode, p->fill_mode);
       rt_display_selected_fill_color(g, p);
 
@@ -1631,7 +1631,7 @@ void gui_post_expose (struct dt_iop_module_t *self,
   if(shape_id > 0)
   {
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->sl_mask_opacity, rt_masks_form_get_opacity(self, shape_id));
+    dt_bauhaus_slider_set_from_param(g->sl_mask_opacity, rt_masks_form_get_opacity(self, shape_id));
     --darktable.gui->reset;
   }
 }
@@ -2114,8 +2114,8 @@ void gui_update(dt_iop_module_t *self)
   gtk_widget_queue_draw(GTK_WIDGET(g->wd_bar));
 
   dt_bauhaus_combobox_set(g->cmb_blur_type, p->blur_type);
-  dt_bauhaus_slider_set(g->sl_blur_radius, p->blur_radius);
-  dt_bauhaus_slider_set(g->sl_fill_brightness, p->fill_brightness);
+  dt_bauhaus_slider_set_from_param(g->sl_blur_radius, p->blur_radius);
+  dt_bauhaus_slider_set_from_param(g->sl_fill_brightness, p->fill_brightness);
   dt_bauhaus_combobox_set(g->cmb_fill_mode, p->fill_mode);
 
   rt_display_selected_fill_color(g, p);

@@ -492,9 +492,9 @@ static void Dmin_picker_callback(GtkColorButton *widget, dt_iop_module_t *self)
   p->Dmin[2] = c.blue;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->Dmin_R, p->Dmin[0]);
-  dt_bauhaus_slider_set(g->Dmin_G, p->Dmin[1]);
-  dt_bauhaus_slider_set(g->Dmin_B, p->Dmin[2]);
+  dt_bauhaus_slider_set_from_param(g->Dmin_R, p->Dmin[0]);
+  dt_bauhaus_slider_set_from_param(g->Dmin_G, p->Dmin[1]);
+  dt_bauhaus_slider_set_from_param(g->Dmin_B, p->Dmin[2]);
   --darktable.gui->reset;
 
   Dmin_picker_update(self);
@@ -539,9 +539,9 @@ static void WB_low_picker_callback(GtkColorButton *widget, dt_iop_module_t *self
   for(size_t k = 0; k < 3; k++) p->wb_low[k] = RGB[k] / RGB_min;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->wb_low_R, p->wb_low[0]);
-  dt_bauhaus_slider_set(g->wb_low_G, p->wb_low[1]);
-  dt_bauhaus_slider_set(g->wb_low_B, p->wb_low[2]);
+  dt_bauhaus_slider_set_from_param(g->wb_low_R, p->wb_low[0]);
+  dt_bauhaus_slider_set_from_param(g->wb_low_G, p->wb_low[1]);
+  dt_bauhaus_slider_set_from_param(g->wb_low_B, p->wb_low[2]);
   --darktable.gui->reset;
 
   WB_low_picker_update(self);
@@ -586,9 +586,9 @@ static void WB_high_picker_callback(GtkColorButton *widget, dt_iop_module_t *sel
   for(size_t k = 0; k < 3; k++) p->wb_high[k] = RGB[k] / RGB_min;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->wb_high_R, p->wb_high[0]);
-  dt_bauhaus_slider_set(g->wb_high_G, p->wb_high[1]);
-  dt_bauhaus_slider_set(g->wb_high_B, p->wb_high[2]);
+  dt_bauhaus_slider_set_from_param(g->wb_high_R, p->wb_high[0]);
+  dt_bauhaus_slider_set_from_param(g->wb_high_G, p->wb_high[1]);
+  dt_bauhaus_slider_set_from_param(g->wb_high_B, p->wb_high[2]);
   --darktable.gui->reset;
 
   WB_high_picker_update(self);
@@ -609,9 +609,9 @@ static void apply_auto_Dmin(dt_iop_module_t *self)
   for(int k = 0; k < 4; k++) p->Dmin[k] = self->picked_color[k];
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->Dmin_R, p->Dmin[0]);
-  dt_bauhaus_slider_set(g->Dmin_G, p->Dmin[1]);
-  dt_bauhaus_slider_set(g->Dmin_B, p->Dmin[2]);
+  dt_bauhaus_slider_set_from_param(g->Dmin_R, p->Dmin[0]);
+  dt_bauhaus_slider_set_from_param(g->Dmin_G, p->Dmin[1]);
+  dt_bauhaus_slider_set_from_param(g->Dmin_B, p->Dmin[2]);
   --darktable.gui->reset;
 
   Dmin_picker_update(self);
@@ -636,7 +636,7 @@ static void apply_auto_Dmax(dt_iop_module_t *self)
   p->D_max = v_maxf(RGB);
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->D_max, p->D_max);
+  dt_bauhaus_slider_set_from_param(g->D_max, p->D_max);
   --darktable.gui->reset;
 
   dt_control_queue_redraw_widget(self->widget);
@@ -658,7 +658,7 @@ static void apply_auto_offset(dt_iop_module_t *self)
   p->offset = v_minf(RGB);
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->offset, p->offset);
+  dt_bauhaus_slider_set_from_param(g->offset, p->offset);
   --darktable.gui->reset;
 
   dt_control_queue_redraw_widget(self->widget);
@@ -681,9 +681,9 @@ static void apply_auto_WB_low(dt_iop_module_t *self)
   for(int c = 0; c < 3; c++) p->wb_low[c] =  RGB_v_min / RGB_min[c];
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->wb_low_R, p->wb_low[0]);
-  dt_bauhaus_slider_set(g->wb_low_G, p->wb_low[1]);
-  dt_bauhaus_slider_set(g->wb_low_B, p->wb_low[2]);
+  dt_bauhaus_slider_set_from_param(g->wb_low_R, p->wb_low[0]);
+  dt_bauhaus_slider_set_from_param(g->wb_low_G, p->wb_low[1]);
+  dt_bauhaus_slider_set_from_param(g->wb_low_B, p->wb_low[2]);
   --darktable.gui->reset;
 
   WB_low_picker_update(self);
@@ -707,9 +707,9 @@ static void apply_auto_WB_high(dt_iop_module_t *self)
   for(int c = 0; c < 3; c++) p->wb_high[c] = RGB_min[c] / RGB_v_min;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->wb_high_R, p->wb_high[0]);
-  dt_bauhaus_slider_set(g->wb_high_G, p->wb_high[1]);
-  dt_bauhaus_slider_set(g->wb_high_B, p->wb_high[2]);
+  dt_bauhaus_slider_set_from_param(g->wb_high_R, p->wb_high[0]);
+  dt_bauhaus_slider_set_from_param(g->wb_high_G, p->wb_high[1]);
+  dt_bauhaus_slider_set_from_param(g->wb_high_B, p->wb_high[2]);
   --darktable.gui->reset;
 
   WB_high_picker_update(self);
@@ -736,7 +736,7 @@ static void apply_auto_black(dt_iop_module_t *self)
   p->black = v_maxf(RGB);
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->black, p->black);
+  dt_bauhaus_slider_set_from_param(g->black, p->black);
   --darktable.gui->reset;
 
   dt_control_queue_redraw_widget(self->widget);
@@ -762,7 +762,7 @@ static void apply_auto_exposure(dt_iop_module_t *self)
   p->exposure = v_minf(RGB);
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->exposure, log2f(p->exposure));
+  dt_bauhaus_slider_set_from_param(g->exposure, log2f(p->exposure));
   --darktable.gui->reset;
 
   dt_control_queue_redraw_widget(self->widget);
@@ -1006,8 +1006,8 @@ void gui_changed(dt_iop_module_t *self, GtkWidget *w, void *previous)
   }
   else if(w == g->Dmin_R && p->film_stock == DT_FILMSTOCK_NB)
   {
-    dt_bauhaus_slider_set(g->Dmin_G, p->Dmin[0]);
-    dt_bauhaus_slider_set(g->Dmin_B, p->Dmin[0]);
+    dt_bauhaus_slider_set_from_param(g->Dmin_G, p->Dmin[0]);
+    dt_bauhaus_slider_set_from_param(g->Dmin_B, p->Dmin[0]);
   }
   else if(w == g->Dmin_R || w == g->Dmin_G || w == g->Dmin_B)
   {
@@ -1039,7 +1039,7 @@ void gui_update(dt_iop_module_t *const self)
   dt_iop_color_picker_reset(self, TRUE);
 
 
-  dt_bauhaus_slider_set(g->exposure, log2f(p->exposure));     // warning: GUI is in EV
+  dt_bauhaus_slider_set_from_param(g->exposure, log2f(p->exposure));     // warning: GUI is in EV
 
   // Update custom stuff
   gui_changed(self, NULL, NULL);
@@ -1054,4 +1054,3 @@ void gui_reset(dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

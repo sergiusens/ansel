@@ -432,8 +432,8 @@ void gui_update(dt_iop_module_t *module)
   dt_iop_defringe_gui_data_t *g = (dt_iop_defringe_gui_data_t *)module->gui_data;
   dt_iop_defringe_params_t *p = (dt_iop_defringe_params_t *)module->params;
   dt_bauhaus_combobox_set(g->mode_select, p->op_mode);
-  dt_bauhaus_slider_set(g->radius_scale, p->radius);
-  dt_bauhaus_slider_set(g->thresh_scale, p->thresh);
+  dt_bauhaus_slider_set_from_param(g->radius_scale, p->radius);
+  dt_bauhaus_slider_set_from_param(g->thresh_scale, p->thresh);
 }
 
 // clang-format off
@@ -441,4 +441,3 @@ void gui_update(dt_iop_module_t *module)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

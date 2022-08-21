@@ -510,8 +510,8 @@ int mouse_moved(struct dt_iop_module_t *self, double x, double y, double pressur
     }
     else if(grab == 1) // move the center
     {
-      dt_bauhaus_slider_set(g->center_x, pzx * 2.0 - 1.0);
-      dt_bauhaus_slider_set(g->center_y, pzy * 2.0 - 1.0);
+      dt_bauhaus_slider_set_from_param(g->center_x, pzx * 2.0 - 1.0);
+      dt_bauhaus_slider_set_from_param(g->center_y, pzy * 2.0 - 1.0);
     }
     else if(grab == 2) // change the width
     {
@@ -526,21 +526,21 @@ int mouse_moved(struct dt_iop_module_t *self, double x, double y, double pressur
       {
         if(dt_modifier_is(which, GDK_CONTROL_MASK))
         {
-          dt_bauhaus_slider_set(g->scale, new_scale);
+          dt_bauhaus_slider_set_from_param(g->scale, new_scale);
         }
         else
         {
-          dt_bauhaus_slider_set(g->whratio, ratio);
+          dt_bauhaus_slider_set_from_param(g->whratio, ratio);
         }
       }
       else
       {
-        dt_bauhaus_slider_set(g->scale, new_scale);
+        dt_bauhaus_slider_set_from_param(g->scale, new_scale);
 
         if(!dt_modifier_is(which, GDK_CONTROL_MASK))
         {
           float new_whratio = 2.0 - 1.0 / ratio;
-          dt_bauhaus_slider_set(g->whratio, new_whratio);
+          dt_bauhaus_slider_set_from_param(g->whratio, new_whratio);
         }
       }
     }
@@ -557,22 +557,22 @@ int mouse_moved(struct dt_iop_module_t *self, double x, double y, double pressur
         if(dt_modifier_is(which, GDK_CONTROL_MASK))
         {
           const float new_scale = 100.0 * new_vignette_h / max;
-          dt_bauhaus_slider_set(g->scale, new_scale);
+          dt_bauhaus_slider_set_from_param(g->scale, new_scale);
         }
         else
         {
-          dt_bauhaus_slider_set(g->whratio, 2.0 - ratio);
+          dt_bauhaus_slider_set_from_param(g->whratio, 2.0 - ratio);
         }
       }
       else
       {
         const float new_scale = 100.0 * new_vignette_h / max;
-        dt_bauhaus_slider_set(g->scale, new_scale);
+        dt_bauhaus_slider_set_from_param(g->scale, new_scale);
 
         if(!dt_modifier_is(which, GDK_CONTROL_MASK))
         {
           const float new_whratio = 1.0 / ratio;
-          dt_bauhaus_slider_set(g->whratio, new_whratio);
+          dt_bauhaus_slider_set_from_param(g->whratio, new_whratio);
         }
       }
     }
@@ -582,7 +582,7 @@ int mouse_moved(struct dt_iop_module_t *self, double x, double y, double pressur
       const float max = 0.5 * ((p->whratio <= 1.0) ? bigger_side * p->whratio : bigger_side);
       const float delta_x = MIN(2.0f * max, MAX(0.0, new_vignette_fx - vignette_w));
       const float new_falloff = 100.0 * delta_x / max;
-      dt_bauhaus_slider_set(g->falloff_scale, new_falloff);
+      dt_bauhaus_slider_set_from_param(g->falloff_scale, new_falloff);
     }
     else if(grab == 16) // change the falloff on the top
     {
@@ -590,7 +590,7 @@ int mouse_moved(struct dt_iop_module_t *self, double x, double y, double pressur
       const float max = 0.5 * ((p->whratio > 1.0) ? bigger_side * (2.0 - p->whratio) : bigger_side);
       const float delta_y = MIN(2.0f * max, MAX(0.0, new_vignette_fy - vignette_h));
       const float new_falloff = 100.0 * delta_y / max;
-      dt_bauhaus_slider_set(g->falloff_scale, new_falloff);
+      dt_bauhaus_slider_set_from_param(g->falloff_scale, new_falloff);
     }
     dt_control_queue_redraw_center();
     return 1;
@@ -1030,4 +1030,3 @@ GSList *mouse_actions(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

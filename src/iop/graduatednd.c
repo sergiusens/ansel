@@ -453,8 +453,8 @@ void color_picker_apply(dt_iop_module_t *self, GtkWidget *picker, dt_dev_pixelpi
   p->saturation = S;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->hue, p->hue);
-  dt_bauhaus_slider_set(g->saturation, p->saturation);
+  dt_bauhaus_slider_set_from_param(g->hue, p->hue);
+  dt_bauhaus_slider_set_from_param(g->saturation, p->saturation);
   update_saturation_slider_end_color(g->saturation, p->hue);
   --darktable.gui->reset;
 
@@ -681,7 +681,7 @@ int button_released(struct dt_iop_module_t *self, double x, double y, int which,
       set_points_from_grad(self, &g->xa, &g->ya, &g->xb, &g->yb, r, o);
     }
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->rotation, r);
+    dt_bauhaus_slider_set_from_param(g->rotation, r);
     --darktable.gui->reset;
     p->rotation = r;
     p->offset = o;
@@ -706,7 +706,7 @@ int scrolled(dt_iop_module_t *self, double x, double y, int up, uint32_t state)
       dens = fmaxf(-8.0, p->density - 0.1);
     if(dens != p->density)
     {
-      dt_bauhaus_slider_set(g->density, dens);
+      dt_bauhaus_slider_set_from_param(g->density, dens);
     }
     return 1;
   }
@@ -719,7 +719,7 @@ int scrolled(dt_iop_module_t *self, double x, double y, int up, uint32_t state)
       comp = fmaxf(0.0, p->hardness - 1.0);
     if(comp != p->hardness)
     {
-      dt_bauhaus_slider_set(g->hardness, comp);
+      dt_bauhaus_slider_set_from_param(g->hardness, comp);
     }
     return 1;
   }
@@ -1148,4 +1148,3 @@ GSList *mouse_actions(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

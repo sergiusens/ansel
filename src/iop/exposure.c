@@ -573,7 +573,7 @@ void gui_update(struct dt_iop_module_t *self)
   dt_iop_gui_enter_critical_section(self);
 
   const float lightness = dt_conf_get_float("darkroom/modules/exposure/lightness");
-  dt_bauhaus_slider_set(g->lightness_spot, lightness);
+  dt_bauhaus_slider_set_from_param(g->lightness_spot, lightness);
 
   dt_iop_gui_leave_critical_section(self);
 
@@ -631,7 +631,7 @@ static void _exposure_set_white(struct dt_iop_module_t *self, const float white)
   dt_iop_exposure_gui_data_t *g = (dt_iop_exposure_gui_data_t *)self->gui_data;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->exposure, p->exposure);
+  dt_bauhaus_slider_set_from_param(g->exposure, p->exposure);
   --darktable.gui->reset;
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
@@ -664,7 +664,7 @@ static void _exposure_set_black(struct dt_iop_module_t *self, const float black)
 
   dt_iop_exposure_gui_data_t *g = (dt_iop_exposure_gui_data_t *)self->gui_data;
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->black, p->black);
+  dt_bauhaus_slider_set_from_param(g->black, p->black);
   --darktable.gui->reset;
   dt_dev_add_history_item(darktable.develop, self, TRUE);
 }
@@ -732,7 +732,7 @@ static void _auto_set_exposure(dt_iop_module_t *self, dt_dev_pixelpipe_t *pipe)
 
     // Return the values in sliders
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->lightness_spot, Lab_out[0]);
+    dt_bauhaus_slider_set_from_param(g->lightness_spot, Lab_out[0]);
     _paint_hue(self);
     --darktable.gui->reset;
 

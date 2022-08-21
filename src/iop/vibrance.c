@@ -211,7 +211,7 @@ void gui_update(struct dt_iop_module_t *self)
 {
   dt_iop_vibrance_gui_data_t *g = (dt_iop_vibrance_gui_data_t *)self->gui_data;
   dt_iop_vibrance_params_t *p = (dt_iop_vibrance_params_t *)self->params;
-  dt_bauhaus_slider_set(g->amount_scale, p->amount);
+  dt_bauhaus_slider_set_from_param(g->amount_scale, p->amount);
 }
 
 void gui_init(struct dt_iop_module_t *self)
@@ -227,4 +227,3 @@ void gui_init(struct dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

@@ -500,11 +500,11 @@ static void output_callback(GtkComboBox *combo, gpointer user_data)
   const int output_channel_index = dt_bauhaus_combobox_get(g->output_channel);
   if(output_channel_index >= 0)
   {
-    dt_bauhaus_slider_set(g->scale_red, p->red[output_channel_index]);
+    dt_bauhaus_slider_set_from_param(g->scale_red, p->red[output_channel_index]);
     dt_bauhaus_slider_set_default(g->scale_red, output_channel_index == CHANNEL_RED ? 1.0 : 0.0);
-    dt_bauhaus_slider_set(g->scale_green, p->green[output_channel_index]);
+    dt_bauhaus_slider_set_from_param(g->scale_green, p->green[output_channel_index]);
     dt_bauhaus_slider_set_default(g->scale_green, output_channel_index == CHANNEL_GREEN ? 1.0 : 0.0);
-    dt_bauhaus_slider_set(g->scale_blue, p->blue[output_channel_index]);
+    dt_bauhaus_slider_set_from_param(g->scale_blue, p->blue[output_channel_index]);
     dt_bauhaus_slider_set_default(g->scale_blue, output_channel_index == CHANNEL_BLUE ? 1.0 : 0.0);
   }
 }
@@ -593,9 +593,9 @@ void gui_update(struct dt_iop_module_t *self)
   const int output_channel_index = dt_bauhaus_combobox_get(g->output_channel);
   if(output_channel_index >= 0)
   {
-    dt_bauhaus_slider_set(g->scale_red, p->red[output_channel_index]);
-    dt_bauhaus_slider_set(g->scale_green, p->green[output_channel_index]);
-    dt_bauhaus_slider_set(g->scale_blue, p->blue[output_channel_index]);
+    dt_bauhaus_slider_set_from_param(g->scale_red, p->red[output_channel_index]);
+    dt_bauhaus_slider_set_from_param(g->scale_green, p->green[output_channel_index]);
+    dt_bauhaus_slider_set_from_param(g->scale_blue, p->blue[output_channel_index]);
   }
 }
 
@@ -779,4 +779,3 @@ void init_presets(dt_iop_module_so_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

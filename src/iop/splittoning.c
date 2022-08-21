@@ -348,14 +348,14 @@ static void colorpick_callback(GtkColorButton *widget, dt_iop_module_t *self)
 
   if (GTK_WIDGET(widget) == g->shadow_colorpick)
   {
-      dt_bauhaus_slider_set(g->shadow_hue_gslider, h);
-      dt_bauhaus_slider_set(g->shadow_sat_gslider, s);
+      dt_bauhaus_slider_set_from_param(g->shadow_hue_gslider, h);
+      dt_bauhaus_slider_set_from_param(g->shadow_sat_gslider, s);
       update_balance_slider_colors(g->balance_scale, h, -1);
   }
   else
   {
-      dt_bauhaus_slider_set(g->highlight_hue_gslider, h);
-      dt_bauhaus_slider_set(g->highlight_sat_gslider, s);
+      dt_bauhaus_slider_set_from_param(g->highlight_hue_gslider, h);
+      dt_bauhaus_slider_set_from_param(g->highlight_sat_gslider, s);
       update_balance_slider_colors(g->balance_scale, -1,  h);
   }
 
@@ -405,8 +405,8 @@ void color_picker_apply(dt_iop_module_t *self, GtkWidget *picker, dt_dev_pixelpi
   *p_saturation = S;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(hue, H);
-  dt_bauhaus_slider_set(sat, S);
+  dt_bauhaus_slider_set_from_param(hue, H);
+  dt_bauhaus_slider_set_from_param(sat, S);
   update_colorpicker_color(colorpicker, H, S);
   update_saturation_slider_end_color(sat, H);
   --darktable.gui->reset;
@@ -446,12 +446,12 @@ void gui_update(struct dt_iop_module_t *self)
   dt_iop_splittoning_gui_data_t *g = (dt_iop_splittoning_gui_data_t *)self->gui_data;
   dt_iop_splittoning_params_t *p = (dt_iop_splittoning_params_t *)self->params;
 
-  dt_bauhaus_slider_set(g->shadow_hue_gslider, p->shadow_hue);
-  dt_bauhaus_slider_set(g->shadow_sat_gslider, p->shadow_saturation);
-  dt_bauhaus_slider_set(g->highlight_hue_gslider, p->highlight_hue);
-  dt_bauhaus_slider_set(g->highlight_sat_gslider, p->highlight_saturation);
-  dt_bauhaus_slider_set(g->balance_scale, p->balance);
-  dt_bauhaus_slider_set(g->compress_scale, p->compress);
+  dt_bauhaus_slider_set_from_param(g->shadow_hue_gslider, p->shadow_hue);
+  dt_bauhaus_slider_set_from_param(g->shadow_sat_gslider, p->shadow_saturation);
+  dt_bauhaus_slider_set_from_param(g->highlight_hue_gslider, p->highlight_hue);
+  dt_bauhaus_slider_set_from_param(g->highlight_sat_gslider, p->highlight_saturation);
+  dt_bauhaus_slider_set_from_param(g->balance_scale, p->balance);
+  dt_bauhaus_slider_set_from_param(g->compress_scale, p->compress);
 
   update_colorpicker_color(GTK_WIDGET(g->shadow_colorpick), p->shadow_hue, p->shadow_saturation);
   update_colorpicker_color(GTK_WIDGET(g->highlight_colorpick), p->highlight_hue, p->highlight_saturation);

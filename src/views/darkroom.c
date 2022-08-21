@@ -2238,7 +2238,7 @@ void gui_init(dt_view_t *self)
 
     /* threshold */
     GtkWidget *threshold = dt_bauhaus_slider_new_action(DT_ACTION(self), 0.0, 2.0, 0.01, 1.0, 3);
-    dt_bauhaus_slider_set(threshold, dev->rawoverexposed.threshold);
+    dt_bauhaus_slider_set_from_param(threshold, dev->rawoverexposed.threshold);
     dt_bauhaus_widget_set_label(threshold, N_("raw overexposed"), N_("clipping threshold"));
     gtk_widget_set_tooltip_text(
         threshold, _("threshold of what shall be considered overexposed\n1.0 - white level\n0.0 - black level"));
@@ -2285,7 +2285,7 @@ void gui_init(dt_view_t *self)
 
     /* lower */
     GtkWidget *lower = dt_bauhaus_slider_new_action(DT_ACTION(self), -32., -4., 1., -12.69, 2);
-    dt_bauhaus_slider_set(lower, dev->overexposed.lower);
+    dt_bauhaus_slider_set_from_param(lower, dev->overexposed.lower);
     dt_bauhaus_slider_set_format(lower, _(" EV"));
     dt_bauhaus_widget_set_label(lower, N_("overexposed"), N_("lower threshold"));
     gtk_widget_set_tooltip_text(lower, _("clipping threshold for the black point,\n"
@@ -2302,7 +2302,7 @@ void gui_init(dt_view_t *self)
 
     /* upper */
     GtkWidget *upper = dt_bauhaus_slider_new_action(DT_ACTION(self), 0.0, 100.0, 0.1, 99.99, 2);
-    dt_bauhaus_slider_set(upper, dev->overexposed.upper);
+    dt_bauhaus_slider_set_from_param(upper, dev->overexposed.upper);
     dt_bauhaus_slider_set_format(upper, "%");
     dt_bauhaus_widget_set_label(upper, N_("overexposed"), N_("upper threshold"));
     /* xgettext:no-c-format */

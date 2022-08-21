@@ -343,7 +343,7 @@ static void _slider_zoom_range(dt_bauhaus_widget_t *w, float zoom)
   {
     d->min = d->soft_min;
     d->max = d->soft_max;
-    dt_bauhaus_slider_set(GTK_WIDGET(w), value); // restore value (and move min/max again if needed)
+    dt_bauhaus_slider_set_from_param(GTK_WIDGET(w), value); // restore value (and move min/max again if needed)
     return;
   }
 
@@ -833,11 +833,11 @@ void dt_bauhaus_slider_set_hard_min(GtkWidget *widget, float val)
   if(val > d->hard_max) dt_bauhaus_slider_set_hard_max(widget, val);
   if(pos < val)
   {
-    dt_bauhaus_slider_set(widget, val);
+    dt_bauhaus_slider_set_from_param(widget, val);
   }
   else
   {
-    dt_bauhaus_slider_set(widget, pos);
+    dt_bauhaus_slider_set_from_param(widget, pos);
   }
 }
 
@@ -860,11 +860,11 @@ void dt_bauhaus_slider_set_hard_max(GtkWidget *widget, float val)
   if(val < d->hard_min) dt_bauhaus_slider_set_hard_min(widget, val);
   if(pos > val)
   {
-    dt_bauhaus_slider_set(widget, val);
+    dt_bauhaus_slider_set_from_param(widget, val);
   }
   else
   {
-    dt_bauhaus_slider_set(widget, pos);
+    dt_bauhaus_slider_set_from_param(widget, pos);
   }
 }
 
@@ -881,7 +881,7 @@ void dt_bauhaus_slider_set_soft_min(GtkWidget *widget, float val)
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   float oldval = dt_bauhaus_slider_get(widget);
   d->min = d->soft_min = CLAMP(val, d->hard_min, d->hard_max);
-  dt_bauhaus_slider_set(widget, oldval);
+  dt_bauhaus_slider_set_from_param(widget, oldval);
 }
 
 float dt_bauhaus_slider_get_soft_min(GtkWidget *widget)
@@ -897,7 +897,7 @@ void dt_bauhaus_slider_set_soft_max(GtkWidget *widget, float val)
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   float oldval = dt_bauhaus_slider_get(widget);
   d->max = d->soft_max = CLAMP(val, d->hard_min, d->hard_max);
-  dt_bauhaus_slider_set(widget, oldval);
+  dt_bauhaus_slider_set_from_param(widget, oldval);
 }
 
 float dt_bauhaus_slider_get_soft_max(GtkWidget *widget)
@@ -1021,13 +1021,13 @@ void dt_bauhaus_update_module(dt_iop_module_t *self)
         switch(bhw->field_type)
         {
           case DT_INTROSPECTION_TYPE_FLOAT:
-            dt_bauhaus_slider_set(widget, *(float *)bhw->field);
+            dt_bauhaus_slider_set_from_param(widget, *(float *)bhw->field);
             break;
           case DT_INTROSPECTION_TYPE_INT:
-            dt_bauhaus_slider_set(widget, *(int *)bhw->field);
+            dt_bauhaus_slider_set_from_param(widget, *(int *)bhw->field);
             break;
           case DT_INTROSPECTION_TYPE_USHORT:
-            dt_bauhaus_slider_set(widget, *(unsigned short *)bhw->field);
+            dt_bauhaus_slider_set_from_param(widget, *(unsigned short *)bhw->field);
             break;
           default:
             fprintf(stderr, "[dt_bauhaus_update_module] unsupported slider data type\n");
@@ -1111,18 +1111,6 @@ void dt_bauhaus_widget_release_quad(GtkWidget *widget)
   }
 }
 
-static float _default_linear_curve(float value, dt_bauhaus_curve_t dir)
-{
-  // regardless of dir: input <-> output
-  return value;
-}
-
-static float _reverse_linear_curve(float value, dt_bauhaus_curve_t dir)
-{
-  // regardless of dir: input <-> output
-  return 1.0 - value;
-}
-
 GtkWidget *dt_bauhaus_slider_new(dt_iop_module_t *self)
 {
   return dt_bauhaus_slider_new_with_range(self, 0.0, 1.0, 0.1, 0.5, 3);
@@ -1195,7 +1183,6 @@ GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_widget_t *w, dt_iop_module_t
   d->is_dragging = 0;
   d->is_changed = 0;
   d->timeout_handle = 0;
-  d->curve = _default_linear_curve;
 
   gtk_widget_set_name(GTK_WIDGET(w), "bauhaus-slider");
 
@@ -2532,16 +2519,13 @@ static void _slider_add_step(GtkWidget *widget, float delta, guint state, gboole
   const float min_visible = powf(10.0f, -d->digits) / fabsf(d->factor);
   if(delta && fabsf(delta) < min_visible) delta = copysignf(min_visible, delta);
 
-  const float value = dt_bauhaus_slider_get(widget);
-
   if(force || dt_modifier_is(state, GDK_SHIFT_MASK | GDK_CONTROL_MASK))
   {
     if(d->factor > 0 ? d->pos < 0.0001 : d->pos > 0.9999) d->min = d->soft_min;
     if(d->factor < 0 ? d->pos < 0.0001 : d->pos > 0.9999) d->max = d->soft_max;
   }
 
-  const float rawval = (CLAMP(value + delta, d->min, d->max) - d->min) / (d->max - d->min);
-  dt_bauhaus_slider_set_normalized(w, d->curve(rawval, DT_BAUHAUS_SET), TRUE);
+  dt_bauhaus_slider_set_normalized(w, d->pos + delta, TRUE);
 }
 
 static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
@@ -2659,12 +2643,7 @@ float dt_bauhaus_slider_get(GtkWidget *widget)
   const dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)DT_BAUHAUS_WIDGET(widget);
   if(w->type != DT_BAUHAUS_SLIDER) return -1.0f;
   const dt_bauhaus_slider_data_t *d = &w->data.slider;
-  if(d->max == d->min)
-  {
-    return d->max;
-  }
-  const float rawval = d->curve(d->pos, DT_BAUHAUS_GET);
-  return d->min + rawval * (d->max - d->min);
+  return (d->max == d->min) ? d->max : d->min + d->pos * (d->max - d->min);
 }
 
 float dt_bauhaus_slider_get_val(GtkWidget *widget)
@@ -2682,7 +2661,7 @@ char *dt_bauhaus_slider_get_text(GtkWidget *w, float val)
     return g_strdup_printf("%.*f%s", d->digits, val * d->factor + d->offset, d->format);
 }
 
-void dt_bauhaus_slider_set(GtkWidget *widget, float pos)
+void dt_bauhaus_slider_set_from_param(GtkWidget *widget, float pos)
 {
   // this is the public interface function, translate by bounds and call set_normalized
   dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)DT_BAUHAUS_WIDGET(widget);
@@ -2692,13 +2671,13 @@ void dt_bauhaus_slider_set(GtkWidget *widget, float pos)
   d->min = MIN(d->min, rpos);
   d->max = MAX(d->max, rpos);
   const float rawval = (rpos - d->min) / (d->max - d->min);
-  dt_bauhaus_slider_set_normalized(w, d->curve(rawval, DT_BAUHAUS_SET), TRUE);
+  dt_bauhaus_slider_set_normalized(w, rawval, TRUE);
 }
 
 void dt_bauhaus_slider_set_val(GtkWidget *widget, float val)
 {
   const dt_bauhaus_slider_data_t *d = &DT_BAUHAUS_WIDGET(widget)->data.slider;
-  dt_bauhaus_slider_set(widget, (val - d->offset) / d->factor);
+  dt_bauhaus_slider_set_from_param(widget, (val - d->offset) / d->factor);
 }
 
 void dt_bauhaus_slider_set_digits(GtkWidget *widget, int val)
@@ -2803,7 +2782,7 @@ void dt_bauhaus_slider_reset(GtkWidget *widget)
   d->min = d->soft_min;
   d->max = d->soft_max;
 
-  dt_bauhaus_slider_set(widget, d->defpos);
+  dt_bauhaus_slider_set_from_param(widget, d->defpos);
 
   return;
 }
@@ -2829,7 +2808,6 @@ void dt_bauhaus_slider_set_factor(GtkWidget *widget, float factor)
   if(w->type != DT_BAUHAUS_SLIDER) return;
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   d->factor = factor;
-  if(factor < 0) d->curve = _reverse_linear_curve;
 }
 
 void dt_bauhaus_slider_set_offset(GtkWidget *widget, float offset)
@@ -2838,18 +2816,6 @@ void dt_bauhaus_slider_set_offset(GtkWidget *widget, float offset)
   if(w->type != DT_BAUHAUS_SLIDER) return;
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   d->offset = offset;
-}
-
-void dt_bauhaus_slider_set_curve(GtkWidget *widget, float (*curve)(float value, dt_bauhaus_curve_t dir))
-{
-  dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)DT_BAUHAUS_WIDGET(widget);
-  if(w->type != DT_BAUHAUS_SLIDER) return;
-  dt_bauhaus_slider_data_t *d = &w->data.slider;
-  if(curve == NULL) curve = _default_linear_curve;
-
-  d->pos = curve(d->curve(d->pos, DT_BAUHAUS_GET), DT_BAUHAUS_SET);
-
-  d->curve = curve;
 }
 
 static gboolean _bauhaus_slider_value_change_dragging(gpointer data);
@@ -2914,13 +2880,10 @@ static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, 
 {
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   float rpos = CLAMP(pos, 0.0f, 1.0f);
-  rpos = d->curve(rpos, DT_BAUHAUS_GET);
   rpos = d->min + (d->max - d->min) * rpos;
   const float base = powf(10.0f, d->digits) * d->factor;
   rpos = roundf(base * rpos) / base;
-
-  rpos = (rpos - d->min) / (d->max - d->min);
-  d->pos = d->curve(rpos, DT_BAUHAUS_SET);
+  d->pos = (rpos - d->min) / (d->max - d->min);
   gtk_widget_queue_draw(GTK_WIDGET(w));
 
   d->is_changed = 1;
@@ -2933,6 +2896,18 @@ static void dt_bauhaus_slider_set_normalized(dt_bauhaus_widget_t *w, float pos, 
     _bauhaus_slider_value_change(w);
     dt_print(DT_DEBUG_GUI, "[bauhaus] slider value changed on widget %s\n", w->label);
   }
+}
+
+static void dt_bauhaus_slider_set_from_gui(dt_bauhaus_widget_t *w, const float position, const gboolean commit)
+{
+  GtkWidget *widget = GTK_WIDGET(w);
+
+  GtkAllocation allocation;
+  gtk_widget_get_allocation(widget, &allocation);
+  const double slider_width = allocation.width - w->margin->left - w->padding->left - w->margin->right
+                              - w->padding->right - _widget_get_quad_width(w);
+
+  dt_bauhaus_slider_set_normalized(w, position / slider_width, commit);
 }
 
 static gboolean dt_bauhaus_popup_key_press(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
@@ -3116,10 +3091,6 @@ static gboolean dt_bauhaus_slider_button_release(GtkWidget *widget, GdkEventButt
   dt_print(DT_DEBUG_GUI, "[bauhaus] button released on widget %s\n", w->label);
 
   dt_bauhaus_slider_data_t *d = &w->data.slider;
-  GtkAllocation allocation;
-  gtk_widget_get_allocation(widget, &allocation);
-  const double slider_width = allocation.width - w->margin->left - w->padding->left - w->margin->right
-                              - w->padding->right - _widget_get_quad_width(w);
 
   dt_bauhaus_widget_release_quad(widget);
   if(event->button == 1 && d->is_dragging)
@@ -3127,7 +3098,7 @@ static gboolean dt_bauhaus_slider_button_release(GtkWidget *widget, GdkEventButt
     d->is_dragging = 0;
     if(d->timeout_handle) g_source_remove(d->timeout_handle);
     d->timeout_handle = 0;
-    dt_bauhaus_slider_set_normalized(w, darktable.bauhaus->mouse_x / slider_width, TRUE);
+    dt_bauhaus_slider_set_from_gui(w, darktable.bauhaus->mouse_x, TRUE);
     darktable.bauhaus->mouse_x = NAN;
 
     return TRUE;
@@ -3150,7 +3121,7 @@ static gboolean dt_bauhaus_slider_motion_notify(GtkWidget *widget, GdkEventMotio
     // If we are dragging, only redraw the slider and wait for button_released
     // to capture the final coordinate and update the parameter value
     darktable.bauhaus->mouse_x = event_x;
-    dt_bauhaus_slider_set_normalized(w, event_x / slider_width, FALSE);
+    dt_bauhaus_slider_set_from_gui(w, event_x, FALSE);
     dt_print(DT_DEBUG_GUI, "[bauhaus] motion : dragging event recorded on widget %s\n", w->label);
   }
 
@@ -3228,13 +3199,13 @@ static float _action_process_slider(gpointer target, dt_action_element_t element
             dt_bauhaus_slider_reset(widget);
             break;
           case DT_ACTION_EFFECT_TOP:
-            dt_bauhaus_slider_set(widget, element == DT_ACTION_ELEMENT_FORCE ? d->hard_max : d->max);
+            dt_bauhaus_slider_set_from_param(widget, element == DT_ACTION_ELEMENT_FORCE ? d->hard_max : d->max);
             break;
           case DT_ACTION_EFFECT_BOTTOM:
-            dt_bauhaus_slider_set(widget, element == DT_ACTION_ELEMENT_FORCE ? d->hard_min : d->min);
+            dt_bauhaus_slider_set_from_param(widget, element == DT_ACTION_ELEMENT_FORCE ? d->hard_min : d->min);
             break;
           case DT_ACTION_EFFECT_SET:
-            dt_bauhaus_slider_set(widget, move_size);
+            dt_bauhaus_slider_set_from_param(widget, move_size);
             break;
           default:
             fprintf(stderr, "[_action_process_slider] unknown shortcut effect (%d) for slider\n", effect);

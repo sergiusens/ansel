@@ -401,19 +401,19 @@ void gui_update(dt_iop_module_t *self)
 
   if(p->mode == s_mode_local_laplacian)
   {
-    dt_bauhaus_slider_set(g->highlights, p->sigma_r);
-    dt_bauhaus_slider_set(g->shadows, p->sigma_s);
-    dt_bauhaus_slider_set(g->midtone, p->midtone);
-    dt_bauhaus_slider_set(g->range, 20.0f);
-    dt_bauhaus_slider_set(g->spatial, 50.0f);
+    dt_bauhaus_slider_set_from_param(g->highlights, p->sigma_r);
+    dt_bauhaus_slider_set_from_param(g->shadows, p->sigma_s);
+    dt_bauhaus_slider_set_from_param(g->midtone, p->midtone);
+    dt_bauhaus_slider_set_from_param(g->range, 20.0f);
+    dt_bauhaus_slider_set_from_param(g->spatial, 50.0f);
   }
   else
   {
-    dt_bauhaus_slider_set(g->range, p->sigma_r);
-    dt_bauhaus_slider_set(g->spatial, p->sigma_s);
-    dt_bauhaus_slider_set(g->midtone, p->midtone);
-    dt_bauhaus_slider_set(g->highlights, 0.5f);
-    dt_bauhaus_slider_set(g->shadows, 0.5f);
+    dt_bauhaus_slider_set_from_param(g->range, p->sigma_r);
+    dt_bauhaus_slider_set_from_param(g->spatial, p->sigma_s);
+    dt_bauhaus_slider_set_from_param(g->midtone, p->midtone);
+    dt_bauhaus_slider_set_from_param(g->highlights, 0.5f);
+    dt_bauhaus_slider_set_from_param(g->shadows, 0.5f);
   }
 
   gui_changed(self, NULL, NULL);
@@ -479,4 +479,3 @@ void gui_init(dt_iop_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

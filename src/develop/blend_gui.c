@@ -637,7 +637,7 @@ static void _blendop_blend_mode_callback(GtkWidget *combo, dt_iop_gui_blend_data
     else
     {
       bp->blend_parameter = 0.0f;
-      dt_bauhaus_slider_set(data->blend_mode_parameter_slider, bp->blend_parameter);
+      dt_bauhaus_slider_set_from_param(data->blend_mode_parameter_slider, bp->blend_parameter);
       gtk_widget_set_sensitive(data->blend_mode_parameter_slider, FALSE);
     }
     dt_dev_add_history_item(darktable.develop, data->module, TRUE);
@@ -1061,7 +1061,7 @@ static void _blendop_blendif_update_tab(dt_iop_module_t *module, const int tab)
     boost_factor = bp->blendif_boost_factors[channel->param_channels[0]] - channel->boost_factor_offset;
   }
   gtk_widget_set_sensitive(GTK_WIDGET(data->channel_boost_factor_slider), boost_factor_enabled);
-  dt_bauhaus_slider_set(GTK_WIDGET(data->channel_boost_factor_slider), boost_factor);
+  dt_bauhaus_slider_set_from_param(GTK_WIDGET(data->channel_boost_factor_slider), boost_factor);
 
   --darktable.gui->reset;
 }
@@ -2732,7 +2732,7 @@ void dt_iop_gui_update_blending(dt_iop_module_t *module)
   gboolean blend_mode_reversed = (module->blend_params->blend_mode & DEVELOP_BLEND_REVERSE) == DEVELOP_BLEND_REVERSE;
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bd->blend_modes_blend_order), blend_mode_reversed);
 
-  dt_bauhaus_slider_set(bd->blend_mode_parameter_slider, module->blend_params->blend_parameter);
+  dt_bauhaus_slider_set_from_param(bd->blend_mode_parameter_slider, module->blend_params->blend_parameter);
   gtk_widget_set_sensitive(bd->blend_mode_parameter_slider,
                            _blendif_blend_parameter_enabled(bd->blend_modes_csp, module->blend_params->blend_mode));
   gtk_widget_set_visible(bd->blend_mode_parameter_slider, bd->blend_modes_csp == DEVELOP_BLEND_CS_RGB_SCENE);
@@ -2741,14 +2741,14 @@ void dt_iop_gui_update_blending(dt_iop_module_t *module)
                                      module->blend_params->mask_combine & (DEVELOP_COMBINE_INV | DEVELOP_COMBINE_INCL));
   dt_bauhaus_combobox_set_from_value(bd->masks_invert_combo,
                                      module->blend_params->mask_combine & DEVELOP_COMBINE_INV);
-  dt_bauhaus_slider_set(bd->opacity_slider, module->blend_params->opacity);
+  dt_bauhaus_slider_set_from_param(bd->opacity_slider, module->blend_params->opacity);
   dt_bauhaus_combobox_set_from_value(bd->masks_feathering_guide_combo,
                                      module->blend_params->feathering_guide);
-  dt_bauhaus_slider_set(bd->feathering_radius_slider, module->blend_params->feathering_radius);
-  dt_bauhaus_slider_set(bd->blur_radius_slider, module->blend_params->blur_radius);
-  dt_bauhaus_slider_set(bd->brightness_slider, module->blend_params->brightness);
-  dt_bauhaus_slider_set(bd->contrast_slider, module->blend_params->contrast);
-  dt_bauhaus_slider_set(bd->details_slider, module->blend_params->details);
+  dt_bauhaus_slider_set_from_param(bd->feathering_radius_slider, module->blend_params->feathering_radius);
+  dt_bauhaus_slider_set_from_param(bd->blur_radius_slider, module->blend_params->blur_radius);
+  dt_bauhaus_slider_set_from_param(bd->brightness_slider, module->blend_params->brightness);
+  dt_bauhaus_slider_set_from_param(bd->contrast_slider, module->blend_params->contrast);
+  dt_bauhaus_slider_set_from_param(bd->details_slider, module->blend_params->details);
 
   /* reset all alternative display modes for blendif */
   memset(bd->altmode, 0, sizeof(bd->altmode));
@@ -3192,4 +3192,3 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

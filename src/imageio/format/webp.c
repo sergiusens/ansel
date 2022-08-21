@@ -252,7 +252,7 @@ int set_params(dt_imageio_module_format_t *self, const void *params, const int s
   const dt_imageio_webp_t *d = (dt_imageio_webp_t *)params;
   dt_imageio_webp_gui_data_t *g = (dt_imageio_webp_gui_data_t *)self->gui_data;
   dt_bauhaus_combobox_set(g->compression, d->comp_type);
-  dt_bauhaus_slider_set(g->quality, d->quality);
+  dt_bauhaus_slider_set_from_param(g->quality, d->quality);
   dt_bauhaus_combobox_set(g->hint, d->hint);
   return 0;
 }
@@ -338,7 +338,7 @@ void gui_init(dt_imageio_module_format_t *self)
   dt_bauhaus_slider_set_default(gui->quality, dt_confgen_get_int("plugins/imageio/format/webp/quality", DT_DEFAULT));
   dt_bauhaus_slider_set_format(gui->quality, "%");
   gtk_widget_set_tooltip_text(gui->quality, _("applies only to lossy setting"));
-  if(quality > 0 && quality <= 100) dt_bauhaus_slider_set(gui->quality, quality);
+  if(quality > 0 && quality <= 100) dt_bauhaus_slider_set_from_param(gui->quality, quality);
   gtk_box_pack_start(GTK_BOX(self->widget), gui->quality, TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(gui->quality), "value-changed", G_CALLBACK(quality_changed), (gpointer)0);
 
@@ -375,7 +375,7 @@ void gui_reset(dt_imageio_module_format_t *self)
   const int quality = dt_confgen_get_int("plugins/imageio/format/webp/quality", DT_DEFAULT);
   const int hint = dt_confgen_get_int("plugins/imageio/format/webp/hint", DT_DEFAULT);
   dt_bauhaus_combobox_set(gui->compression, comp_type);
-  dt_bauhaus_slider_set(gui->quality, quality);
+  dt_bauhaus_slider_set_from_param(gui->quality, quality);
   dt_bauhaus_combobox_set(gui->hint, hint);
 }
 
@@ -390,4 +390,3 @@ int flags(dt_imageio_module_data_t *data)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

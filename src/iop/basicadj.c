@@ -474,7 +474,7 @@ void color_picker_apply(dt_iop_module_t *self, GtkWidget *picker, dt_dev_pixelpi
                                   : dt_camera_rgb_luminance(self->picked_color);
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->sl_middle_grey, p->middle_grey);
+  dt_bauhaus_slider_set_from_param(g->sl_middle_grey, p->middle_grey);
   --darktable.gui->reset;
 
   dt_dev_add_history_item(darktable.develop, self, TRUE);
@@ -1584,4 +1584,3 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

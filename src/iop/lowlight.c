@@ -286,7 +286,7 @@ void gui_update(struct dt_iop_module_t *self)
 {
   dt_iop_lowlight_gui_data_t *g = (dt_iop_lowlight_gui_data_t *)self->gui_data;
   dt_iop_lowlight_params_t *p = (dt_iop_lowlight_params_t *)self->params;
-  dt_bauhaus_slider_set(g->scale_blueness, p->blueness);
+  dt_bauhaus_slider_set_from_param(g->scale_blueness, p->blueness);
   dt_iop_cancel_history_update(self);
   gtk_widget_queue_draw(self->widget);
 }

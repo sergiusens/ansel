@@ -810,7 +810,7 @@ void gui_reset(struct dt_iop_module_t *self)
   dt_iop_tonecurve_params_t *p = (dt_iop_tonecurve_params_t *)self->params;
   dt_bauhaus_combobox_set(g->interpolator, p->tonecurve_type[ch_L]);
   dt_bauhaus_combobox_set(g->preserve_colors, p->preserve_colors);
-  dt_bauhaus_slider_set(g->logbase, 0);
+  dt_bauhaus_slider_set_from_param(g->logbase, 0);
   g->loglogscale = 0;
   g->semilog = 0;
 

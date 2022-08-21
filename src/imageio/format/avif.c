@@ -660,7 +660,7 @@ int set_params(dt_imageio_module_format_t *self,
   dt_bauhaus_combobox_set(g->color_mode, d->color_mode);
   dt_bauhaus_combobox_set(g->tiling, d->tiling);
   dt_bauhaus_combobox_set(g->compression_type, d->compression_type);
-  dt_bauhaus_slider_set(g->quality, d->quality);
+  dt_bauhaus_slider_set_from_param(g->quality, d->quality);
 
   return 0;
 }
@@ -885,7 +885,7 @@ void gui_init(dt_imageio_module_format_t *self)
 
   if(quality > 0 && quality <= 100)
   {
-      dt_bauhaus_slider_set(gui->quality, quality);
+      dt_bauhaus_slider_set_from_param(gui->quality, quality);
   }
   gtk_box_pack_start(GTK_BOX(self->widget), gui->quality, TRUE, TRUE, 0);
 
@@ -938,7 +938,7 @@ void gui_reset(dt_imageio_module_format_t *self)
   dt_bauhaus_combobox_set(gui->color_mode, color_mode);
   dt_bauhaus_combobox_set(gui->tiling, tiling);
   dt_bauhaus_combobox_set(gui->compression_type, compression_type);
-  dt_bauhaus_slider_set(gui->quality, quality);
+  dt_bauhaus_slider_set_from_param(gui->quality, quality);
 
   compression_type_changed(GTK_WIDGET(gui->compression_type), self);
   quality_changed(GTK_WIDGET(gui->quality), self);

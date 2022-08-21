@@ -2667,25 +2667,25 @@ static void commit_profile_callback(GtkWidget *widget, GdkEventButton *event, gp
 
   ++darktable.gui->reset;
   dt_bauhaus_combobox_set(g->illuminant, p->illuminant);
-  dt_bauhaus_slider_set(g->temperature, p->temperature);
+  dt_bauhaus_slider_set_from_param(g->temperature, p->temperature);
 
   dt_aligned_pixel_t xyY = { p->x, p->y, 1.f };
   dt_aligned_pixel_t Lch = { 0 };
   dt_xyY_to_Lch(xyY, Lch);
-  dt_bauhaus_slider_set(g->illum_x, Lch[2] / M_PI * 180.f);
-  dt_bauhaus_slider_set(g->illum_y, Lch[1]);
+  dt_bauhaus_slider_set_from_param(g->illum_x, Lch[2] / M_PI * 180.f);
+  dt_bauhaus_slider_set_from_param(g->illum_y, Lch[1]);
 
-  dt_bauhaus_slider_set(g->scale_red_R, p->red[0]);
-  dt_bauhaus_slider_set(g->scale_red_G, p->red[1]);
-  dt_bauhaus_slider_set(g->scale_red_B, p->red[2]);
+  dt_bauhaus_slider_set_from_param(g->scale_red_R, p->red[0]);
+  dt_bauhaus_slider_set_from_param(g->scale_red_G, p->red[1]);
+  dt_bauhaus_slider_set_from_param(g->scale_red_B, p->red[2]);
 
-  dt_bauhaus_slider_set(g->scale_green_R, p->green[0]);
-  dt_bauhaus_slider_set(g->scale_green_G, p->green[1]);
-  dt_bauhaus_slider_set(g->scale_green_B, p->green[2]);
+  dt_bauhaus_slider_set_from_param(g->scale_green_R, p->green[0]);
+  dt_bauhaus_slider_set_from_param(g->scale_green_G, p->green[1]);
+  dt_bauhaus_slider_set_from_param(g->scale_green_B, p->green[2]);
 
-  dt_bauhaus_slider_set(g->scale_blue_R, p->blue[0]);
-  dt_bauhaus_slider_set(g->scale_blue_G, p->blue[1]);
-  dt_bauhaus_slider_set(g->scale_blue_B, p->blue[2]);
+  dt_bauhaus_slider_set_from_param(g->scale_blue_R, p->blue[0]);
+  dt_bauhaus_slider_set_from_param(g->scale_blue_G, p->blue[1]);
+  dt_bauhaus_slider_set_from_param(g->scale_blue_B, p->blue[2]);
 
   --darktable.gui->reset;
 
@@ -2716,15 +2716,15 @@ static void _develop_ui_pipe_finished_callback(gpointer instance, gpointer user_
 
   ++darktable.gui->reset;
 
-  dt_bauhaus_slider_set(g->temperature, p->temperature);
+  dt_bauhaus_slider_set_from_param(g->temperature, p->temperature);
   dt_bauhaus_combobox_set(g->illuminant, p->illuminant);
   dt_bauhaus_combobox_set(g->adaptation, p->adaptation);
 
   const dt_aligned_pixel_t xyY = { p->x, p->y, 1.f };
   dt_aligned_pixel_t Lch;
   dt_xyY_to_Lch(xyY, Lch);
-  dt_bauhaus_slider_set(g->illum_x, Lch[2] / M_PI * 180.f);
-  dt_bauhaus_slider_set(g->illum_y, Lch[1]);
+  dt_bauhaus_slider_set_from_param(g->illum_x, Lch[2] / M_PI * 180.f);
+  dt_bauhaus_slider_set_from_param(g->illum_y, Lch[1]);
 
   update_illuminants(self);
   update_approx_cct(self);
@@ -3368,7 +3368,7 @@ static void illum_xy_callback(GtkWidget *slider, gpointer user_data)
   p->temperature = t;
 
   ++darktable.gui->reset;
-  dt_bauhaus_slider_set(g->temperature, p->temperature);
+  dt_bauhaus_slider_set_from_param(g->temperature, p->temperature);
   update_approx_cct(self);
   update_illuminant_color(self);
   paint_temperature_background(self);
@@ -3419,17 +3419,17 @@ void gui_update(struct dt_iop_module_t *self)
   float lightness = 50.f;
   if(dt_conf_key_exists("darkroom/modules/channelmixerrgb/lightness"))
     lightness = dt_conf_get_float("darkroom/modules/channelmixerrgb/lightness");
-  dt_bauhaus_slider_set(g->lightness_spot, lightness);
+  dt_bauhaus_slider_set_from_param(g->lightness_spot, lightness);
 
   float hue = 0.f;
   if(dt_conf_key_exists("darkroom/modules/channelmixerrgb/hue"))
     hue = dt_conf_get_float("darkroom/modules/channelmixerrgb/hue");
-  dt_bauhaus_slider_set(g->hue_spot, hue);
+  dt_bauhaus_slider_set_from_param(g->hue_spot, hue);
 
   float chroma = 0.f;
   if(dt_conf_key_exists("darkroom/modules/channelmixerrgb/chroma"))
     chroma = dt_conf_get_float("darkroom/modules/channelmixerrgb/chroma");
-  dt_bauhaus_slider_set(g->chroma_spot, chroma);
+  dt_bauhaus_slider_set_from_param(g->chroma_spot, chroma);
 
   dt_iop_gui_leave_critical_section(self);
 
@@ -3458,7 +3458,7 @@ void gui_update(struct dt_iop_module_t *self)
   g->optimization = j;
 
   g->safety_margin = dt_conf_get_float("darkroom/modules/channelmixerrgb/safety");
-  dt_bauhaus_slider_set(g->safety, g->safety_margin);
+  dt_bauhaus_slider_set_from_param(g->safety, g->safety_margin);
 
   dt_iop_gui_leave_critical_section(self);
 
@@ -3677,11 +3677,11 @@ void gui_changed(dt_iop_module_t *self, GtkWidget *w, void *previous)
     // leave the hue slider where it was, so that if chroma is set to zero and then
     // set to a nonzero value, the hue setting will remain unchanged.
     if(Lch[1] > 0)
-      dt_bauhaus_slider_set(g->illum_x, Lch[2] / M_PI * 180.f);
-    dt_bauhaus_slider_set(g->illum_y, Lch[1]);
+      dt_bauhaus_slider_set_from_param(g->illum_x, Lch[2] / M_PI * 180.f);
+    dt_bauhaus_slider_set_from_param(g->illum_y, Lch[1]);
 
     // Redraw the temperature background color taking new soft bounds into account
-    dt_bauhaus_slider_set(g->temperature, p->temperature);
+    dt_bauhaus_slider_set_from_param(g->temperature, p->temperature);
     paint_temperature_background(self);
   }
 
@@ -3824,9 +3824,9 @@ void _auto_set_illuminant(dt_iop_module_t *self, dt_dev_pixelpipe_t *pipe)
 
     // Return the values in sliders
     ++darktable.gui->reset;
-    dt_bauhaus_slider_set(g->lightness_spot, Lch_output[0]);
-    dt_bauhaus_slider_set(g->chroma_spot, Lch_output[1]);
-    dt_bauhaus_slider_set(g->hue_spot, Lch_output[2] * 360.f);
+    dt_bauhaus_slider_set_from_param(g->lightness_spot, Lch_output[0]);
+    dt_bauhaus_slider_set_from_param(g->chroma_spot, Lch_output[1]);
+    dt_bauhaus_slider_set_from_param(g->hue_spot, Lch_output[2] * 360.f);
     paint_hue(self);
     --darktable.gui->reset;
 
@@ -3940,15 +3940,15 @@ void _auto_set_illuminant(dt_iop_module_t *self, dt_dev_pixelpipe_t *pipe)
 
     check_if_close_to_daylight(p->x, p->y, &p->temperature, NULL, NULL);
 
-    dt_bauhaus_slider_set(g->temperature, p->temperature);
+    dt_bauhaus_slider_set_from_param(g->temperature, p->temperature);
     dt_bauhaus_combobox_set(g->illuminant, p->illuminant);
     dt_bauhaus_combobox_set(g->adaptation, p->adaptation);
 
     const dt_aligned_pixel_t xyY = { p->x, p->y, 1.f };
     dt_aligned_pixel_t Lch_illuminant = { 0 };
     dt_xyY_to_Lch(xyY, Lch_illuminant);
-    dt_bauhaus_slider_set(g->illum_x, Lch_illuminant[2] / M_PI * 180.f);
-    dt_bauhaus_slider_set(g->illum_y, Lch_illuminant[1]);
+    dt_bauhaus_slider_set_from_param(g->illum_x, Lch_illuminant[2] / M_PI * 180.f);
+    dt_bauhaus_slider_set_from_param(g->illum_y, Lch_illuminant[1]);
 
     update_illuminants(self);
     update_approx_cct(self);
