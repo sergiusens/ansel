@@ -145,6 +145,15 @@ typedef struct dt_bauhaus_widget_t
   // label text, short
   char label[256];
   gboolean show_label;
+
+  // store Pango spans for active area detection from coordinates
+  struct label_size {
+    float width, height;
+  } label_size;
+  struct value_size {
+    float width, height;
+  } value_size;
+
   // section, short
   gchar *section;
   gboolean show_extended_label;
@@ -158,8 +167,6 @@ typedef struct dt_bauhaus_widget_t
   int quad_toggle;
   // show quad icon or space
   gboolean show_quad;
-  // if a section label
-  gboolean is_section;
 
   // margin and padding structure, defined in css, retrieve on each draw
   GtkBorder *margin, *padding;
@@ -246,10 +253,6 @@ void dt_bauhaus_cleanup();
 
 // load theme colors, fonts, etc
 void dt_bauhaus_load_theme();
-
-// set the bauhaus widget as a module section and in this case the font used will be the one
-// from the CSS section_label.
-void dt_bauhaus_widget_set_section(GtkWidget *w, const gboolean is_section);
 
 // common functions:
 // set the label text:
