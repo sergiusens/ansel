@@ -1,0 +1,22 @@
+From d795a0f3e8ced33c207314320c0f222f9f25280b Mon Sep 17 00:00:00 2001
+From: Simon Raffeiner <info@simonraffeiner.de>
+Date: Sat, 27 Aug 2022 14:48:00 +0200
+Subject: [PATCH] Fix is_supported_platform.h for LLVM on AArch64
+
+---
+ src/is_supported_platform.h | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/is_supported_platform.h b/src/is_supported_platform.h
+index 165f071a5fe..2d420cd4ac8 100644
+--- a/src/is_supported_platform.h
++++ b/src/is_supported_platform.h
+@@ -30,7 +30,7 @@
+ #define DT_SUPPORTED_X86 0
+ #endif
+ 
+-#if defined(__aarch64__) && (defined(__ARM_64BIT_STATE) && defined(__ARM_ARCH) && defined(__ARM_ARCH_8A) || defined(__APPLE__) || defined(__MINGW64__))
++#if defined(__aarch64__) && (defined(__ARM_64BIT_STATE) && defined(__ARM_ARCH) && (defined(__ARM_ARCH_8A) || __ARM_ARCH_PROFILE == 'A') || defined(__APPLE__) || defined(__MINGW64__))
+ #define DT_SUPPORTED_ARMv8A 1
+ #else
+ #define DT_SUPPORTED_ARMv8A 0
