@@ -3,20 +3,16 @@ version: "0.0.0"
 adopt-info: ansel
 grade: stable
 confinement: strict
-base: core22
+base: core24
 compression: lzo
 
 donation: "https://liberapay.com/aurelienpierre"
 source-code: "https://github.com/aurelienpierreeng/ansel"
 website: "https://ansel.photos"
 
-architectures:
-  - build-on: amd64
-  - build-on: arm64
-
 apps:
   ansel:
-    command: usr/bin/ansel --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
+    command: usr/bin/ansel --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
     environment:
       GTK_USE_PORTAL: 0
     extensions: [gnome]
@@ -29,7 +25,7 @@ apps:
       - network-bind
     common-id: photos.ansel.app
   cli:
-    command: usr/bin/ansel-cli --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
+    command: usr/bin/ansel-cli --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
     extensions: [gnome]
     plugs:
       - opengl
@@ -59,10 +55,10 @@ layout:
     symlink: $SNAP/usr/include/clc
   /usr/lib/clc:
     symlink: $SNAP/usr/lib/clc
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe:
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gallium-pipe:
     symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/gallium-pipe
-  /usr/lib/$SNAPCRAFT_ARCH_TRIPLET/intel-opencl:
-    symlink: $SNAP/usr/lib/$SNAPCRAFT_ARCH_TRIPLET/intel-opencl
+  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/intel-opencl:
+    symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/intel-opencl
 
 build-packages:
   - gcc-12
@@ -74,43 +70,8 @@ parts:
     stage-packages:
       - mesa-opencl-icd
       - ocl-icd-libopencl1
-
-  intel-opencl-icd:
-    source: https://github.com/intel/compute-runtime/releases/download/23.22.26516.18/intel-opencl-icd_23.22.26516.18_amd64.deb
-    source-checksum: sha256/934959f815a2692a65a16cfe126b466749d03f14d0184afdf84a6453dba06b04
-    plugin: dump
-
-  libigdgmm12:
-    source: https://github.com/intel/compute-runtime/releases/download/23.22.26516.18/libigdgmm12_22.3.0_amd64.deb
-    source-checksum: sha256/de6ed9333a74506de43993eb14c8e0e0eb23314c42b03af66fe9c3df24a8973d
-    plugin: dump
-
-  intel-level-zero-gpu:
-    source: https://github.com/intel/compute-runtime/releases/download/23.22.26516.18/intel-level-zero-gpu_1.3.26516.18_amd64.deb
-    source-checksum: sha256/3505f1dad479aaeea1f2460cc9288edc031bead47ac924a9f78b3c01fdcf5d3a
-    plugin: dump
-
-  intel-igc-core:
-    source: https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.14062.11/intel-igc-core_1.0.14062.11_amd64.deb
-    source-checksum: sha256/c75dc93b168246f0ac08aea6aef551312f54545771b4637a268de205617d2ab0
-    plugin: dump
-    stage:
-      - -usr/share/doc
-      - -usr/local
-      - -usr/lib/igc
-    organize:
-      usr/local/lib: usr/lib
-
-  intel-igc-opencl:
-    source: https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.14062.11/intel-igc-opencl_1.0.14062.11_amd64.deb
-    source-checksum: sha256/cf76d943dbe44d3da2b7bad2a1049b8834030ec03f7cea6270528f5e67251095
-    plugin: dump
-    stage:
-      - -usr/share/doc
-      - -usr/local
-      - -usr/lib/igc
-    organize:
-      usr/local/lib: usr/lib
+      - on amd64:
+        - intel-opencl-icd
 
   ansel:
     plugin: cmake
@@ -125,31 +86,28 @@ parts:
       - -DBINARY_PACKAGE_BUILD=ON
       - -DCMAKE_FIND_ROOT_PATH="$SNAPCRAFT_STAGE;/snap/gnome-42-2204-sdk/current"
       - -DCMAKE_VERBOSE_MAKEFILE=ON
-      - -DCMAKE_C_COMPILER="/usr/bin/gcc-12"
-      - -DCMAKE_CXX_COMPILER="/usr/bin/g++-12"
       - -DUSE_LIGHTROOM=ON
       - -DUSE_COLORD=ON
     stage-packages:
       - libasn1-8-heimdal
-      - libavif13
+      - libavif16
       - libcurl3-gnutls
       - libexiv2-27
       - libgraphicsmagick-q16-3
       - libgssapi3-heimdal
-      - libhcrypto4-heimdal
+      - libhcrypto5t64-heimdal
       - libheimbase1-heimdal
       - libheimntlm0-heimdal
       - libhx509-5-heimdal
       - libimage-exiftool-perl
       - libkrb5-26-heimdal
       - libgphoto2-6
-      - libldap-2.5-0
       - liblensfun-bin
       - liblensfun-data-v1
       - liblensfun1
       - libnghttp2-14
       - libpugixml1v5
-      - libroken18-heimdal
+      - libroken19t64-heimdal
       - librtmp1
       - libsasl2-2
       - libssh-4
@@ -179,7 +137,7 @@ parts:
       # - libcups2-dev
 
     build-environment:
-      - LDFLAGS: "-L${CRAFT_STAGE}/usr/lib/${CRAFT_ARCH_TRIPLET} $(pkg-config --libs libheif sdl2 harfbuzz gtk+-3.0 OpenEXR)"
+      - LDFLAGS: "-L${CRAFT_STAGE}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR} $(pkg-config --libs libheif sdl2 harfbuzz gtk+-3.0 OpenEXR)"
       # [-Werror=shadow]
       # :: src/src/gui/guides.c:534:63: error: declaration of ‘free’ shadows a global declaration
       - CFLAGS: "-O3 $(pkg-config --cflags libheif sdl2 harfbuzz OpenEXR) -Wno-error=type-limits -Wno-error=shadow -Wno-error=unused-value"
@@ -207,7 +165,6 @@ parts:
       - colord
       - openexr
       - osmgpsmap
-      - heif
 
   colord:
     source: https://www.freedesktop.org/software/colord/releases/colord-gtk-0.3.0.tar.xz
@@ -221,21 +178,9 @@ parts:
       - meson
       - libcolord-dev
 
-  heif:
-    source: https://github.com/strukturag/libheif/releases/download/v1.14.2/libheif-1.14.2.tar.gz
-    source-checksum: sha256/d016905e247d6952cd7ee4f9b90957350b6a6caa466bc76fdfe6eb302b6d088c
-    plugin: autotools
-    autotools-configure-parameters:
-      - --prefix=/usr
-    build-environment:
-      - CC: "/usr/bin/gcc-12"
-      - CXX: "/usr/bin/g++-12"
-    stage:
-      - -usr/share/man
-
   openexr:
-    source: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v3.1.5.tar.gz
-    source-checksum: sha256/93925805c1fc4f8162b35f0ae109c4a75344e6decae5a240afdfce25f8a433ec
+    source: https://github.com/AcademySoftwareFoundation/openexr/archive/refs/tags/v3.2.4.tar.gz
+    source-checksum: sha256/81e6518f2c4656fdeaf18a018f135e96a96e7f66dbe1c1f05860dd94772176cc
     plugin: cmake
     cmake-parameters:
       - -DCMAKE_INSTALL_PREFIX=/usr
@@ -243,8 +188,8 @@ parts:
       - -DOPENEXR_INSTALL_EXAMPLES=OFF
       - -DOPENEXR_BUILD_TOOLS=OFF
       - -DOPENEXR_INSTALL_TOOLS=OFF
-      - -DCMAKE_C_COMPILER="/usr/bin/gcc-12"
-      - -DCMAKE_CXX_COMPILER="/usr/bin/g++-12"
+    build-packages:
+      - libimath-dev
     build-environment:
       - CFLAGS: "-O3"
     prime:
@@ -264,7 +209,5 @@ parts:
     build-environment:
       - CFLAGS: "-O3"
       - CXXFLAGS: "-O3"
-      - CC: "/usr/bin/gcc-12"
-      - CXX: "/usr/bin/g++-12"
     prime:
       - -usr/include
