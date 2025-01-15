@@ -1423,6 +1423,9 @@ static void _update_display_transforms(dt_colorspaces_t *self)
   if(self->transform_adobe_rgb_to_display) cmsDeleteTransform(self->transform_adobe_rgb_to_display);
   self->transform_adobe_rgb_to_display = NULL;
 
+  if(self->transform_xyz_to_display) cmsDeleteTransform(self->transform_xyz_to_display);
+  self->transform_xyz_to_display = NULL;
+
   const dt_colorspaces_color_profile_t *display_dt_profile = _get_profile(self, self->display_type,
                                                                           self->display_filename,
                                                                           DT_PROFILE_DIRECTION_DISPLAY);
@@ -1435,6 +1438,14 @@ static void _update_display_transforms(dt_colorspaces_t *self)
                                                        TYPE_RGBA_8,
                                                        display_profile,
                                                        TYPE_BGRA_8,
+                                                       self->display_intent,
+                                                       0);
+
+  self->transform_xyz_to_display = cmsCreateTransform(_get_profile(self, DT_COLORSPACE_XYZ, "",
+                                                                    DT_PROFILE_DIRECTION_IN)->profile,
+                                                       TYPE_XYZA_FLT,
+                                                       display_profile,
+                                                       TYPE_RGBA_FLT,
                                                        self->display_intent,
                                                        0);
 
@@ -1774,6 +1785,9 @@ void dt_colorspaces_cleanup(dt_colorspaces_t *self)
 
   if(self->transform_adobe_rgb_to_display) cmsDeleteTransform(self->transform_adobe_rgb_to_display);
   self->transform_adobe_rgb_to_display = NULL;
+
+  if(self->transform_xyz_to_display) cmsDeleteTransform(self->transform_xyz_to_display);
+  self->transform_xyz_to_display = NULL;
 
   for(GList *iter = self->profiles; iter; iter = g_list_next(iter))
   {

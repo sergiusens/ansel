@@ -322,6 +322,16 @@ static void _darkroom_pickers_draw(dt_view_t *self, cairo_t *cri,
   cairo_restore(cri);
 }
 
+
+void _colormanage_ui_color(const float L, const float a, const float b, dt_aligned_pixel_t RGB)
+{
+  dt_aligned_pixel_t Lab = { L, a, b, 1.f };
+  dt_aligned_pixel_t XYZ = { 0.f, 0.f, 0.f, 1.f };
+  dt_Lab_to_XYZ(Lab, XYZ);
+  cmsDoTransform(darktable.color_profiles->transform_xyz_to_display, XYZ, RGB, 1);
+}
+
+
 void expose(
     dt_view_t *self,
     cairo_t *cri,
@@ -330,13 +340,7 @@ void expose(
     int32_t pointerx,
     int32_t pointery)
 {
-  cairo_set_source_rgb(cri, .2, .2, .2);
   cairo_save(cri);
-
-  // user param is Lab lightness/brightness (roughly, cubic root of Y).
-  // Convert that to typical gamma 2.2
-  double user_bg_rgb = ((double)dt_conf_get_int("display/brightness")) / 100.;
-  user_bg_rgb = pow(user_bg_rgb, 3.0 - 2.2);
 
   dt_develop_t *dev = (dt_develop_t *)self->data;
   const int32_t tb = dev->border_size;
@@ -368,6 +372,17 @@ void expose(
   cairo_surface_t *surface;
   cairo_t *cr = cairo_create(image_surface);
 
+  // user param is Lab lightness/brightness (which is they same for greys)
+  dt_aligned_pixel_t bg_color;
+  if(dev->iso_12646.enabled)
+    _colormanage_ui_color(50., 0., 0., bg_color);
+  else
+    _colormanage_ui_color((float)dt_conf_get_int("display/brightness"), 0., 0., bg_color);
+
+  // Paint background color
+  cairo_set_source_rgb(cr, bg_color[0], bg_color[1], bg_color[2]);
+  cairo_paint(cr);
+
   if(dev->pipe->output_backbuf && // do we have an image?
     dev->pipe->output_imgid == dev->image_storage.id && // is the right image?
     dev->pipe->backbuf_scale == backbuf_scale && // is this the zoom scale we want to display?
@@ -382,17 +397,6 @@ void expose(
     surface = dt_cairo_image_surface_create_for_data(dev->pipe->output_backbuf, CAIRO_FORMAT_RGB24, wd, ht, stride);
     wd /= darktable.gui->ppd;
     ht /= darktable.gui->ppd;
-
-    if(dev->iso_12646.enabled)
-    {
-      // force middle grey in background
-      cairo_set_source_rgb(cr, 0.4663, 0.4663, 0.4663);
-    }
-    else
-    {
-      cairo_set_source_rgb(cr, user_bg_rgb, user_bg_rgb, user_bg_rgb);
-    }
-    cairo_paint(cr);
 
     cairo_translate(cr, ceilf(.5f * (width - wd)), ceilf(.5f * (height - ht)));
     if(closeup)
@@ -438,18 +442,6 @@ void expose(
     const float wd = dev->preview_pipe->output_backbuf_width;
     const float ht = dev->preview_pipe->output_backbuf_height;
     const float zoom_scale = dt_dev_get_zoom_scale(dev, zoom, 1<<closeup, 1);
-
-    if(dev->iso_12646.enabled)
-    {
-      // force middle grey in background
-      cairo_set_source_rgb(cr, 0.4663, 0.4663, 0.4663);
-    }
-    else
-    {
-      cairo_set_source_rgb(cr, user_bg_rgb, user_bg_rgb, user_bg_rgb);
-    }
-
-    cairo_paint(cr);
 
     if(dev->iso_12646.enabled)
     {

@@ -213,6 +213,10 @@ typedef struct dt_develop_t
 
   // darkroom border size
   int32_t border_size;
+
+  // Those are the darkroom main widget size, aka max available size to paint stuff.
+  // They are set by Gtk from the window size minus all panels.
+  // The actual image size has to be smaller or equal.
   int32_t orig_width, orig_height;
 
   dt_backbuf_t raw_histogram; // backbuf to prepare the raw histogram (before white balance)
