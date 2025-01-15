@@ -204,13 +204,6 @@ typedef struct dt_develop_t
   // all forms to be linked here for cleanup:
   GList *allforms;
 
-  //full preview stuff
-  int full_preview;
-  int full_preview_last_zoom, full_preview_last_closeup;
-  float full_preview_last_zoom_x, full_preview_last_zoom_y;
-  struct dt_iop_module_t *full_preview_last_module;
-  int full_preview_masks_state;
-
   // darkroom border size
   int32_t border_size;
 
