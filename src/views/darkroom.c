@@ -996,13 +996,13 @@ static void _get_final_size_with_iso_12646(dt_develop_t *d)
     // a consistent perceptual impression between pictures, independent from orientation.
     const int main_dim = MIN(d->orig_width, d->orig_height);
     d->border_size = 0.125 * main_dim;
-    dt_dev_configure(d, main_dim - 2 * d->border_size, main_dim - 2 * d->border_size);
   }
   else
   {
     d->border_size = DT_PIXEL_APPLY_DPI(dt_conf_get_int("plugins/darkroom/ui/border_size"));
-    dt_dev_configure(d, d->orig_width - 2 * d->border_size, d->orig_height - 2 * d->border_size);
   }
+
+  dt_dev_configure(d, d->orig_width - 2 * d->border_size, d->orig_height - 2 * d->border_size);
 }
 
 /* colour assessment */
