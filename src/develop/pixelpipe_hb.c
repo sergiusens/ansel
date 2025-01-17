@@ -2306,6 +2306,11 @@ static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, d
 #define KILL_SWITCH_PIPE                                                                                          \
   if(dt_atomic_get_int(&pipe->shutdown))                                                                          \
   {                                                                                                               \
+    if(pipe->devid >= 0)                                                                                          \
+    {                                                                                                             \
+      dt_opencl_unlock_device(pipe->devid);                                                                       \
+      pipe->devid = -1;                                                                                           \
+    }                                                                                                             \
     pipe->status = DT_DEV_PIXELPIPE_DIRTY;                                                                        \
     dt_iop_nap(200);                                                                                              \
     return 1;                                                                                                     \
@@ -2393,9 +2398,14 @@ restart:;
       dt_print(DT_DEBUG_OPENCL,
                "[opencl] frequent opencl errors encountered; disabling opencl for this session!\n");
       dt_control_log(
-          _("ansel discovered problems with your OpenCL setup; disabling OpenCL for this session!"));
+          _("Ansel discovered problems with your OpenCL setup; disabling OpenCL for this session!"));
       // also remove "opencl" from capabilities so that the preference entry is greyed out
       dt_capabilities_remove("opencl");
+    }
+    else
+    {
+      dt_print(DT_DEBUG_OPENCL,
+               "[opencl] opencl errors encountered; disabling opencl for this pipeline!\n");
     }
 
     dt_dev_pixelpipe_flush_caches(pipe);
