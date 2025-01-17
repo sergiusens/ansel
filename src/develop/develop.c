@@ -371,6 +371,10 @@ float * _get_input_copy(const int32_t imgid, dt_mipmap_size_t type, int *width, 
   return buffer;
 }
 
+// Keep threads alive for 2 minutes after the last run
+// In case we can't stop them for some reason...
+#define KEEP_ALIVE 120.
+
 void dt_dev_process_preview_job(dt_develop_t *dev)
 {
   dt_dev_pixelpipe_t *pipe = dev->preview_pipe;
@@ -391,8 +395,16 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   }
 
   // Infinite loop until darkroom sends dev->exit signal
-  while(!dev->exit && !finish_on_error)
+  dt_times_t loop_start;
+  dt_get_times(&loop_start);
+
+  dt_times_t last_call;
+  dt_get_times(&last_call);
+
+  while(!dev->exit && !finish_on_error && (loop_start.clock - last_call.clock) < KEEP_ALIVE)
   {
+    dt_get_times(&loop_start);
+
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
     {
       // Nothing to recompute. Wait 2 ms.
@@ -446,6 +458,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     if(!finish_on_error)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
 
+    dt_get_times(&last_call);
     dt_iop_nap(200);
   }
 
@@ -479,8 +492,17 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_dev_pixelpipe_set_input(pipe, dev, buffer, width, height, 1.0);
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
-  while(!dev->exit && !finish_on_error)
+
+  dt_times_t loop_start;
+  dt_get_times(&loop_start);
+
+  dt_times_t last_call;
+  dt_get_times(&last_call);
+
+  while(!dev->exit && !finish_on_error && (loop_start.clock - last_call.clock) < KEEP_ALIVE)
   {
+    dt_get_times(&loop_start);
+
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
     {
       // Nothing to recompute. Wait 2 ms.
@@ -574,6 +596,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     if(!finish_on_error)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
 
+    dt_get_times(&last_call);
     dt_iop_nap(200);
   }
 
