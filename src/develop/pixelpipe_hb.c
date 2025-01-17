@@ -598,7 +598,12 @@ void dt_dev_pixelpipe_change(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev)
   dt_times_t start;
   dt_get_times(&start);
 
-  dt_pthread_mutex_lock(&dev->history_mutex);
+  // Read and write immediately to ensure cross-thread consistency of the value
+  // in case the GUI overwrites that while we are syncing history and nodes
+  const dt_dev_pixelpipe_change_t status = pipe->changed;
+  pipe->changed = DT_DEV_PIPE_UNCHANGED;
+
+  dt_print(DT_DEBUG_DEV, "[dt_dev_pixelpipe_change] pipeline state changing for pipe %i, flag %i\n", pipe->type, status);
 
   // mask display off as a starting point
   pipe->mask_display = DT_DEV_PIXELPIPE_DISPLAY_NONE;
@@ -613,35 +618,32 @@ void dt_dev_pixelpipe_change(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev)
   else if(dt_image_is_rawprepare_supported(img))
     pipe->want_detail_mask |= DT_DEV_DETAIL_MASK_RAWPREPARE;
 
-  dt_print(DT_DEBUG_DEV, "[dt_dev_pixelpipe_change] pipeline state changing for pipe %i, flag %i\n", pipe->type, pipe->changed);
+  dt_pthread_mutex_lock(&dev->history_mutex);
 
   // case DT_DEV_PIPE_UNCHANGED: case DT_DEV_PIPE_ZOOMED:
-  if(pipe->changed & DT_DEV_PIPE_REMOVE)
+  if(status & DT_DEV_PIPE_REMOVE)
   {
     // modules have been added in between or removed. need to rebuild the whole pipeline.
     dt_dev_pixelpipe_cleanup_nodes(pipe);
     dt_dev_pixelpipe_create_nodes(pipe, dev);
     dt_dev_pixelpipe_synch_all(pipe, dev);
   }
-  else if(pipe->changed & DT_DEV_PIPE_SYNCH)
+  else if(status & DT_DEV_PIPE_SYNCH)
   {
     // pipeline topology remains intact, only change all params.
     dt_dev_pixelpipe_synch_all(pipe, dev);
   }
-  else if(pipe->changed & DT_DEV_PIPE_TOP_CHANGED)
+  else if(status & DT_DEV_PIPE_TOP_CHANGED)
   {
     // only top history item changed.
     // FIXME: this seems to never be called.
     dt_dev_pixelpipe_synch_top(pipe, dev);
   }
-
-  pipe->changed = DT_DEV_PIPE_UNCHANGED;
+  dt_pthread_mutex_unlock(&dev->history_mutex);
 
   // Get the final output size of the pipe, for GUI coordinates mapping between image buffer and window
   dt_dev_pixelpipe_get_roi_out(pipe, dev, pipe->iwidth, pipe->iheight, &pipe->processed_width,
                                   &pipe->processed_height);
-
-  dt_pthread_mutex_unlock(&dev->history_mutex);
 
   dt_show_times_f(&start, "[dt_dev_pixelpipe_change] pipeline resync on the current modules stack", "for pipe %i", pipe->type);
 }
@@ -2463,9 +2465,6 @@ restart:;
     pipe->output_imgid = pipe->image.id;
   }
   dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
-
-  // printf("pixelpipe homebrew process end\n");
-  pipe->status = DT_DEV_PIXELPIPE_VALID;
   return 0;
 }
 

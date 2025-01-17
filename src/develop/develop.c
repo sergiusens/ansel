@@ -249,92 +249,96 @@ void dt_dev_refresh_ui_images_real(dt_develop_t *dev)
   // else : join current pipe
 }
 
+void _dev_pixelpipe_set_dirty(dt_dev_pixelpipe_t *pipe)
+{
+  pipe->status = DT_DEV_PIXELPIPE_DIRTY;
+}
+
 void dt_dev_pixelpipe_rebuild(dt_develop_t *dev)
 {
-  if(!dev || !dev->gui_attached) return;
+  if(!dev || !dev->gui_attached || !dev->pipe || !dev->preview_pipe) return;
+
+  dt_times_t start;
+  dt_get_times(&start);
+
+  _dev_pixelpipe_set_dirty(dev->pipe);
+  _dev_pixelpipe_set_dirty(dev->preview_pipe);
+
+  dev->pipe->changed |= DT_DEV_PIPE_REMOVE;
+  dev->preview_pipe->changed |= DT_DEV_PIPE_REMOVE;
 
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
 
-  dt_pthread_mutex_lock(&dev->history_mutex);
-  dev->pipe->changed |= DT_DEV_PIPE_REMOVE;
-  dev->preview_pipe->changed |= DT_DEV_PIPE_REMOVE;
-  dev->pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dev->preview_pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_show_times(&start, "[dt_dev_invalidate] sending killswitch signal on all pipelines");
 }
 
 void dt_dev_pixelpipe_resync_main(dt_develop_t *dev)
 {
-  if(!dev->gui_attached) return;
+  if(!dev || !dev->gui_attached || !dev->pipe) return;
 
-  dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
-
-  dt_pthread_mutex_lock(&dev->history_mutex);
+  _dev_pixelpipe_set_dirty(dev->pipe);
   dev->pipe->changed |= DT_DEV_PIPE_SYNCH;
-  dev->pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
 }
 
 void dt_dev_pixelpipe_resync_all(dt_develop_t *dev)
 {
-  if(!dev || !dev->gui_attached) return;
+  if(!dev || !dev->gui_attached || !dev->pipe || !dev->preview_pipe) return;
 
-  dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
-
-  dt_pthread_mutex_lock(&dev->history_mutex);
+  _dev_pixelpipe_set_dirty(dev->preview_pipe);
   dev->preview_pipe->changed |= DT_DEV_PIPE_SYNCH;
-  dev->preview_pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
 
   dt_dev_pixelpipe_resync_main(dev);
 }
 
 void dt_dev_invalidate_real(dt_develop_t *dev)
 {
+  if(!dev || !dev->gui_attached || !dev->pipe) return;
+
   dt_times_t start;
   dt_get_times(&start);
-  dt_show_times(&start, "[dt_dev_invalidate] sending killswitch signal on running pipelines");
 
+  _dev_pixelpipe_set_dirty(dev->pipe);
+  dev->pipe->changed |= DT_DEV_PIPE_TOP_CHANGED;
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
 
-  dt_pthread_mutex_lock(&dev->history_mutex);
-  dev->pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dev->pipe->changed |= DT_DEV_PIPE_TOP_CHANGED;
-  dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_show_times(&start, "[dt_dev_invalidate] sending killswitch signal on main image pipeline");
 }
 
 void dt_dev_invalidate_zoom_real(dt_develop_t *dev)
 {
+  if(!dev || !dev->gui_attached || !dev->pipe) return;
+
   dt_times_t start;
   dt_get_times(&start);
-  dt_show_times(&start, "[dt_dev_invalidate_zoom] sending killswitch signal on running pipelines");
 
+  _dev_pixelpipe_set_dirty(dev->pipe);
+  dev->pipe->changed |= DT_DEV_PIPE_ZOOMED;
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
 
-  dt_pthread_mutex_lock(&dev->history_mutex);
-  dev->pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dev->pipe->changed |= DT_DEV_PIPE_ZOOMED;
-  dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_show_times(&start, "[dt_dev_invalidate_zoom] sending killswitch signal on main image pipeline");
 }
 
 void dt_dev_invalidate_preview_real(dt_develop_t *dev)
 {
+  if(!dev || !dev->gui_attached || !dev->preview_pipe) return;
+
   dt_times_t start;
   dt_get_times(&start);
-  dt_show_times(&start, "[dt_dev_invalidate_preview] sending killswitch signal on running pipelines");
 
+  _dev_pixelpipe_set_dirty(dev->preview_pipe);
+  dev->preview_pipe->changed |= DT_DEV_PIPE_TOP_CHANGED;
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
 
-  dt_pthread_mutex_lock(&dev->history_mutex);
-  dev->preview_pipe->changed |= DT_DEV_PIPE_TOP_CHANGED;
-  dev->preview_pipe->status = DT_DEV_PIXELPIPE_DIRTY;
-  dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_show_times(&start, "[dt_dev_invalidate_preview] sending killswitch signal on preview pipeline");
 }
 
 void dt_dev_invalidate_all_real(dt_develop_t *dev)
 {
-  if(!dev || !dev->gui_attached) return;
+  if(!dev || !dev->gui_attached || !dev->pipe || !dev->preview_pipe) return;
+
   // Send killswitch ASAP
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
@@ -394,25 +398,8 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", width, height);
   }
 
-  // Infinite loop until darkroom sends dev->exit signal
-  dt_times_t loop_start;
-  dt_get_times(&loop_start);
-
-  dt_times_t last_call;
-  dt_get_times(&last_call);
-
-  while(!dev->exit && !finish_on_error && (loop_start.clock - last_call.clock) < KEEP_ALIVE)
+  while(!dev->exit && !finish_on_error && (pipe->status != DT_DEV_PIXELPIPE_VALID))
   {
-    dt_get_times(&loop_start);
-
-    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
-    {
-      // Nothing to recompute. Wait 2 ms.
-      dt_iop_nap(2000);
-      continue;
-    }
-    // else: resync pipe with history and recompute :
-
     dt_pthread_mutex_lock(&pipe->busy_mutex);
     pipe->processing = 1;
 
@@ -425,10 +412,11 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     // this locks dev->history_mutex.
     dt_dev_pixelpipe_change(pipe, dev);
 
-    if(dt_atomic_get_int(&pipe->shutdown)) continue;
-
     dt_control_log_busy_enter();
     dt_control_toast_busy_enter();
+
+    // Signal that we are starting
+    pipe->status = DT_DEV_PIXELPIPE_UNDEF;
 
     // OpenCL devices have their own lock, called internally
     // Here we lock the whole stack, including CPU.
@@ -450,7 +438,16 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_preview] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->preview_average_delay);
 
-    if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID) finish_on_error = TRUE;
+    // The internal dt_dev_pixelpipe_process() sets the status to invalid
+    // upon memory errors. Else, it doesn't change it so it is supposed to
+    // be dirty so far.
+    if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID)
+      finish_on_error = TRUE;
+    else if(!ret && pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
+      pipe->status = DT_DEV_PIXELPIPE_VALID;
+    // else if(ret || pipe->status == DT_DEV_PIXELPIPE_DIRTY)
+    //  history was changed from mainthread since we started,
+    //  pipe will be reprocessed in next loop
 
     pipe->processing = 0;
     dt_pthread_mutex_unlock(&pipe->busy_mutex);
@@ -458,7 +455,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     if(!finish_on_error)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
 
-    dt_get_times(&last_call);
     dt_iop_nap(200);
   }
 
@@ -492,25 +488,8 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_dev_pixelpipe_set_input(pipe, dev, buffer, width, height, 1.0);
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
-
-  dt_times_t loop_start;
-  dt_get_times(&loop_start);
-
-  dt_times_t last_call;
-  dt_get_times(&last_call);
-
-  while(!dev->exit && !finish_on_error && (loop_start.clock - last_call.clock) < KEEP_ALIVE)
+  while(!dev->exit && !finish_on_error && (pipe->status != DT_DEV_PIXELPIPE_VALID))
   {
-    dt_get_times(&loop_start);
-
-    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
-    {
-      // Nothing to recompute. Wait 2 ms.
-      dt_iop_nap(2000);
-      continue;
-    }
-    // else: resync pipe with history and recompute :
-
     dt_pthread_mutex_lock(&pipe->busy_mutex);
     pipe->processing = 1;
 
@@ -521,10 +500,9 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
     dt_dev_pixelpipe_change_t pipe_changed = pipe->changed;
+
     // this locks dev->history_mutex
     dt_dev_pixelpipe_change(pipe, dev);
-
-    if(dt_atomic_get_int(&pipe->shutdown)) continue;
 
     // determine scale according to new dimensions
     dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
@@ -554,10 +532,11 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     int x = MAX(0, scale * pipe->processed_width  * (.5 + zoom_x) - wd / 2);
     int y = MAX(0, scale * pipe->processed_height * (.5 + zoom_y) - ht / 2);
 
-    if(dt_atomic_get_int(&pipe->shutdown)) continue;
-
     dt_control_log_busy_enter();
     dt_control_toast_busy_enter();
+
+    // Signal that we are starting
+    pipe->status = DT_DEV_PIXELPIPE_UNDEF;
 
     // OpenCL devices have their own lock, called internally
     // Here we lock the whole stack, including CPU.
@@ -579,7 +558,16 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_image] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->average_delay);
 
-    if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID) finish_on_error = TRUE;
+    // The internal dt_dev_pixelpipe_process() sets the status to invalid
+    // upon memory errors. Else, it doesn't change it so it is supposed to
+    // be dirty so far.
+    if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID)
+      finish_on_error = TRUE;
+    else if(!ret && pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
+      pipe->status = DT_DEV_PIXELPIPE_VALID;
+    // else if(ret || pipe->status == DT_DEV_PIXELPIPE_DIRTY)
+    //  history was changed from mainthread since we started,
+    //  pipe will be reprocessed in next loop
 
     // cool, we got a new image!
     if(!finish_on_error && !ret)
@@ -596,7 +584,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     if(!finish_on_error)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
 
-    dt_get_times(&last_call);
     dt_iop_nap(200);
   }
 
