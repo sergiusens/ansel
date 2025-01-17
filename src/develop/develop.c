@@ -353,9 +353,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
   gboolean finish_on_error = FALSE;
 
-  dt_control_log_busy_enter();
-  dt_control_toast_busy_enter();
-
   // init pixel pipeline for preview.
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
@@ -383,6 +380,8 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
     if(dt_atomic_get_int(&pipe->shutdown)) continue;
 
+    dt_control_log_busy_enter();
+    dt_control_toast_busy_enter();
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
     dt_times_t start;
@@ -394,23 +393,23 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_show_times(&start, "[dev_process_preview] pixel pipeline processing");
 
     dt_pthread_mutex_unlock(&dev->pipe_mutex);
+    dt_control_log_busy_leave();
+    dt_control_toast_busy_leave();
 
     dt_show_times(&thread_start, "[dev_process_preview] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->preview_average_delay);
 
-    dt_iop_nap(5000);
-
     if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID) finish_on_error = TRUE;
+
+    if(!finish_on_error)
+      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
+
+    dt_iop_nap(200);
   }
   pipe->processing = 0;
 
-  dt_control_log_busy_leave();
-  dt_control_toast_busy_leave();
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   dt_pthread_mutex_unlock(&pipe->busy_mutex);
-
-  if(!finish_on_error)
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
 }
 
 
@@ -431,8 +430,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
   dt_pthread_mutex_lock(&pipe->busy_mutex);
 
-  dt_control_log_busy_enter();
-  dt_control_toast_busy_enter();
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
 
@@ -488,6 +485,8 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
     if(dt_atomic_get_int(&pipe->shutdown)) continue;
 
+    dt_control_log_busy_enter();
+    dt_control_toast_busy_enter();
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
     dt_times_t start;
@@ -498,32 +497,30 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_show_times(&start, "[dev_process_image] pixel pipeline processing");
 
     dt_pthread_mutex_unlock(&dev->pipe_mutex);
+    dt_control_log_busy_leave();
+    dt_control_toast_busy_leave();
 
     dt_show_times(&thread_start, "[dev_process_image] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->average_delay);
 
-    dt_iop_nap(5000);
-
     if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID) finish_on_error = TRUE;
+
+    // cool, we got a new image!
+    if(!finish_on_error && !ret)
+    {
+      pipe->backbuf_scale = scale;
+      pipe->backbuf_zoom_x = zoom_x;
+      pipe->backbuf_zoom_y = zoom_y;
+      dev->image_invalid_cnt = 0;
+      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
+    }
+
+    dt_iop_nap(200);
   }
   pipe->processing = 0;
 
-  // cool, we got a new image!
-  if(!finish_on_error)
-  {
-    pipe->backbuf_scale = scale;
-    pipe->backbuf_zoom_x = zoom_x;
-    pipe->backbuf_zoom_y = zoom_y;
-    dev->image_invalid_cnt = 0;
-  }
-
-  dt_control_log_busy_leave();
-  dt_control_toast_busy_leave();
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   dt_pthread_mutex_unlock(&pipe->busy_mutex);
-
-  if(!finish_on_error)
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
 }
 
 
