@@ -213,7 +213,8 @@ int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t 
   pipe->want_detail_mask = DT_DEV_DETAIL_MASK_NONE;
 
   pipe->processing = 0;
-  dt_atomic_set_int(&pipe->shutdown,FALSE);
+  pipe->running = 0;
+  dt_atomic_set_int(&pipe->shutdown, FALSE);
   pipe->opencl_error = 0;
   pipe->tiling = 0;
   pipe->mask_display = DT_DEV_PIXELPIPE_DISPLAY_NONE;

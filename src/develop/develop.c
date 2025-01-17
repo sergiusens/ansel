@@ -62,6 +62,7 @@ void dt_dev_init(dt_develop_t *dev, int32_t gui_attached)
   dev->gui_attached = gui_attached;
   dev->width = -1;
   dev->height = -1;
+  dev->exit = 0;
 
   dt_image_init(&dev->image_storage);
   dev->image_invalid_cnt = 0;
@@ -231,11 +232,10 @@ void dt_dev_refresh_ui_images_real(dt_develop_t *dev)
   // which is handled everytime history is changed,
   // including when initing a new pipeline (from scratch or from user history).
   // Benefit is atomics are de-facto thread-safe.
-  if(dt_atomic_get_int(&dev->preview_pipe->shutdown) && dev->preview_pipe->status != DT_DEV_PIXELPIPE_VALID)
-  {
-    if(!dev->preview_pipe->processing) dt_dev_process_preview(dev);
-    // else : join current pipe
-  }
+  if(dt_atomic_get_int(&dev->preview_pipe->shutdown) && !dev->preview_pipe->running)
+    dt_dev_process_preview(dev);
+  // else : join current pipe
+
   // When entering darkroom, the GUI will size itself and call the
   // configure() method of the view, which calls dev_configure() below.
   // Problem is the GUI can be glitchy and reconfigure the pipe twice with different sizes,
@@ -244,11 +244,9 @@ void dt_dev_refresh_ui_images_real(dt_develop_t *dev)
   // But just in case, always start with the preview pipe, hoping
   // the GUI will have figured out what size it really wants when we start
   // the main preview pipe.
-  if(dt_atomic_get_int(&dev->pipe->shutdown) && dev->pipe->status != DT_DEV_PIXELPIPE_VALID)
-  {
-    if(!dev->pipe->processing) dt_dev_process_image(dev);
-    // else : join current pipe
-  }
+  if(dt_atomic_get_int(&dev->pipe->shutdown) && !dev->pipe->running)
+    dt_dev_process_image(dev);
+  // else : join current pipe
 }
 
 void dt_dev_pixelpipe_rebuild(dt_develop_t *dev)
@@ -345,36 +343,73 @@ void dt_dev_invalidate_all_real(dt_develop_t *dev)
   dt_dev_invalidate_preview(dev);
 }
 
+float * _get_input_copy(const int32_t imgid, dt_mipmap_size_t type, int *width, int *height, float *iscale)
+{
+  dt_mipmap_buffer_t buf;
+  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, type, DT_MIPMAP_BLOCKING, 'r');
+
+  gboolean error = (!buf.buf || !buf.width || !buf.height);
+
+  // keep our own copy of the input buffer to release the cache lock ASAP
+  *width = buf.width;
+  *height = buf.height;
+  *iscale = buf.iscale;
+  const size_t buf_size = buf.cache_entry->data_size;
+  float *buffer = NULL;
+
+  if(!error)
+  {
+    buffer = dt_alloc_align(buf_size);
+    error = (buffer == NULL);
+  }
+
+  if(!error)
+    memcpy(buffer, (float *)buf.buf, buf_size);
+
+  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+
+  return buffer;
+}
+
 void dt_dev_process_preview_job(dt_develop_t *dev)
 {
   dt_dev_pixelpipe_t *pipe = dev->preview_pipe;
-
-  dt_pthread_mutex_lock(&pipe->busy_mutex);
-
-  gboolean finish_on_error = FALSE;
+  pipe->running = 1;
 
   // init pixel pipeline for preview.
-  dt_mipmap_buffer_t buf;
-  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
   // always process the whole downsampled mipf buffer, to allow for fast scrolling and mip4 write-through.
+  int width, height;
+  float iscale;
+  float *buffer = _get_input_copy(dev->image_storage.id, DT_MIPMAP_F, &width, &height, &iscale);
 
-  if(!buf.buf || !buf.width || !buf.height) finish_on_error = TRUE;
+  gboolean finish_on_error = (buffer == NULL);
 
   if(!finish_on_error)
   {
-    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, buf.width, buf.height, buf.iscale);
-    dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", buf.width, buf.height);
+    dt_dev_pixelpipe_set_input(pipe, dev, buffer, width, height, iscale);
+    dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", width, height);
   }
 
-  pipe->processing = 1;
-  while(pipe->status == DT_DEV_PIXELPIPE_DIRTY && !finish_on_error)
+  // Infinite loop until darkroom sends dev->exit signal
+  while(!dev->exit && !finish_on_error)
   {
+    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
+    {
+      // Nothing to recompute. Wait 2 ms.
+      dt_iop_nap(2000);
+      continue;
+    }
+    // else: resync pipe with history and recompute :
+
+    dt_pthread_mutex_lock(&pipe->busy_mutex);
+    pipe->processing = 1;
+
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
+    // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
-    // adjust pipeline according to changed flag set by {add,pop}_history_item.
     // this locks dev->history_mutex.
     dt_dev_pixelpipe_change(pipe, dev);
 
@@ -382,13 +417,17 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
     dt_control_log_busy_enter();
     dt_control_toast_busy_enter();
+
+    // OpenCL devices have their own lock, called internally
+    // Here we lock the whole stack, including CPU.
+    // Processing pipelines in parallel triggers memory contention.
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
     dt_times_t start;
     dt_get_times(&start);
 
     int ret = dt_dev_pixelpipe_process(pipe, dev, 0, 0, pipe->processed_width,
-                                      pipe->processed_height, 1.f);
+                                       pipe->processed_height, 1.f);
 
     dt_show_times(&start, "[dev_process_preview] pixel pipeline processing");
 
@@ -401,15 +440,17 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
     if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID) finish_on_error = TRUE;
 
+    pipe->processing = 0;
+    dt_pthread_mutex_unlock(&pipe->busy_mutex);
+
     if(!finish_on_error)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
 
     dt_iop_nap(200);
   }
-  pipe->processing = 0;
 
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-  dt_pthread_mutex_unlock(&pipe->busy_mutex);
+  if(buffer) dt_free_align(buffer);
+  pipe->running = 0;
 }
 
 
@@ -425,30 +466,37 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   dt_print(DT_DEBUG_DEV, "[pixelpipe] Started main preview recompute at %i×%i px\n", dev->width, dev->height);
 
   dt_dev_pixelpipe_t *pipe = dev->pipe;
+  pipe->running = 1;
 
-  gboolean finish_on_error = FALSE;
+  int width, height;
+  float iscale;
+  float *buffer = _get_input_copy(dev->image_storage.id, DT_MIPMAP_FULL, &width, &height, &iscale);
 
-  dt_pthread_mutex_lock(&pipe->busy_mutex);
-
-  dt_mipmap_buffer_t buf;
-  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
-
-  if(!buf.buf || !buf.width || !buf.height) finish_on_error = TRUE;
+  gboolean finish_on_error = (buffer == NULL);
 
   if(!finish_on_error)
-    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, buf.width, buf.height, 1.0);
+    dt_dev_pixelpipe_set_input(pipe, dev, buffer, width, height, 1.0);
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
-  pipe->processing = 1;
-  while(pipe->status == DT_DEV_PIXELPIPE_DIRTY && !finish_on_error)
+  while(!dev->exit && !finish_on_error)
   {
+    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
+    {
+      // Nothing to recompute. Wait 2 ms.
+      dt_iop_nap(2000);
+      continue;
+    }
+    // else: resync pipe with history and recompute :
+
+    dt_pthread_mutex_lock(&pipe->busy_mutex);
+    pipe->processing = 1;
+
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
+    // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
-    // adjust pipeline according to changed flag set by {add,pop}_history_item.
-    // dt_dev_pixelpipe_change() will clear the changed value
     dt_dev_pixelpipe_change_t pipe_changed = pipe->changed;
     // this locks dev->history_mutex
     dt_dev_pixelpipe_change(pipe, dev);
@@ -487,6 +535,10 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
     dt_control_log_busy_enter();
     dt_control_toast_busy_enter();
+
+    // OpenCL devices have their own lock, called internally
+    // Here we lock the whole stack, including CPU.
+    // Processing pipelines in parallel triggers memory contention.
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
     dt_times_t start;
@@ -497,6 +549,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_show_times(&start, "[dev_process_image] pixel pipeline processing");
 
     dt_pthread_mutex_unlock(&dev->pipe_mutex);
+
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();
 
@@ -512,15 +565,19 @@ void dt_dev_process_image_job(dt_develop_t *dev)
       pipe->backbuf_zoom_x = zoom_x;
       pipe->backbuf_zoom_y = zoom_y;
       dev->image_invalid_cnt = 0;
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
     }
+
+    pipe->processing = 0;
+    dt_pthread_mutex_unlock(&pipe->busy_mutex);
+
+    if(!finish_on_error)
+      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
 
     dt_iop_nap(200);
   }
-  pipe->processing = 0;
 
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-  dt_pthread_mutex_unlock(&pipe->busy_mutex);
+  if(buffer) dt_free_align(buffer);
+  pipe->running = 0;
 }
 
 

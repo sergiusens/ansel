@@ -2339,11 +2339,15 @@ void enter(dt_view_t *self)
   // Init the starting point of undo/redo
   dt_dev_undo_start_record(dev);
   dt_dev_undo_end_record(dev);
+
+  dev->exit = 0;
 }
 
 void leave(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
+  dev->exit = 1;
+
   dt_iop_color_picker_cleanup();
   if(darktable.lib->proxy.colorpicker.picker_proxy)
     dt_iop_color_picker_reset(darktable.lib->proxy.colorpicker.picker_proxy->module, FALSE);

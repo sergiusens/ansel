@@ -171,8 +171,10 @@ typedef struct dt_dev_pixelpipe_t
   int want_detail_mask;
 
   int output_imgid;
-  // working?
+  // processing is true when actual pixel computations are ongoing
   int processing;
+  // running is true when the pipe thread is running, computing or idle
+  int running;
   // shutting down?
   dt_atomic_int shutdown;
   // opencl enabled for this pixelpipe?

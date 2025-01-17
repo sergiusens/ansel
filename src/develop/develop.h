@@ -154,7 +154,7 @@ typedef struct dt_develop_t
 {
   int32_t gui_attached; // != 0 if the gui should be notified of changes in hist stack and modules should be
                         // gui_init'ed.
-
+  int exit; // set to 1 to close background darkroom pipeline threads
   int32_t image_invalid_cnt;
   uint32_t average_delay;
   uint32_t preview_average_delay;
