@@ -1042,25 +1042,12 @@ void dt_dev_free_history_item(gpointer data)
 
 void dt_dev_reload_history_items(dt_develop_t *dev)
 {
-  // FIXME: [CRITICAL] should lock the image history at the app level
-  dt_ioppr_set_default_iop_order(dev, dev->image_storage.id);
-  dt_dev_pop_history_items(dev, 0);
-
+  // Recreate the whole history from scratch
   dt_pthread_mutex_lock(&dev->history_mutex);
-
-  // remove unused history items:
-  // FIXME: factorize with add_history_item cleaning
-  GList *history = g_list_nth(dev->history, dt_dev_get_history_end(dev));
-  while(history)
-  {
-    GList *next = g_list_next(history);
-    dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
-    dt_dev_free_history_item(hist);
-    dev->history = g_list_delete_link(dev->history, history);
-    history = next;
-  }
-
+  g_list_free_full(dev->history, dt_dev_free_history_item);
+  dev->history = NULL;
   dt_dev_read_history_ext(dev, dev->image_storage.id, FALSE);
+  dt_pthread_mutex_unlock(&dev->history_mutex);
 
   // we have to add new module instances first
   for(GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
@@ -1078,8 +1065,6 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
 
         dt_iop_reload_defaults(module);
         dt_iop_gui_update_blending(module);
-
-        dt_dev_pixelpipe_rebuild(dev);
       }
     }
     else if(!dt_iop_is_hidden(module) && module->expander)
@@ -1088,8 +1073,6 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
       dt_iop_gui_update_header(module);
     }
   }
-
-  dt_pthread_mutex_unlock(&dev->history_mutex);
 
   dt_dev_pop_history_items(dev, dt_dev_get_history_end(dev));
 
@@ -1101,7 +1084,7 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
   // we update show params for multi-instances for each other instances
   dt_dev_modules_update_multishow(dev);
 
-  dt_dev_invalidate_all(dev);
+  dt_dev_pixelpipe_rebuild(dev);
 }
 
 static inline void _dt_dev_modules_reload_defaults(dt_develop_t *dev)
@@ -1188,19 +1171,6 @@ void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt)
     modules = g_list_next(modules);
   }
   --darktable.gui->reset;
-
-  if(darktable.gui && dev->gui_attached)
-  {
-    // Auto-save N s after the last change.
-    // If another change is made during that delay,
-    // reset the timer and restart N s
-    if(dev->auto_save_timeout)
-    {
-      g_source_remove(dev->auto_save_timeout);
-      dev->auto_save_timeout = 0;
-    }
-    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, _auto_save_edit, dev);
-  }
 
   dt_dev_masks_list_change(dev);
   dt_dev_pixelpipe_rebuild(dev);
