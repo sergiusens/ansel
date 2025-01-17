@@ -830,13 +830,6 @@ static void _darkroom_ui_apply_style_activate_callback(gchar *name)
 
   darktable.develop->exit = 1;
 
-  // Wait for pipelines to return
-  dt_pthread_mutex_lock(&darktable.develop->preview_pipe->busy_mutex);
-  dt_pthread_mutex_unlock(&darktable.develop->preview_pipe->busy_mutex);
-
-  dt_pthread_mutex_lock(&darktable.develop->pipe->busy_mutex);
-  dt_pthread_mutex_unlock(&darktable.develop->pipe->busy_mutex);
-
   /* write current history changes so nothing gets lost */
   dt_dev_write_history(darktable.develop);
 
@@ -2361,13 +2354,6 @@ void leave(dt_view_t *self)
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
   dev->exit = 1;
-
-  // Wait for pipelines to return
-  dt_pthread_mutex_lock(&dev->preview_pipe->busy_mutex);
-  dt_pthread_mutex_unlock(&dev->preview_pipe->busy_mutex);
-
-  dt_pthread_mutex_lock(&dev->pipe->busy_mutex);
-  dt_pthread_mutex_unlock(&dev->pipe->busy_mutex);
 
   dt_iop_color_picker_cleanup();
   if(darktable.lib->proxy.colorpicker.picker_proxy)
