@@ -2423,7 +2423,9 @@ restart:;
   // ... and in case of other errors ...
   if(err)
   {
-    pipe->status = DT_DEV_PIXELPIPE_INVALID;
+    // If the pipe returned because the killswitch was triggered, consir it unfinished.
+    // Then the main loop will attempt it again.
+    pipe->status = (dt_atomic_get_int(&pipe->shutdown)) ? DT_DEV_PIXELPIPE_DIRTY : DT_DEV_PIXELPIPE_INVALID;
     return 1;
   }
 
