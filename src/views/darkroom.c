@@ -2494,37 +2494,57 @@ void mouse_leave(dt_view_t *self)
   dt_control_change_cursor(GDK_LEFT_PTR);
 }
 
+static gboolean _is_in_frame(const int width, const int height, const int x, const int y)
+{
+  return !((x < -DT_PIXEL_APPLY_DPI(2)) ||
+           (x > (width + DT_PIXEL_APPLY_DPI(4))) ||
+           (y < -DT_PIXEL_APPLY_DPI(2)) ||
+           (y > (height + DT_PIXEL_APPLY_DPI(4))));
+}
+
 /* This helper function tests for a position to be within the displayed area
    of an image. To avoid "border cases" we accept values to be slightly out of area too.
 */
-static int mouse_in_imagearea(dt_view_t *self, double x, double y)
+static gboolean mouse_in_imagearea(dt_view_t *self, double x, double y)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
   const int closeup = dt_control_get_dev_closeup();
-  const int pwidth = (dev->pipe->output_backbuf_width<<closeup) / darktable.gui->ppd;
-  const int pheight = (dev->pipe->output_backbuf_height<<closeup) / darktable.gui->ppd;
+  const double pwidth = (double)(dev->pipe->output_backbuf_width<<closeup) / (double)darktable.gui->ppd;
+  const double pheight = (double)(dev->pipe->output_backbuf_height<<closeup) / (double)darktable.gui->ppd;
 
-  x -= (self->width - pwidth) / 2;
-  y -= (self->height - pheight) / 2;
+  x -= (double)(self->width - pwidth) / 2.;
+  y -= (double)(self->height - pheight) / 2.;
 
-  if((x < -3) || (x > (pwidth + 6)) || (y < -3) || (y > (pheight + 6))) return FALSE;
-  return TRUE;
+  return _is_in_frame(pwidth, pheight, round(x), round(y));
+}
+
+static gboolean mouse_in_actionarea(dt_view_t *self, double x, double y)
+{
+  return _is_in_frame(self->width, self->height, round(x), round(y));
 }
 
 void mouse_enter(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
-  // masks
   dt_masks_events_mouse_enter(dev->gui_module);
 }
 
+#define COORDINATES_ADAPT                                                                                         \
+  dt_develop_t *dev = (dt_develop_t *)self->data;                                                                 \
+  const int32_t tb = dev->border_size;                                                                            \
+  const int32_t capwd = self->width - 2 * tb;                                                                     \
+  const int32_t capht = self->height - 2 * tb;                                                                    \
+  const int32_t width_i = self->width;                                                                            \
+  const int32_t height_i = self->height;                                                                          \
+  float offx = 0.0f, offy = 0.0f;                                                                                 \
+  if(width_i > capwd) offx = (double)(capwd - width_i) * .5f;                                                     \
+  if(height_i > capht) offy = (double)(capht - height_i) * .5f;
+
+
 void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which)
 {
-  dt_develop_t *dev = (dt_develop_t *)self->data;
-  const int32_t tb = dev->border_size;
-  const int32_t capwd = self->width  - 2*tb;
-  const int32_t capht = self->height - 2*tb;
+  COORDINATES_ADAPT
 
   // if we are not hovering over a thumbnail in the filmstrip -> show metadata of opened image.
   int32_t mouse_over_id = dt_control_get_mouse_over_id();
@@ -2535,11 +2555,15 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
   }
 
   dt_control_t *ctl = darktable.control;
-  const int32_t width_i = self->width;
-  const int32_t height_i = self->height;
-  float offx = 0.0f, offy = 0.0f;
-  if(width_i > capwd) offx = (capwd - width_i) * .5f;
-  if(height_i > capht) offy = (capht - height_i) * .5f;
+
+  if(mouse_in_imagearea(self, x, y))
+    dt_control_change_cursor(GDK_DOT);
+  else if(mouse_in_actionarea(self, x, y))
+    dt_control_change_cursor(GDK_CROSSHAIR);
+  else
+    dt_control_change_cursor(GDK_LEFT_PTR);
+
+  if(!mouse_in_actionarea(self, x, y)) return;
 
   if(dt_iop_color_picker_is_visible(dev) && ctl->button_down && ctl->button_down_which == 1)
   {
@@ -2617,14 +2641,9 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
 
 int button_released(dt_view_t *self, double x, double y, int which, uint32_t state)
 {
-  dt_develop_t *dev = darktable.develop;
-  const int32_t tb = dev->border_size;
-  const int32_t capwd = self->width  - 2*tb;
-  const int32_t capht = self->height - 2*tb;
-  const int32_t width_i = self->width;
-  const int32_t height_i = self->height;
-  if(width_i > capwd) x += (capwd - width_i) * .5f;
-  if(height_i > capht) y += (capht - height_i) * .5f;
+  COORDINATES_ADAPT
+
+  if(!mouse_in_actionarea(self, x, y)) return 0;
 
   if(dt_iop_color_picker_is_visible(dev) && which == 1)
   {
@@ -2726,16 +2745,11 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
 
 int button_pressed(dt_view_t *self, double x, double y, double pressure, int which, int type, uint32_t state)
 {
-  dt_develop_t *dev = (dt_develop_t *)self->data;
   dt_colorpicker_sample_t *const sample = darktable.lib->proxy.colorpicker.primary_sample;
-  const int32_t tb = dev->border_size;
-  const int32_t capwd = self->width  - 2*tb;
-  const int32_t capht = self->height - 2*tb;
-  const int32_t width_i = self->width;
-  const int32_t height_i = self->height;
-  float offx = 0.0f, offy = 0.0f;
-  if(width_i > capwd) offx = (capwd - width_i) * .5f;
-  if(height_i > capht) offy = (capht - height_i) * .5f;
+
+  COORDINATES_ADAPT
+
+  if(!mouse_in_actionarea(self, x, y)) return 0;
 
   if(dt_iop_color_picker_is_visible(dev))
   {
@@ -2872,14 +2886,9 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
 
 void scrolled(dt_view_t *self, double x, double y, int up, int state)
 {
-  dt_develop_t *dev = (dt_develop_t *)self->data;
-  const int32_t tb = dev->border_size;
-  const int32_t capwd = self->width  - 2*tb;
-  const int32_t capht = self->height - 2*tb;
-  const int32_t width_i = self->width;
-  const int32_t height_i = self->height;
-  if(width_i > capwd) x += (capwd - width_i) * .5f;
-  if(height_i > capht) y += (capht - height_i) * .5f;
+  COORDINATES_ADAPT
+
+  if(!mouse_in_actionarea(self, x, y)) return;
 
   // masks
   if(dev->form_visible && dt_masks_events_mouse_scrolled(dev->gui_module, x, y, up, state))
