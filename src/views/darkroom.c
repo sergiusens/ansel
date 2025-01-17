@@ -2544,6 +2544,9 @@ void mouse_enter(dt_view_t *self)
 
 void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which)
 {
+  // Don't capture events if the window isn't active
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return;
+
   COORDINATES_ADAPT
 
   // if we are not hovering over a thumbnail in the filmstrip -> show metadata of opened image.
@@ -2641,6 +2644,9 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
 
 int button_released(dt_view_t *self, double x, double y, int which, uint32_t state)
 {
+  // Don't capture events if the window isn't active
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return 0;
+
   COORDINATES_ADAPT
 
   if(!mouse_in_actionarea(self, x, y)) return 0;
@@ -2745,6 +2751,9 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
 
 int button_pressed(dt_view_t *self, double x, double y, double pressure, int which, int type, uint32_t state)
 {
+  // Don't capture events if the window isn't active
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return 0;
+
   dt_colorpicker_sample_t *const sample = darktable.lib->proxy.colorpicker.primary_sample;
 
   COORDINATES_ADAPT
@@ -2886,6 +2895,9 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
 
 void scrolled(dt_view_t *self, double x, double y, int up, int state)
 {
+  // Don't capture events if the window isn't active
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return;
+
   COORDINATES_ADAPT
 
   if(!mouse_in_actionarea(self, x, y)) return;
