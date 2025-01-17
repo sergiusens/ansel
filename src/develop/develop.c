@@ -347,17 +347,19 @@ void dt_dev_invalidate_all_real(dt_develop_t *dev)
   dt_dev_invalidate_preview(dev);
 }
 
-float * _get_input_copy(const int32_t imgid, dt_mipmap_size_t type, int *width, int *height, float *iscale)
+static dt_mipmap_buffer_t _get_input_copy(const int32_t imgid, dt_mipmap_size_t type, int *width, int *height, float *iscale)
 {
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, type, DT_MIPMAP_BLOCKING, 'r');
 
-  gboolean error = (!buf.buf || !buf.width || !buf.height);
+  //gboolean error = (!buf.buf || !buf.width || !buf.height);
 
   // keep our own copy of the input buffer to release the cache lock ASAP
   *width = buf.width;
   *height = buf.height;
   *iscale = buf.iscale;
+
+  /*
   const size_t buf_size = buf.cache_entry->data_size;
   float *buffer = NULL;
 
@@ -373,11 +375,11 @@ float * _get_input_copy(const int32_t imgid, dt_mipmap_size_t type, int *width, 
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
 
   return buffer;
+  */
+
+  return buf;
 }
 
-// Keep threads alive for 2 minutes after the last run
-// In case we can't stop them for some reason...
-#define KEEP_ALIVE 120.
 
 void dt_dev_process_preview_job(dt_develop_t *dev)
 {
@@ -388,13 +390,13 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   // always process the whole downsampled mipf buffer, to allow for fast scrolling and mip4 write-through.
   int width, height;
   float iscale;
-  float *buffer = _get_input_copy(dev->image_storage.id, DT_MIPMAP_F, &width, &height, &iscale);
+  dt_mipmap_buffer_t buf = _get_input_copy(dev->image_storage.id, DT_MIPMAP_F, &width, &height, &iscale);
 
-  gboolean finish_on_error = (buffer == NULL);
+  gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
 
   if(!finish_on_error)
   {
-    dt_dev_pixelpipe_set_input(pipe, dev, buffer, width, height, iscale);
+    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, width, height, iscale);
     dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", width, height);
   }
 
@@ -458,7 +460,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_iop_nap(200);
   }
 
-  if(buffer) dt_free_align(buffer);
+  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
 }
@@ -480,12 +482,12 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
   int width, height;
   float iscale;
-  float *buffer = _get_input_copy(dev->image_storage.id, DT_MIPMAP_FULL, &width, &height, &iscale);
+  dt_mipmap_buffer_t buf = _get_input_copy(dev->image_storage.id, DT_MIPMAP_FULL, &width, &height, &iscale);
 
-  gboolean finish_on_error = (buffer == NULL);
+  gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
 
   if(!finish_on_error)
-    dt_dev_pixelpipe_set_input(pipe, dev, buffer, width, height, 1.0);
+    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, width, height, 1.0);
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
   while(!dev->exit && !finish_on_error && (pipe->status != DT_DEV_PIXELPIPE_VALID))
@@ -587,7 +589,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_iop_nap(200);
   }
 
-  if(buffer) dt_free_align(buffer);
+  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting main image pipe thread\n");
 }
