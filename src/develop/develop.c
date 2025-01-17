@@ -381,7 +381,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     // this locks dev->history_mutex.
     dt_dev_pixelpipe_change(pipe, dev);
 
-    if(dt_atomic_get_int(&dev->pipe->shutdown)) continue;
+    if(dt_atomic_get_int(&pipe->shutdown)) continue;
 
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
