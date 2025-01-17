@@ -5161,9 +5161,7 @@ static void _enter_edit_mode(GtkToggleButton* button, struct dt_iop_module_t *se
     gtk_widget_set_sensitive(g->commit_button, FALSE);
   }
 
-  // It sucks that we need to invalidate the preview too but we need its final dimension.
-  dt_image_update_final_size(self->dev->preview_pipe->output_imgid);
-  dt_dev_invalidate_all(self->dev);
+  dt_dev_invalidate_zoom(self->dev);
   dt_dev_refresh_ui_images(self->dev);
 }
 
@@ -5180,8 +5178,6 @@ static void _event_commit_clicked(GtkButton *button, dt_iop_module_t *self)
   dt_iop_set_cache_bypass(self, FALSE);
 
   memcpy(p, &g->new_params, sizeof(dt_iop_ashift_params_t));
-
-  dt_image_update_final_size(self->dev->preview_pipe->output_imgid);
 
   // Commit history and refresh view
   dt_dev_add_history_item(darktable.develop, self, TRUE);

@@ -813,8 +813,6 @@ void dt_image_set_flip(const int32_t imgid, const dt_image_orientation_t orienta
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
-  dt_image_update_final_size(imgid);
-  // write that through to xmp:
   dt_image_write_sidecar_file(imgid);
 }
 
