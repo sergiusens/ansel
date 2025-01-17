@@ -2356,6 +2356,10 @@ void enter(dt_view_t *self)
 void leave(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
+
+  // Send all shutdown signals
+  dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
+  dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
   dev->exit = 1;
 
   // Wait for pipelines to return
