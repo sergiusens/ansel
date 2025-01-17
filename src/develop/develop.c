@@ -370,11 +370,13 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
-    // adjust pipeline according to changed flag set by {add,pop}_history_item.
-    // this locks dev->history_mutex.
+    dt_atomic_set_int(&dev->preview_pipe->shutdown, FALSE);
+
     // adjust pipeline according to changed flag set by {add,pop}_history_item.
     // this locks dev->history_mutex.
     dt_dev_pixelpipe_change(dev->preview_pipe, dev);
+
+    if(dt_atomic_get_int(&dev->pipe->shutdown)) continue;
 
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
@@ -439,11 +441,15 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
+    dt_atomic_set_int(&dev->pipe->shutdown, FALSE);
+
     // adjust pipeline according to changed flag set by {add,pop}_history_item.
     // dt_dev_pixelpipe_change() will clear the changed value
     dt_dev_pixelpipe_change_t pipe_changed = dev->pipe->changed;
-    // this locks dev->history_mutex and resets pipe->shutdown
+    // this locks dev->history_mutex
     dt_dev_pixelpipe_change(dev->pipe, dev);
+
+    if(dt_atomic_get_int(&dev->pipe->shutdown)) continue;
 
     // determine scale according to new dimensions
     dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
@@ -473,6 +479,8 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     int x = MAX(0, scale * dev->pipe->processed_width  * (.5 + zoom_x) - wd / 2);
     int y = MAX(0, scale * dev->pipe->processed_height * (.5 + zoom_y) - ht / 2);
 
+    if(dt_atomic_get_int(&dev->pipe->shutdown)) continue;
+
     dt_pthread_mutex_lock(&dev->pipe_mutex);
 
     dt_times_t start;
@@ -493,6 +501,8 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     if(ret && dev->pipe->status == DT_DEV_PIXELPIPE_INVALID) finish_on_error = TRUE;
   }
   dev->pipe->processing = 0;
+
+  fprintf(stdout, "finished on error: %i\n", finish_on_error);
 
   // cool, we got a new image!
   if(!finish_on_error)

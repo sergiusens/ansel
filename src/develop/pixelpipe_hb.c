@@ -642,7 +642,6 @@ void dt_dev_pixelpipe_change(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev)
 
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
-  dt_atomic_set_int(&pipe->shutdown, FALSE);
   dt_show_times(&start, "[dt_dev_pixelpipe_change] pipeline resync on the current modules stack");
 }
 
