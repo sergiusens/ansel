@@ -346,7 +346,6 @@ void dt_dev_refresh_ui_images_real(dt_develop_t *dev);
 #define dt_dev_refresh_ui_images(dev) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_DEV, dt_dev_refresh_ui_images_real, (dev))
 
 int dt_dev_load_image(dt_develop_t *dev, const uint32_t imgid);
-void dt_dev_reload_image(dt_develop_t *dev, const uint32_t imgid);
 /** checks if provided imgid is the image currently in develop */
 int dt_dev_is_current_image(dt_develop_t *dev, uint32_t imgid);
 

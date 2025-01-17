@@ -828,6 +828,15 @@ static void _darkroom_ui_apply_style_activate_callback(gchar *name)
 {
   dt_control_log(_("applied style `%s' on current image"), name);
 
+  darktable.develop->exit = 1;
+
+  // Wait for pipelines to return
+  dt_pthread_mutex_lock(&darktable.develop->preview_pipe->busy_mutex);
+  dt_pthread_mutex_unlock(&darktable.develop->preview_pipe->busy_mutex);
+
+  dt_pthread_mutex_lock(&darktable.develop->pipe->busy_mutex);
+  dt_pthread_mutex_unlock(&darktable.develop->pipe->busy_mutex);
+
   /* write current history changes so nothing gets lost */
   dt_dev_write_history(darktable.develop);
 
@@ -835,15 +844,16 @@ static void _darkroom_ui_apply_style_activate_callback(gchar *name)
 
   /* apply style on image and reload*/
   dt_styles_apply_to_image(name, FALSE, FALSE, darktable.develop->image_storage.id);
-  dt_dev_reload_image(darktable.develop, darktable.develop->image_storage.id);
-
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 
   /* record current history state : after change (needed for undo) */
   dt_dev_undo_end_record(darktable.develop);
-
   // rebuild the accelerators (style might have changed order)
   dt_iop_connect_accels_all();
+
+  darktable.develop->exit = 0;
+
+  // Recompute the view
+  dt_dev_refresh_ui_images(darktable.develop);
 }
 
 static void _darkroom_ui_apply_style_popupmenu(GtkWidget *w, gpointer user_data)
@@ -2347,6 +2357,13 @@ void leave(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
   dev->exit = 1;
+
+  // Wait for pipelines to return
+  dt_pthread_mutex_lock(&dev->preview_pipe->busy_mutex);
+  dt_pthread_mutex_unlock(&dev->preview_pipe->busy_mutex);
+
+  dt_pthread_mutex_lock(&dev->pipe->busy_mutex);
+  dt_pthread_mutex_unlock(&dev->pipe->busy_mutex);
 
   dt_iop_color_picker_cleanup();
   if(darktable.lib->proxy.colorpicker.picker_proxy)

@@ -451,6 +451,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
   if(buffer) dt_free_align(buffer);
   pipe->running = 0;
+  dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
 }
 
 
@@ -578,6 +579,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
   if(buffer) dt_free_align(buffer);
   pipe->running = 0;
+  dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting main image pipe thread\n");
 }
 
 
@@ -616,11 +618,6 @@ static inline int _dt_dev_load_raw(dt_develop_t *dev, const uint32_t imgid)
   return (no_valid_image || no_valid_thumb);
 }
 
-void dt_dev_reload_image(dt_develop_t *dev, const uint32_t imgid)
-{
-  dt_dev_load_image(dev, imgid);
-}
-
 float dt_dev_get_zoom_scale(dt_develop_t *dev, dt_dev_zoom_t zoom, int closeup_factor, int preview)
 {
   float zoom_scale;
@@ -654,16 +651,12 @@ float dt_dev_get_zoom_scale(dt_develop_t *dev, dt_dev_zoom_t zoom, int closeup_f
 
 int dt_dev_load_image(dt_develop_t *dev, const uint32_t imgid)
 {
-  dt_pthread_mutex_lock(&dev->history_mutex);
-
-  if(_dt_dev_load_raw(dev, imgid))
-  {
-    dt_pthread_mutex_unlock(&dev->history_mutex);
-    return 1;
-  }
+  if(_dt_dev_load_raw(dev, imgid)) return 1;
 
   // we need a global lock as the dev->iop set must not be changed until read history is terminated
+  dt_pthread_mutex_lock(&dev->history_mutex);
   dev->iop = dt_iop_load_modules(dev);
+
   dt_dev_read_history_ext(dev, dev->image_storage.id, FALSE);
 
   if(dev->pipe)
