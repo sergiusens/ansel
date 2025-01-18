@@ -465,6 +465,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
+  dt_control_queue_redraw();
 }
 
 
