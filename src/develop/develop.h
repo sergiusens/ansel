@@ -360,7 +360,8 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, struct dt_iop_module_t *mod
 void dt_dev_reload_history_items(dt_develop_t *dev);
 void dt_dev_pop_history_items_ext(dt_develop_t *dev, int32_t cnt);
 void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt);
-void dt_dev_write_history_ext(dt_develop_t *dev, const int imgid);
+void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int imgid);
+void dt_dev_write_history_end_ext(const int history_end, const int imgid);
 void dt_dev_write_history(dt_develop_t *dev);
 void dt_dev_read_history_ext(dt_develop_t *dev, const int imgid, gboolean no_image);
 void dt_dev_read_history(dt_develop_t *dev);
@@ -550,7 +551,7 @@ void dt_masks_set_lock_mode(dt_develop_t *dev, gboolean mode);
 
 // Count all the mask forms used x history entries, up to a certain threshold.
 // Stop counting when the threshold is reached, for performance.
-guint dt_dev_mask_history_overload(dt_develop_t *dev, guint threshold);
+guint dt_dev_mask_history_overload(GList *dev_history, guint threshold);
 
 // Write the `darktable|changed` tag on the current picture upon history modification
 void dt_dev_append_changed_tag(const int32_t imgid);

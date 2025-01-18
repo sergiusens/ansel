@@ -572,7 +572,8 @@ static int _history_copy_and_paste_on_image_merge(int32_t imgid, int32_t dest_im
   dt_ioppr_check_iop_order(dev_dest, dest_imgid, "_history_copy_and_paste_on_image_merge 2");
 
   // write history and forms to db
-  dt_dev_write_history_ext(dev_dest, dest_imgid);
+  dt_dev_write_history_ext(dev_dest->history, dev_dest->iop_order_list, dest_imgid);
+  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev_dest), dest_imgid);
 
   dt_dev_cleanup(dev_src);
   dt_dev_cleanup(dev_dest);

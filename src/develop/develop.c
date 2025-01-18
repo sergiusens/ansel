@@ -920,14 +920,15 @@ static int _auto_save_edit(gpointer data)
   dt_develop_t *dev = (dt_develop_t *)data;
   dev->auto_save_timeout = 0;
 
-  if(dt_dev_mask_history_overload(dev, 250) < 250)
+  if(dt_dev_mask_history_overload(dev->history, 250) < 250)
   {
     dt_times_t start;
     dt_get_times(&start);
     dt_toast_log(_("autosaving changes..."));
 
     dt_pthread_mutex_lock(&dev->history_mutex);
-    dt_dev_write_history_ext(dev, dev->image_storage.id);
+    dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
+    dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
     dt_image_write_sidecar_file(dev->image_storage.id);
     dt_pthread_mutex_unlock(&dev->history_mutex);
 
@@ -1161,12 +1162,12 @@ static void _cleanup_history(const int imgid)
   sqlite3_finalize(stmt);
 }
 
-guint dt_dev_mask_history_overload(dt_develop_t *dev, guint threshold)
+guint dt_dev_mask_history_overload(GList *dev_history, guint threshold)
 {
   // Count all the mask forms used x history entries, up to a certain threshold.
   // Stop counting when the threshold is reached, for performance.
   guint states = 0;
-  for(GList *history = g_list_first(dev->history); history; history = g_list_next(history))
+  for(GList *history = g_list_first(dev_history); history; history = g_list_next(history))
   {
     dt_dev_history_item_t *hist_item = (dt_dev_history_item_t *)(history->data);
     states += g_list_length(hist_item->forms);
@@ -1175,14 +1176,14 @@ guint dt_dev_mask_history_overload(dt_develop_t *dev, guint threshold)
   return states;
 }
 
-static void _warn_about_history_overuse(dt_develop_t *dev)
+static void _warn_about_history_overuse(GList *dev_history)
 {
   /* History stores one entry per module, everytime a parameter is changed.
   *  For modules using masks, we also store a full snapshot of masks states.
   *  All that is saved into database and XMP. When history entries x number of mask > 250,
   *  we get a really bad performance penalty.
   */
-  guint states = dt_dev_mask_history_overload(dev, 250);
+  guint states = dt_dev_mask_history_overload(dev_history, 250);
 
   if(states > 250)
     dt_toast_log(_("Your history is storing %d mask states. To ensure smooth operation, consider compressing "
@@ -1190,35 +1191,39 @@ static void _warn_about_history_overuse(dt_develop_t *dev)
                  states);
 }
 
-void dt_dev_write_history_ext(dt_develop_t *dev, const int imgid)
+
+void dt_dev_write_history_end_ext(const int history_end, const int imgid)
 {
+  // update history end
   sqlite3_stmt *stmt;
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+                              "UPDATE main.images SET history_end = ?1 WHERE id = ?2", -1,
+                              &stmt, NULL);
+  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, history_end);
+  DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
+  sqlite3_step(stmt);
+  sqlite3_finalize(stmt);
+}
 
+
+void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int imgid)
+{
   _cleanup_history(imgid);
-  _warn_about_history_overuse(dev);
+  _warn_about_history_overuse(dev_history);
 
-  dt_print(DT_DEBUG_HISTORY | DT_IOP_ORDER_INFO, "[dt_dev_write_history_ext] writing history for image %i, iop version: %i...\n", imgid, dev->iop_order_version);
+  dt_print(DT_DEBUG_HISTORY, "[dt_dev_write_history_ext] writing history for image %i...\n", imgid);
 
   // write history entries
   int i = 0;
-  for(GList *history = g_list_first(dev->history); history; history = g_list_next(history))
+  for(GList *history = g_list_first(dev_history); history; history = g_list_next(history))
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
     dt_dev_write_history_item(imgid, hist, i);
     i++;
   }
 
-  // update history end
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "UPDATE main.images SET history_end = ?1 WHERE id = ?2", -1,
-                              &stmt, NULL);
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, dt_dev_get_history_end(dev));
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
-  sqlite3_step(stmt);
-  sqlite3_finalize(stmt);
-
   // write the current iop-order-list for this image
-  dt_ioppr_write_iop_order_list(dev->iop_order_list, imgid);
+  dt_ioppr_write_iop_order_list(iop_order_list, imgid);
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
 }
 
@@ -1226,7 +1231,8 @@ void dt_dev_write_history(dt_develop_t *dev)
 {
   // FIXME: [CRITICAL] should lock the image history at the app level
   dt_pthread_mutex_lock(&dev->history_mutex);
-  dt_dev_write_history_ext(dev, dev->image_storage.id);
+  dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
+  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 }
 
@@ -1605,7 +1611,7 @@ static void _dev_merge_history(dt_develop_t *dev, const int imgid)
 void _dev_write_history(dt_develop_t *dev, const int imgid)
 {
   _cleanup_history(imgid);
-  _warn_about_history_overuse(dev);
+  _warn_about_history_overuse(dev->history);
 
   // write history entries
   GList *history = g_list_first(dev->history);
