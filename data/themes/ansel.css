@@ -505,7 +505,8 @@ separator
   font-weight: 400;
 }
 
-#menu-bar menuitem menu menuitem.menu-active label
+#menu-bar menuitem menu menuitem.menu-active label,
+menuitem.menu-active label
 {
   font-weight: 800;
   color: @grey_100;
