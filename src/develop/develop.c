@@ -339,10 +339,6 @@ void dt_dev_invalidate_all_real(dt_develop_t *dev)
 {
   if(!dev || !dev->gui_attached || !dev->pipe || !dev->preview_pipe) return;
 
-  // Send killswitch ASAP
-  dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
-  dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
-
   dt_dev_invalidate(dev);
   dt_dev_invalidate_preview(dev);
 }
@@ -380,6 +376,22 @@ static dt_mipmap_buffer_t _get_input_copy(const int32_t imgid, dt_mipmap_size_t 
   return buf;
 }
 
+static void _flag_pipe(dt_dev_pixelpipe_t *pipe)
+{
+  // The internal dt_dev_pixelpipe_process() sets the status to DT_DEV_PIXELPIPE_INVALID
+  // only upon memory errors. Else, it doesn't change it.
+  // If we get that, we know something went wrong.
+
+  // Before calling dt_dev_pixelpipe_process(), we set the status to DT_DEV_PIXELPIPE_UNDEF.
+  // If it's still set to this value and we have a backbuf, everything went well.
+  if(pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
+    pipe->status = DT_DEV_PIXELPIPE_VALID;
+
+  // Otherwise, the main thread will have reset the status to DT_DEV_PIXELPIPE_DIRTY
+  // and the pipe->shutdown to TRUE because history has changed in the middle of a process.
+  // In that case, do nothing and do another loop
+}
+
 
 void dt_dev_process_preview_job(dt_develop_t *dev)
 {
@@ -400,7 +412,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", width, height);
   }
 
-  while(!dev->exit && !finish_on_error && (pipe->status != DT_DEV_PIXELPIPE_VALID))
+  while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY))
   {
     dt_pthread_mutex_lock(&pipe->busy_mutex);
     pipe->processing = 1;
@@ -440,21 +452,11 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_preview] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->preview_average_delay);
 
-    // The internal dt_dev_pixelpipe_process() sets the status to invalid
-    // upon memory errors. Else, it doesn't change it so it is supposed to
-    // be dirty so far.
-    if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID)
-      finish_on_error = TRUE;
-    else if(!ret && pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
-      pipe->status = DT_DEV_PIXELPIPE_VALID;
-    // else if(ret || pipe->status == DT_DEV_PIXELPIPE_DIRTY)
-    //  history was changed from mainthread since we started,
-    //  pipe will be reprocessed in next loop
-
+    if(!ret) _flag_pipe(pipe);
     pipe->processing = 0;
     dt_pthread_mutex_unlock(&pipe->busy_mutex);
 
-    if(!finish_on_error)
+    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
 
     dt_iop_nap(200);
@@ -490,7 +492,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, width, height, 1.0);
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
-  while(!dev->exit && !finish_on_error && (pipe->status != DT_DEV_PIXELPIPE_VALID))
+  while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY))
   {
     dt_pthread_mutex_lock(&pipe->busy_mutex);
     pipe->processing = 1;
@@ -560,19 +562,10 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_image] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->average_delay);
 
-    // The internal dt_dev_pixelpipe_process() sets the status to invalid
-    // upon memory errors. Else, it doesn't change it so it is supposed to
-    // be dirty so far.
-    if(ret && pipe->status == DT_DEV_PIXELPIPE_INVALID)
-      finish_on_error = TRUE;
-    else if(!ret && pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
-      pipe->status = DT_DEV_PIXELPIPE_VALID;
-    // else if(ret || pipe->status == DT_DEV_PIXELPIPE_DIRTY)
-    //  history was changed from mainthread since we started,
-    //  pipe will be reprocessed in next loop
+    if(!ret) _flag_pipe(pipe);
 
     // cool, we got a new image!
-    if(!finish_on_error && !ret)
+    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
     {
       pipe->backbuf_scale = scale;
       pipe->backbuf_zoom_x = zoom_x;
@@ -583,7 +576,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     pipe->processing = 0;
     dt_pthread_mutex_unlock(&pipe->busy_mutex);
 
-    if(!finish_on_error)
+    if(pipe->status == DT_DEV_PIXELPIPE_VALID)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
 
     dt_iop_nap(200);
