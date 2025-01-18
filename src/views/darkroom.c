@@ -2221,6 +2221,8 @@ void enter(dt_view_t *self)
   dt_print(DT_DEBUG_CONTROL, "[run_job+] 11 %f in darkroom mode\n", dt_get_wtime());
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
+  dev->exit = 0;
+
   // Make sure we don't start computing pipes until we have a proper history
   dt_pthread_mutex_lock(&dev->history_mutex);
 
@@ -2342,8 +2344,6 @@ void enter(dt_view_t *self)
   // Init the starting point of undo/redo
   dt_dev_undo_start_record(dev);
   dt_dev_undo_end_record(dev);
-
-  dev->exit = 0;
 }
 
 void leave(dt_view_t *self)
@@ -2351,9 +2351,9 @@ void leave(dt_view_t *self)
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
   // Send all shutdown signals
+  dev->exit = 1;
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
-  dev->exit = 1;
 
   dt_iop_color_picker_cleanup();
   if(darktable.lib->proxy.colorpicker.picker_proxy)

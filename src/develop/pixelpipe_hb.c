@@ -1576,7 +1576,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
                 "[opencl_pixelpipe (a)] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
             dt_opencl_release_mem_object(cl_mem_input);
             pipe->opencl_error = 1;
-            pipe->status = DT_DEV_PIXELPIPE_INVALID;
             return 1;
           }
           else
@@ -1750,7 +1749,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
                 "[opencl_pixelpipe (b)] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
             dt_opencl_release_mem_object(cl_mem_input);
             pipe->opencl_error = 1;
-            pipe->status = DT_DEV_PIXELPIPE_INVALID;
             return 1;
           }
           else
@@ -1789,7 +1787,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
               "[opencl_pixelpipe (c)] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
           dt_opencl_release_mem_object(cl_mem_input);
           pipe->opencl_error = 1;
-          pipe->status = DT_DEV_PIXELPIPE_INVALID;
           return 1;
         }
         else
@@ -1962,7 +1959,6 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
       else
       {
         // Invalid dimensions
-        pipe->status = DT_DEV_PIXELPIPE_INVALID;
         return 1;
       }
     }
@@ -1983,7 +1979,6 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
                 "Base buffer init: scale %f != 1.0 but the input has %li bytes per pixel. This case is not "
                 "covered by the pipeline, please report the bug.\n",
                 roi_out->scale, bpp);
-      pipe->status = DT_DEV_PIXELPIPE_INVALID;
       return 1;
     }
   }
@@ -2023,7 +2018,6 @@ static int _process_masks_preview(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, d
     return 0;
   }
 
-  pipe->status = DT_DEV_PIXELPIPE_INVALID;
   return 1;
 }
 
@@ -2437,7 +2431,6 @@ restart:;
   {
     // If the pipe returned because the killswitch was triggered, consir it unfinished.
     // Then the main loop will attempt it again.
-    pipe->status = (dt_atomic_get_int(&pipe->shutdown)) ? DT_DEV_PIXELPIPE_DIRTY : DT_DEV_PIXELPIPE_INVALID;
     return 1;
   }
 

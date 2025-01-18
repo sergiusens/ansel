@@ -232,7 +232,7 @@ void dt_dev_refresh_ui_images_real(dt_develop_t *dev)
   // which is handled everytime history is changed,
   // including when initing a new pipeline (from scratch or from user history).
   // Benefit is atomics are de-facto thread-safe.
-  if(dt_atomic_get_int(&dev->preview_pipe->shutdown) && !dev->preview_pipe->running)
+  if(dt_atomic_get_int(&dev->preview_pipe->shutdown) && !dev->preview_pipe->processing)
     dt_dev_process_preview(dev);
   // else : join current pipe
 
@@ -244,7 +244,7 @@ void dt_dev_refresh_ui_images_real(dt_develop_t *dev)
   // But just in case, always start with the preview pipe, hoping
   // the GUI will have figured out what size it really wants when we start
   // the main preview pipe.
-  if(dt_atomic_get_int(&dev->pipe->shutdown) && !dev->pipe->running)
+  if(dt_atomic_get_int(&dev->pipe->shutdown) && !dev->pipe->processing)
     dt_dev_process_image(dev);
   // else : join current pipe
 }
@@ -343,48 +343,18 @@ void dt_dev_invalidate_all_real(dt_develop_t *dev)
   dt_dev_invalidate_preview(dev);
 }
 
-static dt_mipmap_buffer_t _get_input_copy(const int32_t imgid, dt_mipmap_size_t type, int *width, int *height, float *iscale)
+
+static void _flag_pipe(dt_dev_pixelpipe_t *pipe, gboolean error)
 {
-  dt_mipmap_buffer_t buf;
-  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, type, DT_MIPMAP_BLOCKING, 'r');
-
-  //gboolean error = (!buf.buf || !buf.width || !buf.height);
-
-  // keep our own copy of the input buffer to release the cache lock ASAP
-  *width = buf.width;
-  *height = buf.height;
-  *iscale = buf.iscale;
-
-  /*
-  const size_t buf_size = buf.cache_entry->data_size;
-  float *buffer = NULL;
-
-  if(!error)
-  {
-    buffer = dt_alloc_align(buf_size);
-    error = (buffer == NULL);
-  }
-
-  if(!error)
-    memcpy(buffer, (float *)buf.buf, buf_size);
-
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-
-  return buffer;
-  */
-
-  return buf;
-}
-
-static void _flag_pipe(dt_dev_pixelpipe_t *pipe)
-{
-  // The internal dt_dev_pixelpipe_process() sets the status to DT_DEV_PIXELPIPE_INVALID
-  // only upon memory errors. Else, it doesn't change it.
-  // If we get that, we know something went wrong.
+  // If dt_dev_pixelpipe_process() returned with a state int == 1
+  // and the shutdown flag is on, it means history commit activated the kill-switch.
+  // Any other circomstance returning 1 is a runtime error, flag it invalid.
+  if(error && !dt_atomic_get_int(&pipe->shutdown))
+    pipe->status = DT_DEV_PIXELPIPE_INVALID;
 
   // Before calling dt_dev_pixelpipe_process(), we set the status to DT_DEV_PIXELPIPE_UNDEF.
   // If it's still set to this value and we have a backbuf, everything went well.
-  if(pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
+  else if(pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
     pipe->status = DT_DEV_PIXELPIPE_VALID;
 
   // Otherwise, the main thread will have reset the status to DT_DEV_PIXELPIPE_DIRTY
@@ -398,25 +368,24 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   dt_dev_pixelpipe_t *pipe = dev->preview_pipe;
   pipe->running = 1;
 
+  dt_pthread_mutex_lock(&pipe->busy_mutex);
+
   // init pixel pipeline for preview.
   // always process the whole downsampled mipf buffer, to allow for fast scrolling and mip4 write-through.
-  int width, height;
-  float iscale;
-  dt_mipmap_buffer_t buf = _get_input_copy(dev->image_storage.id, DT_MIPMAP_F, &width, &height, &iscale);
+  dt_mipmap_buffer_t buf;
+  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
 
   gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
 
   if(!finish_on_error)
   {
-    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, width, height, iscale);
-    dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", width, height);
+    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, buf.width, buf.height, buf.iscale);
+    dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", buf.width, buf.height);
   }
 
+  pipe->processing = 1;
   while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY))
   {
-    dt_pthread_mutex_lock(&pipe->busy_mutex);
-    pipe->processing = 1;
-
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
@@ -452,17 +421,19 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_preview] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->preview_average_delay);
 
-    if(!ret) _flag_pipe(pipe);
-    pipe->processing = 0;
-    dt_pthread_mutex_unlock(&pipe->busy_mutex);
+    _flag_pipe(pipe, ret);
 
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
 
     dt_iop_nap(200);
   }
+  pipe->processing = 0;
 
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+
+  dt_pthread_mutex_unlock(&pipe->busy_mutex);
+
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
   dt_control_queue_redraw();
@@ -483,21 +454,20 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   dt_dev_pixelpipe_t *pipe = dev->pipe;
   pipe->running = 1;
 
-  int width, height;
-  float iscale;
-  dt_mipmap_buffer_t buf = _get_input_copy(dev->image_storage.id, DT_MIPMAP_FULL, &width, &height, &iscale);
+  dt_pthread_mutex_lock(&pipe->busy_mutex);
+
+  dt_mipmap_buffer_t buf;
+  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
 
   gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
 
   if(!finish_on_error)
-    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, width, height, 1.0);
+    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, buf.width, buf.height, 1.0);
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
+  pipe->processing = 1;
   while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY))
   {
-    dt_pthread_mutex_lock(&pipe->busy_mutex);
-    pipe->processing = 1;
-
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
@@ -563,7 +533,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_image] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->average_delay);
 
-    if(!ret) _flag_pipe(pipe);
+    _flag_pipe(pipe, ret);
 
     // cool, we got a new image!
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
@@ -574,16 +544,17 @@ void dt_dev_process_image_job(dt_develop_t *dev)
       dev->image_invalid_cnt = 0;
     }
 
-    pipe->processing = 0;
-    dt_pthread_mutex_unlock(&pipe->busy_mutex);
-
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED);
 
     dt_iop_nap(200);
   }
+  pipe->processing = 0;
 
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+
+  dt_pthread_mutex_unlock(&pipe->busy_mutex);
+
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting main image pipe thread\n");
   dt_control_queue_redraw_center();
