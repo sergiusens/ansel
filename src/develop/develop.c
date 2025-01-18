@@ -585,6 +585,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting main image pipe thread\n");
+  dt_control_queue_redraw_center();
 }
 
 
