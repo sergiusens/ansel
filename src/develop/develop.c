@@ -1608,21 +1608,6 @@ static void _dev_merge_history(dt_develop_t *dev, const int imgid)
   }
 }
 
-void _dev_write_history(dt_develop_t *dev, const int imgid)
-{
-  _cleanup_history(imgid);
-  _warn_about_history_overuse(dev->history);
-
-  // write history entries
-  GList *history = g_list_first(dev->history);
-  for(int i = 0; history; i++)
-  {
-    dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
-    (void)dt_dev_write_history_item(imgid, hist, i);
-    history = g_list_next(history);
-  }
-}
-
 // helper function for debug strings
 char * _print_validity(gboolean state)
 {
