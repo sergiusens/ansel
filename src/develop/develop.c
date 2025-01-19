@@ -964,21 +964,6 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
   /* signal that history has changed */
   dt_dev_undo_end_record(dev);
 
-  if(darktable.gui && dev->gui_attached)
-  {
-    if(module) dt_iop_gui_set_enable_button(module);
-
-    // Auto-save N s after the last change.
-    // If another change is made during that delay,
-    // reset the timer and restart Ns
-    if(dev->auto_save_timeout)
-    {
-      g_source_remove(dev->auto_save_timeout);
-      dev->auto_save_timeout = 0;
-    }
-    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, _auto_save_edit, dev);
-  }
-
   // Run the delayed post-commit actions if implemented
   if(module && module->post_history_commit) module->post_history_commit(module);
 
@@ -1008,6 +993,21 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
 
   dt_dev_masks_list_update(dev);
   dt_dev_refresh_ui_images(dev);
+
+  if(darktable.gui && dev->gui_attached)
+  {
+    if(module) dt_iop_gui_set_enable_button(module);
+
+    // Auto-save N s after the last change.
+    // If another change is made during that delay,
+    // reset the timer and restart Ns
+    if(dev->auto_save_timeout)
+    {
+      g_source_remove(dev->auto_save_timeout);
+      dev->auto_save_timeout = 0;
+    }
+    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, _auto_save_edit, dev);
+  }
 }
 
 void dt_dev_free_history_item(gpointer data)
