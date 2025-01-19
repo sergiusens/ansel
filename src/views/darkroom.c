@@ -2540,14 +2540,25 @@ void mouse_enter(dt_view_t *self)
   dt_masks_events_mouse_enter(dev->gui_module);
 }
 
-#define DRAWING_TIMEOUT 80
+#define DRAWING_TIMEOUT 200
 
 static int _delayed_history_commit(gpointer data)
 {
   dt_develop_t *dev = (dt_develop_t *)data;
   dev->drawing_timeout = 0;
-  dt_dev_add_history_item(dev, dev->gui_module, FALSE);
-  dt_dev_masks_list_update(dev);
+
+  // Figure out if an history item needs to be added
+  // aka drawn masks have changed somehow. This is more expensive
+  // but more reliable than handling individually all editing operations
+  // in all callbacks in all possible mask types.
+  uint64_t old_hash = dev->forms_hash;
+  dt_dev_masks_update_hash(dev);
+  uint64_t new_hash = dev->forms_hash;
+
+  if(new_hash != old_hash)
+  {
+    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
+  }
   return G_SOURCE_REMOVE;
 }
 

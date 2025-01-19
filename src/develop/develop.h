@@ -199,6 +199,8 @@ typedef struct dt_develop_t
 
   // list of forms iop can use for masks or whatever
   GList *forms;
+  // integrity hash of forms
+  uint64_t forms_hash;
   struct dt_masks_form_t *form_visible;
   struct dt_masks_form_gui_t *form_gui;
   // all forms to be linked here for cleanup:
@@ -485,6 +487,9 @@ void dt_dev_masks_list_change(dt_develop_t *dev);
 void dt_dev_masks_list_update(dt_develop_t *dev);
 void dt_dev_masks_list_remove(dt_develop_t *dev, int formid, int parentid);
 void dt_dev_masks_selection_change(dt_develop_t *dev, struct dt_iop_module_t *module, const int selectid, const int throw_event);
+
+/** integrity hash of the forms/shapes stack */
+void dt_dev_masks_update_hash(dt_develop_t *dev);
 
 /*
  * multi instances

@@ -73,6 +73,7 @@ void dt_dev_init(dt_develop_t *dev, int32_t gui_attached)
   dev->form_visible = NULL;
   dev->form_gui = NULL;
   dev->allforms = NULL;
+  dev->forms_hash = 0;
 
   if(dev->gui_attached)
   {
@@ -899,6 +900,8 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   // So dev->history_end = index of last history entry + 1 = length of history
   dt_dev_set_history_end(dev, g_list_length(dev->history));
 
+  dt_dev_masks_update_hash(dev);
+
   return add_new_pipe_node;
 }
 
@@ -1003,6 +1006,7 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
     dt_dev_pixelpipe_resync_all(dev);
   }
 
+  dt_dev_masks_list_update(dev);
   dt_dev_refresh_ui_images(dev);
 }
 
@@ -1931,6 +1935,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int imgid, gboolean no_ima
   }
 
   dt_dev_masks_list_change(dev);
+  dt_dev_masks_update_hash(dev);
 
   dt_print(DT_DEBUG_HISTORY, "[history] dt_dev_read_history_ext completed\n");
 }
@@ -2643,6 +2648,22 @@ void dt_dev_append_changed_tag(const int32_t imgid)
   dt_image_cache_set_change_timestamp(darktable.image_cache, imgid);
 
   if(tag_change) DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
+}
+
+void dt_dev_masks_update_hash(dt_develop_t *dev)
+{
+  dt_times_t start;
+  dt_get_times(&start);
+
+  uint64_t hash = 5381;
+  for(GList *form = g_list_first(dev->forms); form; form = g_list_next(form))
+  {
+    dt_masks_form_t *shape = (dt_masks_form_t *)form->data;
+    hash = dt_masks_group_get_hash(hash, shape);
+  }
+  dev->forms_hash = hash;
+
+  dt_show_times(&start, "[masks_update_hash] computing forms hash");
 }
 
 // clang-format off
