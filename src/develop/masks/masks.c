@@ -1077,8 +1077,12 @@ int dt_masks_events_button_released(struct dt_iop_module_t *module, double x, do
     dt_dev_masks_selection_change(darktable.develop, module,
                                   darktable.develop->mask_form_selected_id, FALSE);
 
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED, NULL, NULL);
+
   if(form->functions)
     return form->functions->button_released(module, pzx, pzy, which, state, form, 0, gui, 0);
+
+
 
   return 0;
 }
@@ -1095,32 +1099,12 @@ int dt_masks_events_button_pressed(struct dt_iop_module_t *module, double x, dou
   dt_dev_get_pointer_zoom_pos(darktable.develop, x, y, &pzx, &pzy);
   pzx += 0.5f;
   pzy += 0.5f;
-
-  // allow to select a shape from the outside world, typically from IOPs
-  // but also mask GUI controls. Note that it doesn't work at mask creation time
-  // because it relies on gui->group_selected or gui->group_edited being properly
-  // set with the formid of the newly-created shape. But since opacity is set at
-  // the scope of the parent group
-  if(gui && which == 1)
-  {
-    dt_masks_form_t *sel = NULL;
-
-    // we try to get the selected form among what we can find
-    int group = (gui->group_edited) ? gui->group_edited : gui->group_selected;
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, group);
-    if(fpt)
-    {
-      sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
-
-      if(darktable.develop->mask_form_selected_id != sel->formid)
-        DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED, sel, fpt);
-    }
-
-    dt_masks_select_form(module, sel);
-  }
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED, NULL, NULL);
 
   if(form->functions)
     return form->functions->button_pressed(module, pzx, pzy, pressure, which, type, state, form, 0, gui, 0);
+
+
 
   return 0;
 }
