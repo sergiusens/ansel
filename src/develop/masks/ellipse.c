@@ -19,7 +19,7 @@
 #include "common/debug.h"
 #include "common/undo.h"
 #include "control/conf.h"
-#include "control/control.h"
+
 #include "develop/blend.h"
 #include "develop/imageop.h"
 #include "develop/masks.h"
@@ -712,7 +712,7 @@ static int _ellipse_events_button_pressed(struct dt_iop_module_t *module, float 
   {
     dt_masks_set_edit_mode(module, DT_MASKS_EDIT_FULL);
     dt_masks_iop_update(module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->creation && which == 1
@@ -1098,7 +1098,7 @@ static int _ellipse_events_mouse_moved(struct dt_iop_module_t *module, float pzx
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->point_dragging >= 1)
@@ -1176,7 +1176,7 @@ static int _ellipse_events_mouse_moved(struct dt_iop_module_t *module, float pzx
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->form_rotating)
@@ -1224,7 +1224,7 @@ static int _ellipse_events_mouse_moved(struct dt_iop_module_t *module, float pzx
     gui->dx = xref - gui->posx;
     gui->dy = yref - gui->posy;
 
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(!gui->creation)
@@ -1282,7 +1282,7 @@ static int _ellipse_events_mouse_moved(struct dt_iop_module_t *module, float pzx
       }
     }
 
-    dt_control_queue_redraw_center();
+
     if(!gui->form_selected && !gui->border_selected) return 0;
     if(gui->edit_mode != DT_MASKS_EDIT_FULL) return 0;
     return 1;
@@ -1290,7 +1290,7 @@ static int _ellipse_events_mouse_moved(struct dt_iop_module_t *module, float pzx
   // add a preview when creating an ellipse
   else if(gui->creation)
   {
-    dt_control_queue_redraw_center();
+
     return 1;
   }
 

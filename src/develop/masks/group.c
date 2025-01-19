@@ -17,7 +17,7 @@
 */
 #include "common/debug.h"
 #include "control/conf.h"
-#include "control/control.h"
+#include"control/control.h"
 #include "develop/blend.h"
 #include "develop/imageop.h"
 #include "develop/masks.h"
@@ -52,7 +52,7 @@ static int _group_events_button_pressed(struct dt_iop_module_t *module, float pz
     gui->point_border_selected = gui->seg_selected = gui->point_selected = gui->feather_selected = -1;
     gui->point_border_dragging = gui->seg_dragging = gui->feather_dragging = gui->point_dragging = -1;
 
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   if(gui->group_edited >= 0)
@@ -183,7 +183,7 @@ static int _group_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
     return sel->functions->mouse_moved(module, pzx, pzy, pressure, which, sel, sel_fpt->parentid, gui, gui->group_edited);
   }
 
-  dt_control_queue_redraw_center();
+
   return 0;
 }
 

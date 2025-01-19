@@ -20,7 +20,7 @@
 #include "common/imagebuf.h"
 #include "common/undo.h"
 #include "control/conf.h"
-#include "control/control.h"
+
 #include "develop/blend.h"
 #include "develop/imageop.h"
 #include "develop/masks.h"
@@ -1160,7 +1160,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
       // the continuous add
       dt_masks_set_edit_mode(module, DT_MASKS_EDIT_FULL);
       dt_masks_iop_update(module);
-      dt_control_queue_redraw_center();
+
       return 1;
     }
     else
@@ -1213,7 +1213,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
         dt_masks_select_form(crea_module, dt_masks_get_from_id(darktable.develop, form->formid));
       }
 
-      dt_control_queue_redraw_center();
+
     }
   }
   else if(which == 1)
@@ -1276,7 +1276,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
       dt_masks_gui_form_remove(form, gui, index);
       dt_masks_gui_form_create(form, gui, index, module);
 
-      dt_control_queue_redraw_center();
+
       return 1;
     }
     else if(gui->source_selected && gui->edit_mode == DT_MASKS_EDIT_FULL)
@@ -1338,20 +1338,20 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
       }
       gui->point_edited = gui->point_dragging = gui->point_selected;
       gpt->clockwise = _path_is_clockwise(form);
-      dt_control_queue_redraw_center();
+
       return 1;
     }
     else if(gui->feather_selected >= 0)
     {
       gui->feather_dragging = gui->feather_selected;
-      dt_control_queue_redraw_center();
+
       return 1;
     }
     else if(gui->point_border_selected >= 0)
     {
       gui->point_edited = -1;
       gui->point_border_dragging = gui->point_border_selected;
-      dt_control_queue_redraw_center();
+
       return 1;
     }
     else if(gui->seg_selected >= 0)
@@ -1386,7 +1386,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
         dt_masks_gui_form_create(form, gui, index, module);
         gui->point_edited = gui->point_dragging = gui->point_selected = gui->seg_selected + 1;
         gui->seg_selected = -1;
-        dt_control_queue_redraw_center();
+
       }
       else
       {
@@ -1432,7 +1432,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
 
       // we delete or remove the shape
       dt_masks_form_remove(module, NULL, form);
-      dt_control_queue_redraw_center();
+
       return 1;
     }
     dt_masks_point_path_t *point
@@ -1668,7 +1668,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
     // we save the move
 
     dt_masks_update_image(darktable.develop);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
 
@@ -1733,7 +1733,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->seg_dragging >= 0)
@@ -1781,7 +1781,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
 
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->feather_dragging >= 0)
@@ -1806,7 +1806,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->point_border_dragging >= 0)
@@ -1833,7 +1833,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
   else if(gui->form_dragging || gui->source_dragging)
@@ -1867,7 +1867,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    dt_control_queue_redraw_center();
+
     return 1;
   }
 
@@ -1897,7 +1897,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
       if(pzx - ffx > -as && pzx - ffx < as && pzy - ffy > -as && pzy - ffy < as)
       {
         gui->feather_selected = k;
-        dt_control_queue_redraw_center();
+
         return 1;
       }
     }
@@ -1906,7 +1906,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
        && pzy - gpt->points[k * 6 + 3] > -as && pzy - gpt->points[k * 6 + 3] < as)
     {
       gui->point_selected = k;
-      dt_control_queue_redraw_center();
+
       return 1;
     }
   }
@@ -1918,7 +1918,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
        && pzy - gpt->points[k * 6 + 3] > -as && pzy - gpt->points[k * 6 + 3] < as)
     {
       gui->point_selected = k;
-      dt_control_queue_redraw_center();
+
       return 1;
     }
 
@@ -1927,7 +1927,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
        && pzy - gpt->border[k * 6 + 1] > -as && pzy - gpt->border[k * 6 + 1] < as)
     {
       gui->point_border_selected = k;
-      dt_control_queue_redraw_center();
+
       return 1;
     }
   }
@@ -1954,7 +1954,7 @@ static int _path_events_mouse_moved(struct dt_iop_module_t *module, float pzx, f
       gui->form_selected = TRUE;
     }
   }
-  dt_control_queue_redraw_center();
+
   if(!gui->form_selected && !gui->border_selected && gui->seg_selected < 0) return 0;
   if(gui->edit_mode != DT_MASKS_EDIT_FULL) return 0;
   return 1;

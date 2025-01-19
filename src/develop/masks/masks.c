@@ -20,7 +20,7 @@
 #include "common/debug.h"
 #include "common/mipmap_cache.h"
 #include "control/conf.h"
-#include "control/control.h"
+
 #include "common/undo.h"
 #include "develop/blend.h"
 #include "develop/imageop.h"
@@ -1316,7 +1316,7 @@ void dt_masks_set_edit_mode(struct dt_iop_module_t *module, dt_masks_edit_mode_t
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bd->masks_edit),
                                  value == DT_MASKS_EDIT_OFF ? FALSE : TRUE);
 
-  dt_control_queue_redraw_center();
+
 }
 
 void dt_masks_set_edit_mode_single_form(struct dt_iop_module_t *module, const int formid,
@@ -1349,7 +1349,7 @@ void dt_masks_set_edit_mode_single_form(struct dt_iop_module_t *module, const in
   else
     dt_dev_masks_selection_change(darktable.develop, NULL, 0, FALSE);
 
-  dt_control_queue_redraw_center();
+
 }
 
 void dt_masks_iop_edit_toggle_callback(GtkToggleButton *togglebutton, dt_iop_module_t *module)
@@ -1602,7 +1602,7 @@ void dt_masks_iop_value_changed_callback(GtkWidget *widget, struct dt_iop_module
   }
   // we update the combo line
   dt_masks_iop_update(module);
-  dt_control_queue_redraw_center();
+
   dt_masks_update_image(module->dev);
 }
 
