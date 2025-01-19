@@ -1086,6 +1086,142 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
   return tmin;
 }
 
+
+static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
+{
+  float masks_hardness;
+
+  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
+  {
+    masks_hardness = dt_conf_get_float("plugins/darkroom/spots/brush_hardness");
+    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+    dt_conf_set_float("plugins/darkroom/spots/brush_hardness", masks_hardness);
+  }
+  else
+  {
+    masks_hardness = dt_conf_get_float("plugins/darkroom/masks/brush/hardness");
+    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+    dt_conf_set_float("plugins/darkroom/masks/brush/hardness", masks_hardness);
+  }
+
+  if(gui->guipoints_count > 0)
+  {
+    dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
+  }
+
+  dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
+
+  return 1;
+}
+
+static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
+{
+  float masks_border;
+
+  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
+  {
+    masks_border = dt_conf_get_float("plugins/darkroom/spots/brush_border");
+    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
+    dt_conf_set_float("plugins/darkroom/spots/brush_border", masks_border);
+  }
+  else
+  {
+    masks_border = dt_conf_get_float("plugins/darkroom/masks/brush/border");
+    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
+    dt_conf_set_float("plugins/darkroom/masks/brush/border", masks_border);
+  }
+
+  if(gui->guipoints_count > 0)
+  {
+    dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
+  }
+
+  dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
+
+  return 1;
+}
+
+static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount)
+{
+  int pts_number = 0;
+  for(GList *l = form->points; l; l = g_list_next(l))
+  {
+    if(gui->point_selected == -1 || gui->point_selected == pts_number)
+    {
+      dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
+      const float masks_hardness = point->hardness;
+      point->hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+      dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
+    }
+    pts_number++;
+  }
+  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
+  {
+    float masks_hardness = dt_conf_get_float("plugins/darkroom/spots/brush_hardness");
+    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+    dt_conf_set_float("plugins/darkroom/spots/brush_hardness", masks_hardness);
+  }
+  else
+  {
+    float masks_hardness = dt_conf_get_float("plugins/darkroom/masks/brush/hardness");
+    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+    dt_conf_set_float("plugins/darkroom/masks/brush/hardness", masks_hardness);
+  }
+
+  // we recreate the form points
+  dt_masks_gui_form_remove(form, gui, index);
+  dt_masks_gui_form_create(form, gui, index, module);
+
+  return 1;
+}
+
+static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount)
+{
+  // do not exceed upper limit of 1.0 and lower limit of 0.004
+  int pts_number = 0;
+  for(GList *l = form->points; l; l = g_list_next(l))
+  {
+    if(gui->point_selected == -1 || gui->point_selected == pts_number)
+    {
+      dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
+      if(amount > 1.0f && (point->border[0] > 1.0f || point->border[1] > 1.0f))
+        return 1;
+    }
+    pts_number++;
+  }
+  pts_number = 0;
+  for(GList *l = form->points; l; l = g_list_next(l))
+  {
+    if(gui->point_selected == -1 || gui->point_selected == pts_number)
+    {
+      dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
+      point->border[0] *= amount;
+      point->border[1] *= amount;
+    }
+    pts_number++;
+  }
+  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
+  {
+    float masks_border = dt_conf_get_float("plugins/darkroom/spots/brush_border");
+    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
+    dt_conf_set_float("plugins/darkroom/spots/brush_border", masks_border);
+    dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
+  }
+  else
+  {
+    float masks_border = dt_conf_get_float("plugins/darkroom/masks/brush/border");
+    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
+    dt_conf_set_float("plugins/darkroom/masks/brush/border", masks_border);
+    dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
+  }
+
+  // we recreate the form points
+  dt_masks_gui_form_remove(form, gui, index);
+  dt_masks_gui_form_create(form, gui, index, module);
+
+  return 1;
+}
+
 static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pzx, float pzy, int up,
                                         uint32_t state, dt_masks_form_t *form, int parentid,
                                         dt_masks_form_gui_t *gui, int index,
@@ -1094,55 +1230,11 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
   if(gui->creation)
   {
     if(dt_modifier_is(state, GDK_SHIFT_MASK))
-    {
-      const float amount = up ? 1.03f : 0.97f;
-      float masks_hardness;
-
-      if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-      {
-        masks_hardness = dt_conf_get_float("plugins/darkroom/spots/brush_hardness");
-        masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-        dt_conf_set_float("plugins/darkroom/spots/brush_hardness", masks_hardness);
-      }
-      else
-      {
-        masks_hardness = dt_conf_get_float("plugins/darkroom/masks/brush/hardness");
-        masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-        dt_conf_set_float("plugins/darkroom/masks/brush/hardness", masks_hardness);
-      }
-
-      if(gui->guipoints_count > 0)
-      {
-        dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
-      }
-      dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
-    }
+      return _init_hardness(form, parentid, gui, up ? 1.03f : 0.97f);
     else if(dt_modifier_is(state, 0))
-    {
-      const float amount = up ? 1.03f : 0.97f;
-      float masks_border;
-
-      if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-      {
-        masks_border = dt_conf_get_float("plugins/darkroom/spots/brush_border");
-        masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-        dt_conf_set_float("plugins/darkroom/spots/brush_border", masks_border);
-      }
-      else
-      {
-        masks_border = dt_conf_get_float("plugins/darkroom/masks/brush/border");
-        masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-        dt_conf_set_float("plugins/darkroom/masks/brush/border", masks_border);
-      }
-
-      if(gui->guipoints_count > 0)
-      {
-        dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
-      }
-      dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
-    }
-
-    return 1;
+      return _init_size(form, parentid, gui, up ? 1.03f : 0.97f);
+    else
+      return 0;
   }
   else if(gui->form_selected || gui->point_selected >= 0 || gui->feather_selected >= 0
           || gui->seg_selected >= 0)
@@ -1153,92 +1245,17 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
       gui->scrollx = pzx;
       gui->scrolly = pzy;
     }
+
     if(dt_modifier_is(state, GDK_CONTROL_MASK))
-    {
-      // we try to change the opacity
-      dt_masks_form_change_opacity(form, parentid, up);
-    }
+      return dt_masks_form_set_opacity(form, parentid, up ? 0.05f : -0.05f, TRUE);
     else
     {
       // resize don't care where the mouse is inside a shape
       if(dt_modifier_is(state, GDK_SHIFT_MASK))
-      {
-        const float amount = up ? 1.03f : 0.97f;
-        int pts_number = 0;
-        for(GList *l = form->points; l; l = g_list_next(l))
-        {
-          if(gui->point_selected == -1 || gui->point_selected == pts_number)
-          {
-            dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
-            const float masks_hardness = point->hardness;
-            point->hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-            dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
-          }
-          pts_number++;
-        }
-        if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-        {
-          float masks_hardness = dt_conf_get_float("plugins/darkroom/spots/brush_hardness");
-          masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-          dt_conf_set_float("plugins/darkroom/spots/brush_hardness", masks_hardness);
-        }
-        else
-        {
-          float masks_hardness = dt_conf_get_float("plugins/darkroom/masks/brush/hardness");
-          masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-          dt_conf_set_float("plugins/darkroom/masks/brush/hardness", masks_hardness);
-        }
-      }
+        return _change_hardness(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
       else
-      {
-        const float amount = up ? 1.03f : 0.97f;
-        // do not exceed upper limit of 1.0 and lower limit of 0.004
-        int pts_number = 0;
-        for(GList *l = form->points; l; l = g_list_next(l))
-        {
-          if(gui->point_selected == -1 || gui->point_selected == pts_number)
-          {
-            dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
-            if(amount > 1.0f && (point->border[0] > 1.0f || point->border[1] > 1.0f))
-              return 1;
-          }
-          pts_number++;
-        }
-        pts_number = 0;
-        for(GList *l = form->points; l; l = g_list_next(l))
-        {
-          if(gui->point_selected == -1 || gui->point_selected == pts_number)
-          {
-            dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
-            point->border[0] *= amount;
-            point->border[1] *= amount;
-          }
-          pts_number++;
-        }
-        if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-        {
-          float masks_border = dt_conf_get_float("plugins/darkroom/spots/brush_border");
-          masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-          dt_conf_set_float("plugins/darkroom/spots/brush_border", masks_border);
-          dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
-        }
-        else
-        {
-          float masks_border = dt_conf_get_float("plugins/darkroom/masks/brush/border");
-          masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-          dt_conf_set_float("plugins/darkroom/masks/brush/border", masks_border);
-          dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
-        }
-      }
-
-      // we recreate the form points
-      dt_masks_gui_form_remove(form, gui, index);
-      dt_masks_gui_form_create(form, gui, index, module);
-
-      // we save the move
-
+        return _change_size(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
     }
-    return 1;
   }
   return 0;
 }

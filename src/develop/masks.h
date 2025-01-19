@@ -420,7 +420,7 @@ void dt_masks_iop_use_same_as(struct dt_iop_module_t *module, struct dt_iop_modu
 uint64_t dt_masks_group_get_hash(uint64_t hash, dt_masks_form_t *form);
 
 void dt_masks_form_remove(struct dt_iop_module_t *module, dt_masks_form_t *grp, dt_masks_form_t *form);
-void dt_masks_form_change_opacity(dt_masks_form_t *form, int parentid, int up);
+int dt_masks_form_change_opacity(dt_masks_form_t *form, int parentid, int up);
 void dt_masks_form_move(dt_masks_form_t *grp, int formid, int up);
 int dt_masks_form_duplicate(dt_develop_t *dev, int formid);
 /* returns a duplicate tof form, including the formid */
@@ -448,7 +448,7 @@ void dt_masks_calculate_source_pos_value(dt_masks_form_gui_t *gui, const int mas
 /** Getters and setters for direct GUI interaction */
 int dt_masks_get_parent_id(dt_masks_form_gui_t *gui, const dt_masks_form_t *form);
 float dt_masks_form_get_opacity(dt_masks_form_t *form, int parentid);
-void dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, gboolean offset);
+int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, gboolean offset);
 
 /** detail mask support */
 void dt_masks_extend_border(float *const mask, const int width, const int height, const int border);

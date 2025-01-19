@@ -1684,16 +1684,16 @@ float dt_masks_form_get_opacity(dt_masks_form_t *form, int parentid)
   return -1.f;
 }
 
-void dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, gboolean offset)
+int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, gboolean offset)
 {
   // If offset == TRUE, opacity is treated as an offset to add on top of current mask opacity
   // else it is set absolutely and directly
-  if(!form) return;
+  if(!form) return 0;
   dt_masks_form_t *grp = dt_masks_get_from_id(darktable.develop, parentid);
-  if(!grp || !(grp->type & DT_MASKS_GROUP)) return;
+  if(!grp || !(grp->type & DT_MASKS_GROUP)) return 0;
 
   // we first need to test if the opacity can be set to the form
-  if(form->type & DT_MASKS_GROUP) return;
+  if(form->type & DT_MASKS_GROUP) return 0;
   const int id = form->formid;
 
   // so we change the value inside the group
@@ -1704,17 +1704,16 @@ void dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacit
     {
       const float new_opacity = (offset) ? fpt->opacity + opacity : opacity;
       fpt->opacity = CLAMP(new_opacity, 0.05f, 1.0f);
-
-
-      break;
+      return 1;
     }
   }
+  return 0;
 }
 
-void dt_masks_form_change_opacity(dt_masks_form_t *form, int parentid, int up)
+int dt_masks_form_change_opacity(dt_masks_form_t *form, int parentid, int up)
 {
   const float amount = up ? 0.05f : -0.05f;
-  dt_masks_form_set_opacity(form, parentid, amount, TRUE);
+  return dt_masks_form_set_opacity(form, parentid, amount, TRUE);
 }
 
 void dt_masks_form_move(dt_masks_form_t *grp, int formid, int up)
