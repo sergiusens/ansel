@@ -977,22 +977,30 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
   // Run the delayed post-commit actions if implemented
   if(module && module->post_history_commit) module->post_history_commit(module);
 
-  // Recompute pipeline last
-  if(module)
+  // Figure out if the current history item includes masks/forms
+  GList *last_history = g_list_nth(dev->history, dt_dev_get_history_end(dev) - 1);
+  dt_dev_history_item_t *hist = NULL;
+  gboolean has_forms = FALSE;
+  if(last_history)
   {
-    // If we have a module, we only need to resync the top-most history item with pipeline
+    hist = (dt_dev_history_item_t *)last_history->data;
+    has_forms = (hist->forms != NULL);
+  }
+
+  // Recompute pipeline last
+  if(module && !has_forms)
+  {
+    // If we have a module and it doesn't have masks, we only need to resync the top-most history item with pipeline
     dt_dev_invalidate_all(dev);
   }
   else
   {
-    // If we don't have a module, that means we have the mask manager.
-    // a weird thing happens with that one, when drawing masks, that typically
-    // leads to 2 history items creation (one for mask manager, the next for the module
-    // capturing the drawing). So, resync the whole history for safety
+    // We either don't have a module, meaning we have the mask manager, or
+    // we have a module and it has masks. Both ways, masks can affect several modules anywhere.
+    // We need a full resync of all pipeline with history.
     dt_dev_pixelpipe_resync_all(dev);
   }
 
-  dt_control_queue_redraw_center();
   dt_dev_refresh_ui_images(dev);
 }
 
