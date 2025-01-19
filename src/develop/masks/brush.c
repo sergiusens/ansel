@@ -1087,27 +1087,25 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
 }
 
 
+float _get_set_conf_value(char *plugin, char *feature, float change, float v_min, float v_max)
+{
+  gchar *key = g_strdup_printf("plugins/darkroom/%s/brush/%s", plugin, feature);
+  float value = dt_conf_get_float(key);
+  value = MAX(v_min, MIN(change * value, v_max));
+  dt_conf_set_float(key, value);
+  g_free(key);
+  return value;
+}
+
+
 static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
 {
-  float masks_hardness;
-
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-  {
-    masks_hardness = dt_conf_get_float("plugins/darkroom/spots/brush_hardness");
-    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-    dt_conf_set_float("plugins/darkroom/spots/brush_hardness", masks_hardness);
-  }
-  else
-  {
-    masks_hardness = dt_conf_get_float("plugins/darkroom/masks/brush/hardness");
-    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-    dt_conf_set_float("plugins/darkroom/masks/brush/hardness", masks_hardness);
-  }
+  // internal masks are used by spots removal and retouch modules
+  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
+  float masks_hardness = _get_set_conf_value((internal_masks) ? "spots" : "masks", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
 
   if(gui->guipoints_count > 0)
-  {
     dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
-  }
 
   dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
 
@@ -1116,25 +1114,12 @@ static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui
 
 static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
 {
-  float masks_border;
-
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-  {
-    masks_border = dt_conf_get_float("plugins/darkroom/spots/brush_border");
-    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-    dt_conf_set_float("plugins/darkroom/spots/brush_border", masks_border);
-  }
-  else
-  {
-    masks_border = dt_conf_get_float("plugins/darkroom/masks/brush/border");
-    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-    dt_conf_set_float("plugins/darkroom/masks/brush/border", masks_border);
-  }
+  // internal masks are used by spots removal and retouch modules
+  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
+  float masks_border = _get_set_conf_value((internal_masks) ? "spots" : "masks", "border", amount, BORDER_MIN, BORDER_MAX);
 
   if(gui->guipoints_count > 0)
-  {
     dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
-  }
 
   dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
 
@@ -1155,18 +1140,10 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
     }
     pts_number++;
   }
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-  {
-    float masks_hardness = dt_conf_get_float("plugins/darkroom/spots/brush_hardness");
-    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-    dt_conf_set_float("plugins/darkroom/spots/brush_hardness", masks_hardness);
-  }
-  else
-  {
-    float masks_hardness = dt_conf_get_float("plugins/darkroom/masks/brush/hardness");
-    masks_hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-    dt_conf_set_float("plugins/darkroom/masks/brush/hardness", masks_hardness);
-  }
+
+  // internal masks are used by spots removal and retouch modules
+  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
+  _get_set_conf_value((internal_masks) ? "spots" : "masks", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1177,6 +1154,7 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
 
 static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount)
 {
+  // Sanitize loop
   // do not exceed upper limit of 1.0 and lower limit of 0.004
   int pts_number = 0;
   for(GList *l = form->points; l; l = g_list_next(l))
@@ -1189,6 +1167,8 @@ static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t
     }
     pts_number++;
   }
+
+  // Growing/shrinking loop
   pts_number = 0;
   for(GList *l = form->points; l; l = g_list_next(l))
   {
@@ -1200,20 +1180,10 @@ static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t
     }
     pts_number++;
   }
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-  {
-    float masks_border = dt_conf_get_float("plugins/darkroom/spots/brush_border");
-    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-    dt_conf_set_float("plugins/darkroom/spots/brush_border", masks_border);
-    dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
-  }
-  else
-  {
-    float masks_border = dt_conf_get_float("plugins/darkroom/masks/brush/border");
-    masks_border = MAX(BORDER_MIN, MIN(masks_border * amount, BORDER_MAX));
-    dt_conf_set_float("plugins/darkroom/masks/brush/border", masks_border);
-    dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
-  }
+
+  // internal masks are used by spots removal and retouch modules
+  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
+  _get_set_conf_value((internal_masks) ? "spots" : "masks", "border", amount, BORDER_MIN, BORDER_MAX);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1248,14 +1218,11 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
 
     if(dt_modifier_is(state, GDK_CONTROL_MASK))
       return dt_masks_form_set_opacity(form, parentid, up ? 0.05f : -0.05f, TRUE);
+    // resize don't care where the mouse is inside a shape
+    else if(dt_modifier_is(state, GDK_SHIFT_MASK))
+      return _change_hardness(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
     else
-    {
-      // resize don't care where the mouse is inside a shape
-      if(dt_modifier_is(state, GDK_SHIFT_MASK))
-        return _change_hardness(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
-      else
-        return _change_size(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
-    }
+      return _change_size(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
   }
   return 0;
 }
