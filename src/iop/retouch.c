@@ -413,9 +413,6 @@ static void rt_show_hide_controls(const dt_iop_module_t *self)
   dt_iop_retouch_gui_data_t *g = (dt_iop_retouch_gui_data_t *)self->gui_data;
   dt_iop_retouch_params_t *p = (dt_iop_retouch_params_t *)self->params;
 
-  const int creation_continuous = (darktable.develop->form_gui && darktable.develop->form_gui->creation_continuous
-                                   && darktable.develop->form_gui->creation_continuous_module == self);
-
   switch(p->algorithm)
   {
     case DT_IOP_RETOUCH_HEAL:
@@ -447,7 +444,7 @@ static void rt_show_hide_controls(const dt_iop_module_t *self)
     gtk_widget_hide(GTK_WIDGET(g->vbox_preview_scale));
 
   const dt_masks_form_t *form = dt_masks_get_from_id(darktable.develop, rt_get_selected_shape_id());
-  if(form && !creation_continuous)
+  if(form)
     gtk_widget_show(GTK_WIDGET(g->sl_mask_opacity));
   else
     gtk_widget_hide(GTK_WIDGET(g->sl_mask_opacity));
@@ -523,10 +520,7 @@ static void rt_shape_selection_changed(dt_iop_module_t *self)
 
   rt_display_selected_shapes_lbl(g);
 
-  const int creation_continuous = (darktable.develop->form_gui && darktable.develop->form_gui->creation_continuous
-                                   && darktable.develop->form_gui->creation_continuous_module == self);
-
-  if(index >= 0 && !creation_continuous)
+  if(index >= 0)
     gtk_widget_show(GTK_WIDGET(g->sl_mask_opacity));
   else
     gtk_widget_hide(GTK_WIDGET(g->sl_mask_opacity));
@@ -595,8 +589,6 @@ static void rt_reset_form_creation(GtkWidget *widget, dt_iop_module_t *self)
   {
     // we unset the creation mode
     dt_masks_change_form_gui(NULL);
-    darktable.develop->form_gui->creation_continuous = FALSE;
-    darktable.develop->form_gui->creation_continuous_module = NULL;
   }
 
   if(widget != g->bt_path) gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_path), FALSE);
@@ -612,8 +604,7 @@ static void rt_reset_form_creation(GtkWidget *widget, dt_iop_module_t *self)
 
 static void rt_show_forms_for_current_scale(dt_iop_module_t *self)
 {
-  if(!self->enabled || darktable.develop->gui_module != self || darktable.develop->form_gui->creation
-     || darktable.develop->form_gui->creation_continuous)
+  if(!self->enabled || darktable.develop->gui_module != self || darktable.develop->form_gui->creation)
     return;
 
   dt_iop_retouch_params_t *p = (dt_iop_retouch_params_t *)self->params;
@@ -763,14 +754,6 @@ void post_history_commit(dt_iop_module_t *self)
 
   // TODO: share this code with gui_update()
   rt_resynch_params(self);
-
-  if(darktable.develop->form_gui->creation_continuous
-     && darktable.develop->form_gui->creation_continuous_module == self && !rt_allow_create_form(self))
-  {
-    dt_masks_change_form_gui(NULL);
-    darktable.develop->form_gui->creation_continuous = FALSE;
-    darktable.develop->form_gui->creation_continuous_module = NULL;
-  }
 
   dt_iop_retouch_gui_data_t *g = (dt_iop_retouch_gui_data_t *)self->gui_data;
   if(g == NULL) return;
@@ -953,8 +936,7 @@ static int rt_shape_is_being_added(dt_iop_module_t *self, const int shape_type)
   int being_added = 0;
 
   if(self->dev->form_gui && self->dev->form_visible
-     && ((self->dev->form_gui->creation && self->dev->form_gui->creation_module == self)
-         || (self->dev->form_gui->creation_continuous && self->dev->form_gui->creation_continuous_module == self)))
+     && (self->dev->form_gui->creation && self->dev->form_gui->creation_module == self))
   {
     if(self->dev->form_visible->type & DT_MASKS_GROUP)
     {
@@ -975,7 +957,7 @@ static int rt_shape_is_being_added(dt_iop_module_t *self, const int shape_type)
   return being_added;
 }
 
-static gboolean rt_add_shape(GtkWidget *widget, const int creation_continuous, dt_iop_module_t *self)
+static gboolean rt_add_shape(GtkWidget *widget, dt_iop_module_t *self)
 {
   //turn module on (else shape creation won't work)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->off), TRUE);
@@ -1022,17 +1004,6 @@ static gboolean rt_add_shape(GtkWidget *widget, const int creation_continuous, d
     dt_masks_change_form_gui(spot);
     darktable.develop->form_gui->creation = TRUE;
     darktable.develop->form_gui->creation_module = self;
-
-    if(creation_continuous)
-    {
-      darktable.develop->form_gui->creation_continuous = TRUE;
-      darktable.develop->form_gui->creation_continuous_module = self;
-    }
-    else
-    {
-      darktable.develop->form_gui->creation_continuous = FALSE;
-      darktable.develop->form_gui->creation_continuous_module = NULL;
-    }
 
     dt_control_queue_redraw_center();
   }
@@ -1705,12 +1676,6 @@ static gboolean rt_edit_masks_callback(GtkWidget *widget, GdkEventButton *event,
   if(darktable.develop->form_gui->creation && darktable.develop->form_gui->creation_module == self)
     dt_masks_change_form_gui(NULL);
 
-  if(darktable.develop->form_gui->creation_continuous_module == self)
-  {
-    darktable.develop->form_gui->creation_continuous = FALSE;
-    darktable.develop->form_gui->creation_continuous_module = NULL;
-  }
-
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_path), FALSE);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_circle), FALSE);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_ellipse), FALSE);
@@ -1767,9 +1732,7 @@ static gboolean rt_add_shape_callback(GtkWidget *widget, GdkEventButton *e, dt_i
 
   dt_iop_color_picker_reset(self, TRUE);
 
-  const int creation_continuous = dt_modifier_is(e->state, GDK_CONTROL_MASK);
-
-  rt_add_shape(widget, creation_continuous, self);
+  rt_add_shape(widget, self);
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_circle), rt_shape_is_being_added(self, DT_MASKS_CIRCLE));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_path), rt_shape_is_being_added(self, DT_MASKS_PATH));
@@ -2056,12 +2019,6 @@ void gui_focus(struct dt_iop_module_t *self, gboolean in)
       if(darktable.develop->form_gui->creation && darktable.develop->form_gui->creation_module == self)
         dt_masks_change_form_gui(NULL);
 
-      if(darktable.develop->form_gui->creation_continuous_module == self)
-      {
-        darktable.develop->form_gui->creation_continuous = FALSE;
-        darktable.develop->form_gui->creation_continuous_module = NULL;
-      }
-
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_path), FALSE);
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_circle), FALSE);
       gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_ellipse), FALSE);
@@ -2124,14 +2081,6 @@ void gui_update(dt_iop_module_t *self)
 
   // check if there is new or deleted forms
   rt_resynch_params(self);
-
-  if(darktable.develop->form_gui->creation_continuous
-     && darktable.develop->form_gui->creation_continuous_module == self && !rt_allow_create_form(self))
-  {
-    dt_masks_change_form_gui(NULL);
-    darktable.develop->form_gui->creation_continuous = FALSE;
-    darktable.develop->form_gui->creation_continuous_module = NULL;
-  }
 
   // update clones count
   const dt_masks_form_t *grp = dt_masks_get_from_id(self->dev, self->blend_params->mask_id);

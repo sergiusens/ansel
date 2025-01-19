@@ -279,7 +279,6 @@ typedef struct
   GtkLabel *label;
   GtkToggleButton *btn_point_tool, *btn_line_tool, *btn_curve_tool, *btn_node_tool;
 
-  gboolean creation_continuous;
   gboolean just_started;
 } dt_iop_liquify_gui_data_t;
 
@@ -3303,11 +3302,7 @@ int button_released(struct dt_iop_module_t *module,
     if(gtk_toggle_button_get_active(g->btn_point_tool))
     {
       g->temp = NULL; // a point is done
-
-      if(g->creation_continuous)
-        _start_new_shape(module);
-      else
-        btn_make_radio_callback(g->btn_node_tool, NULL, module);
+      btn_make_radio_callback(g->btn_node_tool, NULL, module);
       handled = 2;
     }
     else if(gtk_toggle_button_get_active(g->btn_line_tool))
@@ -3364,13 +3359,8 @@ int button_released(struct dt_iop_module_t *module,
     {
       node_delete(&g->params, g->temp);
       g->temp = NULL;
-      if(g->creation_continuous && !g->just_started)
-        _start_new_shape(module);
-      else
-      {
-        g->status &= ~DT_LIQUIFY_STATUS_PREVIEW;
-        btn_make_radio_callback(g->btn_node_tool, NULL, module);
-      }
+      g->status &= ~DT_LIQUIFY_STATUS_PREVIEW;
+      btn_make_radio_callback(g->btn_node_tool, NULL, module);
       handled = 2;
       goto done;
     }
@@ -3566,8 +3556,6 @@ static gboolean btn_make_radio_callback(GtkToggleButton *btn, GdkEventButton *ev
   {
     return TRUE;
   }
-
-  g->creation_continuous = event != NULL && dt_modifier_is(event->state, GDK_CONTROL_MASK);
 
   dt_control_hinter_message(darktable.control, "");
 

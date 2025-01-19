@@ -242,8 +242,7 @@ static int _shape_is_being_added(dt_iop_module_t *self, const int shape_type)
   int being_added = 0;
 
   if(self->dev->form_gui && self->dev->form_visible
-     && ((self->dev->form_gui->creation && self->dev->form_gui->creation_module == self)
-         || (self->dev->form_gui->creation_continuous && self->dev->form_gui->creation_continuous_module == self)))
+     && (self->dev->form_gui->creation && self->dev->form_gui->creation_module == self))
   {
     if(self->dev->form_visible->type & DT_MASKS_GROUP)
     {
@@ -264,7 +263,7 @@ static int _shape_is_being_added(dt_iop_module_t *self, const int shape_type)
   return being_added;
 }
 
-static gboolean _add_shape(GtkWidget *widget, const int creation_continuous, dt_iop_module_t *self)
+static gboolean _add_shape(GtkWidget *widget, dt_iop_module_t *self)
 {
   //turn module on (else shape creation won't work)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(self->off), TRUE);
@@ -294,17 +293,6 @@ static gboolean _add_shape(GtkWidget *widget, const int creation_continuous, dt_
   darktable.develop->form_gui->creation = TRUE;
   darktable.develop->form_gui->creation_module = self;
 
-  if(creation_continuous)
-  {
-    darktable.develop->form_gui->creation_continuous = TRUE;
-    darktable.develop->form_gui->creation_continuous_module = self;
-  }
-  else
-  {
-    darktable.develop->form_gui->creation_continuous = FALSE;
-    darktable.develop->form_gui->creation_continuous_module = NULL;
-  }
-
   dt_control_queue_redraw_center();
   return FALSE;
 }
@@ -315,9 +303,7 @@ static gboolean _add_shape_callback(GtkWidget *widget, GdkEventButton *e, dt_iop
 
   const dt_iop_spots_gui_data_t *g = (dt_iop_spots_gui_data_t *) self->gui_data;
 
-  const gboolean creation_continuous = dt_modifier_is(e->state, GDK_CONTROL_MASK);
-
-  _add_shape(widget, creation_continuous, self);
+  _add_shape(widget, self);
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_circle), _shape_is_being_added(self, DT_MASKS_CIRCLE));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_ellipse), _shape_is_being_added(self, DT_MASKS_ELLIPSE));
@@ -343,12 +329,6 @@ static gboolean _edit_masks(GtkWidget *widget, GdkEventButton *e, dt_iop_module_
   //hide all shapes and free if some are in creation
   if(darktable.develop->form_gui->creation && darktable.develop->form_gui->creation_module == self)
     dt_masks_change_form_gui(NULL);
-
-  if(darktable.develop->form_gui->creation_continuous_module == self)
-  {
-    darktable.develop->form_gui->creation_continuous = FALSE;
-    darktable.develop->form_gui->creation_continuous_module = NULL;
-  }
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_path), FALSE);
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(g->bt_circle), FALSE);

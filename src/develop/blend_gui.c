@@ -1332,8 +1332,6 @@ static gboolean _blendop_masks_add_shape(GtkWidget *widget, GdkEventButton *even
 
   dt_iop_gui_blend_data_t *bd = (dt_iop_gui_blend_data_t *)self->blend_data;
 
-  gboolean continuous = dt_modifier_is(event->state, GDK_CONTROL_MASK);
-
   // find out who we are
   int this = -1;
   for(int n = 0; n < DEVELOP_MASKS_NB_SHAPES; n++)
@@ -1362,13 +1360,6 @@ static gboolean _blendop_masks_add_shape(GtkWidget *widget, GdkEventButton *even
   dt_masks_change_form_gui(form);
   darktable.develop->form_gui->creation = TRUE;
   darktable.develop->form_gui->creation_module = self;
-
-  if (continuous)
-  {
-    darktable.develop->form_gui->creation_continuous = TRUE;
-    darktable.develop->form_gui->creation_continuous_module = self;
-  }
-
   dt_control_queue_redraw_center();
 
   return TRUE;

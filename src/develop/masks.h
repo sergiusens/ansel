@@ -296,10 +296,8 @@ typedef struct dt_masks_form_gui_t
 
 
   gboolean creation;
-  gboolean creation_continuous;
   gboolean creation_closing_form;
   dt_iop_module_t *creation_module;
-  dt_iop_module_t *creation_continuous_module;
 
   dt_masks_pressure_sensitivity_t pressure_sensitivity;
 

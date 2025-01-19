@@ -1451,9 +1451,6 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
     gui->guipoints_payload = NULL;
     gui->guipoints_count = 0;
 
-    gui->creation_continuous = FALSE;
-    gui->creation_continuous_module = NULL;
-
     dt_masks_set_edit_mode(module, DT_MASKS_EDIT_FULL);
     dt_masks_iop_update(module);
     dt_control_queue_redraw_center();
@@ -1682,12 +1679,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
       if(crea_module)
       {
         dt_dev_add_history_item(darktable.develop, crea_module, TRUE);
-        // and we switch in edit mode to show all the forms
-        // spots and retouch have their own handling of creation_continuous
-        if(gui->creation_continuous && ( strcmp(crea_module->so->op, "spots") == 0 || strcmp(crea_module->so->op, "retouch") == 0))
-          dt_masks_set_edit_mode_single_form(crea_module, form->formid, DT_MASKS_EDIT_FULL);
-        else if(!gui->creation_continuous)
-          dt_masks_set_edit_mode(crea_module, DT_MASKS_EDIT_FULL);
+        dt_masks_set_edit_mode(crea_module, DT_MASKS_EDIT_FULL);
         dt_masks_iop_update(crea_module);
         dt_dev_masks_selection_change(darktable.develop, crea_module, form->formid, TRUE);
         gui->creation_module = NULL;
@@ -1697,34 +1689,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
         dt_dev_masks_selection_change(darktable.develop, NULL, form->formid, TRUE);
       }
 
-      if(gui->creation_continuous)
-      {
-        //spot and retouch manage creation_continuous in their own way
-        if(strcmp(crea_module->so->op, "spots") != 0 && strcmp(crea_module->so->op, "retouch") != 0)
-        {
-          dt_iop_gui_blend_data_t *bd = (dt_iop_gui_blend_data_t *)crea_module->blend_data;
-          for(int n = 0; n < DEVELOP_MASKS_NB_SHAPES; n++)
-            if(bd->masks_type[n] == form->type)
-              gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bd->masks_shapes[n]), TRUE);
-
-          gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bd->masks_edit), FALSE);
-          dt_masks_form_t *newform = dt_masks_create(form->type);
-          dt_masks_change_form_gui(newform);
-          darktable.develop->form_gui->creation = TRUE;
-          darktable.develop->form_gui->creation_module = crea_module;
-          darktable.develop->form_gui->creation_continuous = TRUE;
-          darktable.develop->form_gui->creation_continuous_module = crea_module;
-        }
-        else
-        {
-          dt_masks_form_t *form_new = dt_masks_create(form->type);
-          dt_masks_change_form_gui(form_new);
-
-          darktable.develop->form_gui->creation = TRUE;
-          darktable.develop->form_gui->creation_module = gui->creation_continuous_module;
-        }
-      }
-      else if(form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE))
+      if(form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE))
       {
         dt_masks_form_t *grp = darktable.develop->form_visible;
         if(!grp || !(grp->type & DT_MASKS_GROUP)) return 1;
@@ -1755,9 +1720,6 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
       gui->guipoints = NULL;
       gui->guipoints_payload = NULL;
       gui->guipoints_count = 0;
-
-      gui->creation_continuous = FALSE;
-      gui->creation_continuous_module = NULL;
 
       dt_masks_set_edit_mode(module, DT_MASKS_EDIT_FULL);
       dt_masks_iop_update(module);
