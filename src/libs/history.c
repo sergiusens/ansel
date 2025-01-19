@@ -1149,7 +1149,7 @@ static void _lib_history_truncate(gboolean compress)
   // load new history and write it back to ensure that all history are properly numbered without a gap
   dt_dev_reload_history_items(darktable.develop);
   dt_dev_write_history(darktable.develop);
-  dt_image_synch_xmp(imgid);
+  dt_control_save_xmp(imgid);
 
   // then we can get the item to select in the new clean-up history retrieve the position of the module
   // corresponding to the history end.

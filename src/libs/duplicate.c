@@ -84,7 +84,7 @@ static gboolean _lib_duplicate_caption_out_callback(GtkWidget *widget, GdkEvent 
 
   // we write the content of the textbox to the caption field
   dt_metadata_set(imgid, "Xmp.darktable.version_name", gtk_entry_get_text(GTK_ENTRY(widget)), FALSE);
-  dt_image_synch_xmp(imgid);
+  dt_control_save_xmp(imgid);
 
   return FALSE;
 }

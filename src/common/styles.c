@@ -934,7 +934,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     }
 
     /* update xmp file */
-    dt_image_synch_xmp(newimgid);
+    dt_control_save_xmp(newimgid);
 
     /* remove old obsolete thumbnails */
     dt_mipmap_cache_remove(darktable.mipmap_cache, newimgid);

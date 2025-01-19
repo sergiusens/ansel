@@ -2404,8 +2404,8 @@ void leave(dt_view_t *self)
 
     const gboolean fresh = (hash_status == DT_HISTORY_HASH_BASIC) || (hash_status == DT_HISTORY_HASH_AUTO);
     const dt_imageio_write_xmp_t xmp_mode = dt_image_get_xmp_mode();
-    if((xmp_mode == DT_WRITE_XMP_ALWAYS) || ((xmp_mode == DT_WRITE_XMP_LAZY) && !fresh))
-      dt_image_synch_xmp(dev->image_storage.id);
+    if(!fresh)
+      dt_control_save_xmp(dev->image_storage.id);
     dt_history_hash_set_mipmap(dev->image_storage.id);
 #ifdef USE_LUA
     dt_lua_async_call_alien(dt_lua_event_trigger_wrapper,

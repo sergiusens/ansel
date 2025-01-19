@@ -798,7 +798,7 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
   }
 
   /* update xmp file */
-  dt_image_synch_xmp(dest_imgid);
+  dt_control_save_xmp(dest_imgid);
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, dest_imgid);
 
@@ -1209,7 +1209,7 @@ int dt_history_compress_on_list(const GList *imgs)
       sqlite3_step(stmt2);
       sqlite3_finalize(stmt2);
 
-      dt_image_write_sidecar_file(imgid);
+      dt_control_save_xmp(imgid);
     }
     if(test == 0) // no compression as history_end is right in the middle of history
       uncompressed++;

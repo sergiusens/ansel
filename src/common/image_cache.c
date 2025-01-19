@@ -23,6 +23,7 @@
 #include "common/image.h"
 #include "common/datetime.h"
 #include "control/conf.h"
+#include "control/jobs.h"
 #include "develop/develop.h"
 
 #include <sqlite3.h>
@@ -313,7 +314,7 @@ void dt_image_cache_write_release(dt_image_cache_t *cache, dt_image_t *img, dt_i
   {
     // rest about sidecars:
     // also synch dttags file:
-    dt_image_write_sidecar_file(img->id);
+    dt_control_save_xmp(img->id);
   }
   dt_cache_release(&cache->cache, img->cache_entry);
 }

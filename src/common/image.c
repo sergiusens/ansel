@@ -813,7 +813,7 @@ void dt_image_set_flip(const int32_t imgid, const dt_image_orientation_t orienta
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
-  dt_image_write_sidecar_file(imgid);
+  dt_control_save_xmp(imgid);
 }
 
 dt_image_orientation_t dt_image_get_orientation(const int32_t imgid)
@@ -1681,7 +1681,7 @@ static uint32_t _image_import_internal(const int32_t film_id, const char *filena
     const gboolean lr_xmp = dt_lightroom_import(id, NULL, TRUE);
     // Make sure that lightroom xmp data (label in particular) are saved in dt xmp
     if(lr_xmp)
-      dt_image_write_sidecar_file(id);
+      dt_control_save_xmp(id);
   }
 
   // add a tag with the file extension
@@ -1979,6 +1979,7 @@ int32_t dt_image_rename(const int32_t imgid, const int32_t filmid, const gchar *
         dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
         dup_list = g_list_delete_link(dup_list, dup_list);
         // write xmp file
+        // TODO: map that to a background job
         dt_image_write_sidecar_file(id);
       }
       g_list_free(dup_list);
@@ -2319,7 +2320,7 @@ int32_t dt_image_copy_rename(const int32_t imgid, const int32_t filmid, const gc
         dt_history_copy_and_paste_on_image(imgid, newid, FALSE, NULL, TRUE, TRUE);
 
         // write xmp file
-        dt_image_write_sidecar_file(newid);
+        dt_control_save_xmp(newid);
 
         dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF,
                                    NULL);
@@ -2466,7 +2467,7 @@ int dt_image_local_copy_reset(const int32_t imgid)
 
     // first sync the xmp with the original picture
 
-    dt_image_write_sidecar_file(imgid);
+    dt_control_save_xmp(imgid);
 
     // delete image from cache directory only if there is no other local cache image referencing it
     // for example duplicates are all referencing the same base picture.
@@ -2566,6 +2567,14 @@ void dt_image_synch_xmp(const int selected)
   }
   else
   {
+    // TODO: if fucking act_on bullshit was only targeting selected files,
+    // we could just call the control job that resyncs XMPs on the whole selection
+    // in a background thread. But since people got clever about selections,
+    // we have to run this in fucking GUI mainthread, which means hanging there.
+    // If images are on a NAS, we can always prompt users to go fetch a cup of coffee.
+    // Hell, let's put a pomodoro timer there and call that a feature: 
+    // take a mandatory break, go stretch your legs, it's good for you.
+    // Fucking hell.
     GList *imgs = dt_act_on_get_images(FALSE, TRUE, FALSE);
     dt_image_synch_xmps(imgs);
     g_list_free(imgs);

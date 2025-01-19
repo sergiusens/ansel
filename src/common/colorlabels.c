@@ -231,6 +231,7 @@ void dt_colorlabels_toggle_label_on_list(const GList *list, const int color, con
   }
 
   // synchronise xmp files
+  // TODO: call a background job here
   for(GList *l = (GList *)list; l; l = g_list_next(l))
   {
     dt_image_synch_xmp(GPOINTER_TO_INT(l->data));
