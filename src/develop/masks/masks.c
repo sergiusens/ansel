@@ -1319,39 +1319,6 @@ void dt_masks_set_edit_mode(struct dt_iop_module_t *module, dt_masks_edit_mode_t
   dt_control_queue_redraw_center();
 }
 
-void dt_masks_set_edit_mode_single_form(struct dt_iop_module_t *module, const int formid,
-                                        dt_masks_edit_mode_t value)
-{
-  if(!module) return;
-
-  dt_masks_form_t *grp = dt_masks_create_ext(DT_MASKS_GROUP);
-
-  const int grid = module->blend_params->mask_id;
-  dt_masks_form_t *form = dt_masks_get_from_id(darktable.develop, formid);
-  if(form)
-  {
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)malloc(sizeof(dt_masks_point_group_t));
-    fpt->formid = formid;
-    fpt->parentid = grid;
-    fpt->state = DT_MASKS_STATE_USE;
-    fpt->opacity = 1.0f;
-    grp->points = g_list_append(grp->points, fpt);
-  }
-
-  dt_masks_form_t *grp2 = dt_masks_create_ext(DT_MASKS_GROUP);
-  grp2->formid = 0;
-  dt_masks_group_ungroup(grp2, grp);
-  dt_masks_change_form_gui(grp2);
-  darktable.develop->form_gui->edit_mode = value;
-
-  if(value && form)
-    dt_dev_masks_selection_change(darktable.develop, NULL, formid, FALSE);
-  else
-    dt_dev_masks_selection_change(darktable.develop, NULL, 0, FALSE);
-
-
-}
-
 void dt_masks_iop_edit_toggle_callback(GtkToggleButton *togglebutton, dt_iop_module_t *module)
 {
   if(!module) return;

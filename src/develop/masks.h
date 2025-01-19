@@ -411,8 +411,6 @@ void dt_masks_iop_edit_toggle_callback(GtkToggleButton *togglebutton, struct dt_
 void dt_masks_iop_value_changed_callback(GtkWidget *widget, struct dt_iop_module_t *module);
 dt_masks_edit_mode_t dt_masks_get_edit_mode(struct dt_iop_module_t *module);
 void dt_masks_set_edit_mode(struct dt_iop_module_t *module, dt_masks_edit_mode_t value);
-void dt_masks_set_edit_mode_single_form(struct dt_iop_module_t *module, const int formid,
-                                        dt_masks_edit_mode_t value);
 void dt_masks_iop_update(struct dt_iop_module_t *module);
 void dt_masks_iop_combo_populate(GtkWidget *w, struct dt_iop_module_t **m);
 void dt_masks_iop_use_same_as(struct dt_iop_module_t *module, struct dt_iop_module_t *src);
