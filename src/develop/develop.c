@@ -957,15 +957,15 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
 
   dt_dev_undo_start_record(dev);
 
+  // Run the delayed post-commit actions if implemented
+  if(module && module->post_history_commit) module->post_history_commit(module);
+
   dt_pthread_mutex_lock(&dev->history_mutex);
   dt_dev_add_history_item_ext(dev, module, enable, FALSE, FALSE, FALSE);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
   /* signal that history has changed */
   dt_dev_undo_end_record(dev);
-
-  // Run the delayed post-commit actions if implemented
-  if(module && module->post_history_commit) module->post_history_commit(module);
 
   // Figure out if the current history item includes masks/forms
   GList *last_history = g_list_nth(dev->history, dt_dev_get_history_end(dev) - 1);
