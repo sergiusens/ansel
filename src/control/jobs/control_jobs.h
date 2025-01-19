@@ -51,6 +51,7 @@ void dt_control_gpx_apply(const gchar *filename, int32_t filmid, const gchar *tz
 
 void dt_control_datetime(const GTimeSpan offset, const char *datetime, GList *imgs);
 
+void dt_control_save_xmp(const int32_t imgid);
 void dt_control_write_sidecar_files();
 void dt_control_delete_images();
 void dt_control_delete_image(int imgid);

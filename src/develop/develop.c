@@ -911,6 +911,7 @@ const dt_dev_history_item_t *dt_dev_get_history_item(dt_develop_t *dev, struct d
   return NULL;
 }
 
+
 #define AUTO_SAVE_TIMEOUT 30000
 
 static int _auto_save_edit(gpointer data)
@@ -920,25 +921,22 @@ static int _auto_save_edit(gpointer data)
   dt_develop_t *dev = (dt_develop_t *)data;
   dev->auto_save_timeout = 0;
 
-  if(dt_dev_mask_history_overload(dev->history, 250) < 250)
-  {
-    dt_times_t start;
-    dt_get_times(&start);
-    dt_toast_log(_("autosaving changes..."));
+  dt_times_t start;
+  dt_get_times(&start);
+  dt_toast_log(_("autosaving changes..."));
 
-    dt_pthread_mutex_lock(&dev->history_mutex);
-    dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
-    dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
-    dt_image_write_sidecar_file(dev->image_storage.id);
-    dt_pthread_mutex_unlock(&dev->history_mutex);
+  dt_pthread_mutex_lock(&dev->history_mutex);
+  dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
+  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
+  dt_pthread_mutex_unlock(&dev->history_mutex);
 
-    dt_show_times(&start, "[_auto_save_edit] auto-saving history upon last change");
+  dt_control_save_xmp(dev->image_storage.id);
 
-    dt_times_t end;
-    dt_get_times(&end);
-    dt_toast_log("autosaving completed in %.3f s", end.clock - start.clock);
-  }
+  dt_show_times(&start, "[_auto_save_edit] auto-saving history upon last change");
 
+  dt_times_t end;
+  dt_get_times(&end);
+  dt_toast_log("autosaving completed in %.3f s", end.clock - start.clock);
   return G_SOURCE_REMOVE;
 }
 

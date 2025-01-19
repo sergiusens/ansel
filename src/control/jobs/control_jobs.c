@@ -37,6 +37,7 @@
 #include "common/datetime.h"
 #include "control/conf.h"
 #include "develop/imageop_math.h"
+#include "develop/develop.h"
 
 #include "common/selection.h"
 
@@ -1499,6 +1500,22 @@ static dt_job_t *_control_gpx_apply_job_create(const gchar *filename, int32_t fi
   data->tz = g_strdup(tz);
 
   return job;
+}
+
+static int32_t dt_dev_save_xmp_job_run(dt_job_t *job)
+{
+  dt_control_image_enumerator_t *params = dt_control_job_get_params(job);
+  const int32_t imgid = GPOINTER_TO_INT(params->data);
+  if(dt_image_write_sidecar_file(imgid))
+    fprintf(stdout, "cannot write XMP file for image %i. The target storage may be unavailable or read-only.\n", imgid);
+  return 0;
+}
+
+void dt_control_save_xmp(const int32_t imgid)
+{
+  dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_FG,
+                     dt_control_generic_images_job_create(&dt_dev_save_xmp_job_run, N_("save history to XMP"), 0,
+                                                          GINT_TO_POINTER(imgid), PROGRESS_SIMPLE, FALSE));
 }
 
 void dt_control_merge_hdr()
