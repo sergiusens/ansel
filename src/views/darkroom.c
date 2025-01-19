@@ -2401,9 +2401,7 @@ void leave(dt_view_t *self)
     dt_image_update_final_size(dev->image_storage.id);
     // possibly dump new xmp data
     const dt_history_hash_t hash_status = dt_history_hash_get_status(dev->image_storage.id);
-
     const gboolean fresh = (hash_status == DT_HISTORY_HASH_BASIC) || (hash_status == DT_HISTORY_HASH_AUTO);
-    const dt_imageio_write_xmp_t xmp_mode = dt_image_get_xmp_mode();
     if(!fresh)
       dt_control_save_xmp(dev->image_storage.id);
     dt_history_hash_set_mipmap(dev->image_storage.id);
@@ -2542,6 +2540,27 @@ void mouse_enter(dt_view_t *self)
   dt_masks_events_mouse_enter(dev->gui_module);
 }
 
+#define DRAWING_TIMEOUT 80
+
+static int _delayed_history_commit(gpointer data)
+{
+  dt_develop_t *dev = (dt_develop_t *)data;
+  dev->drawing_timeout = 0;
+  dt_dev_add_history_item(dev, dev->gui_module, FALSE);
+  dt_dev_masks_list_update(dev);
+  return G_SOURCE_REMOVE;
+}
+
+static void _do_delayed_history_commit(dt_develop_t *dev)
+{
+  if(dev->drawing_timeout)
+  {
+    g_source_remove(dev->drawing_timeout);
+    dev->drawing_timeout = 0;
+  }
+  dev->drawing_timeout = g_timeout_add(DRAWING_TIMEOUT, _delayed_history_commit, dev);
+}
+
 #define COORDINATES_ADAPT                                                                                         \
   dt_develop_t *dev = (dt_develop_t *)self->data;                                                                 \
   const int32_t tb = dev->border_size;                                                                            \
@@ -2616,8 +2635,7 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
   if(dev->form_visible && dt_masks_events_mouse_moved(dev->gui_module, x, y, pressure, which))
   {
     dt_control_queue_redraw_center();
-    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
-    dt_dev_masks_list_update(dev);
+    _do_delayed_history_commit(dev);
     return;
   }
 
@@ -2684,8 +2702,7 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
     // Change on mask parameters and image output.
     // FIXME: use invalidate_top in the future
     dt_control_queue_redraw_center();
-    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
-    dt_dev_masks_list_change(dev);
+    _do_delayed_history_commit(dev);
     return 1;
   }
 
@@ -2892,6 +2909,8 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
   // masks
   if(dev->form_visible && dt_masks_events_button_pressed(dev->gui_module, x, y, pressure, which, type, state))
   {
+    dt_control_queue_redraw_center();
+    _do_delayed_history_commit(dev);
     return 1;
   }
   // module
@@ -2923,8 +2942,7 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
     // Scroll on masks changes their size, therefore mask parameters and image output.
     // FIXME: use invalidate_top in the future
     dt_control_queue_redraw_center();
-    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
-    dt_dev_masks_list_update(dev);
+    _do_delayed_history_commit(dev);
     return;
   }
 

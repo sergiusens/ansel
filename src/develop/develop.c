@@ -110,6 +110,7 @@ void dt_dev_init(dt_develop_t *dev, int32_t gui_attached)
   dev->display_histogram.bpp = 0;
 
   dev->auto_save_timeout = 0;
+  dev->drawing_timeout = 0;
 
   dev->iop_instance = 0;
   dev->iop = NULL;
@@ -154,6 +155,7 @@ void dt_dev_cleanup(dt_develop_t *dev)
 
   // On dev cleanup, it is expected to force an history save
   if(dev->auto_save_timeout) g_source_remove(dev->auto_save_timeout);
+  if(dev->drawing_timeout) g_source_remove(dev->drawing_timeout);
 
   dev->proxy.chroma_adaptation = NULL;
   dev->proxy.wb_coeffs[0] = 0.f;
