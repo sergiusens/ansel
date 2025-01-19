@@ -1707,6 +1707,14 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
   module->commit_params(module, params, pipe, piece);
 
   // 2. Update the internal hash
+  // We need to update the blendop params dynamically, because drawn masks (forms)
+  // belong to pipeline not to modules user params.
+  // So, module's blendops depend on the current and whole state of dev->forms if they use them
+  dt_iop_compute_blendop_hash(module);
+
+  // Because we update blendops, we need to update the rest too
+  dt_iop_compute_module_hash(module);
+
   uint64_t hash = module->hash;
 
   // Take dynamically-set parameters into account.
