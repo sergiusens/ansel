@@ -348,6 +348,9 @@ int dt_masks_group_render_roi(dt_iop_module_t *module, dt_dev_pixelpipe_iop_t *p
 // returns current masks version
 int dt_masks_version(void);
 
+void dt_masks_append_form(dt_develop_t *dev, dt_masks_form_t *form);
+void dt_masks_remove_form(dt_develop_t *dev, dt_masks_form_t *form);
+
 // update masks from older versions
 int dt_masks_legacy_params(dt_develop_t *dev, void *params, const int old_version, const int new_version);
 /*

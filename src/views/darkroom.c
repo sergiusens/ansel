@@ -2551,14 +2551,13 @@ static int _delayed_history_commit(gpointer data)
   // aka drawn masks have changed somehow. This is more expensive
   // but more reliable than handling individually all editing operations
   // in all callbacks in all possible mask types.
-  uint64_t old_hash = dev->forms_hash;
+  dt_pthread_mutex_lock(&dev->history_mutex);
   dt_dev_masks_update_hash(dev);
-  uint64_t new_hash = dev->forms_hash;
+  dt_pthread_mutex_unlock(&dev->history_mutex);
 
-  if(new_hash != old_hash)
-  {
+  if(dev->forms_changed)
     dt_dev_add_history_item(dev, dev->gui_module, FALSE);
-  }
+
   return G_SOURCE_REMOVE;
 }
 

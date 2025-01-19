@@ -74,6 +74,7 @@ void dt_dev_init(dt_develop_t *dev, int32_t gui_attached)
   dev->form_gui = NULL;
   dev->allforms = NULL;
   dev->forms_hash = 0;
+  dev->forms_changed = FALSE;
 
   if(dev->gui_attached)
   {
@@ -765,13 +766,16 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
     // and that's where this function is called.
     // Find it now, even though it is not enabled and won't be.
     module = _find_mask_manager(dev);
-    force_new_item = FALSE;
+    if(module)
+    {
+      // Mask manager is an IOP that never processes pixel
+      // aka it's an ugly hack to record mask history
+      force_new_item = FALSE;
+      enable = FALSE;
+    }
   }
 
   if(!module) return add_new_pipe_node;
-
-  // Stupid mask manager is a IOP module not processing any pixels...
-  if(strcmp(module->op, "mask_manager") == 0) enable = FALSE;
 
   // TODO: this is probably a redundant call
   dt_iop_compute_blendop_hash(module);
@@ -879,6 +883,7 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
     // FIXME: this copies ALL drawn masks AND masks groups used by all modules to any module history using masks.
     // Kudos to the idiots who thought it would be reasonable. Expect database bloating and perf penalty.
     hist->forms = dt_masks_dup_forms_deep(dev->forms, NULL);
+    dev->forms_changed = FALSE; // reset
   }
   else
   {
@@ -899,8 +904,6 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   // keeping in mind that history_end = 0 is the raw image, aka not a dev->history GList entry.
   // So dev->history_end = index of last history entry + 1 = length of history
   dt_dev_set_history_end(dev, g_list_length(dev->history));
-
-  dt_dev_masks_update_hash(dev);
 
   return add_new_pipe_node;
 }
@@ -2661,6 +2664,11 @@ void dt_dev_masks_update_hash(dt_develop_t *dev)
     dt_masks_form_t *shape = (dt_masks_form_t *)form->data;
     hash = dt_masks_group_get_hash(hash, shape);
   }
+
+  // Keep on accumulating "changed" states until something saves the new stack
+  // and resets that to 0
+  uint64_t old_hash = dev->forms_hash;
+  dev->forms_changed |= (old_hash != hash);
   dev->forms_hash = hash;
 
   dt_show_times(&start, "[masks_update_hash] computing forms hash");

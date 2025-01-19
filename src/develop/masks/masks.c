@@ -291,7 +291,7 @@ static dt_masks_form_t *_group_create(dt_develop_t *dev, dt_iop_module_t *module
   dt_masks_form_t* grp = dt_masks_create(type);
   _set_group_name_from_module(module, grp);
   _check_id(grp);
-  dev->forms = g_list_append(dev->forms, grp);
+  dt_masks_append_form(dev, grp);
   module->blend_params->mask_id = grp->formid;
   return grp;
 }
@@ -299,6 +299,16 @@ static dt_masks_form_t *_group_create(dt_develop_t *dev, dt_iop_module_t *module
 static dt_masks_form_t *_group_from_module(dt_develop_t *dev, dt_iop_module_t *module)
 {
   return dt_masks_get_from_id(dev, module->blend_params->mask_id);
+}
+
+void dt_masks_append_form(dt_develop_t *dev, dt_masks_form_t *form)
+{
+  dev->forms = g_list_append(dev->forms, form);
+}
+
+void dt_masks_remove_form(dt_develop_t *dev, dt_masks_form_t *form)
+{
+  dev->forms = g_list_remove(dev->forms, form);
 }
 
 void dt_masks_gui_form_save_creation(dt_develop_t *dev, dt_iop_module_t *module, dt_masks_form_t *form,
@@ -342,7 +352,7 @@ void dt_masks_gui_form_save_creation(dt_develop_t *dev, dt_iop_module_t *module,
     }
   } while(exist);
 
-  dev->forms = g_list_append(dev->forms, form);
+  dt_masks_append_form(dev, form);
 
   if(module)
   {
@@ -386,14 +396,11 @@ int dt_masks_form_duplicate(dt_develop_t *dev, int formid)
   fdest->version = fbase->version;
   snprintf(fdest->name, sizeof(fdest->name), _("copy of %s"), fbase->name);
 
-  darktable.develop->forms = g_list_append(dev->forms, fdest);
+  dt_masks_append_form(dev, fdest);
 
   // we copy all the points
   if(fbase->functions)
     fbase->functions->duplicate_points(dev, fbase, fdest);
-
-  // we save the form
-
 
   // and we return its id
   return fdest->formid;
@@ -819,7 +826,7 @@ dt_masks_form_t *dt_masks_create_ext(dt_masks_type_t type)
 
   // all forms created here are registered in darktable.develop->allforms for later cleanup
   if(form)
-  darktable.develop->allforms = g_list_append(darktable.develop->allforms, form);
+    darktable.develop->allforms = g_list_append(darktable.develop->allforms, form);
 
   return form;
 }
@@ -1344,8 +1351,6 @@ static void _menu_no_masks(struct dt_iop_module_t *module)
   // and we update the iop
   dt_masks_set_edit_mode(module, DT_MASKS_EDIT_OFF);
   dt_masks_iop_update(module);
-
-
 }
 
 static void _menu_add_shape(struct dt_iop_module_t *module, dt_masks_type_t type)
@@ -1665,7 +1670,7 @@ void dt_masks_form_remove(struct dt_iop_module_t *module, dt_masks_form_t *grp, 
     dt_masks_form_t *f = (dt_masks_form_t *)forms->data;
     if(f->formid == id)
     {
-      darktable.develop->forms = g_list_remove(darktable.develop->forms, f);
+      dt_masks_remove_form(darktable.develop, f);
       break;
     }
   }

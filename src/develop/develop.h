@@ -201,6 +201,8 @@ typedef struct dt_develop_t
   GList *forms;
   // integrity hash of forms
   uint64_t forms_hash;
+  // forms have been added or removed or changed and need to be committed to history
+  gboolean forms_changed;
   struct dt_masks_form_t *form_visible;
   struct dt_masks_form_gui_t *form_gui;
   // all forms to be linked here for cleanup:
