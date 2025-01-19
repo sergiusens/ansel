@@ -1119,7 +1119,7 @@ static int _path_events_mouse_scrolled(struct dt_iop_module_t *module, float pzx
       dt_masks_gui_form_create(form, gui, index, module);
 
       // we save the move
-      dt_masks_update_image(darktable.develop);
+
     }
     return 1;
   }
@@ -1327,7 +1327,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
         dt_masks_gui_form_create(form, gui, index, module);
         gpt->clockwise = _path_is_clockwise(form);
         // we save the move
-        dt_masks_update_image(darktable.develop);
+
         return 1;
       }
       // we register the current position to avoid accidental move
@@ -1455,7 +1455,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
     dt_masks_gui_form_create(form, gui, index, module);
     gpt->clockwise = _path_is_clockwise(form);
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1475,7 +1475,7 @@ static int _path_events_button_pressed(struct dt_iop_module_t *module, float pzx
       dt_masks_gui_form_create(form, gui, index, module);
       gpt->clockwise = _path_is_clockwise(form);
       // we save the move
-      dt_masks_update_image(darktable.develop);
+
     }
     return 1;
   }
@@ -1553,7 +1553,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1576,7 +1576,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1585,7 +1585,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
     gui->seg_dragging = -1;
     gpt->clockwise = _path_is_clockwise(form);
 
-    dt_masks_update_image(darktable.develop);
+
     return 1;
   }
   else if(gui->point_dragging >= 0)
@@ -1622,7 +1622,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
     dt_masks_gui_form_create(form, gui, index, module);
     gpt->clockwise = _path_is_clockwise(form);
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1657,7 +1657,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
     dt_masks_gui_form_create(form, gui, index, module);
     gpt->clockwise = _path_is_clockwise(form);
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1667,7 +1667,7 @@ static int _path_events_button_released(struct dt_iop_module_t *module, float pz
 
     // we save the move
 
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }

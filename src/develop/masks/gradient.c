@@ -139,7 +139,7 @@ static int _gradient_events_mouse_scrolled(struct dt_iop_module_t *module, float
       dt_masks_gui_form_create(form, gui, index, module);
       dt_conf_set_float("plugins/darkroom/masks/gradient/compression", gradient->compression);
       dt_toast_log(_("compression: %3.2f%%"), gradient->compression*100.0f);
-      dt_masks_update_image(darktable.develop);
+
     }
     else if(gui->edit_mode == DT_MASKS_EDIT_FULL)
     {
@@ -152,7 +152,7 @@ static int _gradient_events_mouse_scrolled(struct dt_iop_module_t *module, float
 
       dt_masks_gui_form_remove(form, gui, index);
       dt_masks_gui_form_create(form, gui, index, module);
-      dt_masks_update_image(darktable.develop);
+
     }
     return 1;
   }
@@ -176,7 +176,7 @@ static int _gradient_events_button_pressed(struct dt_iop_module_t *module, float
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
 
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -328,7 +328,7 @@ static int _gradient_events_button_released(struct dt_iop_module_t *module, floa
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -374,7 +374,7 @@ static int _gradient_events_button_released(struct dt_iop_module_t *module, floa
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the rotation
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -399,7 +399,7 @@ static int _gradient_events_button_released(struct dt_iop_module_t *module, floa
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the new parameters
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }

@@ -180,7 +180,7 @@ static int _circle_events_mouse_scrolled(struct dt_iop_module_t *module, float p
       {
         return 0;
       }
-      dt_masks_update_image(darktable.develop);
+
     }
     return 1;
   }
@@ -376,7 +376,7 @@ static int _circle_events_button_released(struct dt_iop_module_t *module, float 
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
     return 1;
   }
   else if(gui->source_dragging)
@@ -406,7 +406,7 @@ static int _circle_events_button_released(struct dt_iop_module_t *module, float 
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     // and select the source as default, if the mouse is not moved we are inside the
     // source and so want to move the source.

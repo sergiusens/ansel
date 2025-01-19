@@ -1236,7 +1236,7 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
       dt_masks_gui_form_create(form, gui, index, module);
 
       // we save the move
-      dt_masks_update_image(darktable.develop);
+
     }
     return 1;
   }
@@ -1364,7 +1364,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
         dt_masks_gui_form_remove(form, gui, index);
         dt_masks_gui_form_create(form, gui, index, module);
         // we save the move
-        dt_masks_update_image(darktable.develop);
+
         return 1;
       }
       // we register the current position to avoid accidental move
@@ -1504,7 +1504,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1523,7 +1523,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
       dt_masks_gui_form_remove(form, gui, index);
       dt_masks_gui_form_create(form, gui, index, module);
       // we save the move
-      dt_masks_update_image(darktable.develop);
+
     }
     return 1;
   }
@@ -1761,7 +1761,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1784,7 +1784,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     dt_masks_gui_form_create(form, gui, index, module);
 
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1792,7 +1792,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
   {
     gui->seg_dragging = -1;
 
-    dt_masks_update_image(darktable.develop);
+
     return 1;
   }
   else if(gui->point_dragging >= 0)
@@ -1828,7 +1828,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1862,7 +1862,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
     // we save the move
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }
@@ -1872,7 +1872,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
     // we save the move
 
-    dt_masks_update_image(darktable.develop);
+
 
     return 1;
   }

@@ -1603,7 +1603,7 @@ void dt_masks_iop_value_changed_callback(GtkWidget *widget, struct dt_iop_module
   // we update the combo line
   dt_masks_iop_update(module);
 
-  dt_masks_update_image(module->dev);
+
 }
 
 void dt_masks_form_remove(struct dt_iop_module_t *module, dt_masks_form_t *grp, dt_masks_form_t *form)
@@ -1631,7 +1631,7 @@ void dt_masks_form_remove(struct dt_iop_module_t *module, dt_masks_form_t *grp, 
     if(ok && module)
     {
       dt_masks_iop_update(module);
-      dt_masks_update_image(darktable.develop);
+
     }
     if(ok && grp->points == NULL) dt_masks_form_remove(module, NULL, grp);
     return;
@@ -1686,7 +1686,7 @@ void dt_masks_form_remove(struct dt_iop_module_t *module, dt_masks_form_t *grp, 
           if(ok)
           {
             dt_masks_iop_update(m);
-            dt_masks_update_image(darktable.develop);
+
             if(iopgrp->points == NULL) dt_masks_form_remove(m, NULL, iopgrp);
           }
         }
@@ -1750,7 +1750,7 @@ void dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacit
       const float new_opacity = (offset) ? fpt->opacity + opacity : opacity;
       fpt->opacity = CLAMP(new_opacity, 0.05f, 1.0f);
 
-      dt_masks_update_image(darktable.develop);
+
       break;
     }
   }
@@ -1896,16 +1896,6 @@ uint64_t dt_masks_group_get_hash(uint64_t hash, dt_masks_form_t *form)
     }
   }
   return hash;
-}
-
-void dt_masks_update_image(dt_develop_t *dev)
-{
-  /* invalidate image data*/
-  // dt_similarity_image_dirty(dev->image_storage.id);
-
-  // invalidate buffers and force redraw of darkroom
-  dt_dev_invalidate_all(dev);
-  dt_dev_refresh_ui_images(dev);
 }
 
 // adds formid to used array

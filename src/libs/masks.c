@@ -265,7 +265,7 @@ static void _tree_add_exist(GtkButton *button, dt_masks_form_t *grp)
     dt_dev_add_history_item(darktable.develop, NULL, FALSE);
 
     // and we apply the change
-    dt_masks_update_image(darktable.develop);
+
     dt_masks_iop_update(module);
     dt_dev_masks_selection_change(darktable.develop, NULL, grp->formid, TRUE);
   }
@@ -409,7 +409,7 @@ static void _tree_inverse(GtkButton *button, dt_lib_module_t *self)
   if(change)
   {
     _add_masks_history_item(lm);
-    dt_masks_update_image(darktable.develop);
+
     dt_control_queue_redraw_center();
   }
 }
@@ -466,7 +466,7 @@ static void _tree_intersection(GtkButton *button, dt_lib_module_t *self)
   if(change)
   {
     _add_masks_history_item(lm);
-    dt_masks_update_image(darktable.develop);
+
     dt_control_queue_redraw_center();
   }
 }
@@ -523,7 +523,7 @@ static void _tree_difference(GtkButton *button, dt_lib_module_t *self)
   if(change)
   {
     _add_masks_history_item(lm);
-    dt_masks_update_image(darktable.develop);
+
     dt_control_queue_redraw_center();
   }
 }
@@ -580,7 +580,7 @@ static void _tree_exclusion(GtkButton *button, dt_lib_module_t *self)
   if(change)
   {
     _add_masks_history_item(lm);
-    dt_masks_update_image(darktable.develop);
+
     dt_control_queue_redraw_center();
   }
 }
@@ -637,7 +637,7 @@ static void _tree_union(GtkButton *button, dt_lib_module_t *self)
   if(change)
   {
     _add_masks_history_item(lm);
-    dt_masks_update_image(darktable.develop);
+
     dt_control_queue_redraw_center();
   }
 }
@@ -671,7 +671,7 @@ static void _tree_moveup(GtkButton *button, dt_lib_module_t *self)
 
   lm->gui_reset = 0;
   _lib_masks_recreate_list(self);
-  dt_masks_update_image(darktable.develop);
+
 }
 
 static void _tree_movedown(GtkButton *button, dt_lib_module_t *self)
@@ -703,7 +703,7 @@ static void _tree_movedown(GtkButton *button, dt_lib_module_t *self)
 
   lm->gui_reset = 0;
   _lib_masks_recreate_list(self);
-  dt_masks_update_image(darktable.develop);
+
 }
 
 static void _tree_delete_shape(GtkButton *button, dt_lib_module_t *self)
