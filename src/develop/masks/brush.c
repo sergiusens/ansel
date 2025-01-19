@@ -1231,8 +1231,6 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
         }
       }
 
-      dt_dev_add_history_item(darktable.develop, module, TRUE);
-
       // we recreate the form points
       dt_masks_gui_form_remove(form, gui, index);
       dt_masks_gui_form_create(form, gui, index, module);
@@ -1360,7 +1358,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
           point->ctrl1[1] = point->ctrl2[1] = point->corner[1];
           point->state = DT_MASKS_POINT_STATE_USER;
         }
-        dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
         // we recreate the form points
         dt_masks_gui_form_remove(form, gui, index);
@@ -1500,7 +1498,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
     gui->point_edited = -1;
     _brush_init_ctrl_points(form);
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -1519,7 +1517,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
       point->state = DT_MASKS_POINT_STATE_NORMAL;
       _brush_init_ctrl_points(form);
 
-      dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
       // we recreate the form points
       dt_masks_gui_form_remove(form, gui, index);
@@ -1678,7 +1676,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
       if(crea_module)
       {
-        dt_dev_add_history_item(darktable.develop, crea_module, TRUE);
+
         dt_masks_set_edit_mode(crea_module, DT_MASKS_EDIT_FULL);
         dt_masks_iop_update(crea_module);
         dt_dev_masks_selection_change(darktable.develop, crea_module, form->formid, TRUE);
@@ -1756,7 +1754,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
       point->ctrl2[1] += dy;
     }
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -1779,7 +1777,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     dt_dev_distort_backtransform(darktable.develop, pts, 1);
     form->source[0] = pts[0] / darktable.develop->preview_pipe->iwidth;
     form->source[1] = pts[1] / darktable.develop->preview_pipe->iheight;
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -1793,7 +1791,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
   else if(gui->seg_dragging >= 0)
   {
     gui->seg_dragging = -1;
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
     dt_masks_update_image(darktable.develop);
     return 1;
   }
@@ -1824,7 +1822,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
     _brush_init_ctrl_points(form);
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -1858,7 +1856,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
     _brush_init_ctrl_points(form);
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -1873,7 +1871,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     gui->point_border_dragging = -1;
 
     // we save the move
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
     dt_masks_update_image(darktable.develop);
     dt_control_queue_redraw_center();
     return 1;
@@ -1964,7 +1962,7 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
 
     _brush_init_ctrl_points(form);
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);

@@ -584,7 +584,7 @@ static int _ellipse_events_mouse_scrolled(struct dt_iop_module_t *module, float 
           ellipse->rotation -= 10.f;
         ellipse->rotation = fmodf(ellipse->rotation, 360.0f);
 
-        dt_dev_add_history_item(darktable.develop, module, TRUE);
+
         dt_masks_gui_form_remove(form, gui, index);
         dt_masks_gui_form_create(form, gui, index, module);
         if(form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE))
@@ -603,7 +603,7 @@ static int _ellipse_events_mouse_scrolled(struct dt_iop_module_t *module, float 
           ellipse->border *= 1.0f/0.97f;
         else return 1;
         ellipse->border = CLAMP(ellipse->border, 0.001f * reference, reference);
-        dt_dev_add_history_item(darktable.develop, module, TRUE);
+
         dt_masks_gui_form_remove(form, gui, index);
         dt_masks_gui_form_create(form, gui, index, module);
         if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
@@ -627,7 +627,7 @@ static int _ellipse_events_mouse_scrolled(struct dt_iop_module_t *module, float 
         const float factor = ellipse->radius[0] / oldradius;
         ellipse->radius[1] *= factor;
 
-        dt_dev_add_history_item(darktable.develop, module, TRUE);
+
         dt_masks_gui_form_remove(form, gui, index);
         dt_masks_gui_form_create(form, gui, index, module);
         if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
@@ -771,7 +771,7 @@ static int _ellipse_events_button_pressed(struct dt_iop_module_t *module, float 
     if(crea_module)
     {
       // we save the move
-      dt_dev_add_history_item(darktable.develop, crea_module, TRUE);
+
       dt_masks_set_edit_mode(crea_module, DT_MASKS_EDIT_FULL);
       dt_masks_iop_update(crea_module);
       dt_dev_masks_selection_change(darktable.develop, crea_module, form->formid, TRUE);
@@ -869,7 +869,7 @@ static int _ellipse_events_button_released(struct dt_iop_module_t *module, float
     dt_dev_distort_backtransform(darktable.develop, pts, 1);
     ellipse->center[0] = pts[0] / darktable.develop->preview_pipe->iwidth;
     ellipse->center[1] = pts[1] / darktable.develop->preview_pipe->iheight;
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -916,7 +916,7 @@ static int _ellipse_events_button_released(struct dt_iop_module_t *module, float
       dt_conf_set_float("plugins/darkroom/masks/ellipse/border", ellipse->border);
     }
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -968,7 +968,7 @@ static int _ellipse_events_button_released(struct dt_iop_module_t *module, float
     else
       dt_conf_set_float("plugins/darkroom/masks/ellipse/rotation", ellipse->rotation);
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
@@ -1023,7 +1023,7 @@ static int _ellipse_events_button_released(struct dt_iop_module_t *module, float
         dt_conf_set_float("plugins/darkroom/masks/ellipse/radius_b", ellipse->radius[1]);
     }
 
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
@@ -1053,7 +1053,7 @@ static int _ellipse_events_button_released(struct dt_iop_module_t *module, float
       form->source[0] = pts[0] / darktable.develop->preview_pipe->iwidth;
       form->source[1] = pts[1] / darktable.develop->preview_pipe->iheight;
     }
-    dt_dev_add_history_item(darktable.develop, module, TRUE);
+
 
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);

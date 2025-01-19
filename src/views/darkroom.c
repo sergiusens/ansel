@@ -2616,6 +2616,7 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
   if(dev->form_visible && dt_masks_events_mouse_moved(dev->gui_module, x, y, pressure, which))
   {
     dt_control_queue_redraw_center();
+    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
     return;
   }
 
@@ -2681,9 +2682,8 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
   {
     // Change on mask parameters and image output.
     // FIXME: use invalidate_top in the future
-    dt_dev_invalidate_all(dev);
     dt_control_queue_redraw_center();
-    dt_dev_refresh_ui_images(dev);
+    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
     return 1;
   }
 
@@ -2889,8 +2889,9 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
   y += offy;
   // masks
   if(dev->form_visible && dt_masks_events_button_pressed(dev->gui_module, x, y, pressure, which, type, state))
+  {
     return 1;
-
+  }
   // module
   if(dev->gui_module && dev->gui_module->enabled && dev->gui_module->button_pressed
      && dev->gui_module->button_pressed(dev->gui_module, x, y, pressure, which, type, state))
@@ -2919,9 +2920,8 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
   {
     // Scroll on masks changes their size, therefore mask parameters and image output.
     // FIXME: use invalidate_top in the future
-    dt_dev_invalidate_all(dev);
     dt_control_queue_redraw_center();
-    dt_dev_refresh_ui_images(dev);
+    dt_dev_add_history_item(dev, dev->gui_module, FALSE);
     return;
   }
 
