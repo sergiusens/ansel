@@ -961,8 +961,6 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
 
   if(darktable.gui && dev->gui_attached)
   {
-    /* recreate mask list */
-    dt_dev_masks_list_change(dev);
     if(module) dt_iop_gui_set_enable_button(module);
 
     // Auto-save N s after the last change.

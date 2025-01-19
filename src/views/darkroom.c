@@ -2617,6 +2617,7 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
   {
     dt_control_queue_redraw_center();
     dt_dev_add_history_item(dev, dev->gui_module, FALSE);
+    dt_dev_masks_list_update(dev);
     return;
   }
 
@@ -2684,6 +2685,7 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
     // FIXME: use invalidate_top in the future
     dt_control_queue_redraw_center();
     dt_dev_add_history_item(dev, dev->gui_module, FALSE);
+    dt_dev_masks_list_change(dev);
     return 1;
   }
 
@@ -2922,6 +2924,7 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
     // FIXME: use invalidate_top in the future
     dt_control_queue_redraw_center();
     dt_dev_add_history_item(dev, dev->gui_module, FALSE);
+    dt_dev_masks_list_update(dev);
     return;
   }
 
