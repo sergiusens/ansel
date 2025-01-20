@@ -1950,26 +1950,12 @@ void dt_dev_read_history(dt_develop_t *dev)
   dt_pthread_mutex_unlock(&dev->history_mutex);
 }
 
-void dt_dev_reprocess_center(dt_develop_t *dev)
-{
-  // Flush the caches and recompute from scratch
-  if(darktable.gui->reset || !dev || !dev->gui_attached) return;
-  dt_dev_pixelpipe_cache_flush(&(dev->pipe->cache));
-  dt_dev_invalidate(dev);
-}
-
-void dt_dev_reprocess_preview(dt_develop_t *dev)
-{
-  // Flush the caches and recompute from scratch
-  if(darktable.gui->reset || !dev || !dev->gui_attached) return;
-  dt_dev_pixelpipe_cache_flush(&(dev->preview_pipe->cache));
-  dt_dev_invalidate_preview(dev);
-}
-
 void dt_dev_reprocess_all(dt_develop_t *dev)
 {
-  dt_dev_reprocess_center(dev);
-  dt_dev_reprocess_preview(dev);
+  if(darktable.gui->reset || !dev || !dev->gui_attached) return;
+  dt_dev_pixelpipe_cache_flush(&(dev->pipe->cache));
+  dt_dev_pixelpipe_cache_flush(&(dev->preview_pipe->cache));
+  dt_dev_pixelpipe_rebuild(dev);
 }
 
 void dt_dev_check_zoom_bounds(dt_develop_t *dev, float *zoom_x, float *zoom_y, dt_dev_zoom_t zoom,
