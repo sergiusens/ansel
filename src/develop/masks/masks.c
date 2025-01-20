@@ -1684,6 +1684,26 @@ float dt_masks_form_get_opacity(dt_masks_form_t *form, int parentid)
   return -1.f;
 }
 
+const char * _get_mask_plugin(dt_masks_form_t *form)
+{
+  // Internal masks are used by spots removal and retouch modules
+  if(form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE))
+    return "spots";
+  // Regular all-purpose masks
+  else
+    return "masks";
+}
+
+float dt_masks_get_set_conf_value(dt_masks_form_t *form, char *mask, char *feature, float new_value, float v_min, float v_max, gboolean increment)
+{
+  gchar *key = g_strdup_printf("plugins/darkroom/%s/%s/%s", _get_mask_plugin(form), mask, feature);
+  float value = (increment) ? dt_conf_get_float(key) * new_value : new_value;
+  value = MAX(v_min, MIN(value, v_max));
+  dt_conf_set_float(key, value);
+  g_free(key);
+  return value;
+}
+
 int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, gboolean offset)
 {
   // If offset == TRUE, opacity is treated as an offset to add on top of current mask opacity

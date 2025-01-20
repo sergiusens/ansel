@@ -1086,30 +1086,9 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
   return tmin;
 }
 
-
-const char * _get_mask_plugin(dt_masks_form_t *form)
-{
-  // Internal masks are used by spots removal and retouch modules
-  if(form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE))
-    return "spots";
-  // Regular all-purpose masks
-  else
-    return "masks";
-}
-
-float _get_set_conf_value(dt_masks_form_t *form, char *mask, char *feature, float change, float v_min, float v_max)
-{
-  gchar *key = g_strdup_printf("plugins/darkroom/%s/%s/%s", _get_mask_plugin(form), mask, feature);
-  float value = dt_conf_get_float(key);
-  value = MAX(v_min, MIN(change * value, v_max));
-  dt_conf_set_float(key, value);
-  g_free(key);
-  return value;
-}
-
 static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
 {
-  float masks_hardness = _get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
+  float masks_hardness = dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, TRUE);
   if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
   dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
   return 1;
@@ -1117,7 +1096,7 @@ static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui
 
 static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
 {
-  float masks_border = _get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX);
+  float masks_border = dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, TRUE);
   if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
   dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
   return 1;
@@ -1137,7 +1116,7 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
     pts_number++;
   }
 
-  _get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
+  dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, TRUE);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1175,7 +1154,7 @@ static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t
     pts_number++;
   }
 
-  _get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX);
+  dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, TRUE);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
