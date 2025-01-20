@@ -1218,17 +1218,9 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
-  float masks_border = 0.0f;
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-    masks_border = MIN(dt_conf_get_float("plugins/darkroom/spots/brush_border"), BORDER_MAX);
-  else
-    masks_border = MIN(dt_conf_get_float("plugins/darkroom/masks/brush/border"), BORDER_MAX);
-
-  float masks_hardness = 0.0f;
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-    masks_hardness = MIN(dt_conf_get_float("plugins/darkroom/spots/brush_hardness"), HARDNESS_MAX);
-  else
-    masks_hardness = MIN(dt_conf_get_float("plugins/darkroom/masks/brush/hardness"), HARDNESS_MAX);
+  // The trick is to use the incremental setting, set to 1.0 to re-use the generic getter/setter without changing value
+  float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, TRUE);
+  float masks_hardness = dt_masks_get_set_conf_value(form, "hardness", 1.0f, HARDNESS_MIN, HARDNESS_MAX, TRUE);
 
   // always start with a mask density of 100%, it will be adjusted with pen pressure if used.
   const float masks_density = 1.0f;
@@ -1453,7 +1445,6 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
 
       // we delete or remove the shape
       dt_masks_form_remove(module, NULL, form);
-
       return 1;
     }
     dt_masks_point_brush_t *point
@@ -1464,14 +1455,9 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
     gui->point_edited = -1;
     _brush_init_ctrl_points(form);
 
-
-
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    // we save the move
-
-
     return 1;
   }
   else if(gui->feather_selected >= 0 && which == 3)
@@ -1483,13 +1469,9 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
       point->state = DT_MASKS_POINT_STATE_NORMAL;
       _brush_init_ctrl_points(form);
 
-
-
       // we recreate the form points
       dt_masks_gui_form_remove(form, gui, index);
       dt_masks_gui_form_create(form, gui, index, module);
-      // we save the move
-
     }
     return 1;
   }
@@ -1534,11 +1516,8 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
-  float masks_border = 0.0f;
-  if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-    masks_border = MIN(dt_conf_get_float("plugins/darkroom/spots/brush_border"), BORDER_MAX);
-  else
-    masks_border = MIN(dt_conf_get_float("plugins/darkroom/masks/brush/border"), BORDER_MAX);
+  // The trick is to use the incremental setting, set to 1.0 to re-use the generic getter/setter without changing value
+  float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, TRUE);
 
   if(gui->creation && which == 1 &&
      (dt_modifier_is(state, GDK_SHIFT_MASK) || dt_modifier_is(state, GDK_CONTROL_MASK | GDK_SHIFT_MASK)))
@@ -1690,8 +1669,6 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
       dt_masks_change_form_gui(NULL);
     }
-
-
     return 1;
   }
   else if(gui->form_dragging)
@@ -1720,15 +1697,9 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
       point->ctrl2[1] += dy;
     }
 
-
-
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-
-    // we save the move
-
-
     return 1;
   }
   else if(gui->source_dragging)
@@ -1744,21 +1715,14 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
     form->source[0] = pts[0] / darktable.develop->preview_pipe->iwidth;
     form->source[1] = pts[1] / darktable.develop->preview_pipe->iheight;
 
-
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-
-    // we save the move
-
-
     return 1;
   }
   else if(gui->seg_dragging >= 0)
   {
     gui->seg_dragging = -1;
-
-
     return 1;
   }
   else if(gui->point_dragging >= 0)
@@ -1788,14 +1752,9 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
     _brush_init_ctrl_points(form);
 
-
-
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    // we save the move
-
-
     return 1;
   }
   else if(gui->feather_dragging >= 0)
@@ -1822,24 +1781,14 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
     _brush_init_ctrl_points(form);
 
-
-
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-    // we save the move
-
-
     return 1;
   }
   else if(gui->point_border_dragging >= 0)
   {
     gui->point_border_dragging = -1;
-
-    // we save the move
-
-
-
     return 1;
   }
 
@@ -1928,12 +1877,9 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
 
     _brush_init_ctrl_points(form);
 
-
-
     // we recreate the form points
     dt_masks_gui_form_remove(form, gui, index);
     dt_masks_gui_form_create(form, gui, index, module);
-
 
     return 1;
   }
