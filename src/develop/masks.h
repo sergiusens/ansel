@@ -67,6 +67,13 @@ typedef enum dt_masks_gradient_states_t
   DT_MASKS_GRADIENT_STATE_SIGMOIDAL = 2
 } dt_masks_gradient_states_t;
 
+typedef enum dt_masks_increment_t
+{
+  DT_MASKS_INCREMENT_ABSOLUTE = 0,
+  DT_MASKS_INCREMENT_SCALE = 1,
+  DT_MASKS_INCREMENT_OFFSET = 2
+} dt_masks_increment_t;
+
 typedef enum dt_masks_edit_mode_t
 {
   DT_MASKS_EDIT_OFF = 0,
@@ -448,7 +455,7 @@ void dt_masks_calculate_source_pos_value(dt_masks_form_gui_t *gui, const int mas
 /** Getters and setters for direct GUI interaction */
 int dt_masks_get_parent_id(dt_masks_form_gui_t *gui, const dt_masks_form_t *form);
 float dt_masks_form_get_opacity(dt_masks_form_t *form, int parentid);
-int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, gboolean offset);
+int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity, dt_masks_increment_t offset);
 
 /**
  * @brief Change a numerical property of a mask shape, either by in/de-crementing the current value
@@ -456,13 +463,13 @@ int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity
  *
  * @param form the shape to change. We will read its type internally
  * @param feature the propertie to change: hardness, size, curvature (for gradients)
- * @param new_value either the new absolute value (if increment = FALSE), or the increment ratio value (if increment = TRUE)
+ * @param new_value if increment is set to absolute, this is directly the updated value. if increment is offset, the updated value is old_value + new_value. if increment is scale, the updated value is old value * new_value.
  * @param v_min minimum acceptable value of the property for sanitization
  * @param v_max maximum acceptable value of the property for sanitization
- * @param increment if FALSE, new_value is assumed to be absolute. If TRUE, then the final value for the property is computed as `old_value * new_value`
+ * @param increment
  */
 float dt_masks_get_set_conf_value(dt_masks_form_t *form, char *feature, float new_value, float v_min, float v_max,
-                                  gboolean increment);
+                                  dt_masks_increment_t increment);
 
 /** detail mask support */
 void dt_masks_extend_border(float *const mask, const int width, const int height, const int border);
