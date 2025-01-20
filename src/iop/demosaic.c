@@ -1533,7 +1533,6 @@ void gui_changed(dt_iop_module_t *self, GtkWidget *w, void *previous)
     img->flags |= DT_IMAGE_MONOCHROME_BAYER;
   else
     img->flags &= ~DT_IMAGE_MONOCHROME_BAYER;
-  const int mask_bw = dt_image_monochrome_flags(img);
   changed ^= img->flags & DT_IMAGE_MONOCHROME_BAYER;
   dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
 }
