@@ -816,7 +816,7 @@ static void pixelpipe_get_histogram_backbuf(dt_dev_pixelpipe_t *pipe, dt_develop
   // We force OpenCL to write output buffers to cache in RAM
   // so there is no need for an additional copy from device to host here,
   // *output should be available all the time
-#ifdef FALSE // HAVE_OPENCL
+#ifdef HAVE_OPENCL
   if(cl_mem_output && module->process_cl && piece->process_cl_ready)
   {
     cl_int err = dt_opencl_copy_device_to_host(pipe->devid, backbuf->buffer, cl_mem_output, roi->width, roi->height, bpp);
@@ -831,6 +831,8 @@ static void pixelpipe_get_histogram_backbuf(dt_dev_pixelpipe_t *pipe, dt_develop
 #else
   if(output)
     _copy_buffer(output, (char *)backbuf->buffer, roi->height, roi->width, roi->width, 0, 0, roi->width * bpp, bpp);
+  else
+    backbuf->hash = -1;
 #endif
 
   // gamma outputs uint8, but its bpp count is still 16 like the modules outputting float32
