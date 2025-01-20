@@ -1088,7 +1088,7 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
 
 static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount, const gboolean increment)
 {
-  float masks_hardness = dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
+  float masks_hardness = dt_masks_get_set_conf_value(form, "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
   if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
   dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
   return 1;
@@ -1096,7 +1096,7 @@ static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui
 
 static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount, const gboolean increment)
 {
-  float masks_border = dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, increment);
+  float masks_border = dt_masks_get_set_conf_value(form, "border", amount, BORDER_MIN, BORDER_MAX, increment);
   if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
   dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
   return 1;
@@ -1119,7 +1119,7 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
     pts_number++;
   }
 
-  dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
+  dt_masks_get_set_conf_value(form, "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1165,7 +1165,7 @@ static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t
     pts_number++;
   }
 
-  dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, increment);
+  dt_masks_get_set_conf_value(form, "border", amount, BORDER_MIN, BORDER_MAX, increment);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);

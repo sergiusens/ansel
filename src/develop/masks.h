@@ -454,16 +454,15 @@ int dt_masks_form_set_opacity(dt_masks_form_t *form, int parentid, float opacity
  * @brief Change a numerical property of a mask shape, either by in/de-crementing the current value
  * or setting it in an absolute fashion, then save it to configuration.
  *
- * @param form the shape to change
- * @param mask the kind of shape: brush, circle, ellipse, path, gradient
+ * @param form the shape to change. We will read its type internally
  * @param feature the propertie to change: hardness, size, curvature (for gradients)
  * @param new_value either the new absolute value (if increment = FALSE), or the increment ratio value (if increment = TRUE)
  * @param v_min minimum acceptable value of the property for sanitization
  * @param v_max maximum acceptable value of the property for sanitization
  * @param increment if FALSE, new_value is assumed to be absolute. If TRUE, then the final value for the property is computed as `old_value * new_value`
  */
-float dt_masks_get_set_conf_value(dt_masks_form_t *form, char *mask, char *feature, float new_value, float v_min,
-                                 float v_max, gboolean increment);
+float dt_masks_get_set_conf_value(dt_masks_form_t *form, char *feature, float new_value, float v_min, float v_max,
+                                  gboolean increment);
 
 /** detail mask support */
 void dt_masks_extend_border(float *const mask, const int width, const int height, const int border);
