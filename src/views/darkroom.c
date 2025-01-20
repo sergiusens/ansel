@@ -2571,16 +2571,17 @@ static void _do_delayed_history_commit(dt_develop_t *dev)
   dev->drawing_timeout = g_timeout_add(DRAWING_TIMEOUT, _delayed_history_commit, dev);
 }
 
-#define COORDINATES_ADAPT                                                                                         \
-  dt_develop_t *dev = (dt_develop_t *)self->data;                                                                 \
-  const int32_t tb = dev->border_size;                                                                            \
-  const int32_t capwd = self->width - 2 * tb;                                                                     \
-  const int32_t capht = self->height - 2 * tb;                                                                    \
-  const int32_t width_i = self->width;                                                                            \
-  const int32_t height_i = self->height;                                                                          \
-  float offx = 0.0f, offy = 0.0f;                                                                                 \
-  if(width_i > capwd) offx = (double)(capwd - width_i) * .5f;                                                     \
-  if(height_i > capht) offy = (double)(capht - height_i) * .5f;
+void _magic_schwalm_offset(dt_develop_t *dev, dt_view_t *self, float *offx, float *offy)
+{
+  // TODO: find out why this is necessary and fix it.
+  const int32_t tb = dev->border_size;
+  const int32_t capwd = self->width - 2 * tb;
+  const int32_t capht = self->height - 2 * tb;
+  const int32_t width_i = self->width;
+  const int32_t height_i = self->height;
+  if(width_i > capwd) *offx = (double)(capwd - width_i) * .5f;
+  if(height_i > capht) *offy = (double)(capht - height_i) * .5f;
+}
 
 
 void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which)
@@ -2588,7 +2589,9 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
   // Don't capture events if the window isn't active
   if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return;
 
-  COORDINATES_ADAPT
+  dt_develop_t *dev = (dt_develop_t *)self->data;
+  float offx = 0.0f, offy = 0.0f;
+  _magic_schwalm_offset(dev, self, &offx, &offy);
 
   // if we are not hovering over a thumbnail in the filmstrip -> show metadata of opened image.
   int32_t mouse_over_id = dt_control_get_mouse_over_id();
@@ -2689,7 +2692,9 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
   // Don't capture events if the window isn't active
   if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return 0;
 
-  COORDINATES_ADAPT
+  dt_develop_t *dev = (dt_develop_t *)self->data;
+  float offx = 0.0f, offy = 0.0f;
+  _magic_schwalm_offset(dev, self, &offx, &offy);
 
   if(!mouse_in_actionarea(self, x, y)) return 0;
 
@@ -2797,7 +2802,9 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
 
   dt_colorpicker_sample_t *const sample = darktable.lib->proxy.colorpicker.primary_sample;
 
-  COORDINATES_ADAPT
+  dt_develop_t *dev = (dt_develop_t *)self->data;
+  float offx = 0.0f, offy = 0.0f;
+  _magic_schwalm_offset(dev, self, &offx, &offy);
 
   if(!mouse_in_actionarea(self, x, y)) return 0;
 
@@ -2942,7 +2949,9 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
   // Don't capture events if the window isn't active
   if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return;
 
-  COORDINATES_ADAPT
+  dt_develop_t *dev = (dt_develop_t *)self->data;
+  float offx = 0.0f, offy = 0.0f;
+  _magic_schwalm_offset(dev, self, &offx, &offy);
 
   if(!mouse_in_actionarea(self, x, y)) return;
 
