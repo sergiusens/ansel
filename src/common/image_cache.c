@@ -308,15 +308,16 @@ void dt_image_cache_write_release(dt_image_cache_t *cache, dt_image_t *img, dt_i
   const int rc = sqlite3_step(stmt);
   if(rc != SQLITE_DONE) fprintf(stderr, "[image_cache_write_release] sqlite3 error %d\n", rc);
   sqlite3_finalize(stmt);
+  dt_cache_release(&cache->cache, img->cache_entry);
 
   // TODO: make this work in relaxed mode, too.
+  // TODO: protect XMP saving from concurrent accesses to DB history
   if(mode == DT_IMAGE_CACHE_SAFE)
   {
     // rest about sidecars:
     // also synch dttags file:
     dt_control_save_xmp(img->id);
   }
-  dt_cache_release(&cache->cache, img->cache_entry);
 }
 
 
