@@ -1082,8 +1082,6 @@ int dt_masks_events_button_released(struct dt_iop_module_t *module, double x, do
   if(form->functions)
     return form->functions->button_released(module, pzx, pzy, which, state, form, 0, gui, 0);
 
-
-
   return 0;
 }
 
@@ -1103,8 +1101,6 @@ int dt_masks_events_button_pressed(struct dt_iop_module_t *module, double x, dou
 
   if(form->functions)
     return form->functions->button_pressed(module, pzx, pzy, pressure, which, type, state, form, 0, gui, 0);
-
-
 
   return 0;
 }
@@ -1128,20 +1124,6 @@ int dt_masks_events_mouse_scrolled(struct dt_iop_module_t *module, double x, dou
     ret = form->functions->mouse_scrolled(module, pzx, pzy,
                                           incr ? 1 : 0,
                                           state, form, 0, gui, 0, DT_MASKS_INTERACTION_UNDEF);
-
-  if(gui)
-  {
-    // for brush, the opacity is the density of the masks, do not update opacity here for the brush.
-    if(gui->creation && dt_modifier_is(state, GDK_CONTROL_MASK))
-    {
-      float opacity = dt_conf_get_float("plugins/darkroom/masks/opacity");
-      const float amount = incr ? 0.05f : -0.05f;
-
-      opacity = CLAMP(opacity + amount, 0.05f, 1.0f);
-      dt_conf_set_float("plugins/darkroom/masks/opacity", opacity);
-      ret = 1;
-    }
-  }
 
   return ret;
 }
