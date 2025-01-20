@@ -1087,9 +1087,19 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
 }
 
 
-float _get_set_conf_value(char *plugin, char *feature, float change, float v_min, float v_max)
+const char * _get_mask_plugin(dt_masks_form_t *form)
 {
-  gchar *key = g_strdup_printf("plugins/darkroom/%s/brush/%s", plugin, feature);
+  // Internal masks are used by spots removal and retouch modules
+  if(form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE))
+    return "spots";
+  // Regular all-purpose masks
+  else
+    return "masks";
+}
+
+float _get_set_conf_value(dt_masks_form_t *form, char *feature, float change, float v_min, float v_max)
+{
+  gchar *key = g_strdup_printf("plugins/darkroom/%s/brush/%s", _get_mask_plugin(form), feature);
   float value = dt_conf_get_float(key);
   value = MAX(v_min, MIN(change * value, v_max));
   dt_conf_set_float(key, value);
@@ -1097,32 +1107,19 @@ float _get_set_conf_value(char *plugin, char *feature, float change, float v_min
   return value;
 }
 
-
 static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
 {
-  // internal masks are used by spots removal and retouch modules
-  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
-  float masks_hardness = _get_set_conf_value((internal_masks) ? "spots" : "masks", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
-
-  if(gui->guipoints_count > 0)
-    dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
-
+  float masks_hardness = _get_set_conf_value(form, "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
+  if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
   dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
-
   return 1;
 }
 
 static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
 {
-  // internal masks are used by spots removal and retouch modules
-  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
-  float masks_border = _get_set_conf_value((internal_masks) ? "spots" : "masks", "border", amount, BORDER_MIN, BORDER_MAX);
-
-  if(gui->guipoints_count > 0)
-    dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
-
+  float masks_border = _get_set_conf_value(form, "border", amount, BORDER_MIN, BORDER_MAX);
+  if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
   dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
-
   return 1;
 }
 
@@ -1136,14 +1133,11 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
       dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
       const float masks_hardness = point->hardness;
       point->hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
-      dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
     }
     pts_number++;
   }
 
-  // internal masks are used by spots removal and retouch modules
-  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
-  _get_set_conf_value((internal_masks) ? "spots" : "masks", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
+  _get_set_conf_value(form, "hardness", amount, HARDNESS_MIN, HARDNESS_MAX);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1181,9 +1175,7 @@ static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t
     pts_number++;
   }
 
-  // internal masks are used by spots removal and retouch modules
-  const gboolean internal_masks = form->type & (DT_MASKS_CLONE | DT_MASKS_NON_CLONE);
-  _get_set_conf_value((internal_masks) ? "spots" : "masks", "border", amount, BORDER_MIN, BORDER_MAX);
+  _get_set_conf_value(form, "border", amount, BORDER_MIN, BORDER_MAX);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
