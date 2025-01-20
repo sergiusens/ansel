@@ -1086,23 +1086,23 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
   return tmin;
 }
 
-static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
+static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount, const gboolean increment)
 {
-  float masks_hardness = dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, TRUE);
+  float masks_hardness = dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
   if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -3, masks_hardness);
   dt_toast_log(_("hardness: %3.2f%%"), masks_hardness*100.0f);
   return 1;
 }
 
-static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount)
+static int _init_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount, const gboolean increment)
 {
-  float masks_border = dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, TRUE);
+  float masks_border = dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, increment);
   if(gui->guipoints_count > 0) dt_masks_dynbuf_set(gui->guipoints_payload, -4, masks_border);
   dt_toast_log(_("size: %3.2f%%"), masks_border*2.f*100.f);
   return 1;
 }
 
-static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount)
+static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount, const gboolean increment)
 {
   int pts_number = 0;
   for(GList *l = form->points; l; l = g_list_next(l))
@@ -1111,12 +1111,15 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
     {
       dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
       const float masks_hardness = point->hardness;
-      point->hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+      if(increment)
+        point->hardness = MAX(HARDNESS_MIN, MIN(masks_hardness * amount, HARDNESS_MAX));
+      else
+        point->hardness = MAX(HARDNESS_MIN, MIN(amount, HARDNESS_MAX));
     }
     pts_number++;
   }
 
-  dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, TRUE);
+  dt_masks_get_set_conf_value(form, "brush", "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1125,7 +1128,7 @@ static int _change_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_g
   return 1;
 }
 
-static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount)
+static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, struct dt_iop_module_t *module, int index, const float amount, const gboolean increment)
 {
   // Sanitize loop
   // do not exceed upper limit of 1.0 and lower limit of 0.004
@@ -1148,13 +1151,21 @@ static int _change_size(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t
     if(gui->point_selected == -1 || gui->point_selected == pts_number)
     {
       dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)l->data;
-      point->border[0] *= amount;
-      point->border[1] *= amount;
+      if(increment)
+      {
+        point->border[0] *= amount;
+        point->border[1] *= amount;
+      }
+      else
+      {
+        point->border[0] = amount;
+        point->border[1] = amount;
+      }
     }
     pts_number++;
   }
 
-  dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, TRUE);
+  dt_masks_get_set_conf_value(form, "brush", "border", amount, BORDER_MIN, BORDER_MAX, increment);
 
   // we recreate the form points
   dt_masks_gui_form_remove(form, gui, index);
@@ -1171,9 +1182,9 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
   if(gui->creation)
   {
     if(dt_modifier_is(state, GDK_SHIFT_MASK))
-      return _init_hardness(form, parentid, gui, up ? 1.03f : 0.97f);
+      return _init_hardness(form, parentid, gui, up ? 1.02f : 0.98f, TRUE);
     else if(dt_modifier_is(state, 0))
-      return _init_size(form, parentid, gui, up ? 1.03f : 0.97f);
+      return _init_size(form, parentid, gui, up ? 1.02f : 0.98f, TRUE);
     else
       return 0;
   }
@@ -1188,12 +1199,12 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
     }
 
     if(dt_modifier_is(state, GDK_CONTROL_MASK))
-      return dt_masks_form_set_opacity(form, parentid, up ? 0.05f : -0.05f, TRUE);
+      return dt_masks_form_set_opacity(form, parentid, up ? 0.02f : -0.02f, TRUE);
     // resize don't care where the mouse is inside a shape
     else if(dt_modifier_is(state, GDK_SHIFT_MASK))
-      return _change_hardness(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
+      return _change_hardness(form, parentid, gui, module, index, up ? 1.02f : 0.98f, TRUE);
     else
-      return _change_size(form, parentid, gui, module, index, up ? 1.03f : 0.97f);
+      return _change_size(form, parentid, gui, module, index, up ? 1.02f : 0.98f, TRUE);
   }
   return 0;
 }
