@@ -1307,6 +1307,55 @@ static void _add_point_to_segment(struct dt_iop_module_t *module, float pzx, flo
   gui->seg_selected = -1;
 }
 
+static void _remove_shape(struct dt_iop_module_t *module, dt_masks_form_t *form, int parentid,
+                               dt_masks_form_gui_t *gui, int index)
+{
+  // we hide the form
+  if(!(darktable.develop->form_visible->type & DT_MASKS_GROUP))
+    dt_masks_change_form_gui(NULL);
+  else if(g_list_shorter_than(darktable.develop->form_visible->points, 2))
+    dt_masks_change_form_gui(NULL);
+  else
+  {
+    const int emode = gui->edit_mode;
+    dt_masks_clear_form_gui(darktable.develop);
+    for(GList *forms = darktable.develop->form_visible->points; forms; forms = g_list_next(forms))
+    {
+      dt_masks_point_group_t *guipt = (dt_masks_point_group_t *)forms->data;
+      if(guipt->formid == form->formid)
+      {
+        darktable.develop->form_visible->points = g_list_remove(darktable.develop->form_visible->points, guipt);
+        free(guipt);
+        break;
+      }
+    }
+    gui->edit_mode = emode;
+  }
+
+  // we delete or remove the shape
+  // Called from node removal, if there was not enough nodes to keep the whole shape,
+  // that's how this was called:
+  // dt_masks_form_remove(module, NULL, form);
+  // Called from shape removal, this is how it was called:
+  dt_masks_form_remove(module, dt_masks_get_from_id(darktable.develop, parentid), form);
+  // Not sure what difference it makes.
+}
+
+static void _remove_point(struct dt_iop_module_t *module, dt_masks_form_t *form, int parentid,
+                          dt_masks_form_gui_t *gui, int index)
+{
+  dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)g_list_nth_data(form->points, gui->point_selected);
+  form->points = g_list_remove(form->points, point);
+  free(point);
+  gui->point_selected = -1;
+  gui->point_edited = -1;
+  _brush_init_ctrl_points(form);
+
+  // we recreate the form points
+  dt_masks_gui_form_remove(form, gui, index);
+  dt_masks_gui_form_create(form, gui, index, module);
+}
+
 static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pzx, float pzy,
                                         double pressure, int which, int type, uint32_t state,
                                         dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, int index)
@@ -1382,6 +1431,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
       // if ctrl is pressed, we change the type of point
       if(gui->point_edited == gui->point_selected && dt_modifier_is(state, GDK_CONTROL_MASK))
       {
+        // FIXME: handle that in context menu
         _change_point_type(module, form, parentid, gui, index);
         return 1;
       }
@@ -1410,13 +1460,16 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
     }
     else if(gui->seg_selected >= 0)
     {
-      const guint nb = g_list_length(form->points);
+      // FIXME: why do we allow selecting an invalid segment index ???
+      const gboolean valid_segment = (gui->seg_selected < (g_list_length(form->points) - 1));
       gui->point_edited = -1;
-      if(dt_modifier_is(state, GDK_CONTROL_MASK) && gui->seg_selected < nb - 1)
+      if(!valid_segment) return 1;
+
+      if(dt_modifier_is(state, GDK_CONTROL_MASK))
       {
         _add_point_to_segment(module, pzx, pzy, form, parentid, gui, index);
       }
-      else if(gui->seg_selected < nb - 1)
+      else
       {
         // we move the entire segment
         gui->seg_dragging = gui->seg_selected;
@@ -1449,49 +1502,17 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
     {
       // if the form doesn't below to a group, we don't delete it
       if(parentid <= 0) return 1;
-
-      // we hide the form
-      if(!(darktable.develop->form_visible->type & DT_MASKS_GROUP))
-        dt_masks_change_form_gui(NULL);
-      else if(g_list_shorter_than(darktable.develop->form_visible->points, 2))
-        dt_masks_change_form_gui(NULL);
-      else
-      {
-        const int emode = gui->edit_mode;
-        dt_masks_clear_form_gui(darktable.develop);
-        for(GList *forms = darktable.develop->form_visible->points; forms; forms = g_list_next(forms))
-        {
-          dt_masks_point_group_t *guipt = (dt_masks_point_group_t *)forms->data;
-          if(guipt->formid == form->formid)
-          {
-            darktable.develop->form_visible->points
-                = g_list_remove(darktable.develop->form_visible->points, guipt);
-            free(guipt);
-            break;
-          }
-        }
-        gui->edit_mode = emode;
-      }
-
-      // we delete or remove the shape
-      dt_masks_form_remove(module, NULL, form);
+      _remove_shape(module, form, parentid, gui, index);
       return 1;
     }
-    dt_masks_point_brush_t *point
-        = (dt_masks_point_brush_t *)g_list_nth_data(form->points, gui->point_selected);
-    form->points = g_list_remove(form->points, point);
-    free(point);
-    gui->point_selected = -1;
-    gui->point_edited = -1;
-    _brush_init_ctrl_points(form);
+    _remove_point(module, form, parentid, gui, index);
 
-    // we recreate the form points
-    dt_masks_gui_form_remove(form, gui, index);
-    dt_masks_gui_form_create(form, gui, index, module);
     return 1;
   }
   else if(gui->feather_selected >= 0 && which == 3)
   {
+    // FIXME: WTF does that do ?
+    // I can't get a feather selection, so right-click always remove the node
     dt_masks_point_brush_t *point
         = (dt_masks_point_brush_t *)g_list_nth_data(form->points, gui->feather_selected);
     if(point->state != DT_MASKS_POINT_STATE_NORMAL)
@@ -1507,30 +1528,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   }
   else if(which == 3 && parentid > 0 && gui->edit_mode == DT_MASKS_EDIT_FULL)
   {
-    // we hide the form
-    if(!(darktable.develop->form_visible->type & DT_MASKS_GROUP))
-      dt_masks_change_form_gui(NULL);
-    else if(g_list_shorter_than(darktable.develop->form_visible->points, 2))
-      dt_masks_change_form_gui(NULL);
-    else
-    {
-      dt_masks_clear_form_gui(darktable.develop);
-      for(GList *forms = darktable.develop->form_visible->points; forms; forms = g_list_next(forms))
-      {
-        dt_masks_point_group_t *guipt = (dt_masks_point_group_t *)forms->data;
-        if(guipt->formid == form->formid)
-        {
-          darktable.develop->form_visible->points
-              = g_list_remove(darktable.develop->form_visible->points, guipt);
-          free(guipt);
-          break;
-        }
-      }
-      gui->edit_mode = DT_MASKS_EDIT_FULL;
-    }
-
-    // we remove the shape
-    dt_masks_form_remove(module, dt_masks_get_from_id(darktable.develop, parentid), form);
+    _remove_shape(module, form, parentid, gui, index);
     return 1;
   }
 
