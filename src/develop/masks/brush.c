@@ -1086,6 +1086,116 @@ static float _brush_get_position_in_segment(float x, float y, dt_masks_form_t *f
   return tmin;
 }
 
+
+static int _find_closest_handle(struct dt_iop_module_t *module, float pzx, float pzy, dt_masks_form_t *form, int parentid,
+                                 dt_masks_form_gui_t *gui, int index)
+{
+  if(!gui) return 0;
+  dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
+  if(!gpt) return 0;
+
+  const dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
+  const int closeup = dt_control_get_dev_closeup();
+  const float zoom_scale = dt_dev_get_zoom_scale(darktable.develop, zoom, 1<<closeup, 1);
+  const float as = DT_PIXEL_APPLY_DPI(10) / zoom_scale;
+
+  gui->form_selected = FALSE;
+  gui->border_selected = FALSE;
+  gui->source_selected = FALSE;
+  gui->feather_selected = -1;
+  gui->point_selected = -1;
+  gui->seg_selected = -1;
+  gui->point_border_selected = -1;
+  // are we near a point or feather ?
+  const guint nb = g_list_length(form->points);
+
+  pzx *= darktable.develop->preview_pipe->backbuf_width;
+  pzy *= darktable.develop->preview_pipe->backbuf_height;
+
+  if((gui->group_selected == index) && gui->point_edited >= 0)
+  {
+    const int k = gui->point_edited;
+    // we only select feather if the point is not "sharp"
+    // FIXME: why ???
+    if(gpt->points[k * 6 + 2] != gpt->points[k * 6 + 4]
+       && gpt->points[k * 6 + 3] != gpt->points[k * 6 + 5])
+    {
+      float ffx, ffy;
+      _brush_ctrl2_to_feather(gpt->points[k * 6 + 2], gpt->points[k * 6 + 3], gpt->points[k * 6 + 4],
+                              gpt->points[k * 6 + 5], &ffx, &ffy, TRUE);
+      if(pzx - ffx > -as && pzx - ffx < as && pzy - ffy > -as && pzy - ffy < as)
+      {
+        gui->feather_selected = k;
+
+        return 1;
+      }
+    }
+    // corner ??
+    if(pzx - gpt->points[k * 6 + 2] > -as
+       && pzx - gpt->points[k * 6 + 2] < as
+       && pzy - gpt->points[k * 6 + 3] > -as
+       && pzy - gpt->points[k * 6 + 3] < as)
+    {
+      gui->point_selected = k;
+
+      return 1;
+    }
+  }
+
+  for(int k = 0; k < nb; k++)
+  {
+    // corner ??
+    if(pzx - gpt->points[k * 6 + 2] > -as
+       && pzx - gpt->points[k * 6 + 2] < as
+       && pzy - gpt->points[k * 6 + 3] > -as
+       && pzy - gpt->points[k * 6 + 3] < as)
+    {
+      gui->point_selected = k;
+
+      return 1;
+    }
+
+    // border corner ??
+    if(pzx - gpt->border[k * 6] > -as
+       && pzx - gpt->border[k * 6] < as
+       && pzy - gpt->border[k * 6 + 1] > -as
+       && pzy - gpt->border[k * 6 + 1] < as)
+    {
+      gui->point_border_selected = k;
+
+      return 1;
+    }
+  }
+
+  // are we inside the form or the borders or near a segment ???
+  int in, inb, near, ins;
+  float dist;
+  _brush_get_distance(pzx, pzy, as, gui, index, nb, &in, &inb, &near, &ins, &dist);
+  gui->seg_selected = near;
+  if(near < 0)
+  {
+    if(ins)
+    {
+      gui->form_selected = TRUE;
+      gui->source_selected = TRUE;
+      return 1;
+    }
+    else if(inb)
+    {
+      gui->form_selected = TRUE;
+      gui->border_selected = TRUE;
+      return 1;
+    }
+    else if(in)
+    {
+      gui->form_selected = TRUE;
+      return 1;
+    }
+  }
+  return 0;
+}
+
+
 static int _init_hardness(dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, const float amount, const dt_masks_increment_t increment)
 {
   float masks_hardness = dt_masks_get_set_conf_value(form, "hardness", amount, HARDNESS_MIN, HARDNESS_MAX, increment);
@@ -1364,6 +1474,8 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   if(!gui) return 0;
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
+
+  if(!_find_closest_handle(module, pzx, pzy, form, parentid, gui, index)) return 0;
 
   // The trick is to use the incremental setting, set to 1.0 to re-use the generic getter/setter without changing value
   float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, TRUE);
@@ -1823,114 +1935,6 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
   return 0;
 }
 
-static int _find_closest_handle(struct dt_iop_module_t *module, float pzx, float pzy, dt_masks_form_t *form, int parentid,
-                                 dt_masks_form_gui_t *gui, int index)
-{
-  if(!gui) return 0;
-  dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
-  if(!gpt) return 0;
-
-  const dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
-  const int closeup = dt_control_get_dev_closeup();
-  const float zoom_scale = dt_dev_get_zoom_scale(darktable.develop, zoom, 1<<closeup, 1);
-  const float as = DT_PIXEL_APPLY_DPI(10) / zoom_scale;
-
-  gui->form_selected = FALSE;
-  gui->border_selected = FALSE;
-  gui->source_selected = FALSE;
-  gui->feather_selected = -1;
-  gui->point_selected = -1;
-  gui->seg_selected = -1;
-  gui->point_border_selected = -1;
-  // are we near a point or feather ?
-  const guint nb = g_list_length(form->points);
-
-  pzx *= darktable.develop->preview_pipe->backbuf_width;
-  pzy *= darktable.develop->preview_pipe->backbuf_height;
-
-  if((gui->group_selected == index) && gui->point_edited >= 0)
-  {
-    const int k = gui->point_edited;
-    // we only select feather if the point is not "sharp"
-    // FIXME: why ???
-    if(gpt->points[k * 6 + 2] != gpt->points[k * 6 + 4]
-       && gpt->points[k * 6 + 3] != gpt->points[k * 6 + 5])
-    {
-      float ffx, ffy;
-      _brush_ctrl2_to_feather(gpt->points[k * 6 + 2], gpt->points[k * 6 + 3], gpt->points[k * 6 + 4],
-                              gpt->points[k * 6 + 5], &ffx, &ffy, TRUE);
-      if(pzx - ffx > -as && pzx - ffx < as && pzy - ffy > -as && pzy - ffy < as)
-      {
-        gui->feather_selected = k;
-
-        return 1;
-      }
-    }
-    // corner ??
-    if(pzx - gpt->points[k * 6 + 2] > -as
-       && pzx - gpt->points[k * 6 + 2] < as
-       && pzy - gpt->points[k * 6 + 3] > -as
-       && pzy - gpt->points[k * 6 + 3] < as)
-    {
-      gui->point_selected = k;
-
-      return 1;
-    }
-  }
-
-  for(int k = 0; k < nb; k++)
-  {
-    // corner ??
-    if(pzx - gpt->points[k * 6 + 2] > -as
-       && pzx - gpt->points[k * 6 + 2] < as
-       && pzy - gpt->points[k * 6 + 3] > -as
-       && pzy - gpt->points[k * 6 + 3] < as)
-    {
-      gui->point_selected = k;
-
-      return 1;
-    }
-
-    // border corner ??
-    if(pzx - gpt->border[k * 6] > -as
-       && pzx - gpt->border[k * 6] < as
-       && pzy - gpt->border[k * 6 + 1] > -as
-       && pzy - gpt->border[k * 6 + 1] < as)
-    {
-      gui->point_border_selected = k;
-
-      return 1;
-    }
-  }
-
-  // are we inside the form or the borders or near a segment ???
-  int in, inb, near, ins;
-  float dist;
-  _brush_get_distance(pzx, pzy, as, gui, index, nb, &in, &inb, &near, &ins, &dist);
-  gui->seg_selected = near;
-  if(near < 0)
-  {
-    if(ins)
-    {
-      gui->form_selected = TRUE;
-      gui->source_selected = TRUE;
-      return 1;
-    }
-    else if(inb)
-    {
-      gui->form_selected = TRUE;
-      gui->border_selected = TRUE;
-      return 1;
-    }
-    else if(in)
-    {
-      gui->form_selected = TRUE;
-      return 1;
-    }
-  }
-  return 0;
-}
-
 static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, float pzy, double pressure,
                                      int which, dt_masks_form_t *form, int parentid,
                                      dt_masks_form_gui_t *gui, int index)
@@ -2107,7 +2111,6 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
     return 1;
   }
 
-  if(_find_closest_handle(module, pzx, pzy, form, parentid, gui, index)) return 1;
   if(!gui->form_selected && !gui->border_selected && gui->seg_selected < 0) return 0;
   if(gui->edit_mode != DT_MASKS_EDIT_FULL) return 0;
   return 1;
