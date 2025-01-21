@@ -1227,6 +1227,86 @@ static int _brush_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
   return 0;
 }
 
+
+static void _get_pressure_sensitivity(dt_masks_form_gui_t *gui)
+{
+  gui->pressure_sensitivity = DT_MASKS_PRESSURE_OFF;
+  const char *psens = dt_conf_get_string_const("pressure_sensitivity");
+  if(psens)
+  {
+    if(!strcmp(psens, "hardness (absolute)"))
+      gui->pressure_sensitivity = DT_MASKS_PRESSURE_HARDNESS_ABS;
+    else if(!strcmp(psens, "hardness (relative)"))
+      gui->pressure_sensitivity = DT_MASKS_PRESSURE_HARDNESS_REL;
+    else if(!strcmp(psens, "opacity (absolute)"))
+      gui->pressure_sensitivity = DT_MASKS_PRESSURE_OPACITY_ABS;
+    else if(!strcmp(psens, "opacity (relative)"))
+      gui->pressure_sensitivity = DT_MASKS_PRESSURE_OPACITY_REL;
+    else if(!strcmp(psens, "brush size (relative)"))
+      gui->pressure_sensitivity = DT_MASKS_PRESSURE_BRUSHSIZE_REL;
+  }
+}
+
+static void _change_point_type(struct dt_iop_module_t *module, dt_masks_form_t *form, int parentid,
+                               dt_masks_form_gui_t *gui, int index)
+{
+  dt_masks_point_brush_t *point = (dt_masks_point_brush_t *)g_list_nth_data(form->points, gui->point_edited);
+  if(point->state != DT_MASKS_POINT_STATE_NORMAL)
+  {
+    point->state = DT_MASKS_POINT_STATE_NORMAL;
+    _brush_init_ctrl_points(form);
+  }
+  else
+  {
+    point->ctrl1[0] = point->ctrl2[0] = point->corner[0];
+    point->ctrl1[1] = point->ctrl2[1] = point->corner[1];
+    point->state = DT_MASKS_POINT_STATE_USER;
+  }
+
+  // we recreate the form points
+  dt_masks_gui_form_remove(form, gui, index);
+  dt_masks_gui_form_create(form, gui, index, module);
+}
+
+static void _add_point_to_segment(struct dt_iop_module_t *module, float pzx, float pzy, dt_masks_form_t *form,
+                                  int parentid, dt_masks_form_gui_t *gui, int index)
+{
+  // we add a new point to the brush
+  dt_masks_point_brush_t *bzpt = (dt_masks_point_brush_t *)(malloc(sizeof(dt_masks_point_brush_t)));
+
+  const float wd = darktable.develop->preview_pipe->backbuf_width;
+  const float ht = darktable.develop->preview_pipe->backbuf_height;
+  float pts[2] = { pzx * wd, pzy * ht };
+  dt_dev_distort_backtransform(darktable.develop, pts, 1);
+
+  // set coordinates
+  bzpt->corner[0] = pts[0] / darktable.develop->preview_pipe->iwidth;
+  bzpt->corner[1] = pts[1] / darktable.develop->preview_pipe->iheight;
+  bzpt->ctrl1[0] = bzpt->ctrl1[1] = bzpt->ctrl2[0] = bzpt->ctrl2[1] = -1.0;
+  bzpt->state = DT_MASKS_POINT_STATE_NORMAL;
+
+  // set other attributes of the new point. we interpolate the starting and the end point of that
+  // segment
+  const float t = _brush_get_position_in_segment(bzpt->corner[0], bzpt->corner[1], form, gui->seg_selected);
+  // start and end point of the segment
+  GList *pt = g_list_nth(form->points, gui->seg_selected);
+  dt_masks_point_brush_t *point0 = (dt_masks_point_brush_t *)pt->data;
+  dt_masks_point_brush_t *point1 = (dt_masks_point_brush_t *)g_list_next(pt)->data;
+  bzpt->border[0] = point0->border[0] * (1.0f - t) + point1->border[0] * t;
+  bzpt->border[1] = point0->border[1] * (1.0f - t) + point1->border[1] * t;
+  bzpt->hardness = point0->hardness * (1.0f - t) + point1->hardness * t;
+  bzpt->density = point0->density * (1.0f - t) + point1->density * t;
+
+  form->points = g_list_insert(form->points, bzpt, gui->seg_selected + 1);
+  _brush_init_ctrl_points(form);
+
+  dt_masks_gui_form_remove(form, gui, index);
+  dt_masks_gui_form_create(form, gui, index, module);
+
+  gui->point_edited = gui->point_dragging = gui->point_selected = gui->seg_selected + 1;
+  gui->seg_selected = -1;
+}
+
 static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pzx, float pzy,
                                         double pressure, int which, int type, uint32_t state,
                                         dt_masks_form_t *form, int parentid, dt_masks_form_gui_t *gui, int index)
@@ -1270,31 +1350,12 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
 
       // add support for clone masks
       if(form->type & DT_MASKS_CLONE)
-      {
         dt_masks_set_source_pos_initial_value(gui, DT_MASKS_BRUSH, form, pzx, pzy);
-      }
+      // not used by regular masks
       else
-      {
-        // not used by regular masks
         form->source[0] = form->source[1] = 0.0f;
-      }
 
-      gui->pressure_sensitivity = DT_MASKS_PRESSURE_OFF;
-      const char *psens = dt_conf_get_string_const("pressure_sensitivity");
-      if(psens)
-      {
-        if(!strcmp(psens, "hardness (absolute)"))
-          gui->pressure_sensitivity = DT_MASKS_PRESSURE_HARDNESS_ABS;
-        else if(!strcmp(psens, "hardness (relative)"))
-          gui->pressure_sensitivity = DT_MASKS_PRESSURE_HARDNESS_REL;
-        else if(!strcmp(psens, "opacity (absolute)"))
-          gui->pressure_sensitivity = DT_MASKS_PRESSURE_OPACITY_ABS;
-        else if(!strcmp(psens, "opacity (relative)"))
-          gui->pressure_sensitivity = DT_MASKS_PRESSURE_OPACITY_REL;
-        else if(!strcmp(psens, "brush size (relative)"))
-          gui->pressure_sensitivity = DT_MASKS_PRESSURE_BRUSHSIZE_REL;
-      }
-
+      _get_pressure_sensitivity(gui);
 
       return 1;
     }
@@ -1321,24 +1382,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
       // if ctrl is pressed, we change the type of point
       if(gui->point_edited == gui->point_selected && dt_modifier_is(state, GDK_CONTROL_MASK))
       {
-        dt_masks_point_brush_t *point
-            = (dt_masks_point_brush_t *)g_list_nth_data(form->points, gui->point_edited);
-        if(point->state != DT_MASKS_POINT_STATE_NORMAL)
-        {
-          point->state = DT_MASKS_POINT_STATE_NORMAL;
-          _brush_init_ctrl_points(form);
-        }
-        else
-        {
-          point->ctrl1[0] = point->ctrl2[0] = point->corner[0];
-          point->ctrl1[1] = point->ctrl2[1] = point->corner[1];
-          point->state = DT_MASKS_POINT_STATE_USER;
-        }
-
-        // we recreate the form points
-        dt_masks_gui_form_remove(form, gui, index);
-        dt_masks_gui_form_create(form, gui, index, module);
-
+        _change_point_type(module, form, parentid, gui, index);
         return 1;
       }
       // we register the current position to avoid accidental move
@@ -1370,39 +1414,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
       gui->point_edited = -1;
       if(dt_modifier_is(state, GDK_CONTROL_MASK) && gui->seg_selected < nb - 1)
       {
-        // we add a new point to the brush
-        dt_masks_point_brush_t *bzpt = (dt_masks_point_brush_t *)(malloc(sizeof(dt_masks_point_brush_t)));
-
-        const float wd = darktable.develop->preview_pipe->backbuf_width;
-        const float ht = darktable.develop->preview_pipe->backbuf_height;
-        float pts[2] = { pzx * wd, pzy * ht };
-        dt_dev_distort_backtransform(darktable.develop, pts, 1);
-
-        // set coordinates
-        bzpt->corner[0] = pts[0] / darktable.develop->preview_pipe->iwidth;
-        bzpt->corner[1] = pts[1] / darktable.develop->preview_pipe->iheight;
-        bzpt->ctrl1[0] = bzpt->ctrl1[1] = bzpt->ctrl2[0] = bzpt->ctrl2[1] = -1.0;
-        bzpt->state = DT_MASKS_POINT_STATE_NORMAL;
-
-        // set other attributes of the new point. we interpolate the starting and the end point of that
-        // segment
-        const float t = _brush_get_position_in_segment(bzpt->corner[0], bzpt->corner[1], form, gui->seg_selected);
-        // start and end point of the segment
-        GList *pt = g_list_nth(form->points, gui->seg_selected);
-        dt_masks_point_brush_t *point0 = (dt_masks_point_brush_t *)pt->data;
-        dt_masks_point_brush_t *point1 = (dt_masks_point_brush_t *)g_list_next(pt)->data;
-        bzpt->border[0] = point0->border[0] * (1.0f - t) + point1->border[0] * t;
-        bzpt->border[1] = point0->border[1] * (1.0f - t) + point1->border[1] * t;
-        bzpt->hardness = point0->hardness * (1.0f - t) + point1->hardness * t;
-        bzpt->density = point0->density * (1.0f - t) + point1->density * t;
-
-        form->points = g_list_insert(form->points, bzpt, gui->seg_selected + 1);
-        _brush_init_ctrl_points(form);
-        dt_masks_gui_form_remove(form, gui, index);
-        dt_masks_gui_form_create(form, gui, index, module);
-        gui->point_edited = gui->point_dragging = gui->point_selected = gui->seg_selected + 1;
-        gui->seg_selected = -1;
-
+        _add_point_to_segment(module, pzx, pzy, form, parentid, gui, index);
       }
       else if(gui->seg_selected < nb - 1)
       {
@@ -1417,6 +1429,8 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   }
   else if(gui->creation && which == 3)
   {
+    // Delete shape from current group
+    // TODO: map that to context menu
     dt_masks_dynbuf_free(gui->guipoints);
     dt_masks_dynbuf_free(gui->guipoints_payload);
     gui->guipoints = NULL;
