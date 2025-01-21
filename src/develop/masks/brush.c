@@ -1475,7 +1475,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
-  if(!_find_closest_handle(module, pzx, pzy, form, parentid, gui, index)) return 0;
+  if(!gui->creation && !_find_closest_handle(module, pzx, pzy, form, parentid, gui, index)) return 0;
 
   // The trick is to use the incremental setting, set to 1.0 to re-use the generic getter/setter without changing value
   float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, TRUE);
@@ -1943,18 +1943,26 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
-  if(gui->creation && gui->guipoints)
+  if(gui->creation)
   {
-    dt_masks_dynbuf_add_2(gui->guipoints, pzx * darktable.develop->preview_pipe->backbuf_width,
-                          pzy * darktable.develop->preview_pipe->backbuf_height);
-    const float border = dt_masks_dynbuf_get(gui->guipoints_payload, -4);
-    const float hardness = dt_masks_dynbuf_get(gui->guipoints_payload, -3);
-    const float density = dt_masks_dynbuf_get(gui->guipoints_payload, -2);
-    dt_masks_dynbuf_add_2(gui->guipoints_payload, border, hardness);
-    dt_masks_dynbuf_add_2(gui->guipoints_payload, density, pressure);
-    gui->guipoints_count++;
+    if(gui->guipoints)
+    {
+      dt_masks_dynbuf_add_2(gui->guipoints, pzx * darktable.develop->preview_pipe->backbuf_width,
+                            pzy * darktable.develop->preview_pipe->backbuf_height);
+      const float border = dt_masks_dynbuf_get(gui->guipoints_payload, -4);
+      const float hardness = dt_masks_dynbuf_get(gui->guipoints_payload, -3);
+      const float density = dt_masks_dynbuf_get(gui->guipoints_payload, -2);
+      dt_masks_dynbuf_add_2(gui->guipoints_payload, border, hardness);
+      dt_masks_dynbuf_add_2(gui->guipoints_payload, density, pressure);
+      gui->guipoints_count++;
 
-    return 1;
+      return 1;
+    }
+    else
+    {
+      // Let the cursor motion be redrawn as it moves in GUI
+      return 1;
+    }
   }
   else if(gui->point_dragging >= 0)
   {
