@@ -1094,10 +1094,7 @@ static int _find_closest_handle(struct dt_iop_module_t *module, float pzx, float
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
-  const dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
-  const int closeup = dt_control_get_dev_closeup();
-  const float zoom_scale = dt_dev_get_zoom_scale(darktable.develop, zoom, 1<<closeup, 1);
-  const float as = DT_PIXEL_APPLY_DPI(10) / zoom_scale;
+  const float as = DT_PIXEL_APPLY_DPI(5);
 
   gui->form_selected = FALSE;
   gui->border_selected = FALSE;
@@ -2130,9 +2127,7 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return;
 
-  double dashed[] = { 4.0, 4.0 };
-  dashed[0] /= zoom_scale;
-  dashed[1] /= zoom_scale;
+  double dashed[] = { DT_PIXEL_APPLY_DPI(4.0), DT_PIXEL_APPLY_DPI(4.0) };
   const int len = sizeof(dashed) / sizeof(dashed[0]);
 
   // in creation mode
@@ -2147,18 +2142,8 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
       dt_masks_form_t *form = darktable.develop->form_visible;
       if(!form) return;
 
-      float masks_border = 0.0f;
-      if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-        masks_border = MIN(dt_conf_get_float("plugins/darkroom/spots/brush_border"), BORDER_MAX);
-      else
-        masks_border = MIN(dt_conf_get_float("plugins/darkroom/masks/brush/border"), BORDER_MAX);
-
-      float masks_hardness = 0.0f;
-      if(form->type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
-        masks_hardness = MIN(dt_conf_get_float("plugins/darkroom/spots/brush_hardness"), HARDNESS_MAX);
-      else
-        masks_hardness = MIN(dt_conf_get_float("plugins/darkroom/masks/brush/hardness"), HARDNESS_MAX);
-
+      const float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, DT_MASKS_INCREMENT_SCALE);
+      const float masks_hardness = dt_masks_get_set_conf_value(form, "hardness", 1.0f, HARDNESS_MIN, HARDNESS_MAX, DT_MASKS_INCREMENT_SCALE);
       const float opacity = dt_conf_get_float("plugins/darkroom/masks/opacity");
 
       const float radius1 = masks_border * masks_hardness * min_iwd_iht;
@@ -2179,7 +2164,7 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
 
       cairo_save(cr);
       dt_gui_gtk_set_source_rgba(cr, DT_GUI_COLOR_BRUSH_CURSOR, opacity);
-      cairo_set_line_width(cr, 3.0 / zoom_scale);
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(3.0));
       cairo_arc(cr, xpos, ypos, radius1, 0, 2.0 * M_PI);
       cairo_fill_preserve(cr);
       cairo_set_source_rgba(cr, .8, .8, .8, .8);
@@ -2293,7 +2278,7 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
       }
       if(!stroked) cairo_stroke(cr);
 
-      cairo_set_line_width(cr, 3.0 / zoom_scale);
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(3.0));
       dt_gui_gtk_set_source_rgba(cr, DT_GUI_COLOR_BRUSH_CURSOR, opacity);
       cairo_arc(cr, guipoints[2 * (gui->guipoints_count - 1)],
                 guipoints[2 * (gui->guipoints_count - 1) + 1],
@@ -2323,6 +2308,7 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
   } // creation
 
   // draw path
+  // FIXME: WTF are we checking there ?
   if(gpt->points_count > nb * 3 + 2)
   {
     cairo_set_dash(cr, dashed, 0, 0);
@@ -2339,18 +2325,19 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
         // this is the end of the last segment, so we have to draw it
         if((gui->group_selected == index)
            && (gui->form_selected || gui->form_dragging || gui->seg_selected == seg2))
-          cairo_set_line_width(cr, 5.0 / zoom_scale);
+          cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(5.0));
         else
-          cairo_set_line_width(cr, 3.0 / zoom_scale);
+          cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(3.0));
+
         dt_draw_set_color_overlay(cr, FALSE, 0.9);
         cairo_stroke_preserve(cr);
         if(gui->group_selected == index && gui->seg_selected == seg2)
-          cairo_set_line_width(cr, 5.0 / zoom_scale);
+          cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(5.0));
         else if((gui->group_selected == index)
            && (gui->form_selected || gui->form_dragging))
-          cairo_set_line_width(cr, 2.0 / zoom_scale);
+          cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
         else
-          cairo_set_line_width(cr, 1.0 / zoom_scale);
+          cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
         dt_draw_set_color_overlay(cr, TRUE, 0.8);
         cairo_stroke(cr);
         // and we update the segment number
@@ -2369,11 +2356,11 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
       float anchor_size = 0.0f;
       if(k == gui->point_dragging || k == gui->point_selected)
       {
-        anchor_size = 7.0f / zoom_scale;
+        anchor_size = DT_PIXEL_APPLY_DPI(7.0f);
       }
       else
       {
-        anchor_size = 5.0f / zoom_scale;
+        anchor_size = DT_PIXEL_APPLY_DPI(5.0f);
       }
       dt_draw_set_color_overlay(cr, TRUE, 0.8);
       cairo_rectangle(cr, gpt->points[k * 6 + 2] - (anchor_size * 0.5),
@@ -2381,12 +2368,12 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
       cairo_fill_preserve(cr);
 
       if((gui->group_selected == index) && (k == gui->point_dragging || k == gui->point_selected))
-        cairo_set_line_width(cr, 2.0 / zoom_scale);
+        cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
       else if((gui->group_selected == index)
               && ((k == 0 || k == nb) && gui->creation && gui->creation_closing_form))
-        cairo_set_line_width(cr, 2.0 / zoom_scale);
+        cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
       else
-        cairo_set_line_width(cr, 1.0 / zoom_scale);
+        cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
       dt_draw_set_color_overlay(cr, FALSE, 0.8);
       cairo_stroke(cr);
     }
@@ -2408,21 +2395,21 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
                             gpt->points[k * 6 + 5], &ffx, &ffy, TRUE);
     cairo_move_to(cr, gpt->points[k * 6 + 2], gpt->points[k * 6 + 3]);
     cairo_line_to(cr, ffx, ffy);
-    cairo_set_line_width(cr, 1.5 / zoom_scale);
+    cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
     dt_draw_set_color_overlay(cr, FALSE, 0.8);
     cairo_stroke_preserve(cr);
-    cairo_set_line_width(cr, 0.75 / zoom_scale);
+    cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
     dt_draw_set_color_overlay(cr, TRUE, 0.8);
     cairo_stroke(cr);
 
     if((gui->group_selected == index) && (k == gui->feather_dragging || k == gui->feather_selected))
-      cairo_arc(cr, ffx, ffy, 3.0f / zoom_scale, 0, 2.0 * M_PI);
+      cairo_arc(cr, ffx, ffy, DT_PIXEL_APPLY_DPI(3.0), 0, 2.0 * M_PI);
     else
-      cairo_arc(cr, ffx, ffy, 1.5f / zoom_scale, 0, 2.0 * M_PI);
+      cairo_arc(cr, ffx, ffy, DT_PIXEL_APPLY_DPI(1.5), 0, 2.0 * M_PI);
     dt_draw_set_color_overlay(cr, TRUE, 0.8);
     cairo_fill_preserve(cr);
 
-    cairo_set_line_width(cr, 1.0 / zoom_scale);
+    cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
     dt_draw_set_color_overlay(cr, FALSE, 0.8);
     cairo_stroke(cr);
   }
@@ -2438,18 +2425,18 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
     }
     // we execute the drawing
     if(gui->border_selected)
-      cairo_set_line_width(cr, 2.0 / zoom_scale);
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
     else
-      cairo_set_line_width(cr, 1.0 / zoom_scale);
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
     dt_draw_set_color_overlay(cr, FALSE, 0.8);
     cairo_set_dash(cr, dashed, len, 0);
     cairo_stroke_preserve(cr);
     if(gui->border_selected)
-      cairo_set_line_width(cr, 2.0 / zoom_scale);
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
     else
-      cairo_set_line_width(cr, 1.0 / zoom_scale);
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
     dt_draw_set_color_overlay(cr, TRUE, 0.8);
-    cairo_set_dash(cr, dashed, len, 4);
+    cairo_set_dash(cr, dashed, len, DT_PIXEL_APPLY_DPI(4.0));
     cairo_stroke(cr);
 
 #if 0
