@@ -75,7 +75,7 @@ GList *dt_masks_dup_forms_deep(GList *forms, dt_masks_form_t *form)
 
 static int _get_opacity(dt_masks_form_gui_t *gui, const dt_masks_form_t *form)
 {
-  const dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+  const dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_selected);
   const dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
   if(!sel) return 0;
   const int formid = sel->formid;
@@ -144,10 +144,10 @@ static void _set_hinter_message(dt_masks_form_gui_t *gui, const dt_masks_form_t 
   int opacity = 100;
 
   const dt_masks_form_t *sel = form;
-  if((ftype & DT_MASKS_GROUP) && (gui->group_edited >= 0))
+  if((ftype & DT_MASKS_GROUP) && (gui->group_selected >= 0))
   {
     // we get the selected form
-    const dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+    const dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_selected);
     sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
     if(!sel) return;
 
@@ -185,7 +185,7 @@ void dt_masks_soft_reset_form_gui(dt_masks_form_gui_t *gui)
   gui->point_selected = -1;
   gui->seg_selected = -1;
   gui->point_border_selected = -1;
-  gui->group_edited = -1;
+  gui->group_selected = -1;
   gui->group_selected = -1;
   gui->dx = gui->dy = 0.0f;
   gui->form_selected = gui->border_selected = gui->form_dragging = gui->form_rotating = FALSE;
@@ -1218,7 +1218,7 @@ void dt_masks_clear_form_gui(dt_develop_t *dev)
   dev->form_gui->creation_module = NULL;
   dev->form_gui->point_edited = -1;
 
-  dev->form_gui->group_edited = -1;
+  dev->form_gui->group_selected = -1;
   dev->form_gui->group_selected = -1;
   dev->form_gui->edit_mode = DT_MASKS_EDIT_OFF;
   // allow to select a shape inside an iop

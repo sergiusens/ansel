@@ -306,7 +306,7 @@ static int _circle_events_button_pressed(struct dt_iop_module_t *module, float p
         gui2->source_dragging = TRUE;
       else
         gui2->form_dragging = TRUE;
-      gui2->group_edited = gui2->group_selected = pos2;
+      gui2->group_selected = pos2;
       gui2->posx = pzx * darktable.develop->preview_pipe->backbuf_width;
       gui2->posy = pzy * darktable.develop->preview_pipe->backbuf_height;
       gui2->dx = 0.0;

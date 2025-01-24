@@ -26,13 +26,13 @@ static int _group_events_mouse_scrolled(struct dt_iop_module_t *module, float pz
                                         uint32_t state, dt_masks_form_t *form, int unused1, dt_masks_form_gui_t *gui,
                                         int unused, dt_masks_interaction_t interaction)
 {
-  if(gui->group_edited >= 0)
+  if(gui->group_selected >= 0)
   {
     // we get the form
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_selected);
     dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
     if(sel && sel->functions)
-      return sel->functions->mouse_scrolled(module, pzx, pzy, up, state, sel, fpt->parentid, gui, gui->group_edited, interaction);
+      return sel->functions->mouse_scrolled(module, pzx, pzy, up, state, sel, fpt->parentid, gui, gui->group_selected, interaction);
   }
   return 0;
 }
@@ -41,14 +41,14 @@ static int _group_events_button_pressed(struct dt_iop_module_t *module, float pz
                                         double pressure, int which, int type, uint32_t state,
                                         dt_masks_form_t *form, int unused1, dt_masks_form_gui_t *gui, int unused2)
 {
-  if(gui->group_edited >= 0)
+  if(gui->group_selected >= 0)
   {
     // we get the form
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_selected);
     dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
     if(sel && sel->functions)
       return sel->functions->button_pressed(module, pzx, pzy, pressure, which, type, state, sel,
-                                           fpt->parentid, gui, gui->group_edited);
+                                           fpt->parentid, gui, gui->group_selected);
   }
   return 0;
 }
@@ -57,14 +57,14 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
                                          uint32_t state, dt_masks_form_t *form, int unused1, dt_masks_form_gui_t *gui,
                                          int unused2)
 {
-  if(gui->group_edited >= 0)
+  if(gui->group_selected >= 0)
   {
     // we get the form
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_selected);
     dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
     if(sel && sel->functions)
       if(sel->functions->button_released(module, pzx, pzy, which, state, sel, fpt->parentid, gui,
-                                             gui->group_edited))
+                                             gui->group_selected))
         return 1;
   }
 
@@ -87,7 +87,7 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
   gui->point_edited = gui->point_selected = -1;
   gui->seg_selected = -1;
   gui->point_border_selected = -1;
-  gui->group_edited = gui->group_selected = -1;
+  gui->group_selected = -1;
 
   dt_masks_form_t *sel = NULL;
   dt_masks_point_group_t *sel_fpt = NULL;
@@ -124,10 +124,10 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
 
   if(sel && sel->functions)
   {
-    gui->group_edited = gui->group_selected = sel_pos;
+    gui->group_selected = sel_pos;
     darktable.develop->mask_form_selected_id = sel->formid;
     return sel->functions->button_released(module, pzx, pzy, which, state, sel, sel_fpt->parentid, gui,
-                                           gui->group_edited);
+                                           gui->group_selected);
   }
 
   return 0;
@@ -150,14 +150,14 @@ static int _group_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
   }
 
   // if a form is in edit mode, capture scroll
-  if(gui->group_edited >= 0)
+  if(gui->group_selected >= 0)
   {
     // we get the form
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_selected);
     dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
     if(sel && sel->functions)
       return sel->functions->mouse_moved(module, pzx, pzy, pressure, which, sel, fpt->parentid, gui,
-                                       gui->group_edited);
+                                       gui->group_selected);
   }
 
   // capturing scroll event outside of editing mode is dangerous (zoom).

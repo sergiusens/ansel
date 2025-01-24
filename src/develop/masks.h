@@ -298,7 +298,6 @@ typedef struct dt_masks_form_gui_t
   int seg_dragging;
   int point_border_dragging;
 
-  int group_edited;
   int group_selected;
 
 
