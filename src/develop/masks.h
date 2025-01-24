@@ -392,6 +392,7 @@ void dt_masks_cleanup_unused(dt_develop_t *dev);
 void dt_masks_change_form_gui(dt_masks_form_t *newform);
 void dt_masks_clear_form_gui(dt_develop_t *dev);
 void dt_masks_reset_form_gui(void);
+void dt_masks_soft_reset_form_gui(dt_masks_form_gui_t *gui);
 void dt_masks_reset_show_masks_icons(void);
 
 int dt_masks_events_mouse_moved(struct dt_iop_module_t *module, double x, double y, double pressure,

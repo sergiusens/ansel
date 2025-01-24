@@ -174,6 +174,24 @@ void dt_masks_init_form_gui(dt_masks_form_gui_t *gui)
   gui->mouse_leaved_center = TRUE;
   gui->posx_source = gui->posy_source = -1.0f;
   gui->source_pos_type = DT_MASKS_SOURCE_POS_RELATIVE_TEMP;
+  gui->form_selected = FALSE;
+}
+
+void dt_masks_soft_reset_form_gui(dt_masks_form_gui_t *gui)
+{
+  // Note: we have an hard reset function below that frees all buffers and such
+  gui->source_selected = FALSE;
+  gui->feather_selected = -1;
+  gui->point_selected = -1;
+  gui->seg_selected = -1;
+  gui->point_border_selected = -1;
+  gui->group_edited = -1;
+  gui->group_selected = -1;
+  gui->dx = gui->dy = 0.0f;
+  gui->form_selected = gui->border_selected = gui->form_dragging = gui->form_rotating = FALSE;
+  gui->pivot_selected = FALSE;
+  gui->point_border_selected = gui->seg_selected = gui->point_selected = gui->feather_selected = -1;
+  gui->point_border_dragging = gui->seg_dragging = gui->feather_dragging = gui->point_dragging = -1;
 }
 
 void dt_masks_gui_form_create(dt_masks_form_t *form, dt_masks_form_gui_t *gui, int index, dt_iop_module_t *module)
@@ -1073,16 +1091,17 @@ int dt_masks_events_button_released(struct dt_iop_module_t *module, double x, do
   pzx += 0.5f;
   pzy += 0.5f;
 
+  int ret = 0;
+  if(form->functions)
+    ret = form->functions->button_released(module, pzx, pzy, which, state, form, 0, gui, 0);
+
   if(darktable.develop->mask_form_selected_id)
     dt_dev_masks_selection_change(darktable.develop, module,
                                   darktable.develop->mask_form_selected_id, FALSE);
 
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED, NULL, NULL);
+  // DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED, NULL, NULL);
 
-  if(form->functions)
-    return form->functions->button_released(module, pzx, pzy, which, state, form, 0, gui, 0);
-
-  return 0;
+  return ret;
 }
 
 int dt_masks_events_button_pressed(struct dt_iop_module_t *module, double x, double y, double pressure,

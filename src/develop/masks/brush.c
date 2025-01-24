@@ -1472,7 +1472,7 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
-  if(!gui->creation && !_find_closest_handle(module, pzx, pzy, form, parentid, gui, index)) return 0;
+  if(!gui->creation && !gui->form_selected && !gui->border_selected && gui->seg_selected < 0) return 0;
 
   // The trick is to use the incremental setting, set to 1.0 to re-use the generic getter/setter without changing value
   float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, TRUE);
@@ -1652,6 +1652,8 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
+
+  if(!gui->creation && !_find_closest_handle(module, pzx, pzy, form, parentid, gui, index)) return 0;
 
   // The trick is to use the incremental setting, set to 1.0 to re-use the generic getter/setter without changing value
   float masks_border = dt_masks_get_set_conf_value(form, "border", 1.0f, BORDER_MIN, BORDER_MAX, TRUE);
@@ -1940,6 +1942,8 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
   dt_masks_form_gui_points_t *gpt = (dt_masks_form_gui_points_t *)g_list_nth_data(gui->points, index);
   if(!gpt) return 0;
 
+  if(!gui->creation && !gui->form_selected && !gui->border_selected && gui->seg_selected < 0) return 0;
+
   if(gui->creation)
   {
     if(gui->guipoints)
@@ -2116,7 +2120,6 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
     return 1;
   }
 
-  if(!gui->form_selected && !gui->border_selected && gui->seg_selected < 0) return 0;
   if(gui->edit_mode != DT_MASKS_EDIT_FULL) return 0;
   return 1;
 }

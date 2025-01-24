@@ -41,27 +41,12 @@ static int _group_events_button_pressed(struct dt_iop_module_t *module, float pz
                                         double pressure, int which, int type, uint32_t state,
                                         dt_masks_form_t *form, int unused1, dt_masks_form_gui_t *gui, int unused2)
 {
-  if(gui->group_edited != gui->group_selected)
-  {
-    // we set the selected form in edit mode
-    gui->group_edited = gui->group_selected;
-    // we initialise some variable
-    gui->dx = gui->dy = 0.0f;
-    gui->form_selected = gui->border_selected = gui->form_dragging = gui->form_rotating = FALSE;
-    gui->pivot_selected = FALSE;
-    gui->point_border_selected = gui->seg_selected = gui->point_selected = gui->feather_selected = -1;
-    gui->point_border_dragging = gui->seg_dragging = gui->feather_dragging = gui->point_dragging = -1;
-
-
-    return 1;
-  }
   if(gui->group_edited >= 0)
   {
     // we get the form
     dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
     dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
-    if(!sel) return 0;
-    if(sel->functions)
+    if(sel && sel->functions)
       return sel->functions->button_pressed(module, pzx, pzy, pressure, which, type, state, sel,
                                            fpt->parentid, gui, gui->group_edited);
   }
@@ -78,62 +63,22 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
     dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
     dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
     if(sel && sel->functions)
-      return sel->functions->button_released(module, pzx, pzy, which, state, sel, fpt->parentid, gui,
-                                             gui->group_edited);
-  }
-  return 0;
-}
-
-static inline gboolean _is_handling_form(dt_masks_form_gui_t *gui)
-{
-  return gui->form_dragging
-    || gui->source_dragging
-    || gui->gradient_toggling
-    || gui->form_rotating
-    || (gui->point_edited != -1)
-    || (gui->point_dragging != -1)
-    || (gui->feather_dragging != -1)
-    || (gui->point_border_dragging != -1)
-    || (gui->seg_dragging != -1);
-}
-
-static int _group_events_mouse_moved(struct dt_iop_module_t *module, float pzx, float pzy, double pressure,
-                                     int which, dt_masks_form_t *form, int unused1, dt_masks_form_gui_t *gui,
-                                     int unused2)
-{
-  const dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
-  const int closeup = dt_control_get_dev_closeup();
-  const float zoom_scale = dt_dev_get_zoom_scale(darktable.develop, zoom, 1<<closeup, 1);
-  const float as = DT_PIXEL_APPLY_DPI(5) / zoom_scale;  // transformed to backbuf dimensions
-
-  // we first don't do anything if we are inside a scrolling session
-
-  if(gui->scrollx != 0.0f && gui->scrolly != 0.0f)
-  {
-    const float as2 = 0.015f / zoom_scale;
-    if((gui->scrollx - pzx < as2 && gui->scrollx - pzx > -as2)
-       && (gui->scrolly - pzy < as2 && gui->scrolly - pzy > -as2))
-      return 1;
-    gui->scrollx = gui->scrolly = 0.0f;
+      if(sel->functions->button_released(module, pzx, pzy, which, state, sel, fpt->parentid, gui,
+                                             gui->group_edited))
+        return 1;
   }
 
-  // if a form is in edit mode and we are dragging, don't try to select another form
-  if(gui->group_edited >= 0 && _is_handling_form(gui))
-  {
-    // we get the form
-    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
-    dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
-    if(!sel) return 0;
-    int rep = 0;
-    if(sel->functions)
-      rep = sel->functions->mouse_moved(module, pzx, pzy, pressure, which, sel, fpt->parentid, gui,
-                                       gui->group_edited);
-    if(rep) return 1;
-    // if a point is in state editing, then we don't want that another form can be selected
-    if(gui->point_edited >= 0) return 0;
-  }
+  // If we get here, it's either because:
+  // 1. no group is being currently edited
+  // 2. the currently-edited group didn't capture the event, meaning the click didn't happen near a control node.
+  // Both ways, we need to redetect where the click happened to see if a new shape should be selected.
 
-  // now we check if we are near a form
+  // reset selection
+  dt_masks_soft_reset_form_gui(gui);
+  darktable.develop->mask_form_selected_id = -1;
+
+  // now we check if we are near a new form
+  const float as = DT_PIXEL_APPLY_DPI(5);  // transformed to backbuf dimensions
   int pos = 0;
   gui->form_selected = gui->border_selected = FALSE;
   gui->source_selected = gui->source_dragging = FALSE;
@@ -180,10 +125,43 @@ static int _group_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
   if(sel && sel->functions)
   {
     gui->group_edited = gui->group_selected = sel_pos;
-    return sel->functions->mouse_moved(module, pzx, pzy, pressure, which, sel, sel_fpt->parentid, gui, gui->group_edited);
+    darktable.develop->mask_form_selected_id = sel->formid;
+    return sel->functions->button_released(module, pzx, pzy, which, state, sel, sel_fpt->parentid, gui,
+                                           gui->group_edited);
   }
 
+  return 0;
+}
 
+static int _group_events_mouse_moved(struct dt_iop_module_t *module, float pzx, float pzy, double pressure,
+                                     int which, dt_masks_form_t *form, int unused1, dt_masks_form_gui_t *gui,
+                                     int unused2)
+{
+  const float as = DT_PIXEL_APPLY_DPI(5);
+
+  // we first don't do anything if we are inside a scrolling session
+
+  if(gui->scrollx != 0.0f && gui->scrolly != 0.0f)
+  {
+    if((gui->scrollx - pzx < as && gui->scrollx - pzx > -as)
+       && (gui->scrolly - pzy < as && gui->scrolly - pzy > -as))
+      return 1;
+    gui->scrollx = gui->scrolly = 0.0f;
+  }
+
+  // if a form is in edit mode, capture scroll
+  if(gui->group_edited >= 0)
+  {
+    // we get the form
+    dt_masks_point_group_t *fpt = (dt_masks_point_group_t *)g_list_nth_data(form->points, gui->group_edited);
+    dt_masks_form_t *sel = dt_masks_get_from_id(darktable.develop, fpt->formid);
+    if(sel && sel->functions)
+      return sel->functions->mouse_moved(module, pzx, pzy, pressure, which, sel, fpt->parentid, gui,
+                                       gui->group_edited);
+  }
+
+  // capturing scroll event outside of editing mode is dangerous (zoom).
+  // Nothing will happen then.
   return 0;
 }
 
