@@ -1034,11 +1034,6 @@ static void _brush_get_distance(float x, float y, float as, dt_masks_form_gui_t 
       }
     }
   }
-
-  // if inside border detected and not in a segment, then we are in range to allow
-  // moving the whole brush.
-  if(*inside && *inside_border && *near == -1)
-    *dist = 0.0f;
 }
 
 static int _brush_get_points_border(dt_develop_t *dev, dt_masks_form_t *form, float **points, int *points_count,
