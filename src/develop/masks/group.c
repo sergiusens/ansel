@@ -90,7 +90,6 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
   gui->group_selected = -1;
 
   dt_masks_form_t *sel = NULL;
-  dt_masks_point_group_t *sel_fpt = NULL;
   int sel_pos = 0;
   float sel_dist = FLT_MAX;
 
@@ -116,7 +115,6 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
         sel = frm;
         sel_dist = dist;
         sel_pos = pos;
-        sel_fpt = fpt;
       }
     }
     pos++;
@@ -126,8 +124,7 @@ static int _group_events_button_released(struct dt_iop_module_t *module, float p
   {
     gui->group_selected = sel_pos;
     darktable.develop->mask_form_selected_id = sel->formid;
-    return sel->functions->button_released(module, pzx, pzy, which, state, sel, sel_fpt->parentid, gui,
-                                           gui->group_selected);
+    return 1;
   }
 
   return 0;
