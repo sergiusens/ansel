@@ -498,20 +498,18 @@ static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer us
   double pressure = 1.0;
   GdkDevice *device = gdk_event_get_source_device((GdkEvent *)event);
 
-  if(device && gdk_device_get_source(device) == GDK_SOURCE_PEN)
+  if(device && (gdk_device_get_axes(device) & GDK_AXIS_FLAG_PRESSURE))
   {
-    gdk_event_get_axis ((GdkEvent *)event, GDK_AXIS_PRESSURE, &pressure);
+    gdk_event_get_axis((GdkEvent *)event, GDK_AXIS_PRESSURE, &pressure);
   }
-  dt_control_button_pressed(event->x, event->y, pressure, event->button, event->type, event->state & 0xf);
   gtk_widget_grab_focus(w);
-  gtk_widget_queue_draw(w);
+  dt_control_button_pressed(event->x, event->y, pressure, event->button, event->type, event->state & 0xf);
   return FALSE;
 }
 
 static gboolean _button_released(GtkWidget *w, GdkEventButton *event, gpointer user_data)
 {
   dt_control_button_released(event->x, event->y, event->button, event->state & 0xf);
-  gtk_widget_queue_draw(w);
   return TRUE;
 }
 
@@ -520,9 +518,9 @@ static gboolean _mouse_moved(GtkWidget *w, GdkEventMotion *event, gpointer user_
   double pressure = 1.0;
   GdkDevice *device = gdk_event_get_source_device((GdkEvent *)event);
 
-  if(device && gdk_device_get_source(device) == GDK_SOURCE_PEN)
+  if(device && (gdk_device_get_axes(device) & GDK_AXIS_FLAG_PRESSURE))
   {
-    gdk_event_get_axis ((GdkEvent *)event, GDK_AXIS_PRESSURE, &pressure);
+    gdk_event_get_axis((GdkEvent *)event, GDK_AXIS_PRESSURE, &pressure);
   }
   dt_control_mouse_moved(event->x, event->y, pressure, event->state & 0xf);
   return FALSE;
