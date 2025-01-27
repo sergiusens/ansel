@@ -648,22 +648,6 @@ void gui_cleanup(dt_iop_module_t *self)
 // int button_released(struct dt_iop_module_t *self, double x, double y, int which, uint32_t state);
 // int scrolled(dt_iop_module_t *self, double x, double y, int up, uint32_t state);
 
-// optional: if mouse events are handled by the iop, we can add text to the help screen by declaring
-// the mouse actions and their descriptions
-#if 0
-GSList *mouse_actions(dt_iop_module_t *self)
-{
-  GSList *lm = NULL;
-  // add the first action
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK,
-                                     _("[%s] some action"), self->name());
-  // append a second action to the list we will return
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, GDK_CONTROL_MASK | GDK_SHIFT_MASK,
-                                     _("[%s] other action"), self->name());
-  return lm;
-}
-#endif
-
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

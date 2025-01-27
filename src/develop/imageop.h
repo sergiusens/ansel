@@ -33,7 +33,7 @@ typedef struct dt_iop_roi_t
 #include "common/darktable.h"
 #include "common/introspection.h"
 #include "common/opencl.h"
-#include "common/action.h"
+
 #include "control/settings.h"
 #include "develop/pixelpipe.h"
 #include "dtgtk/togglebutton.h"
@@ -140,8 +140,6 @@ typedef enum dt_iop_colorspace_type_t
 /** part of the module which only contains the cached dlopen stuff. */
 typedef struct dt_iop_module_so_t
 {
-  dt_action_t actions; // !!! NEEDS to be FIRST (to be able to cast convert)
-
 #define INCLUDE_API_FROM_MODULE_H
 #include "iop/iop_api.h"
 
@@ -166,8 +164,6 @@ typedef struct dt_iop_module_so_t
 
 typedef struct dt_iop_module_t
 {
-  dt_action_type_t actions; // !!! NEEDS to be FIRST (to be able to cast convert)
-
 #define INCLUDE_API_FROM_MODULE_H
 #include "iop/iop_api.h"
 
@@ -305,12 +301,6 @@ typedef struct dt_iop_module_t
 
 } dt_iop_module_t;
 
-typedef struct dt_action_target_t
-{
-  dt_action_t *action;
-  void *target;
-} dt_action_target_t;
-
 /** loads and inits the modules in the plugins/ directory. */
 void dt_iop_load_modules_so(void);
 /** cleans up the dlopen refs. */
@@ -437,15 +427,6 @@ gboolean dt_iop_gui_module_is_visible(dt_iop_module_t *module);
 // initializes memory.darktable_iop_names
 void dt_iop_set_darktable_iop_table();
 
-/** adds keyboard accels to the first module in the pipe to handle where there are multiple instances */
-void dt_iop_connect_accels_multi(dt_iop_module_so_t *module);
-
-/** adds keyboard accels for all modules in the pipe */
-void dt_iop_connect_accels_all();
-
-/** get the module that accelerators are attached to for the current so */
-dt_iop_module_t *dt_iop_get_module_accel_curr(dt_iop_module_so_t *module);
-
 /** queue a refresh of the center (FULL), preview, or second-preview windows, rerunning the pixelpipe from */
 /** the given module */
 void dt_iop_refresh_center(dt_iop_module_t *module);
@@ -491,7 +472,7 @@ gboolean dt_iop_have_required_input_format(const int required_ch, struct dt_iop_
 /* bring up module rename dialog */
 void dt_iop_gui_rename_module(dt_iop_module_t *module);
 
-void dt_iop_gui_changed(dt_action_t *action, GtkWidget *widget, gpointer data);
+void dt_iop_gui_changed(dt_iop_module_t *module, GtkWidget *widget, gpointer data);
 
 
 /** Uniform way of getting the full state hash of user-defined parameters, including masks and blending.

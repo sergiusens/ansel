@@ -36,7 +36,7 @@
 #include "dtgtk/icon.h"
 #include "dtgtk/thumbnail_btn.h"
 #include "gui/drag_and_drop.h"
-#include "gui/accelerators.h"
+
 #include "views/view.h"
 
 static void _thumb_resize_overlays(dt_thumbnail_t *thumb);
@@ -974,8 +974,6 @@ static gboolean _event_btn_enter_leave(GtkWidget *widget, GdkEventCrossing *even
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
 
-  darktable.control->element = event->type == GDK_ENTER_NOTIFY && widget == thumb->w_reject ? DT_VIEW_REJECT : -1;
-
   // if we leave for ancestor, that means we leave for blank thumbtable area
   if(event->type == GDK_LEAVE_NOTIFY && event->detail == GDK_NOTIFY_ANCESTOR) dt_control_set_mouse_over_id(-1);
 
@@ -998,11 +996,7 @@ static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gp
   {
     _set_flag(thumb->w_stars[i], GTK_STATE_FLAG_PRELIGHT, pre);
     gtk_widget_queue_draw(thumb->w_stars[i]);
-    if(thumb->w_stars[i] == widget)
-    {
-      darktable.control->element = i + 1;
-      pre = FALSE;
-    }
+    if(thumb->w_stars[i] == widget) pre = FALSE;
   }
   return TRUE;
 }

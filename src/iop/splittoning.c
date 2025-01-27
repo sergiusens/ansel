@@ -30,7 +30,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/gradientslider.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "gui/color_picker_proxy.h"

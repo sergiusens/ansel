@@ -37,7 +37,7 @@
 #include "control/settings.h"
 #include "dtgtk/button.h"
 #include "dtgtk/thumbtable.h"
-#include "gui/accelerators.h"
+
 #include "gui/drag_and_drop.h"
 #include "gui/draw.h"
 #include "gui/gtk.h"
@@ -215,103 +215,12 @@ void reset(dt_view_t *self)
   dt_control_set_mouse_over_id(-1);
 }
 
-
 void scrollbar_changed(dt_view_t *self, double x, double y)
 {
   dt_thumbtable_scrollbar_changed(dt_ui_thumbtable(darktable.gui->ui), x, y);
 }
 
-enum
-{
-  DT_ACTION_ELEMENT_FOCUS_DETECT = 1,
-};
-
-const dt_action_element_def_t _action_elements_preview[]
-  = { { "normal", dt_action_effect_hold },
-      { "focus detection", dt_action_effect_hold },
-      { NULL } };
-
-enum
-{
-  DT_ACTION_ELEMENT_MOVE = 0,
-  DT_ACTION_ELEMENT_SELECT = 1,
-};
-
-enum
-{
-  _ACTION_TABLE_MOVE_STARTEND = 0,
-  _ACTION_TABLE_MOVE_LEFTRIGHT = 1,
-  _ACTION_TABLE_MOVE_UPDOWN = 2,
-  _ACTION_TABLE_MOVE_PAGE = 3,
-  _ACTION_TABLE_MOVE_LEAVE = 4,
-};
-
-static float _action_process_move(gpointer target, dt_action_element_t element, dt_action_effect_t effect, float move_size)
-{
-  if(isnan(move_size)) return 0; // FIXME return should be relative position
-
-  int action = GPOINTER_TO_INT(target);
-
-  // navigation accels for thumbtable layouts
-  // this can't be "normal" key accels because it's usually arrow keys and lot of other widgets
-  // will capture them before the usual accel is triggered
-  dt_thumbtable_move_t move = DT_THUMBTABLE_MOVE_NONE;
-  gboolean select = element == DT_ACTION_ELEMENT_SELECT;
-  if(action == _ACTION_TABLE_MOVE_LEFTRIGHT && effect == DT_ACTION_EFFECT_PREVIOUS)
-    move = DT_THUMBTABLE_MOVE_LEFT;
-  else if(action == _ACTION_TABLE_MOVE_UPDOWN && effect == DT_ACTION_EFFECT_NEXT)
-    move = DT_THUMBTABLE_MOVE_UP;
-  else if(action == _ACTION_TABLE_MOVE_LEFTRIGHT && effect == DT_ACTION_EFFECT_NEXT)
-    move = DT_THUMBTABLE_MOVE_RIGHT;
-  else if(action == _ACTION_TABLE_MOVE_UPDOWN && effect == DT_ACTION_EFFECT_PREVIOUS)
-    move = DT_THUMBTABLE_MOVE_DOWN;
-  else if(action == _ACTION_TABLE_MOVE_PAGE && effect == DT_ACTION_EFFECT_NEXT)
-    move = DT_THUMBTABLE_MOVE_PAGEUP;
-  else if(action == _ACTION_TABLE_MOVE_PAGE && effect == DT_ACTION_EFFECT_PREVIOUS)
-    move = DT_THUMBTABLE_MOVE_PAGEDOWN;
-  else if(action == _ACTION_TABLE_MOVE_STARTEND && effect == DT_ACTION_EFFECT_PREVIOUS)
-    move = DT_THUMBTABLE_MOVE_START;
-  else if(action == _ACTION_TABLE_MOVE_STARTEND && effect == DT_ACTION_EFFECT_NEXT)
-    move = DT_THUMBTABLE_MOVE_END;
-  else if(action == _ACTION_TABLE_MOVE_LEAVE && effect == DT_ACTION_EFFECT_NEXT)
-    move = DT_THUMBTABLE_MOVE_LEAVE;
-  else
-  {
-    // MIDDLE
-  }
-
-  if(move != DT_THUMBTABLE_MOVE_NONE)
-  {
-    // for this layout navigation keys are managed directly by thumbtable
-    dt_thumbtable_key_move(dt_ui_thumbtable(darktable.gui->ui), move, select);
-    gtk_widget_queue_draw(dt_ui_center(darktable.gui->ui));
-  }
-
-  return 0; // FIXME return should be relative position
-}
-
-const gchar *_action_effect_move[]
-  = { N_("middle"),
-      N_("next"),
-      N_("previous"),
-      NULL };
-
-const dt_action_element_def_t _action_elements_move[]
-  = { { N_("move"  ), _action_effect_move },
-      { N_("select"), _action_effect_move },
-      { NULL } };
-
-static const dt_shortcut_fallback_t _action_fallbacks_move[]
-  = { { .mods = GDK_SHIFT_MASK, .element = DT_ACTION_ELEMENT_SELECT },
-      { } };
-
-const dt_action_def_t _action_def_move
-  = { N_("move"),
-      _action_process_move,
-      _action_elements_move,
-      _action_fallbacks_move,
-      TRUE };
-
+#if 0
 static void zoom_in_callback(dt_action_t *action)
 {
   int zoom = dt_view_lighttable_get_zoom(darktable.view_manager);
@@ -359,21 +268,7 @@ static void _accel_open_single(dt_action_t *action)
   dt_selection_select_single(darktable.selection, id);
   if(id > 0) dt_view_manager_switch(darktable.view_manager, "darkroom");
 }
-
-GSList *mouse_actions(const dt_view_t *self)
-{
-  GSList *lm = NULL;
-
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_DOUBLE_LEFT, 0, _("open image in darkroom"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("scroll the collection"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK,
-                                      _("change number of images per row"));
-
-  if(darktable.collection->params.sort == DT_COLLECTION_SORT_CUSTOM_ORDER)
-    lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_DRAG_DROP, GDK_BUTTON1_MASK, _("change image order"));
-
-  return lm;
-}
+#endif
 
 void gui_init(dt_view_t *self)
 {
@@ -382,36 +277,18 @@ void gui_init(dt_view_t *self)
   gtk_overlay_reorder_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)),
                               gtk_widget_get_parent(dt_ui_toast_msg(darktable.gui->ui)), -1);
 
-  dt_action_t *sa = &self->actions, *ac = NULL;
-
-  ac = dt_action_define(sa, N_("move"), N_("whole"), GINT_TO_POINTER(_ACTION_TABLE_MOVE_STARTEND), &_action_def_move);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_PREVIOUS, GDK_KEY_Home, 0);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_NEXT    , GDK_KEY_End, 0);
-
-  ac = dt_action_define(sa, N_("move"), N_("horizontal"), GINT_TO_POINTER(_ACTION_TABLE_MOVE_LEFTRIGHT), &_action_def_move);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_PREVIOUS, GDK_KEY_Left, 0);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_NEXT    , GDK_KEY_Right, 0);
-
-  ac = dt_action_define(sa, N_("move"), N_("vertical"), GINT_TO_POINTER(_ACTION_TABLE_MOVE_UPDOWN), &_action_def_move);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_PREVIOUS, GDK_KEY_Down, 0);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_NEXT    , GDK_KEY_Up, 0);
-
-  ac = dt_action_define(sa, N_("move"), N_("page"), GINT_TO_POINTER(_ACTION_TABLE_MOVE_PAGE), &_action_def_move);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_PREVIOUS, GDK_KEY_Page_Down, 0);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_NEXT    , GDK_KEY_Page_Up, 0);
-
-  ac = dt_action_define(sa, N_("move"), N_("leave"), GINT_TO_POINTER(_ACTION_TABLE_MOVE_LEAVE), &_action_def_move);
-  dt_shortcut_register(ac, DT_ACTION_ELEMENT_MOVE, DT_ACTION_EFFECT_NEXT    , GDK_KEY_Escape, GDK_MOD1_MASK);
-
-  dt_action_register(DT_ACTION(self), N_("reset first image offset"), _accel_reset_first_offset, 0, 0);
-  dt_action_register(DT_ACTION(self), N_("select toggle image"), _accel_select_toggle, GDK_KEY_space, 0);
-  dt_action_register(DT_ACTION(self), N_("open single image in darkroom"), _accel_open_single, GDK_KEY_Return, 0);
+#if 0
+  dt_action_register(self, N_("reset first image offset"), _accel_reset_first_offset, 0, 0);
+  dt_action_register(self, N_("select toggle image"), _accel_select_toggle, GDK_KEY_space, 0);
+  dt_action_register(self, N_("open single image in darkroom"), _accel_open_single, GDK_KEY_Return, 0);
 
   // zoom in/out/min/max
-  dt_action_register(DT_ACTION(self), N_("zoom in"), zoom_in_callback, GDK_KEY_plus, GDK_CONTROL_MASK);
-  dt_action_register(DT_ACTION(self), N_("zoom max"), zoom_max_callback, GDK_KEY_plus, GDK_MOD1_MASK);
-  dt_action_register(DT_ACTION(self), N_("zoom out"), zoom_out_callback, GDK_KEY_minus, GDK_CONTROL_MASK);
-  dt_action_register(DT_ACTION(self), N_("zoom min"), zoom_min_callback, GDK_KEY_minus, GDK_MOD1_MASK);
+  dt_action_register(self, N_("zoom in"), zoom_in_callback, GDK_KEY_plus, GDK_CONTROL_MASK);
+  dt_action_register(self, N_("zoom max"), zoom_max_callback, GDK_KEY_plus, GDK_MOD1_MASK);
+  dt_action_register(self, N_("zoom out"), zoom_out_callback, GDK_KEY_minus, GDK_CONTROL_MASK);
+  dt_action_register(self, N_("zoom min"), zoom_min_callback, GDK_KEY_minus, GDK_MOD1_MASK);
+#endif
+
 }
 
 // clang-format off

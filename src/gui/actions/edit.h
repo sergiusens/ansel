@@ -289,16 +289,13 @@ static void new_history_callback()
 
 void append_edit(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
-  dt_action_t *pnl = dt_action_section(&darktable.control->actions_global, N_("Edit"));
-  dt_action_t *ac;
-
   add_sub_menu_entry(menus, lists, _("Undo"), index, NULL, undo_callback, NULL, NULL, undo_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Undo last action"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, undo_callback, GDK_KEY_z, GDK_CONTROL_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Undo last action"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, undo_callback, GDK_KEY_z, GDK_CONTROL_MASK);*/
 
   add_sub_menu_entry(menus, lists, _("Redo"), index, NULL, redo_callback, NULL, NULL, redo_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Redo last action"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, redo_callback, GDK_KEY_y, GDK_CONTROL_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Redo last action"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, redo_callback, GDK_KEY_y, GDK_CONTROL_MASK);*/
 
   add_menu_separator(menus[index]);
 
@@ -311,49 +308,49 @@ void append_edit(GtkWidget **menus, GList **lists, const dt_menus_t index)
                          paste_mode_append_callback, paste_mode_append_checked_callback, NULL, NULL);
 
   add_sub_menu_entry(menus, lists, _("Copy history (all)"), index, NULL, copy_callback, NULL, NULL, copy_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Copy history (all)"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, copy_callback, GDK_KEY_c, GDK_CONTROL_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Copy history (all)"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, copy_callback, GDK_KEY_c, GDK_CONTROL_MASK);*/
 
   add_sub_menu_entry(menus, lists, _("Copy history (parts)..."), index, NULL, copy_parts_callback, NULL, NULL, copy_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Copy history (parts)"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, copy_callback, GDK_KEY_c, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Copy history (parts)"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, copy_callback, GDK_KEY_c, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
 
   add_sub_menu_entry(menus, lists, _("Paste history (all)"), index, NULL, paste_all_callback, NULL, NULL,
                      paste_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Paste history (all)"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, paste_all_callback, GDK_KEY_v, GDK_CONTROL_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Paste history (all)"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, paste_all_callback, GDK_KEY_v, GDK_CONTROL_MASK);*/
 
   add_sub_menu_entry(menus, lists, _("Paste history (parts)..."), index, NULL, paste_parts_callback, NULL, NULL,
                      paste_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Paste history (parts)"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, paste_parts_callback, GDK_KEY_v, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Paste history (parts)"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, paste_parts_callback, GDK_KEY_v, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
 
   add_menu_separator(menus[index]);
 
   add_sub_menu_entry(menus, lists, _("Load history from XMP..."), index, NULL,
                      load_xmp_callback, NULL, NULL, compress_history_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Load history from XMP"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, load_xmp_callback, 0, 0);
+  /*ac = dt_action_define(pnl, NULL, N_("Load history from XMP"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, load_xmp_callback, 0, 0);*/
 
   add_sub_menu_entry(menus, lists, _("Create new history"), index, NULL,
                     new_history_callback, NULL, NULL, compress_history_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Create new history"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, new_history_callback, GDK_KEY_n, GDK_CONTROL_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Create new history"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, new_history_callback, GDK_KEY_n, GDK_CONTROL_MASK);*/
 
   add_sub_menu_entry(menus, lists, _("Duplicate existing history"), index, NULL,
                      duplicate_callback, NULL, NULL, compress_history_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Duplicate existing history"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, duplicate_callback, GDK_KEY_d, GDK_CONTROL_MASK);
+  /*ac = dt_action_define(pnl, NULL, N_("Duplicate existing history"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, duplicate_callback, GDK_KEY_d, GDK_CONTROL_MASK);*/
 
   add_sub_menu_entry(menus, lists, _("Compress history history"), index, NULL,
                      compress_history_callback, NULL, NULL, compress_history_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Compress history history"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, compress_history_callback, 0, 0);
+  /*ac = dt_action_define(pnl, NULL, N_("Compress history history"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, compress_history_callback, 0, 0);*/
 
   add_sub_menu_entry(menus, lists, _("Delete history"), index, NULL,
                      delete_history_callback, NULL, NULL, compress_history_sensitive_callback);
-  ac = dt_action_define(pnl, NULL, N_("Delete history"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, delete_history_callback, 0, 0);
+  /*ac = dt_action_define(pnl, NULL, N_("Delete history"), get_last_widget(lists), NULL);
+  dt_action_register(ac, NULL, delete_history_callback, 0, 0);*/
 
   add_menu_separator(menus[index]);
 

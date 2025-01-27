@@ -25,7 +25,7 @@
 #include "develop/develop.h"
 #include "gradientslider.h"
 #include "gui/gtk.h"
-#include "gui/accelerators.h"
+
 
 #define DTGTK_GRADIENT_SLIDER_VALUE_CHANGED_DELAY_MAX 50
 #define DTGTK_GRADIENT_SLIDER_VALUE_CHANGED_DELAY_MIN 10
@@ -220,8 +220,6 @@ static gboolean _gradient_slider_add_delta_internal(GtkWidget *widget, gdouble d
   GtkDarktableGradientSlider *gslider = DTGTK_GRADIENT_SLIDER(widget);
 
   if(selected == -1) return TRUE;
-
-  delta *= dt_accel_get_speed_multiplier(widget, state);
 
   gslider->position[selected] = gslider->position[selected] + delta;
   _clamp_marker(gslider, selected);

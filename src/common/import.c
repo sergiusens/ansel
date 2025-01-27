@@ -34,7 +34,7 @@
 #include "control/control.h"
 #include "control/signal.h"
 #include "dtgtk/button.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/import_metadata.h"
 #include "gui/preferences.h"

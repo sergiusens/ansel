@@ -35,7 +35,7 @@
 #include "develop/tiling.h"
 #include "iop/iop_api.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include <stdlib.h>
 

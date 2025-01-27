@@ -24,7 +24,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 #include "develop/masks.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/styles.h"
 #include "libs/lib.h"
@@ -131,7 +131,6 @@ void gui_init(dt_lib_module_t *self)
                    G_CALLBACK(_lib_history_create_style_button_clicked_callback), NULL);
   gtk_widget_set_name(d->create_button, "non-flat");
   gtk_widget_set_tooltip_text(d->create_button, _("create a style from the current history stack"));
-  dt_action_define(DT_ACTION(self), NULL, N_("create style from history"), d->create_button, &dt_action_def_button);
 
   /* add buttons to buttonbox */
   gtk_box_pack_start(GTK_BOX(hhbox), d->compress_button, TRUE, TRUE, 0);
@@ -391,9 +390,6 @@ static int _check_deleted_instances(dt_develop_t *dev, GList **_iop_list, GList 
 
       // remove it from all snapshots
       dt_undo_iterate_internal(darktable.undo, DT_UNDO_HISTORY, mod, &_history_invalidate_cb);
-
-      // we cleanup the module
-      dt_action_cleanup_instance_iop(mod);
 
       // don't delete the module, a pipe may still need it
       dev->alliop = g_list_append(dev->alliop, mod);
@@ -1242,7 +1238,6 @@ static gboolean _lib_history_button_clicked_callback(GtkWidget *widget, GdkEvent
   /* signal history changed */
   dt_dev_undo_end_record(darktable.develop);
 
-  dt_iop_connect_accels_all();
   dt_dev_modulegroups_set(darktable.develop, dt_dev_modulegroups_get(darktable.develop));
 
   return FALSE;

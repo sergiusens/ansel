@@ -30,7 +30,7 @@
 #include "develop/imageop_gui.h"
 #include "dtgtk/button.h"
 #include "gui/gtk.h"
-#include "gui/accelerators.h"
+
 #include "iop/iop_api.h"
 
 #include <gtk/gtk.h>

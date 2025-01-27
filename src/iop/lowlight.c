@@ -28,7 +28,7 @@
 #include "develop/develop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -834,7 +834,6 @@ void gui_init(struct dt_iop_module_t *self)
   const float aspect = dt_conf_get_int("plugins/darkroom/lowlight/aspect_percent") / 100.0;
   c->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(aspect));
   g_object_set_data(G_OBJECT(c->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("graph"), GTK_WIDGET(c->area), NULL);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(c->area), FALSE, FALSE, 0);
 
   gtk_widget_add_events(GTK_WIDGET(c->area), GDK_POINTER_MOTION_MASK | darktable.gui->scroll_mask

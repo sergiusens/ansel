@@ -26,7 +26,7 @@
 #include "common/presets.h"
 #include "develop/blend.h"
 #include "develop/develop.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/guides.h"
 #include "gui/presets.h"
@@ -182,11 +182,8 @@ static void _menuitem_delete_preset(GtkMenuItem *menuitem, dt_iop_module_t *modu
   }
 
   if(res == GTK_RESPONSE_YES)
-  {
-    dt_action_rename_preset(&module->so->actions, name, NULL);
-
     dt_lib_presets_remove(name, module->op, module->version());
-  }
+
   g_free(name);
 }
 static void _edit_preset_final_callback(dt_gui_presets_edit_dialog_t *g)
@@ -259,8 +256,6 @@ static void _edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_pr
         {
           // we remove the preset that will be overwrite
           dt_lib_presets_remove(name, g->operation, g->op_version);
-
-          if(g->iop) dt_action_rename_preset(&g->iop->so->actions, name, NULL);
         }
         else
           return;
@@ -302,9 +297,6 @@ static void _edit_preset_response(GtkDialog *dialog, gint response_id, dt_gui_pr
                               "  ?18, ?19, ?20, ?21, ?22, 0, '')");
       // clang-format on
     }
-
-    // rename accelerators
-    if(g->iop) dt_action_rename_preset(&g->iop->so->actions, g->original_name, name);
 
     // commit all the user input fields
     DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
@@ -416,28 +408,6 @@ void dt_gui_presets_confirm_and_delete(GtkWidget *parent_dialog, const char *nam
   gtk_window_set_title(GTK_WINDOW(dialog), _("delete preset?"));
   if(gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_YES)
   {
-    // deregistering accel...
-    for(GList *modules = darktable.iop; modules; modules = modules->next)
-    {
-      dt_iop_module_so_t *mod = modules->data;
-
-      if(!strcmp(mod->op, module_name))
-      {
-        dt_action_rename_preset(&mod->actions, name, NULL);
-        break;
-      }
-    }
-    for(GList *libs = darktable.lib->plugins; libs; libs = g_list_next(libs))
-    {
-      dt_lib_module_t *lib = libs->data;
-
-      if(!strcmp(lib->plugin_name, module_name))
-      {
-        dt_action_rename_preset(&lib->actions, name, NULL);
-        break;
-      }
-    }
-
     // remove the preset from the database
     sqlite3_stmt *stmt;
     DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
@@ -853,9 +823,6 @@ static void _menuitem_new_preset(GtkMenuItem *menuitem, dt_iop_module_t *module)
   // add new preset
   dt_lib_presets_remove(_("new preset"), module->op, module->version());
 
-  // create a shortcut for the new entry
-  dt_action_define_preset(&module->so->actions, "new preset");
-
   // then show edit dialog
   _edit_preset(_("new preset"), module);
 }
@@ -911,12 +878,6 @@ void dt_gui_presets_apply_preset(const gchar* name, dt_iop_module_t *module)
   dt_iop_gui_update(module);
   dt_dev_add_history_item(darktable.develop, module, FALSE);
   gtk_widget_queue_draw(module->widget);
-
-  if(dt_conf_get_bool("accel/prefer_enabled") || dt_conf_get_bool("accel/prefer_unmasked"))
-  {
-    // rebuild the accelerators
-    dt_iop_connect_accels_multi(module->so);
-  }
 }
 
 static void _menuitem_pick_preset(GtkMenuItem *menuitem, dt_iop_module_t *module)
@@ -1000,12 +961,6 @@ static gboolean _menuitem_button_released_preset(GtkMenuItem *menuitem, GdkEvent
     dt_iop_module_t *new_module = dt_iop_gui_duplicate(module, FALSE);
     if(new_module) _menuitem_pick_preset(menuitem, new_module);
     dt_iop_gui_rename_module(new_module);
-  }
-
-  if(dt_conf_get_bool("accel/prefer_enabled") || dt_conf_get_bool("accel/prefer_unmasked"))
-  {
-    // rebuild the accelerators
-    dt_iop_connect_accels_multi(module->so);
   }
 
   return FALSE;

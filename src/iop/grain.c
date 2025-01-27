@@ -28,7 +28,7 @@
 #include "develop/develop.h"
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 #include <gtk/gtk.h>

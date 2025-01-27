@@ -65,21 +65,6 @@ add_dependencies(menu generate_authors_h)
 add_library(menubuttons MODULE "tools/menu_buttons.c")
 add_library(masktoolbar MODULE "tools/mask_toolbar.c")
 
-find_path(PORTMIDI_INCLUDE_DIR NAMES portmidi.h
-          DOC "The Portmidi include directory"
-)
-find_library(PORTMIDI_LIBRARY NAMES portmidi
-          DOC "The Portmidi library"
-)
-if(PORTMIDI_INCLUDE_DIR)
-  add_definitions("-DHAVE_PORTMIDI")
-  include_directories(${PORTMIDI_INCLUDE_DIRS})
-  set(MODULES ${MODULES} midi)
-  add_library(midi MODULE "tools/midi.c")
-  target_link_libraries (midi ${PORTMIDI_LIBRARY})
-endif()
-
-
 # the modules specific to map mode
 if(USE_MAP)
   add_library(location MODULE "location.c")

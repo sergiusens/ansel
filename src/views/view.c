@@ -36,7 +36,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/expander.h"
 #include "dtgtk/thumbtable.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "libs/lib.h"
@@ -173,13 +173,6 @@ static int dt_view_load_module(void *v, const char *libname, const char *module_
 
   if(module->init) module->init(module);
 
-  if(darktable.gui)
-  {
-    module->actions = (dt_action_t){ DT_ACTION_TYPE_VIEW, module->module_name, module->name(module),
-                                     .owner = &darktable.control->actions_views };
-    dt_action_insert_sorted(&darktable.control->actions_views, &module->actions);
-  }
-
   return 0;
 }
 
@@ -291,8 +284,6 @@ int dt_view_manager_switch_by_view(dt_view_manager_t *vm, const dt_view_t *nv)
       dt_ui_container_destroy_children(darktable.gui->ui, l);
     vm->current_view = NULL;
 
-    /* remove sticky accels window */
-    if(vm->accels_window.window) dt_view_accels_hide(vm);
     return 0;
   }
 
@@ -406,11 +397,6 @@ int dt_view_manager_switch_by_view(dt_view_manager_t *vm, const dt_view_t *nv)
 
   /* update the scrollbars */
   dt_ui_update_scrollbars(darktable.gui->ui);
-
-  dt_shortcuts_select_view(new_view->view(new_view));
-
-  /* update sticky accels window */
-  if(vm->accels_window.window && vm->accels_window.sticky) dt_view_accels_refresh(vm);
 
   /* raise view changed signal */
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED, old_view, new_view);
@@ -1069,240 +1055,6 @@ void dt_view_print_settings(const dt_view_manager_t *vm, dt_print_info_t *pinfo,
 }
 #endif
 
-GSList *dt_mouse_action_create_simple(GSList *actions, dt_mouse_action_type_t type, GdkModifierType accel,
-                                      const char *const description)
-{
-  dt_mouse_action_t *a = (dt_mouse_action_t *)calloc(1, sizeof(dt_mouse_action_t));
-  a->action = type;
-  a->mods = accel;
-  g_strlcpy(a->name, description, sizeof(a->name));
-  return g_slist_append(actions, a);
-}
-
-GSList *dt_mouse_action_create_format(GSList *actions, dt_mouse_action_type_t type, GdkModifierType accel,
-                                      const char *const format_string, const char *const replacement)
-{
-  dt_mouse_action_t *a = (dt_mouse_action_t *)calloc(1, sizeof(dt_mouse_action_t));
-  a->action = type;
-  a->mods = accel;
-  g_snprintf(a->name, sizeof(a->name), format_string, replacement);
-  return g_slist_append(actions, a);
-}
-
-static gchar *_mouse_action_get_string(dt_mouse_action_t *ma)
-{
-  gchar *atxt = NULL;
-  if(ma->mods & GDK_SHIFT_MASK  ) atxt = dt_util_dstrcat(atxt, "%s+", _("shift"));
-  if(ma->mods & GDK_CONTROL_MASK) atxt = dt_util_dstrcat(atxt, "%s+", _("ctrl"));
-  if(ma->mods & GDK_MOD1_MASK   ) atxt = dt_util_dstrcat(atxt, "%s+", _("alt"));
-
-  switch(ma->action)
-  {
-    case DT_MOUSE_ACTION_LEFT:
-      atxt = dt_util_dstrcat(atxt, _("left click"));
-      break;
-    case DT_MOUSE_ACTION_RIGHT:
-      atxt = dt_util_dstrcat(atxt, _("right click"));
-      break;
-    case DT_MOUSE_ACTION_MIDDLE:
-      atxt = dt_util_dstrcat(atxt, _("middle click"));
-      break;
-    case DT_MOUSE_ACTION_SCROLL:
-      atxt = dt_util_dstrcat(atxt, _("scroll"));
-      break;
-    case DT_MOUSE_ACTION_DOUBLE_LEFT:
-      atxt = dt_util_dstrcat(atxt, _("left double-click"));
-      break;
-    case DT_MOUSE_ACTION_DOUBLE_RIGHT:
-      atxt = dt_util_dstrcat(atxt, _("right double-click"));
-      break;
-    case DT_MOUSE_ACTION_DRAG_DROP:
-      atxt = dt_util_dstrcat(atxt, _("drag and drop"));
-      break;
-    case DT_MOUSE_ACTION_LEFT_DRAG:
-      atxt = dt_util_dstrcat(atxt, _("left click+drag"));
-      break;
-    case DT_MOUSE_ACTION_RIGHT_DRAG:
-      atxt = dt_util_dstrcat(atxt, _("right click+drag"));
-      break;
-  }
-
-  return atxt;
-}
-
-static void _accels_window_destroy(GtkWidget *widget, dt_view_manager_t *vm)
-{
-  // set to NULL so we can rely on it after
-  vm->accels_window.window = NULL;
-}
-
-static void _accels_window_sticky(GtkWidget *widget, GdkEventButton *event, dt_view_manager_t *vm)
-{
-  if(!vm->accels_window.window) return;
-
-  // creating new window
-  GtkWindow *win = GTK_WINDOW(gtk_window_new(GTK_WINDOW_TOPLEVEL));
-  dt_gui_add_class(GTK_WIDGET(win), "dt_accels_window");
-  gtk_window_set_title(win, _("Ansel - accels window"));
-  GtkAllocation alloc;
-  gtk_widget_get_allocation(dt_ui_main_window(darktable.gui->ui), &alloc);
-
-  gtk_window_set_resizable(win, TRUE);
-  gtk_window_set_icon_name(win, "ansel");
-  gtk_window_set_default_size(win, alloc.width * 0.7, alloc.height * 0.7);
-  g_signal_connect(win, "destroy", G_CALLBACK(_accels_window_destroy), vm);
-
-  GtkWidget *sw = dt_gui_container_first_child(GTK_CONTAINER(vm->accels_window.window));
-  g_object_ref(sw);
-  gtk_container_remove(GTK_CONTAINER(vm->accels_window.window), sw);
-  gtk_container_add(GTK_CONTAINER(win), sw);
-  g_object_unref(sw);
-
-  gtk_widget_destroy(vm->accels_window.window);
-  vm->accels_window.window = GTK_WIDGET(win);
-  gtk_widget_show_all(vm->accels_window.window);
-  gtk_widget_hide(vm->accels_window.sticky_btn);
-
-  vm->accels_window.sticky = TRUE;
-}
-
-void dt_view_accels_show(dt_view_manager_t *vm)
-{
-  if(vm->accels_window.window) return;
-
-  vm->accels_window.sticky = FALSE;
-  vm->accels_window.prevent_refresh = FALSE;
-  vm->accels_window.window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
-  gtk_window_set_decorated(GTK_WINDOW(vm->accels_window.window), TRUE);
-  gtk_window_set_title(GTK_WINDOW(vm->accels_window.window), _("Shortcuts mapped to actions in Ansel"));
-
-  dt_gui_add_class(vm->accels_window.window, "dt_accels_window");
-
-  GtkWidget *sw = gtk_scrolled_window_new(NULL, NULL);
-
-  GtkWidget *hb = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 5);
-
-  vm->accels_window.flow_box = gtk_flow_box_new();
-  dt_gui_add_class(vm->accels_window.flow_box, "dt_accels_box");
-  gtk_orientable_set_orientation(GTK_ORIENTABLE(vm->accels_window.flow_box), GTK_ORIENTATION_HORIZONTAL);
-
-  gtk_box_pack_start(GTK_BOX(hb), vm->accels_window.flow_box, TRUE, TRUE, 0);
-
-  GtkWidget *vb = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-  vm->accels_window.sticky_btn = dtgtk_button_new(dtgtk_cairo_paint_multiinstance, 0, NULL);
-  g_object_set(G_OBJECT(vm->accels_window.sticky_btn), "tooltip-text",
-               _("switch to a classic window which will stay open after key release"), (char *)NULL);
-  g_signal_connect(G_OBJECT(vm->accels_window.sticky_btn), "button-press-event", G_CALLBACK(_accels_window_sticky),
-                   vm);
-  dt_gui_add_class(vm->accels_window.sticky_btn, "dt_accels_stick");
-  gtk_box_pack_start(GTK_BOX(vb), vm->accels_window.sticky_btn, FALSE, FALSE, 0);
-  gtk_box_pack_start(GTK_BOX(hb), vb, FALSE, FALSE, 0);
-
-  dt_view_accels_refresh(vm);
-
-  GtkAllocation alloc;
-  gtk_widget_get_allocation(dt_ui_main_window(darktable.gui->ui), &alloc);
-  // gtk_scrolled_window_set_min_content_height(GTK_SCROLLED_WINDOW(sw), alloc.height);
-  gtk_scrolled_window_set_max_content_height(GTK_SCROLLED_WINDOW(sw), alloc.height);
-  gtk_scrolled_window_set_max_content_width(GTK_SCROLLED_WINDOW(sw), alloc.width);
-  gtk_container_add(GTK_CONTAINER(sw), hb);
-  gtk_container_add(GTK_CONTAINER(vm->accels_window.window), sw);
-
-  gtk_window_set_resizable(GTK_WINDOW(vm->accels_window.window), FALSE);
-  gtk_window_set_default_size(GTK_WINDOW(vm->accels_window.window), alloc.width, alloc.height);
-  gtk_window_set_transient_for(GTK_WINDOW(vm->accels_window.window),
-                               GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
-  gtk_window_set_keep_above(GTK_WINDOW(vm->accels_window.window), TRUE);
-  // needed on macOS to avoid fullscreening the popup with newer GTK
-
-  gtk_window_set_gravity(GTK_WINDOW(vm->accels_window.window), GDK_GRAVITY_STATIC);
-  gtk_window_set_position(GTK_WINDOW(vm->accels_window.window), GTK_WIN_POS_CENTER_ON_PARENT);
-  gtk_widget_show_all(vm->accels_window.window);
-}
-
-void dt_view_accels_hide(dt_view_manager_t *vm)
-{
-  if(vm->accels_window.window && vm->accels_window.sticky) return;
-  if(vm->accels_window.window) gtk_widget_destroy(vm->accels_window.window);
-  vm->accels_window.window = NULL;
-}
-
-void dt_view_accels_refresh(dt_view_manager_t *vm)
-{
-  if(!vm->accels_window.window || vm->accels_window.prevent_refresh) return;
-
-  // drop all existing tables
-  GList *lw = gtk_container_get_children(GTK_CONTAINER(vm->accels_window.flow_box));
-  for(const GList *lw_iter = lw; lw_iter; lw_iter = g_list_next(lw_iter))
-  {
-    GtkWidget *w = (GtkWidget *)lw_iter->data;
-    gtk_widget_destroy(w);
-  }
-  g_list_free(lw);
-
-  // get the list of valid accel for this view
-  const dt_view_t *cv = dt_view_manager_get_current_view(vm);
-  const dt_view_type_flags_t v = cv->view(cv);
-
-  GHashTable *blocks = dt_shortcut_category_lists(v);
-
-  dt_action_t *first_category = darktable.control->actions;
-
-  // we add the mouse actions too
-  dt_action_t mouse_actions = { .label = _("mouse actions"),
-                                .next = first_category };
-  if(cv->mouse_actions)
-  {
-    GtkListStore *mouse_list = gtk_list_store_new(2, G_TYPE_STRING, G_TYPE_STRING);
-    g_hash_table_insert(blocks, &mouse_actions, mouse_list);
-
-    GSList *actions = cv->mouse_actions(cv);
-    for(GSList *lm = actions; lm; lm = g_slist_next(lm))
-    {
-      dt_mouse_action_t *ma = lm->data;
-      if(ma)
-      {
-        gchar *atxt = _mouse_action_get_string(ma);
-        gtk_list_store_insert_with_values(mouse_list, NULL, -1, 0, atxt, 1, ma->name, -1);
-        g_free(atxt);
-      }
-    }
-    g_slist_free_full(actions, g_free);
-
-    first_category = &mouse_actions;
-  }
-
-  // now we create and insert the widget to display all accels by categories
-  for(dt_action_t *category = first_category; category; category = category->next)
-  {
-    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-    // the title
-    GtkWidget *lb = gtk_label_new(category->label);
-    dt_gui_add_class(lb, "dt_accels_cat_title");
-    gtk_box_pack_start(GTK_BOX(box), lb, FALSE, FALSE, 0);
-
-    // the list of accels
-    GtkTreeModel *model = GTK_TREE_MODEL(g_hash_table_lookup(blocks, category));
-    if(model)
-    {
-      GtkWidget *list = gtk_tree_view_new_with_model(model);
-      g_object_unref(model);
-      GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-      GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(_("shortcut"), renderer, "text", 0, NULL);
-      gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
-      column = gtk_tree_view_column_new_with_attributes(_("action"), renderer, "text", 1, NULL);
-      gtk_tree_view_append_column(GTK_TREE_VIEW(list), column);
-
-      gtk_box_pack_start(GTK_BOX(box), list, FALSE, FALSE, 0);
-
-      gtk_flow_box_insert(GTK_FLOW_BOX(vm->accels_window.flow_box), box, -1);
-    }
-  }
-
-  g_hash_table_destroy(blocks);
-
-  gtk_widget_show_all(vm->accels_window.flow_box);
-}
 
 static void _audio_child_watch(GPid pid, gint status, gpointer data)
 {

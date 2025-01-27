@@ -26,7 +26,7 @@
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"
@@ -261,7 +261,6 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(1.0));
   g_object_set_data(G_OBJECT(g->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("grid"), GTK_WIDGET(g->area), NULL);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->area), TRUE, TRUE, 0);
   gtk_widget_set_tooltip_text(GTK_WIDGET(g->area), _("drag the line for split-toning. "
                                                      "bright means highlights, dark means shadows. "
@@ -509,10 +508,6 @@ static gboolean dt_iop_colorcorrection_key_press(GtkWidget *widget, GdkEventKey 
   }
 
   if(!handled) return FALSE;
-
-  float multiplier = dt_accel_get_speed_multiplier(widget, event->state);
-  dx *= multiplier;
-  dy *= multiplier;
 
   switch(g->selected)
   {

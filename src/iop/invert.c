@@ -31,7 +31,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/resetlabel.h"
 #include "gui/color_picker_proxy.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 
@@ -598,7 +598,6 @@ void gui_init(dt_iop_module_t *self)
 
   GdkRGBA color = (GdkRGBA){.red = p->color[0], .green = p->color[1], .blue = p->color[2], .alpha = 1.0 };
   g->colorpicker = gtk_color_button_new_with_rgba(&color);
-  dt_action_define(DT_ACTION(self), NULL, N_("pick color of film material from image"), g->colorpicker, &dt_action_def_button);
   gtk_color_chooser_set_use_alpha(GTK_COLOR_CHOOSER(g->colorpicker), FALSE);
   gtk_color_button_set_title(GTK_COLOR_BUTTON(g->colorpicker), _("select color of film material"));
   g_signal_connect(G_OBJECT(g->colorpicker), "color-set", G_CALLBACK(colorpicker_callback), self);

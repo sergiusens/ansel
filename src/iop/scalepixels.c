@@ -22,7 +22,7 @@
 #include "common/interpolation.h"
 #include "develop/imageop.h"
 #include "develop/tiling.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 

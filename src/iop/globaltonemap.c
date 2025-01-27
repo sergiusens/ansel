@@ -29,7 +29,7 @@
 #include "develop/imageop_math.h"
 #include "develop/imageop_gui.h"
 #include "develop/tiling.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 #include <assert.h>

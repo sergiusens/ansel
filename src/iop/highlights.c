@@ -35,7 +35,7 @@
 #include "develop/imageop_gui.h"
 #include "develop/noise_generator.h"
 #include "develop/tiling.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 

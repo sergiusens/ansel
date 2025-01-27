@@ -23,7 +23,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 #include "dtgtk/thumbtable.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "libs/lib.h"
 #include "libs/lib_api.h"
@@ -107,4 +107,3 @@ void gui_cleanup(dt_lib_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

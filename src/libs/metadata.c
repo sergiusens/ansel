@@ -25,7 +25,7 @@
 #include "control/control.h"
 #include "control/signal.h"
 #include "dtgtk/button.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "libs/lib.h"
 #include "libs/lib_api.h"

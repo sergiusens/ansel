@@ -21,7 +21,7 @@
 #include "common/imageio_module.h"
 #include "control/control.h"
 #include "control/jobs/control_jobs.h"
-#include "gui/accelerators.h"
+
 #include "lua/call.h"
 #include "lua/image.h"
 
@@ -663,4 +663,3 @@ int dt_lua_init_events(lua_State *L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

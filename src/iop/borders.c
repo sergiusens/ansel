@@ -30,7 +30,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/resetlabel.h"
 #include "dtgtk/togglebutton.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/draw.h"
 #include "gui/gtk.h"

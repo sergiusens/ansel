@@ -35,7 +35,7 @@
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"

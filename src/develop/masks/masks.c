@@ -98,43 +98,6 @@ static int _get_opacity(dt_masks_form_gui_t *gui, const dt_masks_form_t *form)
   return opacity;
 }
 
-static dt_masks_type_t _get_all_types_in_group(dt_masks_form_t *form)
-{
-  if(form->type & DT_MASKS_GROUP)
-  {
-    dt_masks_type_t tp = 0;
-    for(GList *l = form->points; l; l = g_list_next(l))
-    {
-      const dt_masks_point_group_t *pt = (dt_masks_point_group_t *)l->data;
-      dt_masks_form_t *f = dt_masks_get_from_id(darktable.develop, pt->formid);
-      tp |= _get_all_types_in_group(f);
-    }
-    return tp;
-  }
-  else
-  {
-    return form->type;
-  }
-}
-
-GSList *dt_masks_mouse_actions(dt_masks_form_t *form)
-{
-  dt_masks_type_t formtype = _get_all_types_in_group(form);
-  GSList *lm = NULL;
-
-  if(form->functions && form->functions->setup_mouse_actions)
-  {
-    lm = form->functions->setup_mouse_actions(form);
-  }
-  // add the common action(s) shared by all shapes
-  if(formtype != 0)
-  {
-    lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_RIGHT, 0,  _("[SHAPE] remove shape"));
-  }
-
-  return lm;
-}
-
 static void _set_hinter_message(dt_masks_form_gui_t *gui, const dt_masks_form_t *form)
 {
   char msg[256] = "";
@@ -1227,14 +1190,8 @@ void dt_masks_clear_form_gui(dt_develop_t *dev)
 
 void dt_masks_change_form_gui(dt_masks_form_t *newform)
 {
-  dt_masks_form_t *old = darktable.develop->form_visible;
-
   dt_masks_clear_form_gui(darktable.develop);
   darktable.develop->form_visible = newform;
-
-  /* update sticky accels window */
-  if(newform != old && darktable.view_manager->accels_window.window && darktable.view_manager->accels_window.sticky)
-    dt_view_accels_refresh(darktable.view_manager);
 }
 
 void dt_masks_reset_form_gui(void)

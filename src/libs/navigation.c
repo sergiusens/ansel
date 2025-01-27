@@ -23,7 +23,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "develop/develop.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "libs/lib.h"
 #include "libs/lib_api.h"
@@ -91,18 +91,6 @@ static void _lib_navigation_control_redraw_callback(gpointer instance, gpointer 
 }
 
 
-static void _lib_navigation_collapse_callback(dt_action_t *action)
-{
-  dt_lib_module_t *self = darktable.lib->proxy.navigation.module;
-
-  // Get the state
-  const gboolean visible = dt_lib_is_visible(self);
-
-  // Inverse the visibility
-  dt_lib_set_visible(self, !visible);
-}
-
-
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -130,9 +118,6 @@ void gui_init(dt_lib_module_t *self)
   /* set size of navigation draw area */
   gtk_widget_set_size_request(self->widget, -1, 175);
   gtk_widget_set_name(GTK_WIDGET(self->widget), "navigation-module");
-  dt_action_t *ac = dt_action_define(&darktable.view_manager->proxy.darkroom.view->actions, NULL,
-                                     N_("hide navigation thumbnail"), self->widget, NULL);
-  dt_action_register(ac, NULL, _lib_navigation_collapse_callback, GDK_KEY_N, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   /* connect a redraw callback to control draw all and preview pipe finish signals */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED,

@@ -188,7 +188,6 @@ typedef struct dt_masks_functions_t
 {
   int point_struct_size;   // sizeof(struct dt_masks_point_*_t)
   void (*sanitize_config)(dt_masks_type_t type_flags);
-  GSList *(*setup_mouse_actions)(const struct dt_masks_form_t *const form);
   void (*set_form_name)(struct dt_masks_form_t *const form, const size_t nb);
   void (*set_hint_message)(const struct dt_masks_form_gui_t *const gui, const struct dt_masks_form_t *const form,
                            const int opacity, char *const __restrict__ msgbuf, const size_t msgbuf_len);
@@ -485,8 +484,6 @@ void dt_masks_blur_approx_weighed(float *const src, float *const out, float *con
     The returned int might be used to expand the border as this depends on sigma */
 int dt_masks_blur_fast(float *const src, float *const out, const int width, const int height, const float sigma, const float gain, const float clip);
 
-/** return the list of possible mouse actions */
-GSList *dt_masks_mouse_actions(dt_masks_form_t *form);
 
 void dt_group_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_form_t *form,
                                  dt_masks_form_gui_t *gui);

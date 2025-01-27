@@ -128,10 +128,12 @@ void update_entry(dt_menu_entry_t *entry)
   // Get the key shortcut if any and add it to the accel label
   // TODO: connect refresh on "accel changed" signal, here
   // it's refreshed at each display.
+  /*
   guint key_val;
   GdkModifierType mods;
   if(get_accel_from_widget(entry->widget, &key_val, &mods))
     gtk_widget_add_accelerator(entry->widget, "activate", darktable.gui->global_accels, key_val, mods, GTK_ACCEL_VISIBLE);
+  */
 }
 
 void update_menu_entries(GtkWidget *widget, gpointer user_data)

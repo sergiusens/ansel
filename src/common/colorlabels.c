@@ -25,7 +25,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "gui/gtk.h"
-#include "gui/accelerators.h"
+
 #include <gdk/gdkkeysyms.h>
 #include "bauhaus/bauhaus.h"
 

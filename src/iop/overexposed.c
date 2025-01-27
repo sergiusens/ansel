@@ -31,7 +31,7 @@
 #include "develop/develop.h"
 #include "develop/imageop.h"
 #include "develop/imageop_math.h"
-#include "gui/accelerators.h"
+
 #include "develop/tiling.h"
 #include "iop/iop_api.h"
 

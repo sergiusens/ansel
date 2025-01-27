@@ -22,7 +22,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "develop/develop.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "dtgtk/button.h"
 #include "libs/lib.h"
@@ -278,7 +278,7 @@ static void _reset_text_entry(GtkButton *button, dt_lib_module_t *self)
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_SORT, NULL);
 }
 
-
+#if 0
 static void _focus_filter_search(dt_action_t *action)
 {
   // set focus to the search text box
@@ -287,7 +287,7 @@ static void _focus_filter_search(dt_action_t *action)
   if(GTK_IS_ENTRY(d->text))
     gtk_widget_grab_focus(GTK_WIDGET(d->text));
 }
-
+#endif
 
 #define CPF_USER_DATA_INCLUDE CPF_USER_DATA
 #define CPF_USER_DATA_EXCLUDE CPF_USER_DATA << 1
@@ -394,11 +394,13 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
 #undef CL_ALL_EXCLUDED
 #undef CL_ALL_INCLUDED
 
+#if 0
 static void _reset_filters(dt_action_t *action)
 {
   _lib_filter_reset(dt_action_lib(action), FALSE);
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_SORT, NULL);
 }
+#endif
 
 void gui_init(dt_lib_module_t *self)
 {
@@ -417,7 +419,7 @@ void gui_init(dt_lib_module_t *self)
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(d->comparator, self, NULL, N_("comparator"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(d->comparator, NULL, NULL, N_("comparator"),
                                _("filter by images rating"),
                                dt_collection_get_rating_comparator(darktable.collection),
                                _lib_filter_comparator_changed, self,
@@ -431,7 +433,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->comparator), TRUE, TRUE, 0);
 
   /* create the filter combobox */
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(d->stars, self, NULL, N_("ratings"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(d->stars, NULL, NULL, N_("ratings"),
                                _("filter by images rating"),
                                dt_collection_get_rating(darktable.collection),
                                _lib_filter_combobox_changed, self,
@@ -486,7 +488,7 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(label, "quickfilter-label");
 
   const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
-  d->sort = dt_bauhaus_combobox_new_full(DT_ACTION(self), NULL, N_("sort by"),
+  d->sort = dt_bauhaus_combobox_new_full(NULL, NULL, N_("sort by"),
                                          _("determine the sort order of shown images"),
                                          _filter_get_items(sort), _lib_filter_sort_combobox_changed, self,
                                          _sort_names);
@@ -540,7 +542,10 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_end(GTK_BOX(hbox), GTK_WIDGET(d->text), TRUE, TRUE, 0);
   gtk_widget_set_name(hbox, "quickfilter-search-box");
   dt_gui_add_class(hbox, "quick_filter_box");
-  dt_action_register(DT_ACTION(self), N_("search images"), _focus_filter_search, GDK_KEY_f, GDK_CONTROL_MASK);
+
+#if 0
+  dt_action_register(self, N_("search images"), _focus_filter_search, GDK_KEY_f, GDK_CONTROL_MASK);
+#endif
 
   /* initialize proxy */
   darktable.view_manager->proxy.filter.module = self;
@@ -551,7 +556,9 @@ void gui_init(dt_lib_module_t *self)
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGES_ORDER_CHANGE,
                             G_CALLBACK(_lib_filter_images_order_change), self);
-  dt_action_register(DT_ACTION(self), N_("reset filters"), _reset_filters, 0, 0);
+#if 0
+  dt_action_register(self, N_("reset filters"), _reset_filters, 0, 0);
+#endif
 }
 
 void gui_cleanup(dt_lib_module_t *self)

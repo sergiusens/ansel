@@ -27,7 +27,7 @@
 #include "develop/openmp_maths.h"
 #include "develop/tiling.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"

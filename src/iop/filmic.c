@@ -30,7 +30,7 @@
 #include "dtgtk/drawingarea.h"
 #include "dtgtk/expander.h"
 #include "dtgtk/paint.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "gui/color_picker_proxy.h"

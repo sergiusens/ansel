@@ -3090,25 +3090,6 @@ static int _path_get_mask_roi(const dt_iop_module_t *const module, const dt_dev_
   return 1;
 }
 
-static GSList *_path_setup_mouse_actions(const struct dt_masks_form_t *const form)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT, 0, _("[PATH creation] add a smooth node"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT, GDK_CONTROL_MASK,
-                                     _("[PATH creation] add a sharp node"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_RIGHT, 0, _("[PATH creation] terminate path creation"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK,
-                                     _("[PATH on node] switch between smooth/sharp node"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_RIGHT, 0, _("[PATH on node] remove the node"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_RIGHT, 0, _("[PATH on feather] reset curvature"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT, GDK_CONTROL_MASK,
-                                     _("[PATH on segment] add node"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("[PATH] change size"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK, _("[PATH] change opacity"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK, _("[PATH] change feather size"));
-  return lm;
-}
-
 static void _path_sanitize_config(dt_masks_type_t type)
 {
   // nothing to do (yet?)
@@ -3162,7 +3143,6 @@ static void _path_initial_source_pos(const float iwd, const float iht, float *x,
 const dt_masks_functions_t dt_masks_functions_path = {
   .point_struct_size = sizeof(struct dt_masks_point_path_t),
   .sanitize_config = _path_sanitize_config,
-  .setup_mouse_actions = _path_setup_mouse_actions,
   .set_form_name = _path_set_form_name,
   .set_hint_message = _path_set_hint_message,
   .duplicate_points = _path_duplicate_points,

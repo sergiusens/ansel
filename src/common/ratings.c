@@ -26,7 +26,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "gui/gtk.h"
-#include "gui/accelerators.h"
+
 
 #define DT_RATINGS_UPGRADE -1
 #define DT_RATINGS_DOWNGRADE -2

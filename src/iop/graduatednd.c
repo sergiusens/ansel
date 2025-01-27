@@ -35,7 +35,7 @@
 #include "develop/imageop_gui.h"
 #include "develop/tiling.h"
 #include "dtgtk/gradientslider.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -1130,18 +1130,6 @@ void gui_init(struct dt_iop_module_t *self)
   g->define = 0;
 }
 
-GSList *mouse_actions(struct dt_iop_module_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, 0,
-                                     _("[%s on nodes] change line rotation"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, 0, _("[%s on line] move line"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK,
-                                     _("[%s on line] change density"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK,
-                                     _("[%s on line] change hardness"), self->name());
-  return lm;
-}
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

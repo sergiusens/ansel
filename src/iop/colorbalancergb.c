@@ -32,7 +32,7 @@
 #include "develop/imageop_gui.h"
 #include "dtgtk/drawingarea.h"
 #include "dtgtk/gradientslider.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -1813,9 +1813,7 @@ void gui_init(dt_iop_module_t *self)
   g->mask_display = FALSE;
 
   // start building top level widget
-  static dt_action_def_t notebook_def = { };
-  g->notebook = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("page"), GTK_WIDGET(g->notebook), &notebook_def);
+  g->notebook = dt_ui_notebook_new();
 
   // Page master
   self->widget = dt_ui_notebook_page(g->notebook, N_("master"), _("global grading"));
@@ -1997,7 +1995,6 @@ void gui_init(dt_iop_module_t *self)
   const float aspect = dt_conf_get_int("plugins/darkroom/colorbalancergb/aspect_percent") / 100.0;
   g->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(aspect));
   g_object_set_data(G_OBJECT(g->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("graph"), GTK_WIDGET(g->area), NULL);
   g_signal_connect(G_OBJECT(g->area), "draw", G_CALLBACK(dt_iop_tonecurve_draw), self);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->area), FALSE, FALSE, 0);
   gtk_widget_add_events(GTK_WIDGET(g->area), darktable.gui->scroll_mask | GDK_ENTER_NOTIFY_MASK);

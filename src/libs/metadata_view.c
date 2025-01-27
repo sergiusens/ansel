@@ -27,7 +27,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "develop/develop.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "libs/lib.h"
 #include "libs/lib_api.h"
@@ -1018,11 +1018,6 @@ static gboolean _filmroll_clicked(GtkWidget *widget, GdkEventButton *event, gpoi
   return TRUE;
 }
 
-static void _jump_to_accel(dt_action_t *data)
-{
-  _jump_to();
-}
-
 /* callback for the mouse over image change signal */
 static void _mouse_over_image_callback(gpointer instance, gpointer user_data)
 {
@@ -1387,8 +1382,6 @@ void gui_init(dt_lib_module_t *self)
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_METADATA_UPDATE,
                             G_CALLBACK(_mouse_over_image_callback), self);
   */
-
-  dt_action_register(DT_ACTION(self), N_("jump to film roll"), _jump_to_accel, GDK_KEY_j, GDK_CONTROL_MASK);
 }
 
 static void _free_metadata_queue(dt_lib_metadata_info_t *m)

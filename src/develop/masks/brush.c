@@ -2864,17 +2864,6 @@ static int _brush_get_mask_roi(const dt_iop_module_t *const module, const dt_dev
   return 1;
 }
 
-static GSList *_brush_setup_mouse_actions(const struct dt_masks_form_t *const form)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("[BRUSH creation] change size"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK,
-                                     _("[BRUSH creation] change hardness"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK, _("[BRUSH] change opacity"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("[BRUSH] change hardness"));
-  return lm;
-}
-
 static void _brush_sanitize_config(dt_masks_type_t type)
 {
   // nothing to do (yet?)
@@ -2919,7 +2908,6 @@ static void _brush_initial_source_pos(const float iwd, const float iht, float *x
 const dt_masks_functions_t dt_masks_functions_brush = {
   .point_struct_size = sizeof(struct dt_masks_point_brush_t),
   .sanitize_config = _brush_sanitize_config,
-  .setup_mouse_actions = _brush_setup_mouse_actions,
   .set_form_name = _brush_set_form_name,
   .set_hint_message = _brush_set_hint_message,
   .duplicate_points = _brush_duplicate_points,

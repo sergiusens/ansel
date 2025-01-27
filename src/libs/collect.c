@@ -31,7 +31,7 @@
 #include "control/control.h"
 #include "control/jobs.h"
 #include "dtgtk/button.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/preferences_dialogs.h"
 #include "libs/lib.h"
@@ -3206,9 +3206,7 @@ void gui_init(dt_lib_module_t *self)
   GtkWidget *w = NULL;
 
   // Main notebook
-  static struct dt_action_def_t notebook_def = { };
-  d->notebook = GTK_WIDGET(dt_ui_notebook_new(&notebook_def));
-  dt_action_define(DT_ACTION(self), NULL, N_("page"), GTK_WIDGET(self->widget), &notebook_def);
+  d->notebook = GTK_WIDGET(dt_ui_notebook_new());
 
   dt_ui_notebook_page(GTK_NOTEBOOK(d->notebook), _("Folders"), _("Browse the content of folders known to Ansel"));
   dt_ui_notebook_page(GTK_NOTEBOOK(d->notebook), _("Collections"), _("Query files by hierarchical tags"));

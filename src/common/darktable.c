@@ -37,7 +37,7 @@
 #include "common/selection.h"
 #include "common/system_signal_handling.h"
 #include "bauhaus/bauhaus.h"
-#include "common/action.h"
+
 #include "common/cpuid.h"
 #include "common/file_location.h"
 #include "common/film.h"
@@ -61,7 +61,7 @@
 #include "control/signal.h"
 #include "develop/blend.h"
 #include "develop/imageop.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/guides.h"
 #include "gui/presets.h"
@@ -1219,15 +1219,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     dt_view_manager_gui_init(darktable.view_manager);
 
     --darktable.gui->reset;
-
-    // Save the default shortcuts
-    dt_shortcuts_save(".defaults", FALSE);
-
-    // Then load any shortcuts if available (wipe defaults first if requested)
-    dt_shortcuts_load(NULL, !dt_conf_get_bool("accel/load_defaults"));
-
-    // Save the shortcuts including defaults
-    dt_shortcuts_save(NULL, TRUE);
 
     // initialize undo struct
     darktable.undo = dt_undo_init();

@@ -1416,17 +1416,6 @@ static int _gradient_get_mask_roi(const dt_iop_module_t *const module, const dt_
   return 1;
 }
 
-static GSList *_gradient_setup_mouse_actions(const struct dt_masks_form_t *const form)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT_DRAG, 0, _("[GRADIENT on pivot] rotate shape"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT_DRAG, 0, _("[GRADIENT creation] set rotation"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("[GRADIENT] change curvature"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK, _("[GRADIENT] change compression"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK, _("[GRADIENT] change opacity"));
-  return lm;
-}
-
 static void _gradient_sanitize_config(dt_masks_type_t type)
 {
   // we always want to start with no curvature
@@ -1469,7 +1458,6 @@ static void _gradient_duplicate_points(dt_develop_t *dev, dt_masks_form_t *const
 const dt_masks_functions_t dt_masks_functions_gradient = {
   .point_struct_size = sizeof(struct dt_masks_point_gradient_t),
   .sanitize_config = _gradient_sanitize_config,
-  .setup_mouse_actions = _gradient_setup_mouse_actions,
   .set_form_name = _gradient_set_form_name,
   .set_hint_message = _gradient_set_hint_message,
   .duplicate_points = _gradient_duplicate_points,

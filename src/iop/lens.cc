@@ -33,7 +33,7 @@ extern "C" {
 #include "develop/tiling.h"
 #include "dtgtk/button.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "iop/iop_api.h"

@@ -39,7 +39,7 @@
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "gui/color_picker_proxy.h"
-#include "gui/accelerators.h"
+
 #include "iop/iop_api.h"
 #include "libs/colorpicker.h"
 
@@ -1039,10 +1039,6 @@ static gboolean _move_point_internal(dt_iop_module_t *self, GtkWidget *widget, f
   int ch = c->channel;
   dt_iop_tonecurve_node_t *tonecurve = p->tonecurve[ch];
 
-  float multiplier = dt_accel_get_speed_multiplier(widget, state);
-  dx *= multiplier;
-  dy *= multiplier;
-
   tonecurve[c->selected].x = CLAMP(tonecurve[c->selected].x + dx, 0.0f, 1.0f);
   tonecurve[c->selected].y = CLAMP(tonecurve[c->selected].y + dy, 0.0f, 1.0f);
 
@@ -1154,9 +1150,7 @@ void gui_init(struct dt_iop_module_t *self)
                                                  "but applies the saturation changes in XYZ space."));
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-  static dt_action_def_t notebook_def = { };
-  c->channel_tabs = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("channel"), GTK_WIDGET(c->channel_tabs), &notebook_def);
+  c->channel_tabs = dt_ui_notebook_new();
   dt_ui_notebook_page(c->channel_tabs, N_("L"), _("tonecurve for L channel"));
   dt_ui_notebook_page(c->channel_tabs, N_("a"), _("tonecurve for a channel"));
   dt_ui_notebook_page(c->channel_tabs, N_("b"), _("tonecurve for b channel"));
@@ -1171,7 +1165,6 @@ void gui_init(struct dt_iop_module_t *self)
 
   c->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(1.0));
   g_object_set_data(G_OBJECT(c->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("curve"), GTK_WIDGET(c->area), NULL);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(c->area), TRUE, TRUE, 0);
 
   // FIXME: that tooltip goes in the way of the numbers when you hover a node to get a reading

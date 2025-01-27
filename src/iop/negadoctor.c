@@ -30,7 +30,7 @@
 #include "develop/openmp_maths.h"
 #include "dtgtk/button.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "gui/color_picker_proxy.h"
@@ -844,9 +844,7 @@ void gui_init(dt_iop_module_t *self)
 {
   dt_iop_negadoctor_gui_data_t *g = IOP_GUI_ALLOC(negadoctor);
 
-  static dt_action_def_t notebook_def = { };
-  g->notebook = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("page"), GTK_WIDGET(g->notebook), &notebook_def);
+  g->notebook = dt_ui_notebook_new();
 
   // Page FILM PROPERTIES
   GtkWidget *page1 = self->widget = dt_ui_notebook_page(g->notebook, N_("film properties"), NULL);

@@ -20,7 +20,7 @@
 #include "develop/imageop.h"
 #include "bauhaus/bauhaus.h"
 #include "dtgtk/button.h"
-#include "gui/accelerators.h"
+
 
 #ifdef GDK_WINDOWING_QUARTZ
 #include "osx/osx.h"
@@ -55,7 +55,7 @@ static void _iop_toggle_callback(GtkWidget *togglebutton, dt_module_param_t *dat
 
   if(*field != previous)
   {
-    dt_iop_gui_changed(DT_ACTION(self), togglebutton, &previous);
+    dt_iop_gui_changed(self, togglebutton, &previous);
   }
 }
 
@@ -205,10 +205,6 @@ GtkWidget *dt_bauhaus_combobox_from_params(dt_iop_module_t *self, const char *pa
         if(*iter->description)
           dt_bauhaus_combobox_add_full(combobox, gettext(iter->description), DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT, GINT_TO_POINTER(iter->value), NULL, TRUE);
       }
-
-      dt_action_t *action = dt_action_section(&self->so->actions, *f->header.description ? f->header.description : f->header.field_name);
-      if(action && f->Enum.values)
-        g_hash_table_insert(darktable.control->combo_introspection, action, f->Enum.values);
     }
   }
   else
@@ -250,8 +246,6 @@ GtkWidget *dt_bauhaus_toggle_from_params(dt_iop_module_t *self, const char *para
     module_param->module = self;
     module_param->param = (uint8_t *)p + f->header.offset;
     g_signal_connect_data(G_OBJECT(button), "toggled", G_CALLBACK(_iop_toggle_callback), module_param, (GClosureNotify)g_free, 0);
-
-    dt_action_define_iop(self, NULL, str, button, &dt_action_def_toggle);
   }
   else
   {
@@ -286,8 +280,6 @@ GtkWidget *dt_iop_togglebutton_new(dt_iop_module_t *self, const char *section, c
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), FALSE);
   if(GTK_IS_BOX(box)) gtk_box_pack_end(GTK_BOX(box), w, FALSE, FALSE, 0);
 
-  dt_action_define_iop(self, section, label, w, &dt_action_def_toggle);
-
   return w;
 }
 
@@ -310,10 +302,6 @@ GtkWidget *dt_iop_button_new(dt_iop_module_t *self, const gchar *label,
 
   g_signal_connect(G_OBJECT(button), "clicked", callback, (gpointer)self);
 
-  dt_action_t *ac = dt_action_define_iop(self, NULL, label, button, &dt_action_def_button);
-  if(darktable.control->accel_initialising)
-    dt_shortcut_register(ac, 0, 0, accel_key, mods);
-
   if(GTK_IS_BOX(box)) gtk_box_pack_start(GTK_BOX(box), button, TRUE, TRUE, 0);
 
   return button;
@@ -330,4 +318,3 @@ gboolean dt_mask_scroll_increases(int up)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

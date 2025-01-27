@@ -17,7 +17,7 @@
  */
 #include "lua/lualib.h"
 #include "control/control.h"
-#include "gui/accelerators.h"
+
 #include "libs/lib.h"
 #include "lua/widget/widget.h"
 #include "views/view.h"

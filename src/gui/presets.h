@@ -30,17 +30,6 @@ typedef enum dt_gui_presets_format_flag_t
   FOR_NOT_COLOR = 1 << 4
 } dt_gui_presets_format_flag_t;
 
-enum // Lib and iop presets
-{
-  DT_ACTION_EFFECT_SHOW = DT_ACTION_EFFECT_DEFAULT_KEY,
-//DT_ACTION_EFFECT_UP,
-//DT_ACTION_EFFECT_DOWN,
-  DT_ACTION_EFFECT_STORE = 3,
-  DT_ACTION_EFFECT_DELETE = 4,
-  DT_ACTION_EFFECT_EDIT = 5,
-  DT_ACTION_EFFECT_UPDATE = 6,
-  DT_ACTION_EFFECT_PREFERENCES = 7,
-};
 typedef struct dt_gui_presets_edit_dialog_t
 {
   GtkWindow *parent;
@@ -138,4 +127,3 @@ void dt_gui_presets_confirm_and_delete(GtkWidget *parent_dialog, const char *nam
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

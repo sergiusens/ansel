@@ -32,7 +32,7 @@
 #include "common/iop_profile.h"
 #include "develop/imageop_math.h"
 #include "develop/openmp_maths.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -3952,9 +3952,7 @@ void gui_init(struct dt_iop_module_t *self)
                                   G_CALLBACK(_preview_pipe_finished_callback), self);
 
   // Init GTK notebook
-  static dt_action_def_t notebook_def = { };
-  g->notebook = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("page"), GTK_WIDGET(g->notebook), &notebook_def);
+  g->notebook = dt_ui_notebook_new();
 
   // Page CAT
   self->widget = dt_ui_notebook_page(g->notebook, N_("CAT"), _("chromatic adaptation transform"));
@@ -3986,7 +3984,6 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(hbox), g->illum_color, TRUE, TRUE, 0);
 
   g->color_picker = dt_color_picker_new(self, DT_COLOR_PICKER_AREA, hbox);
-  dt_action_define_iop(self, NULL, N_("picker"), g->color_picker, &dt_action_def_toggle);
   gtk_widget_set_tooltip_text(g->color_picker, _("set white balance to detected from area"));
 
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
@@ -4043,7 +4040,6 @@ void gui_init(struct dt_iop_module_t *self)
 
   gchar *label = N_("take channel mixing into account");
   g->use_mixing = gtk_check_button_new_with_label(_(label));
-  dt_action_define_iop(self, NULL, label, g->use_mixing, &dt_action_def_toggle);
   gtk_label_set_ellipsize(GTK_LABEL(gtk_bin_get_child(GTK_BIN(g->use_mixing))), PANGO_ELLIPSIZE_END);
   gtk_widget_set_tooltip_text(g->use_mixing,
                               _("compute the target by taking the channel mixing into account.\n"

@@ -21,7 +21,7 @@
 #include "common/selection.h"
 #include "control/control.h"
 #include "control/settings.h"
-#include "gui/accelerators.h"
+
 #include "lua/call.h"
 #include "lua/image.h"
 #include "lua/types.h"
@@ -121,9 +121,6 @@ static int _action_cb(lua_State *L)
     move_size = luaL_checknumber(L, 5);
   }
 
-  float ret_val = dt_action_process(action, instance, element, effect, move_size);
-
-  lua_pushnumber(L, ret_val);
 
   return 1;
 }
@@ -447,4 +444,3 @@ int dt_lua_init_gui(lua_State *L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

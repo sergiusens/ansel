@@ -1282,15 +1282,6 @@ static int _circle_get_mask_roi(const dt_iop_module_t *const restrict module,
   return 1;
 }
 
-static GSList *_circle_setup_mouse_actions(const struct dt_masks_form_t *const form)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("[CIRCLE] change size"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK, _("[CIRCLE] change opacity"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK, _("[CIRCLE] change feather size"));
-  return lm;
-}
-
 static void _circle_sanitize_config(dt_masks_type_t type)
 {
   if(type & (DT_MASKS_CLONE|DT_MASKS_NON_CLONE))
@@ -1343,7 +1334,6 @@ static void _circle_initial_source_pos(const float iwd, const float iht, float *
 const dt_masks_functions_t dt_masks_functions_circle = {
   .point_struct_size = sizeof(struct dt_masks_point_circle_t),
   .sanitize_config = _circle_sanitize_config,
-  .setup_mouse_actions = _circle_setup_mouse_actions,
   .set_form_name = _circle_set_form_name,
   .set_hint_message = _circle_set_hint_message,
   .duplicate_points = _circle_duplicate_points,

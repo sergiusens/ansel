@@ -30,7 +30,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 
-#include "gui/accelerators.h"
+
 #include "gui/styles.h"
 #include <libxml/encoding.h>
 #include <libxml/xmlwriter.h>
@@ -93,13 +93,6 @@ void dt_style_item_free(gpointer data)
   item->params = NULL;
   item->blendop_params = NULL;
   free(item);
-}
-
-static void _apply_style_shortcut_callback(dt_action_t *action)
-{
-  GList *imgs = dt_act_on_get_images(TRUE, TRUE, FALSE);
-  dt_styles_apply_to_list(action->label, imgs, FALSE);
-  g_list_free(imgs);
 }
 
 static int32_t dt_styles_get_id_by_name(const char *name);
@@ -400,13 +393,6 @@ void dt_styles_update(const char *name, const char *newname, const char *newdesc
   /* backup style to disk */
   dt_styles_save_to_file(newname, NULL, TRUE);
 
-  if(g_strcmp0(name, newname))
-  {
-    dt_action_t *old = dt_action_locate(&darktable.control->actions_global,
-                                        (gchar **)(const gchar *[]){"styles", name, NULL}, FALSE);
-    dt_action_rename(old, newname);
-  }
-
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_STYLE_CHANGED);
 
   g_free(desc);
@@ -482,9 +468,6 @@ void dt_styles_create_from_style(const char *name, const char *newname, const ch
     /* backup style to disk */
     dt_styles_save_to_file(newname, NULL, FALSE);
 
-    dt_action_t *stl = dt_action_section(&darktable.control->actions_global, N_("styles"));
-    dt_action_register(stl, newname, _apply_style_shortcut_callback, 0, 0);
-
     dt_control_log(_("style named '%s' successfully created"), newname);
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_STYLE_CHANGED);
   }
@@ -558,9 +541,6 @@ gboolean dt_styles_create_from_image(const char *name, const char *description,
 
     /* backup style to disk */
     dt_styles_save_to_file(name, NULL, FALSE);
-
-    dt_action_t *stl = dt_action_section(&darktable.control->actions_global, N_("styles"));
-    dt_action_register(stl, name, _apply_style_shortcut_callback, 0, 0);
 
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_STYLE_CHANGED);
     return TRUE;
@@ -969,10 +949,6 @@ void dt_styles_delete_by_name_adv(const char *name, const gboolean raise)
     DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, id);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
-
-    dt_action_t *old = dt_action_locate(&darktable.control->actions_global,
-                                        (gchar **)(const gchar *[]){"styles", name, NULL}, FALSE);
-    if(old) dt_action_rename(old, NULL);
 
     if(raise)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_STYLE_CHANGED);
@@ -1548,21 +1524,6 @@ static int32_t dt_styles_get_id_by_name(const char *name)
   }
   sqlite3_finalize(stmt);
   return id;
-}
-
-void dt_init_styles_actions()
-{
-  GList *result = dt_styles_get_list("");
-  if(result)
-  {
-    dt_action_t *stl = dt_action_section(&darktable.control->actions_global, N_("styles"));
-    for(GList *res_iter = result; res_iter; res_iter = g_list_next(res_iter))
-    {
-      dt_style_t *style = (dt_style_t *)res_iter->data;
-      dt_action_register(stl, style->name, _apply_style_shortcut_callback, 0, 0);
-    }
-    g_list_free_full(result, dt_style_free);
-  }
 }
 
 dt_style_t *dt_styles_get_by_name(const char *name)

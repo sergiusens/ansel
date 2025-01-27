@@ -32,7 +32,7 @@ http://www.youtube.com/watch?v=JVoUgR6bhBc
 #include "develop/imageop_math.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/gradientslider.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "gui/color_picker_proxy.h"

@@ -19,7 +19,7 @@
 #pragma once
 
 #include "common/act_on.h"
-#include "common/action.h"
+
 #include "common/history.h"
 #include "common/image.h"
 #ifdef HAVE_PRINT
@@ -115,8 +115,6 @@ typedef struct dt_mouse_action_t
  */
 typedef struct dt_view_t
 {
-  dt_action_t actions; // !!! NEEDS to be FIRST (to be able to cast convert)
-
 #define INCLUDE_API_FROM_MODULE_H
 #include "views/view_api.h"
 
@@ -174,15 +172,6 @@ typedef struct dt_view_manager_t
 
   // copy/paste history structure
   dt_history_copy_item_t copy_paste;
-
-  struct
-  {
-    GtkWidget *window;
-    GtkWidget *sticky_btn;
-    GtkWidget *flow_box;
-    gboolean sticky;
-    gboolean prevent_refresh;
-  } accels_window;
 
   // cached list of images to act on
   dt_act_on_cache_t act_on_cache_all;
@@ -382,11 +371,6 @@ void dt_view_lighttable_set_preview_state(dt_view_manager_t *vm, gboolean state,
 void dt_view_lighttable_set_zoom(dt_view_manager_t *vm, gint zoom);
 /** gets the lighttable image in row zoom */
 gint dt_view_lighttable_get_zoom(dt_view_manager_t *vm);
-
-/* accel window */
-void dt_view_accels_show(dt_view_manager_t *vm);
-void dt_view_accels_hide(dt_view_manager_t *vm);
-void dt_view_accels_refresh(dt_view_manager_t *vm);
 
 /* audio */
 void dt_view_audio_start(dt_view_manager_t *vm, int imgid);

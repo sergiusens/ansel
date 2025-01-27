@@ -28,7 +28,7 @@
 #include "develop/imageop.h"
 #include "develop/imageop_math.h"
 #include "develop/openmp_maths.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"

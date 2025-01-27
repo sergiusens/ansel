@@ -16,7 +16,7 @@
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#include "gui/accelerators.h"
+
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/image_cache.h"
@@ -155,7 +155,7 @@ int _modulegroups_cycle_tabs(int user_set_group)
   return group;
 }
 
-void _modulegroups_switch_tab_next(dt_action_t *action)
+void _modulegroups_switch_tab_next()
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
   if(focused) dt_iop_gui_set_expanded(focused, FALSE, TRUE);
@@ -165,7 +165,7 @@ void _modulegroups_switch_tab_next(dt_action_t *action)
   dt_iop_request_focus(NULL);
 }
 
-void _modulegroups_switch_tab_previous(dt_action_t *action)
+void _modulegroups_switch_tab_previous()
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
   if(focused) dt_iop_gui_set_expanded(focused, FALSE, TRUE);
@@ -290,8 +290,10 @@ void gui_init(dt_lib_module_t *self)
   darktable.develop->proxy.modulegroups.search_text_focus = _lib_modulegroups_search_text_focus;
 
   /* Bloody accels from the great MIDI turducken */
-  dt_action_register(DT_ACTION(self), N_("move to the next modules tab"), _modulegroups_switch_tab_next, GDK_KEY_Tab, GDK_CONTROL_MASK);
-  dt_action_register(DT_ACTION(self), N_("move to the previous modules tab"), _modulegroups_switch_tab_previous, GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+#if 0
+  dt_action_register(self, N_("move to the next modules tab"), _modulegroups_switch_tab_next, GDK_KEY_Tab, GDK_CONTROL_MASK);
+  dt_action_register(self, N_("move to the previous modules tab"), _modulegroups_switch_tab_previous, GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+#endif
 
   /* let's connect to view changed signal to set default group */
   dt_control_signal_connect(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED,

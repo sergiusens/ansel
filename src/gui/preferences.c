@@ -27,7 +27,7 @@
 #include "common/presets.h"
 #include "control/control.h"
 #include "develop/imageop.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/preferences.h"

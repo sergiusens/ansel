@@ -61,9 +61,6 @@ OPTIONAL(void, configure, struct dt_view_t *self, int width, int height);
 OPTIONAL(void, scrolled, struct dt_view_t *self, double x, double y, int up, int state); // mouse scrolled in view
 OPTIONAL(void, scrollbar_changed, struct dt_view_t *self, double x, double y); // scrollbars changed in view
 
-// list of mouse actions
-OPTIONAL(GSList *, mouse_actions, const struct dt_view_t *self);
-
 #ifdef FULL_API_H
 
 #pragma GCC visibility pop
@@ -79,4 +76,3 @@ OPTIONAL(GSList *, mouse_actions, const struct dt_view_t *self);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

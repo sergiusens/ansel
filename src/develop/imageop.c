@@ -39,7 +39,7 @@
 #include "dtgtk/expander.h"
 #include "dtgtk/gradientslider.h"
 #include "dtgtk/icon.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -75,8 +75,6 @@ typedef struct dt_iop_gui_simple_callback_t
   int index;
 } dt_iop_gui_simple_callback_t;
 
-static void _show_module_callback(dt_iop_module_t *module);
-static void _enable_module_callback(dt_iop_module_t *module);
 
 void dt_iop_load_default_params(dt_iop_module_t *module)
 {
@@ -338,7 +336,6 @@ int dt_iop_load_module_so(void *m, const char *libname, const char *module_name)
 
 int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt_develop_t *dev)
 {
-  module->actions = DT_ACTION_TYPE_IOP_INSTANCE;
   module->dev = dev;
   module->widget = NULL;
   module->header = NULL;
@@ -514,10 +511,8 @@ static void _gui_delete_callback(GtkButton *button, dt_iop_module_t *module)
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_HISTORY_CHANGE);
   }
 
-  // rebuild the accelerators (to point to an extant module)
-  dt_iop_connect_accels_multi(module->so);
-
-  dt_action_cleanup_instance_iop(module);
+  // widget_list doesn't own the widget referenced, so don't deep_free
+  g_slist_free(module->widget_list);
 
   // don't delete the module, a pipe may still need it
   dev->alliop = g_list_append(dev->alliop, module);
@@ -596,9 +591,6 @@ static void _gui_movedown_callback(GtkButton *button, dt_iop_module_t *module)
 
   dt_ioppr_check_iop_order(module->dev, 0, "dt_iop_gui_movedown_callback end");
 
-  // rebuild the accelerators
-  dt_iop_connect_accels_multi(module->so);
-
   dt_dev_pixelpipe_rebuild(module->dev);
 
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MODULE_MOVED);
@@ -631,9 +623,6 @@ static void _gui_moveup_callback(GtkButton *button, dt_iop_module_t *module)
   dt_dev_add_history_item(next->dev, module, TRUE);
 
   dt_ioppr_check_iop_order(module->dev, 0, "dt_iop_gui_moveup_callback end");
-
-  // rebuild the accelerators
-  dt_iop_connect_accels_multi(module->so);
 
   dt_dev_pixelpipe_rebuild(next->dev);
 
@@ -733,18 +722,12 @@ void dt_iop_gui_rename_module(dt_iop_module_t *module);
 static void _gui_copy_callback(GtkButton *button, gpointer user_data)
 {
   dt_iop_module_t *module = dt_iop_gui_duplicate(user_data, FALSE);
-
-  /* setup key accelerators */
-  dt_iop_connect_accels_multi(((dt_iop_module_t *)user_data)->so);
   dt_iop_gui_rename_module(module);
 }
 
 static void _gui_duplicate_callback(GtkButton *button, gpointer user_data)
 {
   dt_iop_module_t *module = dt_iop_gui_duplicate(user_data, TRUE);
-
-  /* setup key accelerators */
-  dt_iop_connect_accels_multi(((dt_iop_module_t *)user_data)->so);
   dt_iop_gui_rename_module(module);
 }
 
@@ -950,9 +933,6 @@ static void _gui_off_callback(GtkToggleButton *togglebutton, gpointer user_data)
   g_free(module_label);
   gtk_widget_set_tooltip_text(GTK_WIDGET(togglebutton), tooltip);
   gtk_widget_queue_draw(GTK_WIDGET(togglebutton));
-
-  // rebuild the accelerators
-  dt_iop_connect_accels_multi(module->so);
 
   if(module->enabled && !gtk_widget_is_visible(module->header))
     dt_dev_modulegroups_update_visibility(darktable.develop);
@@ -1280,20 +1260,6 @@ static void _init_presets(dt_iop_module_so_t *module_so)
   sqlite3_finalize(stmt);
 }
 
-static void _init_presets_actions(dt_iop_module_so_t *module)
-{
-  /** load shortcuts for presets **/
-  sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT name FROM data.presets WHERE operation=?1 ORDER BY writeprotect DESC, rowid",
-                              -1, &stmt, NULL);
-  DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 1, module->op, -1, SQLITE_TRANSIENT);
-  while(sqlite3_step(stmt) == SQLITE_ROW)
-  {
-    dt_action_define_preset(&module->actions, (const char *)sqlite3_column_text(stmt, 0));
-  }
-  sqlite3_finalize(stmt);
-}
 
 static void _init_module_so(void *m)
 {
@@ -1304,19 +1270,11 @@ static void _init_module_so(void *m)
   // do not init accelerators if there is no gui
   if(darktable.gui)
   {
-    module->actions = (dt_action_t){ DT_ACTION_TYPE_IOP, module->op, module->name(),
-                                     .owner = &darktable.control->actions_iops };
-    dt_action_insert_sorted(&darktable.control->actions_iops, &module->actions);
-
-    // Calling the accelerator initialization callback, if present
-    _init_presets_actions(module);
-
     // create a gui and have the widgets register their accelerators
     dt_iop_module_t *module_instance = (dt_iop_module_t *)calloc(1, sizeof(dt_iop_module_t));
 
     if(module->gui_init && !dt_iop_load_module_by_so(module_instance, module, NULL))
     {
-      darktable.control->accel_initialising = TRUE;
       dt_iop_gui_init(module_instance);
 
       static gboolean blending_accels_initialized = FALSE;
@@ -1338,7 +1296,6 @@ static void _init_module_so(void *m)
       }
 
       module->gui_cleanup(module_instance);
-      darktable.control->accel_initialising = FALSE;
 
       dt_iop_cleanup_module(module_instance);
     }
@@ -1737,7 +1694,9 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
 {
   while(g_idle_remove_by_data(module->widget))
     ; // remove multiple delayed gtk_widget_queue_draw triggers
-  g_slist_free_full(module->widget_list, g_free);
+
+  // widget_list doesn't own the widget referenced, so don't deep_free
+  g_slist_free(module->widget_list);
   module->widget_list = NULL;
   module->gui_cleanup(module);
   dt_iop_gui_cleanup_blending(module);
@@ -1820,9 +1779,6 @@ static void _gui_reset_callback(GtkButton *button, GdkEventButton *event, dt_iop
 
     dt_dev_add_history_item(module->dev, module, TRUE);
   }
-
-  // rebuild the accelerators
-  dt_iop_connect_accels_multi(module->so);
 }
 
 static void _presets_popup_callback(GtkButton *button, dt_iop_module_t *module)
@@ -1855,9 +1811,6 @@ void dt_iop_request_focus(dt_iop_module_t *module)
 
     gtk_widget_set_state_flags(dt_iop_gui_get_pluginui(out_focus_module), GTK_STATE_FLAG_NORMAL, TRUE);
 
-
-    dt_iop_connect_accels_multi(out_focus_module->so);
-
     /* reset mask view */
     dt_masks_reset_form_gui();
 
@@ -1880,8 +1833,6 @@ void dt_iop_request_focus(dt_iop_module_t *module)
   {
     gtk_widget_set_state_flags(dt_iop_gui_get_pluginui(module), GTK_STATE_FLAG_SELECTED, TRUE);
 
-    dt_iop_connect_accels_multi(module->so);
-
     if(module->gui_focus) module->gui_focus(module, TRUE);
 
     /* redraw the expander */
@@ -1894,10 +1845,6 @@ void dt_iop_request_focus(dt_iop_module_t *module)
     GtkWidget *iop_w = gtk_widget_get_parent(dt_iop_gui_get_pluginui(darktable.develop->gui_module));
     dt_gui_add_class(iop_w, "dt_module_focus");
   }
-
-  /* update sticky accels window */
-  if(darktable.view_manager->accels_window.window && darktable.view_manager->accels_window.sticky)
-    dt_view_accels_refresh(darktable.view_manager);
 
   dt_control_change_cursor(GDK_LEFT_PTR);
   dt_control_queue_redraw_center();
@@ -2040,9 +1987,6 @@ static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e,
       darktable.gui->scroll_to[1] = module->expander;
 
       dt_iop_gui_set_expanded(module, !module->expanded, dt_modifier_is(e->state, GDK_SHIFT_MASK));
-
-      // rebuild the accelerators
-      dt_iop_connect_accels_multi(module->so);
 
       //used to take focus away from module search text input box when module selected
       gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
@@ -2319,8 +2263,6 @@ void dt_iop_gui_set_expander(dt_iop_module_t *module)
     if(hw[i]) gtk_box_pack_start(GTK_BOX(header), hw[i], FALSE, FALSE, 0);
   for(int i = IOP_MODULE_LAST - 1; i > IOP_MODULE_LABEL; i--)
     if(hw[i]) gtk_box_pack_end(GTK_BOX(header), hw[i], FALSE, FALSE, 0);
-  for(int i = 0; i < IOP_MODULE_LAST; i++)
-    if(hw[i]) dt_action_define(&module->so->actions, NULL, NULL, hw[i], NULL);
 
   dt_gui_add_help_link(header, dt_get_help_url("module_header"));
   // for the module label, point to module specific help page
@@ -2442,6 +2384,7 @@ int dt_iop_get_module_flags(const char *op)
   return 0;
 }
 
+#if 0
 static void _show_module_callback(dt_iop_module_t *module)
 {
   // Showing the module, if it isn't already visible
@@ -2471,6 +2414,8 @@ static void _enable_module_callback(dt_iop_module_t *module)
   gboolean active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(module->off));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(module->off), !active);
 }
+
+#endif
 
 // to be called before issuing any query based on memory.darktable_iop_names
 void dt_iop_set_darktable_iop_table()
@@ -2645,32 +2590,6 @@ dt_iop_module_t *dt_iop_get_module_preferred_instance(dt_iop_module_so_t *module
   return accel_mod;
 }
 
-/** adds keyboard accels to the first module in the pipe to handle where there are multiple instances */
-void dt_iop_connect_accels_multi(dt_iop_module_so_t *module)
-{
-  if(darktable.develop->gui_attached)
-  {
-    dt_iop_module_t *accel_mod_new = dt_iop_get_module_preferred_instance(module);
-
-    // switch accelerators to new module
-    if(accel_mod_new)
-    {
-      dt_accel_connect_instance_iop(accel_mod_new);
-
-      if(!strcmp(accel_mod_new->op, "exposure"))
-        darktable.develop->proxy.exposure.module = accel_mod_new;
-    }
-  }
-}
-
-void dt_iop_connect_accels_all()
-{
-  for(const GList *iop_mods = g_list_last(darktable.develop->iop); iop_mods; iop_mods = g_list_previous(iop_mods))
-  {
-    dt_iop_module_t *mod = (dt_iop_module_t *)iop_mods->data;
-    dt_iop_connect_accels_multi(mod->so);
-  }
-}
 
 dt_iop_module_t *dt_iop_get_module_by_instance_name(GList *modules, const char *operation, const char *multi_name)
 {
@@ -2829,9 +2748,9 @@ gboolean dt_iop_have_required_input_format(const int req_ch, struct dt_iop_modul
 
 // WARNING: this is called in bauhaus.c too when slider & comboboxes values are changed.
 // Mind that if any change is done here.
-void dt_iop_gui_changed(dt_action_t *action, GtkWidget *widget, gpointer data)
+void dt_iop_gui_changed(dt_iop_module_t *action, GtkWidget *widget, gpointer data)
 {
-  if(!action || action->type != DT_ACTION_TYPE_IOP_INSTANCE) return;
+  if(!action) return;
   dt_iop_module_t *module = (dt_iop_module_t *)action;
 
   if(module->gui_changed) module->gui_changed(module, widget, data);
@@ -2842,103 +2761,6 @@ void dt_iop_gui_changed(dt_action_t *action, GtkWidget *widget, gpointer data)
 
   dt_iop_gui_set_enable_button(module);
 }
-
-enum
-{
-  // Multi-instance
-//DT_ACTION_EFFECT_SHOW,
-//DT_ACTION_EFFECT_UP,
-//DT_ACTION_EFFECT_DOWN,
-  DT_ACTION_EFFECT_NEW = 3,
-//DT_ACTION_EFFECT_DELETE = 4,
-  DT_ACTION_EFFECT_RENAME = 5,
-  DT_ACTION_EFFECT_DUPLICATE = 6,
-};
-
-static float _action_process(gpointer target, dt_action_element_t element, dt_action_effect_t effect, float move_size)
-{
-  dt_iop_module_t *module = target;
-
-  if(!isnan(move_size))
-  {
-    switch(element)
-    {
-    case DT_ACTION_ELEMENT_ENABLE:
-      _enable_module_callback(module);
-      break;
-    case DT_ACTION_ELEMENT_SHOW:
-      _show_module_callback(module);
-      break;
-    case DT_ACTION_ELEMENT_INSTANCE:
-      if     (effect == DT_ACTION_EFFECT_NEW       && module->multi_show_new  )
-        _gui_copy_callback     (NULL, module);
-      else if(effect == DT_ACTION_EFFECT_DUPLICATE && module->multi_show_new  )
-        _gui_duplicate_callback(NULL, module);
-      else if(effect == DT_ACTION_EFFECT_UP        && module->multi_show_up   )
-        _gui_moveup_callback   (NULL, module);
-      else if(effect == DT_ACTION_EFFECT_DOWN      && module->multi_show_down )
-        _gui_movedown_callback (NULL, module);
-      else if(effect == DT_ACTION_EFFECT_DELETE    && module->multi_show_close)
-        _gui_delete_callback   (NULL, module);
-      else if(effect == DT_ACTION_EFFECT_RENAME                               )
-        _gui_rename_callback   (NULL, module);
-      else _gui_multiinstance_callback(NULL, NULL, module);
-      break;
-    case DT_ACTION_ELEMENT_RESET:
-      {
-        GdkEventButton event = { .state = (effect == DT_ACTION_EFFECT_ACTIVATE_CTRL ? GDK_CONTROL_MASK : 0) };
-        _gui_reset_callback(NULL, &event, module);
-      }
-      break;
-    case DT_ACTION_ELEMENT_PRESETS:
-      if(module->presets_button) _presets_popup_callback(NULL, module);
-      break;
-    }
-
-    gchar *text = g_strdup_printf("%s, %s", dt_action_def_iop.elements[element].name,
-                                  dt_action_def_iop.elements[element].effects[effect]);
-    dt_action_widget_toast(target, NULL, text);
-    g_free(text);
-  }
-
-  return element == DT_ACTION_ELEMENT_ENABLE ? module->off &&
-                                               gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(module->off))
-       : element == DT_ACTION_ELEMENT_SHOW ? module->expanded
-       : 0;
-}
-
-const gchar *dt_action_effect_instance[]
-  = { N_("show"),
-      N_("move up"),
-      N_("move down"),
-      N_("new"),
-      N_("delete"),
-      N_("rename"),
-      N_("duplicate"),
-      NULL };
-
-static const dt_action_element_def_t _action_elements[]
-  = { { N_("show"), dt_action_effect_toggle },
-      { N_("enable"), dt_action_effect_toggle },
-      { N_("instance"), dt_action_effect_instance },
-      { N_("reset"), dt_action_effect_activate },
-      { N_("presets"), dt_action_effect_presets },
-      { NULL } };
-
-static const dt_shortcut_fallback_t _action_fallbacks[]
-  = { { .element = DT_ACTION_ELEMENT_SHOW, .button = DT_SHORTCUT_LEFT, .click = DT_SHORTCUT_LONG },
-      { .element = DT_ACTION_ELEMENT_ENABLE, .button = DT_SHORTCUT_LEFT },
-      { .element = DT_ACTION_ELEMENT_INSTANCE, .button = DT_SHORTCUT_RIGHT, .click = DT_SHORTCUT_DOUBLE },
-      { .element = DT_ACTION_ELEMENT_RESET, .button = DT_SHORTCUT_LEFT, .click = DT_SHORTCUT_DOUBLE },
-      { .element = DT_ACTION_ELEMENT_PRESETS, .button = DT_SHORTCUT_RIGHT },
-      { } };
-
-const dt_action_def_t dt_action_def_iop
-  = { N_("processing module"),
-      _action_process,
-      _action_elements,
-      _action_fallbacks };
-
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

@@ -26,7 +26,7 @@
 #include "develop/imageop_math.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 

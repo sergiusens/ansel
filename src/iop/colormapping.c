@@ -33,7 +33,7 @@
 #include "develop/tiling.h"
 #include "dtgtk/drawingarea.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 

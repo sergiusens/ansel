@@ -4,7 +4,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 #include "develop/masks.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "libs/lib.h"
 #include "libs/lib_api.h"
@@ -135,8 +135,8 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_tooltip_text(d->mask_lock, _("Prevent accidental masks displacement when moving the view"));
   g_signal_connect(G_OBJECT(d->mask_lock), "toggled", G_CALLBACK(mask_lock_callback), self);
 
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED,
-                                  G_CALLBACK(give_control_to_form), (gpointer)d);
+  /*DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MASK_SELECTION_CHANGED,
+                                  G_CALLBACK(give_control_to_form), (gpointer)d);*/
 
   gtk_widget_show_all(GTK_WIDGET(self->widget));
 }

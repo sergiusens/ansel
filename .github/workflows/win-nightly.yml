@@ -82,7 +82,6 @@ jobs:
             openjpeg2:p
             openexr:p
             osm-gps-map:p
-            portmidi:p
             pugixml:p
             python:p
             python-jsonschema:p

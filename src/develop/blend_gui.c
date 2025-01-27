@@ -30,7 +30,7 @@
 #include "develop/tiling.h"
 #include "dtgtk/button.h"
 #include "dtgtk/gradientslider.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 
@@ -613,12 +613,6 @@ static void _blendop_masks_mode_callback(const unsigned int mask_mode, dt_iop_gu
   }
 
   dt_dev_add_history_item(darktable.develop, data->module, TRUE);
-
-  if(dt_conf_get_bool("accel/prefer_unmasked"))
-  {
-    // rebuild the accelerators
-    dt_iop_connect_accels_multi(data->module->so);
-  }
 }
 
 static void _blendop_blend_mode_callback(GtkWidget *combo, dt_iop_gui_blend_data_t *data)
@@ -2233,7 +2227,6 @@ void dt_iop_gui_init_blendif(GtkBox *blendw, dt_iop_module_t *module)
     bd->tab = 0;
     bd->channel_tabs_csp = DEVELOP_BLEND_CS_NONE;
     bd->channel_tabs = GTK_NOTEBOOK(gtk_notebook_new());
-    dt_action_define_iop(module, "blend", N_("channel"), GTK_WIDGET(bd->channel_tabs), &dt_action_def_tabs_none);
 
     gtk_notebook_set_scrollable(bd->channel_tabs, TRUE);
     gtk_box_pack_start(GTK_BOX(header), GTK_WIDGET(bd->channel_tabs), TRUE, TRUE, 0);
@@ -3062,7 +3055,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
                               _("Reuse an existing mask"),
                               NULL };
     bd->mask_mode_combo = dt_bauhaus_combobox_new_full(
-        (dt_action_t *)module, NULL, N_("Blending"),
+        module, NULL, N_("Blending"),
         _("Define opacity masks and blending modes to limit the spatial application of the module."), 0,
         (GtkCallback)_blendop_masks_mode_changed, module, labels);
     GtkWidget *blend_modes_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);

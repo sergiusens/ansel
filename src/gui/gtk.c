@@ -29,7 +29,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/expander.h"
 #include "dtgtk/sidepanel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/actions/display.h"
 
@@ -702,19 +702,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   gtk_window_set_role(GTK_WINDOW(widget), "main-app");
   darktable.gui->grab_window = widget;
   darktable.gui->grab_widget = NULL;
-  g_signal_connect(G_OBJECT(widget), "event", G_CALLBACK(dt_shortcut_dispatcher), NULL);
-
-  // This is utterly broken and deeply messed-up as it breaks tooltips positionning while being generally ugly.
-  // TODO: 1. implement API `const char * get_shortcut_for_widget(GtkWidget *w)` in accelerators.c
-  //       2. call it in the tooltip constructor where relevant
-  //       3. append the shortcut path as text to the tooltip text content __BEFORE__ initialization of the widget.
-  //       4. Find out where Diederik Ter Rahe lives and ensure he never writes another line of code.
-  // g_signal_override_class_handler("query-tooltip", gtk_widget_get_type(), G_CALLBACK(dt_shortcut_tooltip_callback));
-
-  // register actions for applying styles via shortcuts
-  dt_init_styles_actions();
-
-  dt_action_register(&darktable.control->actions_global, N_("Reinitialise input devices"), dt_shortcuts_reinitialise, GDK_KEY_I, GDK_CONTROL_MASK | GDK_SHIFT_MASK | GDK_MOD1_MASK);
 
   darktable.gui->reset = 0;
 
@@ -1457,76 +1444,18 @@ static gboolean _notebook_motion_notify_callback(GtkWidget *widget, GdkEventMoti
   for(int i = 0; i < n; i++)
   {
     gtk_widget_get_allocation(gtk_notebook_get_tab_label(notebook, gtk_notebook_get_nth_page(notebook, i)), &label_alloc);
-    if(event->x + notebook_alloc.x < label_alloc.x + label_alloc.width)
-    {
-      darktable.control->element = i;
-      break;
-    }
   }
 
   return FALSE;
 }
 
-static float _action_process_tabs(gpointer target, dt_action_element_t element, dt_action_effect_t effect, float move_size)
+GtkNotebook *dt_ui_notebook_new()
 {
-  GtkNotebook *notebook = GTK_NOTEBOOK(target);
-  if(!isnan(move_size))
-  {
-    switch(effect)
-    {
-    case DT_ACTION_EFFECT_ACTIVATE:
-      gtk_notebook_set_current_page(notebook, element);
-      break;
-    case DT_ACTION_EFFECT_NEXT:
-      gtk_notebook_next_page(notebook);
-      break;
-    case DT_ACTION_EFFECT_PREVIOUS:
-      gtk_notebook_prev_page(notebook);
-      break;
-    default:
-      fprintf(stderr, "[_action_process_tabs] unknown shortcut effect (%d) for tabs\n", effect);
-      break;
-    }
-  }
-
-  const int c = gtk_notebook_get_current_page(notebook);
-
-  if(!isnan(move_size))
-    dt_action_widget_toast(NULL, GTK_WIDGET(notebook),
-                           gtk_notebook_get_tab_label_text(notebook, gtk_notebook_get_nth_page(notebook, c)));
-
-  return -1 - c + (c == element ? DT_VALUE_PATTERN_ACTIVE : 0);
-}
-
-const gchar *dt_action_effect_tabs[]
-  = { N_("activate"),
-      N_("next"),
-      N_("previous"),
-      NULL };
-
-static GtkNotebook *_current_notebook = NULL;
-static dt_action_def_t *_current_action_def = NULL;
-
-GtkNotebook *dt_ui_notebook_new(dt_action_def_t *def)
-{
-  _current_notebook = GTK_NOTEBOOK(gtk_notebook_new());
-  if(!def->name)
-  {
-    _current_action_def = def;
-    def->name = "tabs";
-    def->process = _action_process_tabs;
-  }
-
-  return _current_notebook;
+  return GTK_NOTEBOOK(gtk_notebook_new());
 }
 
 GtkWidget *dt_ui_notebook_page(GtkNotebook *notebook, const char *text, const char *tooltip)
 {
-  if(notebook != _current_notebook)
-  {
-    _current_notebook = 0;
-    _current_action_def = 0;
-  }
   gchar *text_cpy = g_strdup(_(text));
   dt_capitalize_label(text_cpy);
   GtkWidget *label = gtk_label_new(text_cpy);
@@ -1548,28 +1477,6 @@ GtkWidget *dt_ui_notebook_page(GtkNotebook *notebook, const char *text, const ch
 
   return page;
 }
-
-const dt_action_element_def_t _action_elements_tabs_all_rgb[]
-  = { { N_("all"  ), dt_action_effect_tabs },
-      { N_("red"  ), dt_action_effect_tabs },
-      { N_("green"), dt_action_effect_tabs },
-      { N_("blue" ), dt_action_effect_tabs },
-      { NULL       , dt_action_effect_tabs } };
-
-const dt_action_def_t dt_action_def_tabs_all_rgb
-  = { N_("tabs"),
-      _action_process_tabs,
-      _action_elements_tabs_all_rgb };
-
-const dt_action_def_t dt_action_def_tabs_rgb
-  = { N_("tabs"),
-      _action_process_tabs,
-      _action_elements_tabs_all_rgb + 1 };
-
-const dt_action_def_t dt_action_def_tabs_none
-  = { N_("tabs"),
-      _action_process_tabs,
-      _action_elements_tabs_all_rgb + 4 };
 
 static gint _get_container_row_heigth(GtkWidget *w)
 {

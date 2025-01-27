@@ -38,7 +38,7 @@
 #include "dtgtk/drawingarea.h"
 #include "dtgtk/expander.h"
 #include "dtgtk/paint.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -4452,7 +4452,6 @@ void gui_init(dt_iop_module_t *self)
   const float aspect = dt_conf_get_int("plugins/darkroom/filmicrgb/aspect_percent") / 100.0;
   g->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(aspect));
   g_object_set_data(G_OBJECT(g->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("graph"), GTK_WIDGET(g->area), NULL);
 
   gtk_widget_set_can_focus(GTK_WIDGET(g->area), TRUE);
   gtk_widget_add_events(GTK_WIDGET(g->area), GDK_BUTTON_PRESS_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK
@@ -4465,9 +4464,7 @@ void gui_init(dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(g->area), "scroll-event", G_CALLBACK(area_scroll_callback), self);
 
   // Init GTK notebook
-  static struct dt_action_def_t notebook_def = { };
-  g->notebook = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("page"), GTK_WIDGET(g->notebook), &notebook_def);
+  g->notebook = dt_ui_notebook_new();
 
   // Page SCENE
   self->widget = dt_ui_notebook_page(g->notebook, N_("scene"), NULL);
@@ -4513,7 +4510,6 @@ void gui_init(dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(hbox), dt_ui_label_new(_("auto tune levels")), TRUE, TRUE, 0);
   g->auto_button = dt_color_picker_new(self, DT_COLOR_PICKER_AREA, NULL);
   gtk_box_pack_start(GTK_BOX(hbox), g->auto_button, FALSE, FALSE, 0);
-  dt_action_define_iop(self, NULL, N_("auto tune levels"), GTK_WIDGET(g->auto_button), &dt_action_def_button);
   dt_gui_add_class(g->auto_button, "dt_bauhaus_alignment");
   gtk_widget_set_tooltip_text(g->auto_button, _("try to optimize the settings with some statistical assumptions.\n"
                                                 "this will fit the luminance range inside the histogram bounds.\n"

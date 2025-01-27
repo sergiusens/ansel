@@ -20,7 +20,7 @@
 
 #include "common/darktable.h"
 #include "common/dtpthread.h"
-#include "common/action.h"
+
 #include "control/settings.h"
 
 #include <gtk/gtk.h>
@@ -124,19 +124,6 @@ void dt_control_hinter_message(const struct dt_control_t *s, const char *message
  */
 typedef struct dt_control_t
 {
-  gboolean accel_initialising;
-
-  dt_action_t *actions, actions_global, actions_views, actions_thumb, actions_libs, actions_iops, actions_blend, actions_lua, actions_fallbacks, *actions_modifiers;
-
-  GHashTable *widgets, *combo_introspection, *combo_list;
-  GSequence *shortcuts;
-  gboolean enable_fallbacks;
-  GtkWidget *mapping_widget;
-  gboolean confirm_mapping;
-  dt_action_element_t element;
-  GPtrArray *widget_definitions;
-  GSList *input_drivers;
-
   // gui related stuff
   double tabborder;
   int32_t width, height;

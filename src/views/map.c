@@ -27,7 +27,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "dtgtk/thumbtable.h"
-#include "gui/accelerators.h"
+
 #include "gui/drag_and_drop.h"
 #include "gui/draw.h"
 #include "libs/lib.h"
@@ -2801,15 +2801,6 @@ static void _view_map_build_main_query(dt_map_t *lib)
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), geo_query, -1, &lib->main_query, NULL);
 
   g_free(geo_query);
-}
-
-GSList *mouse_actions(const dt_view_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_DOUBLE_LEFT, 0, _("[on image] open in darkroom"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_DOUBLE_LEFT, 0, _("[on map] zoom map"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_DRAG_DROP, 0, _("move image location"));
-  return lm;
 }
 
 // starting point taken from https://github.com/gyaikhom/dbscan

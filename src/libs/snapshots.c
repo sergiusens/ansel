@@ -23,7 +23,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "develop/develop.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/draw.h"
 #include "libs/lib.h"
@@ -322,14 +322,6 @@ int mouse_moved(dt_lib_module_t *self, double x, double y, double pressure, int 
   return 0;
 }
 
-static void _lib_snapshots_toggle_last(dt_action_t *action)
-{
-  dt_lib_snapshots_t *d = dt_action_lib(action)->data;
-
-  if(d->num_snapshots)
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(d->snapshot[0].button), !gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(d->snapshot[0].button)));
-}
-
 void gui_reset(dt_lib_module_t *self)
 {
   dt_lib_snapshots_t *d = (dt_lib_snapshots_t *)self->data;
@@ -407,8 +399,6 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget),
                      dt_ui_scroll_wrap(d->snapshots_box, 1, "plugins/darkroom/snapshots/windowheight"), TRUE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->take_button), TRUE, TRUE, 0);
-
-  dt_action_register(DT_ACTION(self), N_("toggle last snapshot"), _lib_snapshots_toggle_last, 0, 0);
 }
 
 void gui_cleanup(dt_lib_module_t *self)

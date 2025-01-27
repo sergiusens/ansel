@@ -28,7 +28,7 @@
 #include "develop/imageop_gui.h"
 #include "develop/tiling.h"
 #include "common/image_cache.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"

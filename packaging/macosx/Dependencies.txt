@@ -86,7 +86,6 @@ github/ansel/build/macosx/package/Ansel.app/Contents/MacOS/ansel:
 --> osm-gps-map
 --> perl
 --> po4a
---> portmidi
 --> pugixml
 --> sdl2
 --> webp
@@ -198,7 +197,6 @@ Deps_output.txt:
 ==> pixman: stable 0.42.2 (bottled)
 ==> pkg-config: stable 0.29.2 (bottled)
 ==> po4a: stable 0.69 (bottled), HEAD
-==> portmidi: stable 2.0.4 (bottled)
 ==> pugixml: stable 1.13 (bottled)
 ==> python@3.11: stable 3.11.3 (bottled)
 ==> readline: stable 8.2.1 (bottled) [keg-only]

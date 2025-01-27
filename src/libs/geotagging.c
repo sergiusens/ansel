@@ -26,7 +26,7 @@
 #include "control/conf.h"
 #include "dtgtk/button.h"
 #include "control/jobs.h"
-#include "gui/accelerators.h"
+
 #include "libs/lib_api.h"
 #ifdef HAVE_MAP
 #include "views/view.h"

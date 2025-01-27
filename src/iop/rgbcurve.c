@@ -29,7 +29,7 @@
 #include "dtgtk/drawingarea.h"
 #include "gui/color_picker_proxy.h"
 #include "gui/presets.h"
-#include "gui/accelerators.h"
+
 #include "libs/colorpicker.h"
 
 #define DT_GUI_CURVE_EDITOR_INSET DT_PIXEL_APPLY_DPI(1)
@@ -568,10 +568,6 @@ static gboolean _move_point_internal(dt_iop_module_t *self, GtkWidget *widget, f
 
   const int ch = g->channel;
   dt_iop_rgbcurve_node_t *curve = p->curve_nodes[ch];
-
-  float multiplier = dt_accel_get_speed_multiplier(widget, state);
-  dx *= multiplier;
-  dy *= multiplier;
 
   const float new_x = CLAMP(curve[g->selected].x + dx, 0.0f, 1.0f);
   const float new_y = CLAMP(curve[g->selected].y + dy, 0.0f, 1.0f);
@@ -1365,7 +1361,6 @@ void gui_init(struct dt_iop_module_t *self)
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
   g->channel_tabs = GTK_NOTEBOOK(gtk_notebook_new());
-  dt_action_define_iop(self, NULL, N_("channel"), GTK_WIDGET(g->channel_tabs), &dt_action_def_tabs_rgb);
   dt_ui_notebook_page(g->channel_tabs, N_("R"), _("curve nodes for r channel"));
   dt_ui_notebook_page(g->channel_tabs, N_("G"), _("curve nodes for g channel"));
   dt_ui_notebook_page(g->channel_tabs, N_("B"), _("curve nodes for b channel"));
@@ -1393,7 +1388,6 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(1.0));
   g_object_set_data(G_OBJECT(g->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("curve"), GTK_WIDGET(g->area), NULL);
   gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(g->area), TRUE, TRUE, 0);
 
   // FIXME: that tooltip goes in the way of the numbers when you hover a node to get a reading

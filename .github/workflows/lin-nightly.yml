@@ -86,7 +86,6 @@ jobs:
             libosmgpsmap-1.0-dev \
             libpango1.0-dev \
             libpng-dev \
-            libportmidi-dev \
             libpugixml-dev \
             librsvg2-dev \
             libsaxon-java \

@@ -924,7 +924,7 @@ void gui_init(dt_lib_module_t *self)
   g_signal_connect(G_OBJECT(d->scope_draw), "size-allocate", G_CALLBACK(_resize_callback), d);
   gtk_box_pack_start(GTK_BOX(self->widget), d->scope_draw, TRUE, TRUE, 0);
 
-  d->stage = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->stage = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->stage, NULL, _("Show data from"));
   dt_bauhaus_combobox_add(d->stage, _("Raw image"));
   dt_bauhaus_combobox_add(d->stage, _("Output color profile"));
@@ -932,7 +932,7 @@ void gui_init(dt_lib_module_t *self)
   g_signal_connect(G_OBJECT(d->stage), "value-changed", G_CALLBACK(_stage_callback), d);
   gtk_box_pack_start(GTK_BOX(self->widget), d->stage, FALSE, FALSE, 0);
 
-  d->display = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->display = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->display, NULL, _("Display"));
   dt_bauhaus_combobox_add(d->display, _("Histogram"));
   dt_bauhaus_combobox_add(d->display, _("Waveform (horizontal)"));

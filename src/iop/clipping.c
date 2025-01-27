@@ -31,7 +31,7 @@
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "develop/tiling.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/guides.h"
 #include "gui/presets.h"
@@ -2095,9 +2095,7 @@ void gui_init(struct dt_iop_module_t *self)
   g->k_selected = -1;
   g->preview_ready = FALSE;
 
-  static struct dt_action_def_t notebook_def = { };
-  g->notebook = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("page"), GTK_WIDGET(g->notebook), &notebook_def);
+  g->notebook = dt_ui_notebook_new();
 
   self->widget = dt_ui_notebook_page(g->notebook, N_("main"), NULL);
 
@@ -3343,16 +3341,6 @@ int button_pressed(struct dt_iop_module_t *self, double x, double y, double pres
   }
   else
     return 0;
-}
-
-GSList *mouse_actions(struct dt_iop_module_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, 0, _("[%s on borders] crop"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, GDK_SHIFT_MASK,
-                                     _("[%s on borders] crop keeping ratio"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_RIGHT_DRAG, 0, _("[%s] define/rotate horizon"), self->name());
-  return lm;
 }
 
 #undef PHI

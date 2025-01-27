@@ -141,7 +141,7 @@ typedef struct dt_bauhaus_widget_t
   // which type of control
   dt_bauhaus_type_t type;
   // associated image operation module (to handle focus and such)
-  dt_action_t *module;
+  dt_iop_module_t *module;
   // pointer to iop field linked to widget
   gpointer field;
   // type of field
@@ -278,8 +278,6 @@ GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_iop_module_t *self, 
 
 GtkWidget *dt_bauhaus_slider_from_widget(struct dt_bauhaus_widget_t* widget, dt_iop_module_t *self, float min, float max,
                                          float step, float defval, int digits, int feedback);
-GtkWidget *dt_bauhaus_slider_new_action(dt_action_t *self, float min, float max, float step,
-                                        float defval, int digits);
 
 // outside doesn't see the real type, we cast it internally.
 void dt_bauhaus_slider_set(GtkWidget *w, float pos);
@@ -319,13 +317,12 @@ float dt_bauhaus_slider_get_default(GtkWidget *widget);
 // combobox:
 void dt_bauhaus_combobox_from_widget(struct dt_bauhaus_widget_t* widget,dt_iop_module_t *self);
 GtkWidget *dt_bauhaus_combobox_new(dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_combobox_new_action(dt_action_t *self);
-GtkWidget *dt_bauhaus_combobox_new_full(dt_action_t *action, const char *section, const char *label, const char *tip,
+GtkWidget *dt_bauhaus_combobox_new_full(dt_iop_module_t *self, const char *section, const char *label, const char *tip,
                                         int pos, GtkCallback callback, gpointer data, const char **texts);
 #define DT_BAUHAUS_COMBOBOX_NEW_FULL(widget, action, section, label, tip, pos, callback, data, ...)          \
 {                                                                                                            \
   static const gchar *texts[] = { __VA_ARGS__, NULL };                                                       \
-  widget = dt_bauhaus_combobox_new_full(DT_ACTION(action), section, label, tip, pos, callback, data, texts); \
+  widget = dt_bauhaus_combobox_new_full(action, section, label, tip, pos, callback, data, texts); \
 }
 
 void dt_bauhaus_combobox_add(GtkWidget *widget, const char *text);
@@ -353,7 +350,7 @@ void dt_bauhaus_combobox_clear(GtkWidget *w);
 void dt_bauhaus_combobox_set_default(GtkWidget *widget, int def);
 int dt_bauhaus_combobox_get_default(GtkWidget *widget);
 void dt_bauhaus_combobox_add_populate_fct(GtkWidget *widget, void (*fct)(GtkWidget *w, struct dt_iop_module_t **module));
-void dt_bauhaus_combobox_add_list(GtkWidget *widget, dt_action_t *action, const char **texts);
+void dt_bauhaus_combobox_add_list(GtkWidget *widget, const char **texts);
 void dt_bauhaus_combobox_entry_set_sensitive(GtkWidget *widget, int pos, gboolean sensitive);
 void dt_bauhaus_combobox_set_entries_ellipsis(GtkWidget *widget, PangoEllipsizeMode ellipis);
 PangoEllipsizeMode dt_bauhaus_combobox_get_entries_ellipsis(GtkWidget *widget);

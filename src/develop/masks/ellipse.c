@@ -2101,16 +2101,6 @@ static int _ellipse_get_mask_roi(const dt_iop_module_t *const module, const dt_d
   return 1;
 }
 
-static GSList *_ellipse_setup_mouse_actions(const struct dt_masks_form_t *const form)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, 0, _("[ELLIPSE] change size"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK, _("[ELLIPSE] change opacity"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT, GDK_SHIFT_MASK, _("[ELLIPSE] switch feathering mode"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT_DRAG, GDK_CONTROL_MASK, _("[ELLIPSE] rotate shape"));
-  return lm;
-}
-
 static void _ellipse_set_form_name(struct dt_masks_form_t *const form, const size_t nb)
 {
   snprintf(form->name, sizeof(form->name), _("ellipse #%d"), (int)nb);
@@ -2209,7 +2199,6 @@ static void _ellipse_sanitize_config(dt_masks_type_t type)
 const dt_masks_functions_t dt_masks_functions_ellipse = {
   .point_struct_size = sizeof(struct dt_masks_point_ellipse_t),
   .sanitize_config = _ellipse_sanitize_config,
-  .setup_mouse_actions = _ellipse_setup_mouse_actions,
   .set_form_name = _ellipse_set_form_name,
   .set_hint_message = _ellipse_set_hint_message,
   .duplicate_points = _ellipse_duplicate_points,

@@ -35,7 +35,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/expander.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
@@ -5604,7 +5604,7 @@ void gui_init(struct dt_iop_module_t *self)
                                    _("rotation only"),
                                    _("lens shift only"), NULL };
   g->fitting_option
-      = dt_bauhaus_combobox_new_full((dt_action_t *)self, NULL, _("Fit for"), NULL, ASHIFT_FITTING_ALL,
+      = dt_bauhaus_combobox_new_full(self, NULL, _("Fit for"), NULL, ASHIFT_FITTING_ALL,
                                      (GtkCallback)fitting_option_changed, self, option_labels);
   gtk_box_pack_start(GTK_BOX(self->widget), g->fitting_option, TRUE, TRUE, 0);
 
@@ -5661,13 +5661,6 @@ void gui_init(struct dt_iop_module_t *self)
                    (gpointer)self);
   g_signal_connect(G_OBJECT(self->widget), "draw", G_CALLBACK(_event_draw), self);
 
-  dt_action_define_iop(self, N_("fit"), N_("vertical"), g->fit_v, &dt_action_def_button);
-  dt_action_define_iop(self, N_("fit"), N_("horizontal"), g->fit_h, &dt_action_def_button);
-  dt_action_define_iop(self, N_("fit"), N_("both"), g->fit_both, &dt_action_def_button);
-  dt_action_define_iop(self, N_("structure"), N_("rectangle"), g->structure_quad, &dt_action_def_toggle);
-  dt_action_define_iop(self, N_("structure"), N_("lines"), g->structure_lines, &dt_action_def_toggle);
-  dt_action_define_iop(self, N_("structure"), N_("auto"), g->structure_auto, &dt_action_def_toggle);
-
   /* add signal handler for preview pipe finish to redraw the overlay */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED,
                                   G_CALLBACK(_event_process_after_preview_callback), self);
@@ -5686,19 +5679,6 @@ void gui_cleanup(struct dt_iop_module_t *self)
   IOP_GUI_FREE;
 }
 
-GSList *mouse_actions(struct dt_iop_module_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_RIGHT_DRAG, 0, _("[%s] define/rotate horizon"), self->name());
-  lm  = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT,  0, _("[%s on segment] select segment"), self->name());
-  lm  = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_RIGHT, 0,
-                                      _("[%s on segment] unselect segment"), self->name());
-  lm  = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG,  GDK_SHIFT_MASK,
-                                      _("[%s] select all segments from zone"), self->name());
-  lm  = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_RIGHT_DRAG,  GDK_SHIFT_MASK,
-                                      _("[%s] unselect all segments from zone"), self->name());
-  return lm;
-}
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

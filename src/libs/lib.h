@@ -71,8 +71,6 @@ typedef struct dt_lib_t
 
 typedef struct dt_lib_module_t
 {
-  dt_action_t actions; // !!! NEEDS to be FIRST (to be able to cast convert)
-
 #define INCLUDE_API_FROM_MODULE_H
 #include "libs/lib_api.h"
 
@@ -161,6 +159,10 @@ void dt_lib_init_presets(dt_lib_module_t *module);
 
 /** handle Enter key for dialog. Note it uses GTK_RESPONSE_ACCEPT code */
 gboolean dt_handle_dialog_enter(GtkWidget *widget, GdkEventKey *event, gpointer data);
+
+/** TODO: figure out where to handle that */
+GtkWidget *dt_action_button_new(dt_lib_module_t *self, const gchar *label, gpointer callback, gpointer data,
+                                const gchar *tooltip, guint accel_key, GdkModifierType mods);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

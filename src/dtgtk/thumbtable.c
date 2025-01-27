@@ -27,7 +27,7 @@
 #include "common/selection.h"
 #include "common/undo.h"
 #include "control/control.h"
-#include "gui/accelerators.h"
+
 #include "gui/drag_and_drop.h"
 #include "views/view.h"
 #include "bauhaus/bauhaus.h"

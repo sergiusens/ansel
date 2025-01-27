@@ -41,7 +41,7 @@
 #include "develop/pixelpipe.h"
 #include "dtgtk/paint.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "gui/color_picker_proxy.h"

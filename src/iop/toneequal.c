@@ -97,7 +97,7 @@
 #include "develop/imageop_gui.h"
 #include "dtgtk/drawingarea.h"
 #include "dtgtk/expander.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/draw.h"
 #include "gui/gtk.h"
@@ -3026,18 +3026,6 @@ static gboolean notebook_button_press(GtkWidget *widget, GdkEventButton *event, 
   return 0;
 }
 
-GSList *mouse_actions(struct dt_iop_module_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_SCROLL, 0,
-                                     _("[%s over image] change tone exposure"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_SCROLL, GDK_SHIFT_MASK,
-                                     _("[%s over image] change tone exposure in large steps"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_SCROLL, GDK_CONTROL_MASK,
-                                     _("[%s over image] change tone exposure in small steps"), self->name());
-  return lm;
-}
-
 /**
  * Post pipe events
  **/
@@ -3107,9 +3095,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   gui_cache_init(self);
 
-  static dt_action_def_t notebook_def = { };
-  g->notebook = dt_ui_notebook_new(&notebook_def);
-  dt_action_define_iop(self, NULL, N_("page"), GTK_WIDGET(g->notebook), &notebook_def);
+  g->notebook = dt_ui_notebook_new();
 
   // Simple view
 
@@ -3161,7 +3147,6 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(wrapper), GTK_WIDGET(g->area), TRUE, TRUE, 0);
   g_object_set_data(G_OBJECT(wrapper), "iop-instance", self);
   gtk_widget_set_name(GTK_WIDGET(wrapper), "toneeqgraph");
-  dt_action_define_iop(self, NULL, N_("graph"), GTK_WIDGET(wrapper), NULL);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(wrapper), TRUE, TRUE, 0);
   gtk_widget_add_events(GTK_WIDGET(g->area), GDK_POINTER_MOTION_MASK | darktable.gui->scroll_mask
                                            | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK

@@ -20,7 +20,7 @@
 #include "common/map_locations.h"
 #include "control/conf.h"
 #include "control/control.h"
-#include "gui/accelerators.h"
+
 #include "libs/lib.h"
 
 // map position module uses the tag dictionary with dt_geo_tag_root as a prefix.
@@ -1029,4 +1029,3 @@ void gui_cleanup(dt_lib_module_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

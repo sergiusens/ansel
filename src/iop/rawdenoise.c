@@ -29,7 +29,7 @@
 #include "develop/imageop_gui.h"
 #include "develop/openmp_maths.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 
@@ -900,7 +900,6 @@ void gui_init(dt_iop_module_t *self)
 
   c->channel = dt_conf_get_int("plugins/darkroom/rawdenoise/gui_channel");
   c->channel_tabs = GTK_NOTEBOOK(gtk_notebook_new());
-  dt_action_define_iop(self, NULL, N_("channel"), GTK_WIDGET(c->channel_tabs), &dt_action_def_tabs_all_rgb);
 
   dt_ui_notebook_page(c->channel_tabs, N_("all"), NULL);
   dt_ui_notebook_page(c->channel_tabs, N_("R"), NULL);
@@ -930,7 +929,6 @@ void gui_init(dt_iop_module_t *self)
   const float aspect = dt_conf_get_int("plugins/darkroom/rawdenoise/aspect_percent") / 100.0;
   c->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(aspect));
   g_object_set_data(G_OBJECT(c->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("graph"), GTK_WIDGET(c->area), NULL);
 
   gtk_box_pack_start(GTK_BOX(box_raw), GTK_WIDGET(c->channel_tabs), FALSE, FALSE, 0);
   gtk_box_pack_start(GTK_BOX(box_raw), GTK_WIDGET(c->area), FALSE, FALSE, 0);

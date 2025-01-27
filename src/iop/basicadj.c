@@ -30,7 +30,7 @@
 #include "common/rgb_norms.h"
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "develop/tiling.h"
 

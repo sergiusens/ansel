@@ -29,7 +29,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 #include "develop/imageop.h"
-#include "gui/accelerators.h"
+
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "views/view.h"
@@ -43,53 +43,8 @@
 #include <string.h>
 #include <strings.h>
 
-static float _action_process_modifiers(gpointer target, dt_action_element_t element, dt_action_effect_t effect, float move_size)
-{
-  GdkModifierType mask = 1;
-  if(element) mask <<= element + 1; // ctrl = 4, alt = 8
-  return (dt_key_modifier_state() & mask) != 0;
-}
-
-const dt_action_element_def_t _action_elements_modifiers[]
-  = { { "shift", dt_action_effect_hold },
-      { "ctrl", dt_action_effect_hold },
-      { "alt", dt_action_effect_hold },
-      { NULL } };
-
-const dt_action_def_t dt_action_def_modifiers
-  = { N_("modifiers"),
-      _action_process_modifiers,
-      _action_elements_modifiers,
-      NULL, TRUE };
-
 void dt_control_init(dt_control_t *s)
 {
-  s->actions_global = (dt_action_t){ DT_ACTION_TYPE_GLOBAL, "global", C_("accel", "global"), .next = &s->actions_views };
-  s->actions_views = (dt_action_t){ DT_ACTION_TYPE_CATEGORY, "views", C_("accel", "views"), .next = &s->actions_libs, .target = &s->actions_thumb };
-  s->actions_thumb = (dt_action_t){ DT_ACTION_TYPE_CATEGORY, "thumbtable", C_("accel", "thumbtable"), .owner = &s->actions_views };
-  s->actions_libs = (dt_action_t){ DT_ACTION_TYPE_CATEGORY, "lib", C_("accel", "utility modules"), .next = &s->actions_iops };
-  s->actions_iops = (dt_action_t){ DT_ACTION_TYPE_CATEGORY, "iop", C_("accel", "processing modules"), .next = &s->actions_lua, .target = &s->actions_blend };
-  s->actions_blend = (dt_action_t){ DT_ACTION_TYPE_BLEND, "blend", C_("accel", "blending"), .owner = &s->actions_iops };
-  s->actions_lua = (dt_action_t){ DT_ACTION_TYPE_CATEGORY, "lua", C_("accel", "lua scripts"), .next = &s->actions_fallbacks };
-  s->actions_fallbacks = (dt_action_t){ DT_ACTION_TYPE_CATEGORY, "fallbacks", C_("accel", "fallbacks") };
-  s->actions = &s->actions_global;
-
-  s->widgets = g_hash_table_new(NULL, NULL);
-  s->combo_introspection = g_hash_table_new(NULL, NULL);
-  s->combo_list = g_hash_table_new(NULL, NULL);
-  s->shortcuts = g_sequence_new(g_free);
-  s->enable_fallbacks = dt_conf_get_bool("accel/enable_fallbacks");
-  s->mapping_widget = NULL;
-  s->confirm_mapping = TRUE;
-  s->widget_definitions = g_ptr_array_new ();
-  s->input_drivers = NULL;
-
-  dt_action_define_fallback(DT_ACTION_TYPE_IOP, &dt_action_def_iop);
-  dt_action_define_fallback(DT_ACTION_TYPE_LIB, &dt_action_def_lib);
-  dt_action_define_fallback(DT_ACTION_TYPE_VALUE_FALLBACK, &dt_action_def_value);
-
-  s->actions_modifiers = dt_action_define(&s->actions_global, NULL, N_("modifiers"), NULL, &dt_action_def_modifiers);
-
   // same thread as init
   s->gui_thread = pthread_self();
 
@@ -204,9 +159,6 @@ void dt_control_cleanup(dt_control_t *s)
   dt_pthread_mutex_destroy(&s->res_mutex);
   dt_pthread_mutex_destroy(&s->run_mutex);
   dt_pthread_mutex_destroy(&s->progress_system.mutex);
-  if(s->widgets) g_hash_table_destroy(s->widgets);
-  if(s->shortcuts) g_sequence_free(s->shortcuts);
-  if(s->input_drivers) g_slist_free_full(s->input_drivers, g_free);
 }
 
 

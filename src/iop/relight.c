@@ -33,7 +33,7 @@
 #include "dtgtk/gradientslider.h"
 #include "dtgtk/togglebutton.h"
 #include "gui/color_picker_proxy.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"

@@ -24,7 +24,7 @@
 #include "control/control.h"
 #include "dtgtk/button.h"
 #include "gui/preferences_dialogs.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/drag_and_drop.h"
 #include "libs/lib.h"
@@ -39,9 +39,6 @@
 #define FLOATING_ENTRY_WIDTH DT_PIXEL_APPLY_DPI(150)
 
 DT_MODULE(1)
-
-static void _lib_tagging_tag_redo(dt_action_t *action);
-static void _lib_tagging_tag_show(dt_action_t *action);
 
 typedef struct dt_lib_tagging_t
 {
@@ -2695,6 +2692,7 @@ int position()
   return 3;
 }
 
+#if 0
 static gboolean _match_selected_func(GtkEntryCompletion *completion, GtkTreeModel *model, GtkTreeIter *iter, gpointer user_data)
 {
   const int column = gtk_entry_completion_get_text_column(completion);
@@ -2794,6 +2792,7 @@ static gboolean _completion_match_func(GtkEntryCompletion *completion, const gch
 
   return res;
 }
+#endif
 
 static void _tree_selection_changed(GtkTreeSelection *treeselection, gpointer data)
 {
@@ -3094,14 +3093,11 @@ void gui_init(dt_lib_module_t *self)
                                           _("detach tag from all selected images"), 0, 0);
   gtk_box_pack_start(hbox, d->detach_button, TRUE, TRUE, 0);
 
-  dt_action_t *toggle = dt_action_section(DT_ACTION(self), N_("toggle"));
-
 #define NEW_TOGGLE_BUTTON(paint, callback, tooltip, action)                  \
   button = dtgtk_togglebutton_new(paint, 0, NULL);                           \
   gtk_widget_set_tooltip_text(button, tooltip);                              \
   gtk_box_pack_end(GTK_BOX(hbox), button, FALSE, TRUE, 0);                   \
   g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(callback), self); \
-  dt_action_define(toggle, NULL, action, button, &dt_action_def_toggle);
 
   d->toggle_hide_button = NEW_TOGGLE_BUTTON(dtgtk_cairo_paint_minus_simple, _toggle_hide_button_callback,
                                             _("toggle list with / without hierarchy"), N_("hide"));
@@ -3140,7 +3136,6 @@ void gui_init(dt_lib_module_t *self)
   g_signal_connect(G_OBJECT(button), "clicked", G_CALLBACK(_clear_entry_button_callback), (gpointer)self);
   gtk_box_pack_start(box, GTK_WIDGET(hbox), FALSE, TRUE, 0);
   d->clear_button = button;
-  dt_action_define(DT_ACTION(self), NULL, N_("clear entry"), button, &dt_action_def_button);
 
   // dictionary_view tree view
   view = GTK_TREE_VIEW(gtk_tree_view_new());
@@ -3255,8 +3250,10 @@ void gui_init(dt_lib_module_t *self)
   _init_treeview(self, 1);
   _update_atdetach_buttons(self);
 
-  dt_action_register(DT_ACTION(self), N_("tag"), _lib_tagging_tag_show, GDK_KEY_t, GDK_CONTROL_MASK);
-  dt_action_register(DT_ACTION(self), N_("redo last tag"), _lib_tagging_tag_redo, GDK_KEY_t, GDK_MOD1_MASK);
+#if 0
+  dt_action_register(self, N_("tag"), _lib_tagging_tag_show, GDK_KEY_t, GDK_CONTROL_MASK);
+  dt_action_register(self, N_("redo last tag"), _lib_tagging_tag_redo, GDK_KEY_t, GDK_MOD1_MASK);
+#endif
 }
 
 void gui_cleanup(dt_lib_module_t *self)
@@ -3274,6 +3271,7 @@ void gui_cleanup(dt_lib_module_t *self)
   self->data = NULL;
 }
 
+#if 0
 // http://stackoverflow.com/questions/4631388/transparent-floating-gtkentry
 static gboolean _lib_tagging_tag_key_press(GtkWidget *entry, GdkEventKey *event, dt_lib_module_t *self)
 {
@@ -3315,6 +3313,7 @@ static gboolean _lib_tagging_tag_destroy(GtkWidget *widget, GdkEvent *event, gpo
   gtk_widget_destroy(GTK_WIDGET(user_data));
   return FALSE;
 }
+
 
 static void _lib_tagging_tag_redo(dt_action_t *action)
 {
@@ -3398,6 +3397,8 @@ static void _lib_tagging_tag_show(dt_action_t *action)
   gtk_widget_grab_focus(entry);
   gtk_window_present(GTK_WINDOW(d->floating_tag_window));
 }
+
+#endif
 
 static int _get_recent_tags_list_length()
 {

@@ -25,7 +25,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "dtgtk/thumbtable.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "views/view.h"
 #include "views/view_api.h"
@@ -159,11 +159,12 @@ static void requeue_job(dt_slideshow_t *d)
   dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_BG, process_job_create(d));
 }
 
+/*
 static void _set_delay(dt_slideshow_t *d, int value)
 {
   d->delay = CLAMP(d->delay + value, 1, 60);
   dt_conf_set_int("slideshow_delay", d->delay);
-}
+} */
 
 static int process_image(dt_slideshow_t *d, dt_slideshow_slot_t slot)
 {
@@ -550,6 +551,7 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
   return 0;
 }
 
+#if 0
 static void _start_stop_callback(dt_action_t *action)
 {
   dt_slideshow_t *d = dt_action_view(action)->data;
@@ -595,29 +597,26 @@ static void _step_forward_callback(dt_action_t *action)
   _step_state(d, S_REQUEST_STEP);
 }
 
+#endif
+
 void gui_init(dt_view_t *self)
 {
-  dt_action_register(DT_ACTION(self), N_("start and stop"), _start_stop_callback, GDK_KEY_space, 0);
+#if 0
+  dt_action_register(self, N_("start and stop"), _start_stop_callback, GDK_KEY_space, 0);
 
   dt_action_t *ac;
-  ac = dt_action_register(DT_ACTION(self), N_("slow down"), _slow_down_callback, GDK_KEY_Up, 0);
+  ac = dt_action_register(self, N_("slow down"), _slow_down_callback, GDK_KEY_Up, 0);
   dt_shortcut_register(ac, 0, 0, GDK_KEY_KP_Add, 0);
   dt_shortcut_register(ac, 0, 0, GDK_KEY_plus, 0);
-  ac = dt_action_register(DT_ACTION(self), N_("speed up"), _speed_up_callback, GDK_KEY_Down, 0);
+  ac = dt_action_register(self, N_("speed up"), _speed_up_callback, GDK_KEY_Down, 0);
   dt_shortcut_register(ac, 0, 0, GDK_KEY_KP_Subtract, 0);
   dt_shortcut_register(ac, 0, 0, GDK_KEY_minus, 0);
 
-  dt_action_register(DT_ACTION(self), N_("step forward"), _step_forward_callback, GDK_KEY_Right, 0);
-  dt_action_register(DT_ACTION(self), N_("step back"), _step_back_callback, GDK_KEY_Left, 0);
+  dt_action_register(self, N_("step forward"), _step_forward_callback, GDK_KEY_Right, 0);
+  dt_action_register(self, N_("step back"), _step_back_callback, GDK_KEY_Left, 0);
+#endif
 }
 
-GSList *mouse_actions(const dt_view_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_LEFT, 0, _("go to next image"));
-  lm = dt_mouse_action_create_simple(lm, DT_MOUSE_ACTION_RIGHT, 0, _("go to previous image"));
-  return lm;
-}
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

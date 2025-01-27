@@ -43,7 +43,7 @@
 #include "develop/imageop_math.h"
 #include "develop/imageop_gui.h"
 #include "gui/gtk.h"
-#include "gui/accelerators.h"
+
 #include "develop/tiling.h"
 #include "iop/iop_api.h"
 

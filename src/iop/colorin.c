@@ -30,7 +30,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 #include "gui/gtk.h"
-#include "gui/accelerators.h"
+
 #ifdef HAVE_OPENJPEG
 #include "common/imageio_j2k.h"
 #endif

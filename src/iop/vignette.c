@@ -32,7 +32,7 @@
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"
@@ -1012,18 +1012,6 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_widget_set_tooltip_text(GTK_WIDGET(g->autoratio), _("enable to have the ratio automatically follow the image size"));
   gtk_widget_set_tooltip_text(g->whratio, _("width-to-height ratio"));
   gtk_widget_set_tooltip_text(g->dithering, _("add some level of random noise to prevent banding"));
-}
-
-GSList *mouse_actions(struct dt_iop_module_t *self)
-{
-  GSList *lm = NULL;
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, 0,
-                                     _("[%s on node] change vignette/feather size"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, GDK_CONTROL_MASK,
-                                     _("[%s on node] change vignette/feather size keeping ratio"), self->name());
-  lm = dt_mouse_action_create_format(lm, DT_MOUSE_ACTION_LEFT_DRAG, GDK_CONTROL_MASK,
-                                     _("[%s on center] move vignette"), self->name());
-  return lm;
 }
 
 // clang-format off

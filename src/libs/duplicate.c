@@ -28,7 +28,7 @@
 #include "control/control.h"
 #include "develop/develop.h"
 #include "dtgtk/thumbnail.h"
-#include "gui/accelerators.h"
+
 #include "gui/gtk.h"
 #include "gui/styles.h"
 #include "libs/lib.h"

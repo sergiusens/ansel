@@ -27,7 +27,7 @@
 #include "develop/imageop.h"
 #include "dtgtk/button.h"
 #include "dtgtk/togglebutton.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "gui/gtk.h"
 #include "libs/lib.h"
@@ -569,7 +569,7 @@ void gui_init(dt_lib_module_t *self)
   // The picker button, mode and statistic combo boxes
   GtkWidget *picker_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-  data->statistic_selector = dt_bauhaus_combobox_new_full(DT_ACTION(self), NULL, N_("statistic"),
+  data->statistic_selector = dt_bauhaus_combobox_new_full(NULL, NULL, N_("statistic"),
                                                           _("select which statistic to show"),
                                                           data->statistic, (GtkCallback)_statistic_changed,
                                                           self, dt_lib_colorpicker_statistic_names);
@@ -578,7 +578,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_valign(data->statistic_selector, GTK_ALIGN_CENTER);
   gtk_box_pack_start(GTK_BOX(picker_row), data->statistic_selector, TRUE, TRUE, 0);
 
-  data->color_mode_selector = dt_bauhaus_combobox_new_full(DT_ACTION(self), NULL, N_("color mode"),
+  data->color_mode_selector = dt_bauhaus_combobox_new_full(NULL, NULL, N_("color mode"),
                                                            _("select which color mode to use"),
                                                            data->model, (GtkCallback)_color_mode_changed, self,
                                                            dt_lib_colorpicker_model_names);
@@ -591,7 +591,6 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_tooltip_text(data->picker_button, _("turn on color picker\nctrl+click or right-click to select an area"));
   gtk_widget_set_name(GTK_WIDGET(data->picker_button), "color-picker-button");
   g_signal_connect(G_OBJECT(data->picker_button), "toggled", G_CALLBACK(_picker_button_toggled), data);
-  dt_action_define(DT_ACTION(self), NULL, N_("pick color"), data->picker_button, &dt_action_def_button);
 
   gtk_box_pack_start(GTK_BOX(self->widget), picker_row, TRUE, TRUE, 0);
 
@@ -630,7 +629,6 @@ void gui_init(dt_lib_module_t *self)
   ;
   gtk_widget_set_sensitive(GTK_WIDGET(data->add_sample_button), FALSE);
   g_signal_connect(G_OBJECT(data->add_sample_button), "clicked", G_CALLBACK(_add_sample), self);
-  dt_action_define(DT_ACTION(self), NULL, N_("add sample"), data->add_sample_button, &dt_action_def_button);
   gtk_box_pack_end(GTK_BOX(sample_row), data->add_sample_button, FALSE, FALSE, 0);
 
   // Adding the live samples section

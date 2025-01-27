@@ -26,7 +26,7 @@
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/drawingarea.h"
-#include "gui/accelerators.h"
+
 #include "gui/color_picker_proxy.h"
 #include "libs/colorpicker.h"
 
@@ -582,8 +582,6 @@ static gboolean _area_motion_notify_callback(GtkWidget *widget, GdkEventMotion *
       }
     }
 
-    darktable.control->element = c->handle_move;
-
     gtk_widget_queue_draw(widget);
   }
 
@@ -945,59 +943,6 @@ void change_image(struct dt_iop_module_t *self)
   g->button_down = 0;
 }
 
-const dt_action_element_def_t _action_elements_levels[]
-  = { { N_("black"), dt_action_effect_value },
-      { N_("gray" ), dt_action_effect_value },
-      { N_("white"), dt_action_effect_value },
-      { NULL } };
-
-static float _action_process(gpointer target, dt_action_element_t element, dt_action_effect_t effect, float move_size)
-{
-  dt_iop_module_t *self = g_object_get_data(G_OBJECT(target), "iop-instance");
-  dt_iop_rgblevels_gui_data_t *c = (dt_iop_rgblevels_gui_data_t *)self->gui_data;
-  dt_iop_rgblevels_params_t *p = (dt_iop_rgblevels_params_t *)self->params;
-
-  if(!isnan(move_size))
-  {
-    float bottop = -1e6;
-    switch(effect)
-    {
-    case DT_ACTION_EFFECT_RESET:
-      p->levels[c->channel][0] = RGBLEVELS_MIN;
-      p->levels[c->channel][1] = RGBLEVELS_MID;
-      p->levels[c->channel][2] = RGBLEVELS_MAX;
-      gtk_widget_queue_draw(target);
-      break;
-    case DT_ACTION_EFFECT_BOTTOM:
-      bottop *= -1;
-    case DT_ACTION_EFFECT_TOP:
-      move_size = bottop;
-    case DT_ACTION_EFFECT_DOWN:
-      move_size *= -1;
-    case DT_ACTION_EFFECT_UP:
-      c->drag_start_percentage = (p->levels[c->channel][1] - p->levels[c->channel][0]) / (p->levels[c->channel][2] - p->levels[c->channel][0]);
-
-      const float interval = 0.02; // Distance moved for each scroll event
-      const float new_position = p->levels[c->channel][element] + interval * move_size;
-      _rgblevels_move_handle(self, element, new_position, p->levels[c->channel], c->drag_start_percentage);
-    default:
-      fprintf(stderr, "[_action_process_tabs] unknown shortcut effect (%d) for levels\n", effect);
-      break;
-    }
-
-    gchar *text = g_strdup_printf("%s %.2f", _action_elements_levels[element].name, p->levels[c->channel][element]);
-    dt_action_widget_toast(DT_ACTION(self), target, text);
-    g_free(text);
-  }
-
-  return p->levels[c->channel][element];
-}
-
-const dt_action_def_t _action_def_levels
-  = { N_("levels"),
-      _action_process,
-      _action_elements_levels };
-
 void gui_init(dt_iop_module_t *self)
 {
   dt_iop_rgblevels_gui_data_t *c = IOP_GUI_ALLOC(rgblevels);
@@ -1012,7 +957,6 @@ void gui_init(dt_iop_module_t *self)
   gtk_widget_set_tooltip_text(c->cmb_autoscale, _("choose between linked and independent channels."));
 
   c->channel_tabs = GTK_NOTEBOOK(gtk_notebook_new());
-  dt_action_define_iop(self, NULL, N_("channel"), GTK_WIDGET(c->channel_tabs), &dt_action_def_tabs_rgb);
   dt_ui_notebook_page(c->channel_tabs, N_("R"), _("curve nodes for r channel"));
   dt_ui_notebook_page(c->channel_tabs, N_("G"), _("curve nodes for g channel"));
   dt_ui_notebook_page(c->channel_tabs, N_("B"), _("curve nodes for b channel"));
@@ -1025,7 +969,6 @@ void gui_init(dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(c->area), TRUE, TRUE, 0);
 
   g_object_set_data(G_OBJECT(c->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("levels"), GTK_WIDGET(c->area), &_action_def_levels);
 
   gtk_widget_set_tooltip_text(GTK_WIDGET(c->area),_("drag handles to set black, gray, and white points. "
                                                     "operates on L channel."));
@@ -1042,19 +985,16 @@ void gui_init(dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(c->area), "scroll-event", G_CALLBACK(_area_scroll_callback), self);
 
   c->blackpick = dt_color_picker_new(self, DT_COLOR_PICKER_POINT, NULL);
-  dt_action_define_iop(self, "pickers", "black", c->blackpick, &dt_action_def_toggle);
   gtk_widget_set_tooltip_text(c->blackpick, _("pick black point from image"));
   gtk_widget_set_name(GTK_WIDGET(c->blackpick), "picker-black");
   g_signal_connect(G_OBJECT(c->blackpick), "toggled", G_CALLBACK(_color_picker_callback), self);
 
   c->greypick = dt_color_picker_new(self, DT_COLOR_PICKER_POINT, NULL);
-  dt_action_define_iop(self, "pickers", "gray", c->greypick, &dt_action_def_toggle);
   gtk_widget_set_tooltip_text(c->greypick, _("pick medium gray point from image"));
   gtk_widget_set_name(GTK_WIDGET(c->greypick), "picker-grey");
   g_signal_connect(G_OBJECT(c->greypick), "toggled", G_CALLBACK(_color_picker_callback), self);
 
   c->whitepick = dt_color_picker_new(self, DT_COLOR_PICKER_POINT, NULL);
-  dt_action_define_iop(self, "pickers", "white", c->whitepick, &dt_action_def_toggle);
   gtk_widget_set_tooltip_text(c->whitepick, _("pick white point from image"));
   gtk_widget_set_name(GTK_WIDGET(c->whitepick), "picker-white");
   g_signal_connect(G_OBJECT(c->whitepick), "toggled", G_CALLBACK(_color_picker_callback), self);
@@ -1067,12 +1007,10 @@ void gui_init(dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), pick_hbox, TRUE, TRUE, 0);
 
   c->bt_auto_levels = gtk_button_new_with_label(_("auto"));
-  dt_action_define_iop(self, NULL, "auto levels", c->bt_auto_levels, &dt_action_def_button);
   gtk_widget_set_tooltip_text(c->bt_auto_levels, _("apply auto levels"));
 
   c->bt_select_region = dtgtk_togglebutton_new(dtgtk_cairo_paint_colorpicker, 0, NULL);
   dt_gui_add_class(c->bt_select_region, "dt_transparent_background");
-  dt_action_define_iop(self, NULL, "auto region", c->bt_select_region, &dt_action_def_toggle);
   gtk_widget_set_tooltip_text(c->bt_select_region,
                               _("apply auto levels based on a region defined by the user\n"
                                 "click and drag to draw the area\n"

@@ -34,7 +34,7 @@
 #include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/presets.h"
-#include "gui/accelerators.h"
+
 #include "iop/iop_api.h"
 
 #include <assert.h>
@@ -1952,10 +1952,6 @@ static gboolean _move_point_internal(dt_iop_module_t *self, GtkWidget *widget, f
   int ch = 0;
   dt_iop_basecurve_node_t *basecurve = p->basecurve[ch];
 
-  float multiplier = dt_accel_get_speed_multiplier(widget, state);
-  dx *= multiplier;
-  dy *= multiplier;
-
   basecurve[c->selected].x = CLAMP(basecurve[c->selected].x + dx, 0.0f, 1.0f);
   basecurve[c->selected].y = CLAMP(basecurve[c->selected].y + dy, 0.0f, 1.0f);
 
@@ -2073,7 +2069,6 @@ void gui_init(struct dt_iop_module_t *self)
   c->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(1.0));
   gtk_widget_set_tooltip_text(GTK_WIDGET(c->area), _("abscissa: input, ordinate: output. works on RGB channels"));
   g_object_set_data(G_OBJECT(c->area), "iop-instance", self);
-  dt_action_define_iop(self, NULL, N_("curve"), GTK_WIDGET(c->area), NULL);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(c->area), TRUE, TRUE, 0);
 
   c->cmb_preserve_colors = dt_bauhaus_combobox_from_params(self, "preserve_colors");

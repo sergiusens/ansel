@@ -33,7 +33,7 @@
 #include "common/variables.h"
 #include "control/jobs.h"
 #include "dtgtk/resetlabel.h"
-#include "gui/accelerators.h"
+
 #include "gui/drag_and_drop.h"
 #include "gui/gtk.h"
 #include "libs/lib.h"
@@ -2246,19 +2246,19 @@ void gui_init(dt_lib_module_t *self)
   ////////////////////////// PRINTER SETTINGS
 
   // create papers combo as filled when adding printers
-  d->papers = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->papers = dt_bauhaus_combobox_new(NULL);
 
   label = dt_ui_section_label_new(_("printer"));
   gtk_box_pack_start(GTK_BOX(self->widget), label, TRUE, TRUE, 0);
   dt_gui_add_help_link(self->widget, dt_get_help_url("print_settings_printer"));
-  d->printers = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->printers = dt_bauhaus_combobox_new(NULL);
 
   gtk_box_pack_start(GTK_BOX(self->widget), d->printers, TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(d->printers), "value-changed", G_CALLBACK(_printer_changed), self);
 
   //// media
 
-  d->media = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->media = dt_bauhaus_combobox_new(NULL);
 
   dt_bauhaus_widget_set_label(d->media, N_("printer"), N_("media"));
 
@@ -2267,7 +2267,7 @@ void gui_init(dt_lib_module_t *self)
 
   //  Add printer profile combo
 
-  d->pprofile = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->pprofile = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->pprofile, N_("printer"), N_("profile"));
 
   int combo_idx, n;
@@ -2318,7 +2318,7 @@ void gui_init(dt_lib_module_t *self)
 
   //  Add printer intent combo
 
-  d->pintent = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->pintent = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->pintent, N_("printer"), N_("intent"));
   dt_bauhaus_combobox_add(d->pintent, _("perceptual"));
   dt_bauhaus_combobox_add(d->pintent, _("relative colorimetric"));
@@ -2359,7 +2359,7 @@ void gui_init(dt_lib_module_t *self)
 
   //// portrait / landscape
 
-  d->orientation = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->orientation = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->orientation, NULL, N_("orientation"));
   dt_bauhaus_combobox_add(d->orientation, _("portrait"));
   dt_bauhaus_combobox_add(d->orientation, _("landscape"));
@@ -2369,7 +2369,7 @@ void gui_init(dt_lib_module_t *self)
 
   // NOTE: units has no label, which makes for cleaner UI but means that no action can be assigned
   GtkWidget *ucomb =
-    dt_bauhaus_combobox_new_full(DT_ACTION(self), NULL, NULL,
+    dt_bauhaus_combobox_new_full(NULL, NULL, NULL,
                                  _("measurement units"),
                                  d->unit, (GtkCallback)_unit_changed, self,
                                  _unit_names);
@@ -2598,7 +2598,7 @@ void gui_init(dt_lib_module_t *self)
 
   //  Add export profile combo
 
-  d->profile = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->profile = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->profile, NULL, N_("profile"));
 
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->profile), TRUE, TRUE, 0);
@@ -2644,7 +2644,7 @@ void gui_init(dt_lib_module_t *self)
 
   //  Add export intent combo
 
-  d->intent = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->intent = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->intent, NULL, N_("intent"));
 
   dt_bauhaus_combobox_add(d->intent, _("image settings"));
@@ -2660,7 +2660,7 @@ void gui_init(dt_lib_module_t *self)
 
   //  Add export style combo
 
-  d->style = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->style = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->style, NULL, N_("style"));
 
   dt_bauhaus_combobox_add(d->style, _("none"));
@@ -2701,7 +2701,7 @@ void gui_init(dt_lib_module_t *self)
 
   //  Whether to add/replace style items
 
-  d->style_mode = dt_bauhaus_combobox_new_action(DT_ACTION(self));
+  d->style_mode = dt_bauhaus_combobox_new(NULL);
   dt_bauhaus_widget_set_label(d->style_mode, NULL, N_("mode"));
 
   dt_bauhaus_combobox_add(d->style_mode, _("replace history"));

@@ -127,9 +127,6 @@ OPTIONAL(void, gui_post_expose, struct dt_iop_module_t *self, cairo_t *cr, int32
 /** optional callback to be notified if the module acquires gui focus/loses it. */
 OPTIONAL(void, gui_focus, struct dt_iop_module_t *self, gboolean in);
 
-/** Key accelerator registration callbacks */
-OPTIONAL(GSList *, mouse_actions, struct dt_iop_module_t *self);
-
 /** optional event callbacks */
 OPTIONAL(int, mouse_leave, struct dt_iop_module_t *self);
 OPTIONAL(int, mouse_moved, struct dt_iop_module_t *self, double x, double y, double pressure, int which);
