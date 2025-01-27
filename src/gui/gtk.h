@@ -127,6 +127,8 @@ typedef struct dt_gui_gtk_t
   // from "next gen" handler to let them be captured by Gtk.
   GtkAccelGroup * global_accels;
 
+  GList *input_devices;
+
   gboolean show_overlays;
   gboolean show_focus_peaking;
   double overlay_red, overlay_blue, overlay_green, overlay_contrast;

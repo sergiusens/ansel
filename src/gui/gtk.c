@@ -392,6 +392,8 @@ void dt_gui_gtk_quit()
   dt_gui_add_class(win, "dt_gui_quit");
   gtk_window_set_title(GTK_WINDOW(win), _("closing Ansel..."));
 
+  g_list_free(darktable.gui->input_devices);
+
   // Write out windows dimension
   dt_gui_gtk_write_config();
 
@@ -620,6 +622,7 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   gui->last_preset = NULL;
   gui->export_popup.window = NULL;
   gui->export_popup.module = NULL;
+  gui->input_devices = NULL;
 
   // load the style / theme
   GtkSettings *settings = gtk_settings_get_default();
@@ -709,13 +712,17 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // let's try to support pressure sensitive input devices like tablets for mask drawing
   dt_print(DT_DEBUG_INPUT, "[input device] Input devices found:\n\n");
 
-  GList *input_devices
+  gui->input_devices
       = gdk_seat_get_slaves(gdk_display_get_default_seat(gdk_display_get_default()), GDK_SEAT_CAPABILITY_ALL);
-  for(GList *l = input_devices; l != NULL; l = g_list_next(l))
+  for(GList *l = gui->input_devices; l != NULL; l = g_list_next(l))
   {
     GdkDevice *device = (GdkDevice *)l->data;
     const GdkInputSource source = gdk_device_get_source(device);
     const gint n_axes = (source == GDK_SOURCE_KEYBOARD ? 0 : gdk_device_get_n_axes(device));
+
+    // force-enable everything we find in screen mode.
+    // TODO: make that an user param ?
+    gdk_device_set_mode(device, GDK_MODE_SCREEN);
 
     dt_print(DT_DEBUG_INPUT, "%s (%s), source: %s, mode: %s, %d axes, %d keys\n", gdk_device_get_name(device),
              (source != GDK_SOURCE_KEYBOARD) && gdk_device_get_has_cursor(device) ? "with cursor" : "no cursor",
@@ -729,7 +736,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
     }
     dt_print(DT_DEBUG_INPUT, "\n");
   }
-  g_list_free(input_devices);
 
   // finally set the cursor to be the default.
   // for some reason this is needed on some systems to pick up the correctly themed cursor
