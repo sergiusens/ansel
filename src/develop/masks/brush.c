@@ -1641,6 +1641,54 @@ static int _brush_events_button_pressed(struct dt_iop_module_t *module, float pz
   return 0;
 }
 
+
+static float _get_brush_smoothing()
+{
+  float factor = 0.01f;
+  const char *smoothing = dt_conf_get_string_const("brush_smoothing");
+  if(!strcmp(smoothing, "low"))
+    factor = 0.0025f;
+  else if(!strcmp(smoothing, "medium"))
+    factor = 0.01f;
+  else if(!strcmp(smoothing, "high"))
+    factor = 0.04f;
+  return factor;
+}
+
+static void _apply_pen_pressure(dt_masks_form_gui_t *gui, float *guipoints_payload)
+{
+  for(int i = 0; i < gui->guipoints_count; i++)
+  {
+    float *payload = guipoints_payload + 4 * i;
+    float pressure = payload[3];
+    payload[3] = 1.0f;
+
+    switch(gui->pressure_sensitivity)
+    {
+      case DT_MASKS_PRESSURE_BRUSHSIZE_REL:
+        payload[0] = MAX(BORDER_MIN, payload[0] * pressure);
+        break;
+      case DT_MASKS_PRESSURE_HARDNESS_ABS:
+        payload[1] = MAX(HARDNESS_MIN, pressure);
+        break;
+      case DT_MASKS_PRESSURE_HARDNESS_REL:
+        payload[1] = MAX(HARDNESS_MIN, payload[1] * pressure);
+        break;
+      case DT_MASKS_PRESSURE_OPACITY_ABS:
+        payload[2] = MAX(0.05f, pressure);
+        break;
+      case DT_MASKS_PRESSURE_OPACITY_REL:
+        payload[2] = MAX(0.05f, payload[2] * pressure);
+        break;
+      default:
+      case DT_MASKS_PRESSURE_OFF:
+        // ignore pressure value
+        break;
+    }
+  }
+}
+
+
 static int _brush_events_button_released(struct dt_iop_module_t *module, float pzx, float pzy, int which,
                                          uint32_t state, dt_masks_form_t *form, int parentid,
                                          dt_masks_form_gui_t *gui, int index)
@@ -1695,47 +1743,10 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
       }
 
       // we consolidate pen pressure readings into payload
-      for(int i = 0; i < gui->guipoints_count; i++)
-      {
-        float *payload = guipoints_payload + 4 * i;
-        float pressure = payload[3];
-        payload[3] = 1.0f;
-
-        switch(gui->pressure_sensitivity)
-        {
-          case DT_MASKS_PRESSURE_BRUSHSIZE_REL:
-            payload[0] = MAX(BORDER_MIN, payload[0] * pressure);
-            break;
-          case DT_MASKS_PRESSURE_HARDNESS_ABS:
-            payload[1] = MAX(HARDNESS_MIN, pressure);
-            break;
-          case DT_MASKS_PRESSURE_HARDNESS_REL:
-            payload[1] = MAX(HARDNESS_MIN, payload[1] * pressure);
-            break;
-          case DT_MASKS_PRESSURE_OPACITY_ABS:
-            payload[2] = MAX(0.05f, pressure);
-            break;
-          case DT_MASKS_PRESSURE_OPACITY_REL:
-            payload[2] = MAX(0.05f, payload[2] * pressure);
-            break;
-          default:
-          case DT_MASKS_PRESSURE_OFF:
-            // ignore pressure value
-            break;
-        }
-      }
-
-      float factor = 0.01f;
-      const char *smoothing = dt_conf_get_string_const("brush_smoothing");
-      if(!strcmp(smoothing, "low"))
-        factor = 0.0025f;
-      else if(!strcmp(smoothing, "medium"))
-        factor = 0.01f;
-      else if(!strcmp(smoothing, "high"))
-        factor = 0.04f;
+      _apply_pen_pressure(gui, guipoints_payload);
 
       // accuracy level for node elimination, dependent on brush size
-      const float epsilon2 = factor * MAX(BORDER_MIN, masks_border) * MAX(BORDER_MIN, masks_border);
+      const float epsilon2 = _get_brush_smoothing() * sqf(MAX(BORDER_MIN, masks_border));
 
       // we simplify the path and generate the nodes
       form->points = _brush_ramer_douglas_peucker(guipoints, gui->guipoints_count, guipoints_payload, epsilon2);
