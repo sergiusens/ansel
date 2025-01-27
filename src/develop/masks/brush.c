@@ -2346,6 +2346,76 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
     }
   }
 
+
+  // draw borders
+  if((gui->group_selected == index) && gpt->border_count > nb * 3 + 2)
+  {
+    cairo_save(cr);
+
+    cairo_move_to(cr, gpt->border[nb * 6], gpt->border[nb * 6 + 1]);
+
+    for(int i = nb * 3 + 1; i < gpt->border_count; i++)
+    {
+      cairo_line_to(cr, gpt->border[i * 2], gpt->border[i * 2 + 1]);
+    }
+
+    cairo_close_path(cr);
+
+    // Trick: fill with a transparent color to get only the outer shape
+    // because when using varying widths on nodes, there are self-intersecting border lines
+    cairo_set_source_rgba(cr, 0., 0., 0., 0.);
+    cairo_fill_preserve(cr);
+
+    // we execute the drawing
+    if(gui->border_selected)
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
+    else
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
+    dt_draw_set_color_overlay(cr, FALSE, 0.8);
+    cairo_stroke_preserve(cr);
+
+    if(gui->border_selected)
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
+    else
+      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
+    dt_draw_set_color_overlay(cr, TRUE, 0.8);
+    cairo_set_dash(cr, dashed, len, 0);
+    cairo_stroke(cr);
+
+    cairo_restore(cr);
+
+#if 0
+    //we draw the brush segment by segment
+    for (int k=0; k<nb; k++)
+    {
+      //draw the point
+      float anchor_size = 0.0f;
+
+      if (gui->point_border_selected == k)
+      {
+        anchor_size = 7.0f / zoom_scale;
+      }
+      else
+      {
+        anchor_size = 5.0f / zoom_scale;
+      }
+      cairo_set_source_rgba(cr, .8, .8, .8, .8);
+      cairo_rectangle(cr,
+                      gpt->border[k*6] - (anchor_size*0.5),
+                      gpt->border[k*6+1] - (anchor_size*0.5),
+                      anchor_size, anchor_size);
+      cairo_fill_preserve(cr);
+
+      if (gui->point_border_selected == k) cairo_set_line_width(cr, 2.0/zoom_scale);
+      else cairo_set_line_width(cr, 1.0/zoom_scale);
+      cairo_set_source_rgba(cr, .3, .3, .3, .8);
+      cairo_set_dash(cr, dashed, 0, 0);
+      cairo_stroke(cr);
+    }
+#endif
+  }
+
+
   // draw corners
   if(gui->group_selected == index && gpt->points_count > nb * 3 + 2)
   {
@@ -2410,60 +2480,6 @@ static void _brush_events_post_expose(cairo_t *cr, float zoom_scale, dt_masks_fo
     cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
     dt_draw_set_color_overlay(cr, FALSE, 0.8);
     cairo_stroke(cr);
-  }
-
-  // draw border and corners
-  if((gui->group_selected == index) && gpt->border_count > nb * 3 + 2)
-  {
-    cairo_move_to(cr, gpt->border[nb * 6], gpt->border[nb * 6 + 1]);
-
-    for(int i = nb * 3 + 1; i < gpt->border_count; i++)
-    {
-      cairo_line_to(cr, gpt->border[i * 2], gpt->border[i * 2 + 1]);
-    }
-    // we execute the drawing
-    if(gui->border_selected)
-      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
-    else
-      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
-    dt_draw_set_color_overlay(cr, FALSE, 0.8);
-    cairo_set_dash(cr, dashed, len, 0);
-    cairo_stroke_preserve(cr);
-    if(gui->border_selected)
-      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2.0));
-    else
-      cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(1.0));
-    dt_draw_set_color_overlay(cr, TRUE, 0.8);
-    cairo_set_dash(cr, dashed, len, DT_PIXEL_APPLY_DPI(4.0));
-    cairo_stroke(cr);
-
-#if 0
-    //we draw the brush segment by segment
-    for (int k=0; k<nb; k++)
-    {
-      //draw the point
-      if (gui->point_border_selected == k)
-      {
-        anchor_size = 7.0f / zoom_scale;
-      }
-      else
-      {
-        anchor_size = 5.0f / zoom_scale;
-      }
-      cairo_set_source_rgba(cr, .8, .8, .8, .8);
-      cairo_rectangle(cr,
-                      gpt->border[k*6] - (anchor_size*0.5),
-                      gpt->border[k*6+1] - (anchor_size*0.5),
-                      anchor_size, anchor_size);
-      cairo_fill_preserve(cr);
-
-      if (gui->point_border_selected == k) cairo_set_line_width(cr, 2.0/zoom_scale);
-      else cairo_set_line_width(cr, 1.0/zoom_scale);
-      cairo_set_source_rgba(cr, .3, .3, .3, .8);
-      cairo_set_dash(cr, dashed, 0, 0);
-      cairo_stroke(cr);
-    }
-#endif
   }
 
   // draw the source if needed
