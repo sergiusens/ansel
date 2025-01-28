@@ -35,21 +35,13 @@ void select_unedited_callback()
 
 void append_select(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
-  add_sub_menu_entry(menus, lists, _("Select all"), index, NULL, select_all_callback, NULL, NULL, select_all_sensitive_callback);
-  /*ac = dt_action_define(pnl, NULL, N_("Select all"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, select_all_callback, GDK_KEY_a, GDK_CONTROL_MASK);*/
+  add_sub_menu_entry(menus, lists, _("Select all"), index, NULL, select_all_callback, NULL, NULL, select_all_sensitive_callback, GDK_KEY_a, GDK_CONTROL_MASK);
 
-  add_sub_menu_entry(menus, lists, _("Clear selection"), index, NULL, clear_selection_callback, NULL, NULL, clear_selection_sensitive_callback);
-  /*ac = dt_action_define(pnl, NULL, N_("Clear selection"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, clear_selection_callback, GDK_KEY_a, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+  add_sub_menu_entry(menus, lists, _("Clear selection"), index, NULL, clear_selection_callback, NULL, NULL, clear_selection_sensitive_callback, GDK_KEY_a, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
-  add_sub_menu_entry(menus, lists, _("Invert selection"), index, NULL, invert_selection_callback, NULL, NULL, clear_selection_sensitive_callback);
-  /*ac = dt_action_define(pnl, NULL, N_("Invert selection"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, invert_selection_callback, GDK_KEY_i, GDK_CONTROL_MASK);*/
+  add_sub_menu_entry(menus, lists, _("Invert selection"), index, NULL, invert_selection_callback, NULL, NULL, clear_selection_sensitive_callback, GDK_KEY_i, GDK_CONTROL_MASK);
 
-  add_sub_menu_entry(menus, lists, _("Select unedited"), index, NULL, select_unedited_callback, NULL, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Select unedited"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, select_unedited_callback, 0, 0);*/
+  add_sub_menu_entry(menus, lists, _("Select unedited"), index, NULL, select_unedited_callback, NULL, NULL, NULL, 0, 0);
 
   //add_menu_separator(menus[index]);
 }

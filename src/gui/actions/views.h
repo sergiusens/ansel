@@ -55,12 +55,9 @@ void append_views(GtkWidget **menus, GList **lists, const dt_menus_t index)
     dt_view_t *view = (dt_view_t *)view_iter->data;
     if(view->flags() & VIEW_FLAGS_HIDDEN) continue;
     add_sub_menu_entry(menus, lists, view->name(view), index,
-                       NULL, view_switch_callback, NULL, views_active_callback, views_sensitive_callback);
-
-    //ac = dt_action_define(pnl, NULL, g_strdup(view->name(view)), get_last_widget(lists), NULL);
-
-    //if(!g_strcmp0(view->module_name, "lighttable"))
-    //  dt_action_register(ac, NULL, view_switch_to_lighttable, GDK_KEY_Escape, 0);
+                       NULL, view_switch_callback, NULL, views_active_callback, views_sensitive_callback,
+                       !g_strcmp0(view->module_name, "lighttable") ? GDK_KEY_Escape : 0,
+                       0 );
 
     // Darkroom is not handled in global menu since it needs to be opened with an image ID,
     // so we only handle it from filmstrip and lighttable thumbnails.

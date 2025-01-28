@@ -189,14 +189,10 @@ void export_files_callback()
 void append_file(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   add_sub_menu_entry(menus, lists, _("Import..."), index, NULL, import_files_callback, NULL, NULL,
-                     NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Import images"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, import_files_callback, GDK_KEY_i, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                     NULL, GDK_KEY_i, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_menu_entry(menus, lists, _("Export..."), index, NULL, export_files_callback, NULL, NULL,
-                     NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Export images"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, export_files_callback, GDK_KEY_e, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                     NULL, GDK_KEY_e, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
@@ -206,7 +202,7 @@ void append_file(GtkWidget **menus, GList **lists, const dt_menus_t index)
   for(int i = 0; i < NUM_LAST_COLLECTIONS; i++)
   {
     // Pass the position of current menuitem in list as custom-data pointer
-    add_sub_sub_menu_entry(parent, lists, "", index, GINT_TO_POINTER(i), update_collection_callback, NULL, NULL, NULL);
+    add_sub_sub_menu_entry(parent, lists, "", index, GINT_TO_POINTER(i), update_collection_callback, NULL, NULL, NULL, 0, 0);
 
     // Call init directly just this once
     GtkWidget *this = get_last_widget(lists);
@@ -220,47 +216,31 @@ void append_file(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_menu_separator(menus[index]);
 
   add_sub_menu_entry(menus, lists, _("Copy files on disk..."), index, NULL, dt_control_copy_images, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Copy files on disk"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_copy_images, 0, 0);*/
+                     sensitive_if_selected, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Move files on disk..."), index, NULL, dt_control_move_images, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Move files on disk"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_move_images, 0, 0);*/
+                     sensitive_if_selected, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Create a blended HDR"), index, NULL, dt_control_merge_hdr, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Create a blended HDR"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_merge_hdr, 0, 0);*/
+                     sensitive_if_selected, 0, 0);
 
   add_menu_separator(menus[index]);
 
   add_sub_menu_entry(menus, lists, _("Copy distant images locally"), index, NULL, dt_control_set_local_copy_images, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Copy distant images locally"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_set_local_copy_images, 0, 0);*/
+                     sensitive_if_selected, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Resynchronize distant images"), index, NULL, dt_control_reset_local_copy_images, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Resynchronize distant images"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_reset_local_copy_images, 0, 0);*/
+                     sensitive_if_selected, 0, 0);
 
   add_menu_separator(menus[index]);
 
   add_sub_menu_entry(menus, lists, _("Remove from library"), index, NULL, (void *)dt_control_remove_images, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Remove files from library"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, (void *)dt_control_remove_images, GDK_KEY_Delete, 0);*/
+                     sensitive_if_selected, GDK_KEY_Delete, 0);
 
   add_sub_menu_entry(menus, lists, _("Delete on disk"), index, NULL, dt_control_delete_images, NULL, NULL,
-                     sensitive_if_selected);
-  /*ac = dt_action_define(pnl, NULL, N_("Delete files on disk"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_delete_images, GDK_KEY_Delete, GDK_SHIFT_MASK);*/
+                     sensitive_if_selected, GDK_KEY_Delete, GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
-  add_sub_menu_entry(menus, lists, _("Quit"), index, NULL, dt_control_quit, NULL, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Quit"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, dt_control_quit, GDK_KEY_q, GDK_CONTROL_MASK);*/
+  add_sub_menu_entry(menus, lists, _("Quit"), index, NULL, dt_control_quit, NULL, NULL, NULL,  GDK_KEY_q, GDK_CONTROL_MASK);
 }

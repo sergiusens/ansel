@@ -366,7 +366,7 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
     dt_colorspaces_color_profile_t *prof = (dt_colorspaces_color_profile_t *)l->data;
     if(prof->display_pos > -1)
     {
-      add_sub_sub_menu_entry(parent, lists, prof->name, index, prof, profile_callback, profile_checked_callback, NULL, NULL);
+      add_sub_sub_menu_entry(parent, lists, prof->name, index, prof, profile_callback, profile_checked_callback, NULL, NULL, 0, 0);
       //gtk_check_menu_item_set_draw_as_radio(GTK_CHECK_MENU_ITEM(get_last_widget(lists)), TRUE);
     }
   }
@@ -381,7 +381,7 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   const char *data[4] = { "perceptual", "relative colorimetric", "saturation", "absolute colorimetric" };
 
   for(int i = 0; i < 4; i++)
-    add_sub_sub_menu_entry(parent, lists, intents[i], index, (void *)data[i], intent_callback, intent_checked_callback, NULL, NULL);
+    add_sub_sub_menu_entry(parent, lists, intents[i], index, (void *)data[i], intent_callback, intent_checked_callback, NULL, NULL, 0, 0);
 
   add_menu_separator(menus[index]);
 
@@ -391,31 +391,19 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   // Children of sub-menu panels
   add_sub_sub_menu_entry(parent, lists, _("Left"), index, NULL,
-                         panel_left_callback, panel_left_checked_callback, NULL, NULL);
-
-  /*ac = dt_action_define(pnl, NULL, N_("Toggle left panel visibility"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, panel_left_callback, GDK_KEY_l, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                         panel_left_callback, panel_left_checked_callback, NULL, NULL, GDK_KEY_l, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(parent, lists, _("Right"), index, NULL,
-                         panel_right_callback, panel_right_checked_callback, NULL, NULL);
-
-  /*ac = dt_action_define(pnl, NULL, N_("Toggle right panel visibility"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, panel_right_callback, GDK_KEY_r, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                         panel_right_callback, panel_right_checked_callback, NULL, NULL, GDK_KEY_r, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(parent, lists, _("Top"), index, NULL,
-                         panel_top_callback, panel_top_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Toggle top bar visibility"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, panel_top_callback, GDK_KEY_t, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                         panel_top_callback, panel_top_checked_callback, NULL, NULL, GDK_KEY_t, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(parent, lists, _("Bottom"), index, NULL,
-                         panel_bottom_callback, panel_bottom_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Toggle bottom bar visibility"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, panel_bottom_callback, GDK_KEY_b, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                         panel_bottom_callback, panel_bottom_checked_callback, NULL, NULL, GDK_KEY_b, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(parent, lists, _("Filmstrip"), index, NULL,
-                         filmstrip_callback, filmstrip_checked_callback, NULL, filmstrip_sensitive_callback);
-  /*ac = dt_action_define(pnl, NULL, N_("Toggle filmstrip visibility"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, filmstrip_callback, GDK_KEY_f, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+                         filmstrip_callback, filmstrip_checked_callback, NULL, filmstrip_sensitive_callback, GDK_KEY_f, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
@@ -424,34 +412,22 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   parent = get_last_widget(lists);
 
   add_sub_sub_menu_entry(parent, lists, _("Always hide"), index, NULL,
-                         always_hide_overlays_callback, always_hide_overlays_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Always hide thumbnail overlays"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, always_hide_overlays_callback, 0, 0);*/
+                         always_hide_overlays_callback, always_hide_overlays_checked_callback, NULL, NULL, 0, 0);
 
   add_sub_sub_menu_entry(parent, lists, _("Show on hover"), index, NULL,
-                         hover_overlays_callback, hover_overlays_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Show thumbnail overlays on hover"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, hover_overlays_callback, 0, 0);*/
+                         hover_overlays_callback, hover_overlays_checked_callback, NULL, NULL, 0, 0);
 
   add_sub_sub_menu_entry(parent, lists, _("Always show"), index, NULL,
-                         always_show_overlays_callback, always_show_overlays_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Always show thumbnail overlays"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, always_show_overlays_callback, 0, 0);*/
+                         always_show_overlays_callback, always_show_overlays_checked_callback, NULL, NULL, 0, 0);
 
-  add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Collapse grouped images"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, collapse_grouped_callback, 0, 0);*/
+  add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL, 0, 0);
 
-  add_sub_menu_entry(menus, lists, _("Overlay focus peaking"), index, NULL, focus_peaking_callback, focus_peaking_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Overlay focus peaking"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, focus_peaking_callback, GDK_KEY_p, GDK_CONTROL_MASK | GDK_SHIFT_MASK);*/
+  add_sub_menu_entry(menus, lists, _("Overlay focus peaking"), index, NULL, focus_peaking_callback, focus_peaking_checked_callback, NULL, NULL, GDK_KEY_p, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
   add_sub_menu_entry(menus, lists, _("Full screen"), index, NULL, full_screen_callback,
-                     full_screen_checked_callback, NULL, NULL);
-  /*ac = dt_action_define(pnl, NULL, N_("Full screen"), get_last_widget(lists), NULL);
-  dt_action_register(ac, NULL, full_screen_callback, GDK_KEY_F11, 0);*/
+                     full_screen_checked_callback, NULL, NULL, GDK_KEY_F11, 0);
 
   // specific top/bottom toggles
   /*dt_action_register(pnl, N_("Toggle all panels visibility"), _toggle_side_borders_accel_callback, GDK_KEY_Tab, 0);*/

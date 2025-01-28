@@ -4,6 +4,7 @@
 #include "common/collection.h"
 #include "control/conf.h"
 #include "develop/develop.h"
+#include "gui/accelerators.h"
 #include "gui/gtk.h"
 #ifdef GDK_WINDOWING_QUARTZ
 #include "osx/osx.h"
@@ -65,7 +66,8 @@ static dt_menu_entry_t * set_menu_entry(GList **items_list, const gchar *label, 
                                         void (*action_callback)(GtkWidget *widget),
                                         gboolean (*checked_callback)(GtkWidget *widget),
                                         gboolean (*active_callback)(GtkWidget *widget),
-                                        gboolean (*sensitive_callback)(GtkWidget *widget))
+                                        gboolean (*sensitive_callback)(GtkWidget *widget),
+                                        guint key_val, GdkModifierType mods)
 {
   // Alloc and set to 0
   dt_menu_entry_t *entry = calloc(1, sizeof(dt_menu_entry_t));
@@ -98,6 +100,18 @@ static dt_menu_entry_t * set_menu_entry(GList **items_list, const gchar *label, 
   entry->sensitive_callback = sensitive_callback;
   entry->active_callback = active_callback;
 
+  // Wire the accelerator
+  if(key_val > 0)
+    gtk_widget_add_accelerator(entry->widget, "activate", darktable.gui->global_accels, key_val, mods, GTK_ACCEL_VISIBLE);
+
+  // Keypad numbers register as different keys. Handle their alternatives here
+  guint alt_char = dt_accels_keypad_alternatives(key_val);
+  if(key_val != alt_char)
+    gtk_widget_add_accelerator(entry->widget, "activate", darktable.gui->global_accels, alt_char, mods, GTK_ACCEL_VISIBLE);
+
+  // In theory, we can use the following but I guess only after having appended the menuitem to the menu:
+  // gtk_accel_label_set_accel(GTK_ACCEL_LABEL(child), key_val, mods);
+
   // Add it to the list of menus items for easy sequential access later
   *items_list = g_list_append(*items_list, entry);
 
@@ -124,16 +138,6 @@ void update_entry(dt_menu_entry_t *entry)
     if(entry->active_callback(entry->widget)) dt_gui_add_class(entry->widget, "menu-active");
     else dt_gui_remove_class(entry->widget, "menu-active");
   }
-
-  // Get the key shortcut if any and add it to the accel label
-  // TODO: connect refresh on "accel changed" signal, here
-  // it's refreshed at each display.
-  /*
-  guint key_val;
-  GdkModifierType mods;
-  if(get_accel_from_widget(entry->widget, &key_val, &mods))
-    gtk_widget_add_accelerator(entry->widget, "activate", darktable.gui->global_accels, key_val, mods, GTK_ACCEL_VISIBLE);
-  */
 }
 
 void update_menu_entries(GtkWidget *widget, gpointer user_data)
@@ -170,7 +174,7 @@ void add_top_submenu_entry(GtkWidget **menus, GList **lists, const gchar *label,
   GtkWidget *submenu = gtk_menu_new();
   gtk_menu_set_accel_group(GTK_MENU(submenu), darktable.gui->global_accels);
 
-  dt_menu_entry_t *entry = set_menu_entry(lists, label, NULL, index, NULL, NULL, NULL, NULL, NULL);
+  dt_menu_entry_t *entry = set_menu_entry(lists, label, NULL, index, NULL, NULL, NULL, NULL, NULL, 0, 0);
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(entry->widget), submenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(menus[index]), entry->widget);
   // We don't take callbacks for top submenus, they do nothing more than opening sub-submenues.
@@ -181,13 +185,16 @@ void add_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, co
                         void (*action_callback)(GtkWidget *widget),
                         gboolean (*checked_callback)(GtkWidget *widget),
                         gboolean (*active_callback)(GtkWidget *widget),
-                        gboolean (*sensitive_callback)(GtkWidget *widget))
+                        gboolean (*sensitive_callback)(GtkWidget *widget),
+                        guint key_val,
+                        GdkModifierType mods)
 {
   // Default submenu entries
   dt_menu_entry_t *entry = set_menu_entry(lists, label, NULL, index,
                                           data,
                                           action_callback, checked_callback,
-                                          active_callback, sensitive_callback);
+                                          active_callback, sensitive_callback,
+                                          key_val, mods);
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menus[index]), entry->widget);
   gtk_menu_item_set_reserve_indicator(GTK_MENU_ITEM(entry->widget), TRUE);
@@ -201,13 +208,16 @@ void add_sub_sub_menu_entry(GtkWidget *parent, GList **lists, const gchar *label
                             void (*action_callback)(GtkWidget *widget),
                             gboolean (*checked_callback)(GtkWidget *widget),
                             gboolean (*active_callback)(GtkWidget *widget),
-                            gboolean (*sensitive_callback)(GtkWidget *widget))
+                            gboolean (*sensitive_callback)(GtkWidget *widget),
+                            guint key_val,
+                            GdkModifierType mods)
 {
   // Submenus of submenus entries
   dt_menu_entry_t *entry = set_menu_entry(lists, label, NULL, index,
                                           data,
                                           action_callback, checked_callback,
-                                          active_callback, sensitive_callback);
+                                          active_callback, sensitive_callback,
+                                          key_val, mods);
 
   gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_item_get_submenu(GTK_MENU_ITEM(parent))), entry->widget);
 

@@ -393,6 +393,7 @@ void dt_gui_gtk_quit()
   gtk_window_set_title(GTK_WINDOW(win), _("closing Ansel..."));
 
   g_list_free(darktable.gui->input_devices);
+  g_object_unref(darktable.gui->global_accels);
 
   // Write out windows dimension
   dt_gui_gtk_write_config();
@@ -645,6 +646,7 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
 
   // Init global accels
   gui->global_accels = gtk_accel_group_new();
+  gtk_window_add_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), gui->global_accels);
 
   //init overlay colors
   dt_guides_set_overlay_colors();

@@ -68,11 +68,11 @@ static void write_XMP()
 
 void append_run(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
-  add_sub_menu_entry(menus, lists, _("Clear all pipeline caches"), index, NULL, clear_caches_callback, NULL, NULL, NULL);
-  add_sub_menu_entry(menus, lists, _("Preload collection thumbnails"), index, NULL, preload_image_cache_callback, NULL, NULL, NULL);
+  add_sub_menu_entry(menus, lists, _("Clear all pipeline caches"), index, NULL, clear_caches_callback, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Preload collection thumbnails"), index, NULL, preload_image_cache_callback, NULL, NULL, NULL, 0, 0);
   add_menu_separator(menus[index]);
-  add_sub_menu_entry(menus, lists, _("Defragment the library"), index, NULL, optimize_database_callback, NULL, NULL, NULL);
-  add_sub_menu_entry(menus, lists, _("Backup the library"), index, NULL, backup_database_callback, NULL, NULL, NULL);
-  add_sub_menu_entry(menus, lists, _("Resynchronize library and XMP"), index, NULL, crawl_xmp_changes, NULL, NULL, NULL);
-  add_sub_menu_entry(menus, lists, _("Save selected developments to XMP"), index, NULL, write_XMP, NULL, NULL, sensitive_if_selected);
+  add_sub_menu_entry(menus, lists, _("Defragment the library"), index, NULL, optimize_database_callback, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Backup the library"), index, NULL, backup_database_callback, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Resynchronize library and XMP"), index, NULL, crawl_xmp_changes, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Save selected developments to XMP"), index, NULL, write_XMP, NULL, NULL, sensitive_if_selected, 0, 0);
 }
