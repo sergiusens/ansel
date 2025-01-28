@@ -142,7 +142,7 @@ typedef struct dt_iop_negadoctor_global_data_t
 
 const char *name()
 {
-  return _("negadoctor");
+  return _("ne_gadoctor");
 }
 
 const char *aliases()
@@ -1044,7 +1044,7 @@ void gui_init(dt_iop_module_t *self)
   const int active_page = dt_conf_get_int("plugins/darkroom/negadoctor/gui_page");
   gtk_widget_show(gtk_notebook_get_nth_page(g->notebook, active_page));
   gtk_notebook_set_current_page(g->notebook, active_page);
-  
+
 }
 
 void gui_cleanup(struct dt_iop_module_t *self)

@@ -286,7 +286,7 @@ typedef struct
 // this returns a translatable name
 const char *name()
 {
-  return _("liquify");
+  return _("l_iquify");
 }
 
 const char **description(struct dt_iop_module_t *self)

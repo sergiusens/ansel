@@ -1096,9 +1096,9 @@ static void _lib_history_change_callback(gpointer instance, gpointer user_data)
 
     gchar *label;
     if(!hitem->multi_name[0] || strcmp(hitem->multi_name, "0") == 0)
-      label = g_strdup_printf("%s%s", hitem->module->name(), star);
+      label = g_strdup_printf("%s%s", delete_underscore(hitem->module->name()), star);
     else
-      label = g_strdup_printf("%s %s%s", hitem->module->name(), hitem->multi_name, star);
+      label = g_strdup_printf("%s %s%s", delete_underscore(hitem->module->name()), hitem->multi_name, star);
 
     const gboolean selected = (num == dt_dev_get_history_end(darktable.develop) - 1);
     widget =

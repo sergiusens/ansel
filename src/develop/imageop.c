@@ -966,7 +966,7 @@ static void _iop_panel_label(dt_iop_module_t *module)
   char *module_name = dt_history_item_get_name_html(module);
 
   dt_capitalize_label(module_name);
-  gtk_label_set_markup(GTK_LABEL(lab), module_name);
+  gtk_label_set_markup_with_mnemonic(GTK_LABEL(lab), module_name);
   g_free(module_name);
 
   gtk_label_set_ellipsize(GTK_LABEL(lab), !module->multi_name[0] ? PANGO_ELLIPSIZE_END: PANGO_ELLIPSIZE_MIDDLE);
@@ -1958,6 +1958,28 @@ static gboolean _iop_plugin_body_button_press(GtkWidget *w, GdkEventButton *e, g
   return handled;
 }
 
+static gboolean _iop_plugin_header_activate(GtkWidget* self, gboolean group_cycling, gpointer user_data)
+{
+  dt_iop_module_t *module = (dt_iop_module_t *)user_data;
+
+  gtk_widget_set_visible(module->expander, TRUE);
+
+  if(darktable.develop->gui_module != module)
+  {
+    dt_iop_request_focus(module);
+    dt_iop_gui_set_expanded(module, TRUE, TRUE);
+    darktable.gui->scroll_to[1] = module->expander;
+  }
+  else
+  {
+    darktable.develop->gui_module = NULL;
+    dt_iop_gui_set_expanded(module, FALSE, TRUE);
+    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  }
+
+  return TRUE;
+}
+
 static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e, gpointer user_data)
 {
   if(e->type == GDK_2BUTTON_PRESS || e->type == GDK_3BUTTON_PRESS) return TRUE;
@@ -1989,7 +2011,7 @@ static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e,
       dt_iop_gui_set_expanded(module, !module->expanded, dt_modifier_is(e->state, GDK_SHIFT_MASK));
 
       //used to take focus away from module search text input box when module selected
-      gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+      gtk_widget_grab_focus(module->expander);
 
       return TRUE;
     }
@@ -2185,6 +2207,7 @@ void dt_iop_gui_set_expander(dt_iop_module_t *module)
 
   /* setup the header box */
   g_signal_connect(G_OBJECT(header_evb), "button-press-event", G_CALLBACK(_iop_plugin_header_button_press), module);
+  g_signal_connect(G_OBJECT(header_evb), "mnemonic-activate", G_CALLBACK(_iop_plugin_header_activate), module);
   gtk_widget_add_events(header_evb, GDK_POINTER_MOTION_MASK);
 
   /* connect mouse button callbacks for focus and presets */
@@ -2206,7 +2229,10 @@ void dt_iop_gui_set_expander(dt_iop_module_t *module)
   /* add module label */
   hw[IOP_MODULE_LABEL] = gtk_event_box_new();
   GtkWidget *lab = hw[IOP_MODULE_LABEL];
-  gtk_container_add(GTK_CONTAINER(lab), gtk_label_new(""));
+  GtkWidget *label = gtk_label_new_with_mnemonic("");
+  gtk_container_add(GTK_CONTAINER(lab), label);
+  gtk_label_set_mnemonic_widget(GTK_LABEL(label), header_evb);
+
   if((module->flags() & IOP_FLAGS_DEPRECATED) && module->deprecated_msg())
     gtk_widget_set_tooltip_text(lab, module->deprecated_msg());
   else

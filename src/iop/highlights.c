@@ -145,7 +145,7 @@ typedef struct dt_iop_highlights_global_data_t
 
 const char *name()
 {
-  return _("highlight reconstruction");
+  return _("_highlight reconstruction");
 }
 
 const char **description(struct dt_iop_module_t *self)

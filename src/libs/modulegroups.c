@@ -332,7 +332,7 @@ static gboolean _lib_modulesgroups_search_active(const gchar *text_entered, dt_i
     }
     else
     {
-      const int is_match_name = (g_strstr_len(g_utf8_casefold(dt_iop_get_localized_name(module->op), -1), -1,
+      const int is_match_name = (g_strstr_len(g_utf8_casefold(delete_underscore(dt_iop_get_localized_name(module->op)), -1), -1,
                                           g_utf8_casefold(text_entered, -1))
                                 != NULL);
       const int is_match_alias = (g_strstr_len(g_utf8_casefold(dt_iop_get_localized_aliases(module->op), -1), -1,

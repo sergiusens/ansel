@@ -145,7 +145,7 @@ typedef struct dt_iop_lensfun_data_t
 
 const char *name()
 {
-  return _("lens correction");
+  return _("_lens correction");
 }
 
 const char *aliases()

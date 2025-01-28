@@ -194,7 +194,7 @@ typedef struct dt_iop_retouch_global_data_t
 // this returns a translatable name
 const char *name()
 {
-  return _("retouch");
+  return _("re_touch");
 }
 
 const char *aliases()

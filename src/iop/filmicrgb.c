@@ -339,7 +339,7 @@ typedef struct dt_iop_filmicrgb_global_data_t
 
 const char *name()
 {
-  return _("filmic rgb");
+  return _("fil_mic rgb");
 }
 
 const char *aliases()
