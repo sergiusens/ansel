@@ -2008,7 +2008,8 @@ static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e,
       // make gtk scroll to the module once it updated its allocation size
       darktable.gui->scroll_to[1] = module->expander;
 
-      dt_iop_gui_set_expanded(module, !module->expanded, dt_modifier_is(e->state, GDK_SHIFT_MASK));
+      gboolean collapse_others = dt_modifier_is(e->state, GDK_SHIFT_MASK) ? FALSE : TRUE;
+      dt_iop_gui_set_expanded(module, !module->expanded, collapse_others);
 
       //used to take focus away from module search text input box when module selected
       gtk_widget_grab_focus(module->expander);
