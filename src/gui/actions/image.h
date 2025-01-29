@@ -158,67 +158,67 @@ void append_image(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_top_submenu_entry(menus, lists, _("Rotate"), index);
   GtkWidget *parent = get_last_widget(lists);
 
-  add_sub_sub_menu_entry(parent, lists, _("90\302\260 counter-clockwise"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("90\302\260 counter-clockwise"), index, NULL,
                          rotate_counterclockwise_callback, NULL, NULL, sensitive_if_selected, 0, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("90\302\260 clockwise"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("90\302\260 clockwise"), index, NULL,
                          rotate_clockwise_callback, NULL, NULL, sensitive_if_selected, 0, 0);
 
   add_sub_menu_separator(parent);
 
-  add_sub_sub_menu_entry(parent, lists, _("Reset rotation"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Reset rotation"), index, NULL,
                          reset_rotation_callback, NULL, NULL, sensitive_if_selected, 0, 0);
 
   /* Color labels */
   add_top_submenu_entry(menus, lists, _("Color labels"), index);
   parent = get_last_widget(lists);
 
-  add_sub_sub_menu_entry(parent, lists, _("<span foreground='#BB2222'>\342\254\244</span> Red"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#BB2222'>\342\254\244</span> Red"), index, NULL,
                          red_label_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_F1, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("<span foreground='#BBBB22'>\342\254\244</span> Yellow"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#BBBB22'>\342\254\244</span> Yellow"), index, NULL,
                          yellow_label_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_F2, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("<span foreground='#22BB22'>\342\254\244</span> Green"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#22BB22'>\342\254\244</span> Green"), index, NULL,
                          green_label_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_F3, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("<span foreground='#2222BB'>\342\254\244</span> Blue"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#2222BB'>\342\254\244</span> Blue"), index, NULL,
                          blue_label_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_F4, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("<span foreground='#BB22BB'>\342\254\244</span> Magenta"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#BB22BB'>\342\254\244</span> Magenta"), index, NULL,
                          magenta_label_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_F5, 0);
 
   add_sub_menu_separator(parent);
 
-  add_sub_sub_menu_entry(parent, lists, _("<span foreground='#BBBBBB'>\342\254\244</span> Clear labels"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#BBBBBB'>\342\254\244</span> Clear labels"), index, NULL,
                          reset_label_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_F6, 0);
 
   /* Ratings */
   add_top_submenu_entry(menus, lists, _("Ratings"), index);
   parent = get_last_widget(lists);
 
-  add_sub_sub_menu_entry(parent, lists, _("Reject"), index, NULL,
-                         rating_reject_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_r, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("Reject"), index, NULL,
+                         rating_reject_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_r, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("\342\230\205"), index, NULL,
-                         rating_one_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_1, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("\342\230\205"), index, NULL,
+                         rating_one_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_1, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("\342\230\205\342\230\205"), index, NULL,
-                         rating_two_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_2, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("\342\230\205\342\230\205"), index, NULL,
+                         rating_two_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_2, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("\342\230\205\342\230\205\342\230\205"), index, NULL,
-                         rating_three_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_3, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("\342\230\205\342\230\205\342\230\205"), index, NULL,
+                         rating_three_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_3, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("\342\230\205\342\230\205\342\230\205\342\230\205"), index, NULL,
-                         rating_four_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_4, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("\342\230\205\342\230\205\342\230\205\342\230\205"), index, NULL,
+                         rating_four_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_4, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("\342\230\205\342\230\205\342\230\205\342\230\205\342\230\205"), index, NULL,
-                         rating_five_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_5, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("\342\230\205\342\230\205\342\230\205\342\230\205\342\230\205"), index, NULL,
+                         rating_five_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_5, 0);
 
   add_sub_menu_separator(parent);
 
-  add_sub_sub_menu_entry(parent, lists, _("Clear rating"), index, NULL,
-                         rating_reset_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_0, GDK_CONTROL_MASK);
+  add_sub_sub_menu_entry(menus, parent, lists, _("Clear rating"), index, NULL,
+                         rating_reset_callback, NULL, NULL, sensitive_if_selected, GDK_KEY_0, 0);
 
   add_menu_separator(menus[index]);
 

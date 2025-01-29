@@ -202,7 +202,9 @@ void append_file(GtkWidget **menus, GList **lists, const dt_menus_t index)
   for(int i = 0; i < NUM_LAST_COLLECTIONS; i++)
   {
     // Pass the position of current menuitem in list as custom-data pointer
-    add_sub_sub_menu_entry(parent, lists, "", index, GINT_TO_POINTER(i), update_collection_callback, NULL, NULL, NULL, 0, 0);
+    gchar *item_label = g_strdup_printf(_("Most recent collection #%i"), i);
+    add_sub_sub_menu_entry(menus, parent, lists, item_label, index, GINT_TO_POINTER(i), update_collection_callback, NULL, NULL, NULL, 0, 0);
+    g_free(item_label);
 
     // Call init directly just this once
     GtkWidget *this = get_last_widget(lists);

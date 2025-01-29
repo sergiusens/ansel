@@ -18,6 +18,7 @@
 #include "common/darktable.h"
 #include "common/collection.h"
 #include "common/colorspaces.h"
+#include "common/l10n.h"
 #include "common/file_location.h"
 #include "common/ratings.h"
 #include "common/image.h"
@@ -393,7 +394,7 @@ void dt_gui_gtk_quit()
   gtk_window_set_title(GTK_WINDOW(win), _("closing Ansel..."));
 
   g_list_free(darktable.gui->input_devices);
-  g_object_unref(darktable.gui->global_accels);
+  dt_accels_cleanup(darktable.gui->accels);
 
   // Write out windows dimension
   dt_gui_gtk_write_config();
@@ -644,14 +645,9 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // Initializing widgets
   _init_widgets(gui);
 
-  // Init global accels
-  gui->global_accels = gtk_accel_group_new();
-  gtk_window_add_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), gui->global_accels);
-
   //init overlay colors
   dt_guides_set_overlay_colors();
 
-  /* Have the delete event (window close) end the program */
   snprintf(path, sizeof(path), "%s/icons", datadir);
   gtk_icon_theme_append_search_path(gtk_icon_theme_get_default(), path);
   snprintf(path, sizeof(path), "%s/icons", sharedir);
@@ -738,6 +734,14 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
     }
     dt_print(DT_DEBUG_INPUT, "\n");
   }
+
+  // Init global accels. We localize the config because accels pathes use translated GUI labels.
+  // User switching between languages may loose their custom shortcuts if we didn't localize them.
+  gchar *keyboardrc = g_strdup_printf("keyboardrc.%s", dt_l10n_get_current_lang(darktable.l10n));
+  gchar *keyboardrc_path = g_build_filename(configdir, keyboardrc, NULL);
+  gui->accels = dt_accels_init(keyboardrc_path);
+  g_free(keyboardrc);
+  g_free(keyboardrc_path);
 
   // finally set the cursor to be the default.
   // for some reason this is needed on some systems to pick up the correctly themed cursor

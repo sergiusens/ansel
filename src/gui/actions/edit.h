@@ -298,9 +298,9 @@ void append_edit(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_top_submenu_entry(menus, lists, _("History paste mode"), index);
   GtkWidget *parent = get_last_widget(lists);
 
-  add_sub_sub_menu_entry(parent, lists, _("Overwrite"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Overwrite"), index, NULL,
                          paste_mode_overwrite_callback, paste_mode_overwrite_checked_callback, NULL, NULL, 0, 0);
-  add_sub_sub_menu_entry(parent, lists, _("Append"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Append"), index, NULL,
                          paste_mode_append_callback, paste_mode_append_checked_callback, NULL, NULL, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Copy history (all)"), index, NULL, copy_callback, NULL, NULL, copy_sensitive_callback, GDK_KEY_c, GDK_CONTROL_MASK);

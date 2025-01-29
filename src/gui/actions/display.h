@@ -52,8 +52,8 @@ static gboolean _panel_is_visible(dt_ui_panel_t panel)
   return ret;
 }
 
-#if 0
-static void _toggle_side_borders_accel_callback(dt_action_t *action)
+static gboolean _toggle_side_borders_accel_callback(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                                GdkModifierType modifier, gpointer data)
 {
   dt_ui_toggle_panels_visibility(darktable.gui->ui);
 
@@ -61,8 +61,9 @@ static void _toggle_side_borders_accel_callback(dt_action_t *action)
   dt_dev_invalidate_zoom(darktable.develop);
   dt_dev_refresh_ui_images(darktable.develop);
   gtk_widget_queue_draw(dt_ui_center(darktable.gui->ui));
+
+  return TRUE;
 }
-#endif
 
 void dt_ui_toggle_panels_visibility(struct dt_ui_t *ui)
 {
@@ -366,7 +367,7 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
     dt_colorspaces_color_profile_t *prof = (dt_colorspaces_color_profile_t *)l->data;
     if(prof->display_pos > -1)
     {
-      add_sub_sub_menu_entry(parent, lists, prof->name, index, prof, profile_callback, profile_checked_callback, NULL, NULL, 0, 0);
+      add_sub_sub_menu_entry(menus, parent, lists, prof->name, index, prof, profile_callback, profile_checked_callback, NULL, NULL, 0, 0);
       //gtk_check_menu_item_set_draw_as_radio(GTK_CHECK_MENU_ITEM(get_last_widget(lists)), TRUE);
     }
   }
@@ -381,7 +382,7 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   const char *data[4] = { "perceptual", "relative colorimetric", "saturation", "absolute colorimetric" };
 
   for(int i = 0; i < 4; i++)
-    add_sub_sub_menu_entry(parent, lists, intents[i], index, (void *)data[i], intent_callback, intent_checked_callback, NULL, NULL, 0, 0);
+    add_sub_sub_menu_entry(menus, parent, lists, intents[i], index, (void *)data[i], intent_callback, intent_checked_callback, NULL, NULL, 0, 0);
 
   add_menu_separator(menus[index]);
 
@@ -390,19 +391,19 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   parent = get_last_widget(lists);
 
   // Children of sub-menu panels
-  add_sub_sub_menu_entry(parent, lists, _("Left"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Left"), index, NULL,
                          panel_left_callback, panel_left_checked_callback, NULL, NULL, GDK_KEY_l, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
-  add_sub_sub_menu_entry(parent, lists, _("Right"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Right"), index, NULL,
                          panel_right_callback, panel_right_checked_callback, NULL, NULL, GDK_KEY_r, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
-  add_sub_sub_menu_entry(parent, lists, _("Top"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Top"), index, NULL,
                          panel_top_callback, panel_top_checked_callback, NULL, NULL, GDK_KEY_t, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
-  add_sub_sub_menu_entry(parent, lists, _("Bottom"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Bottom"), index, NULL,
                          panel_bottom_callback, panel_bottom_checked_callback, NULL, NULL, GDK_KEY_b, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
-  add_sub_sub_menu_entry(parent, lists, _("Filmstrip"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Filmstrip"), index, NULL,
                          filmstrip_callback, filmstrip_checked_callback, NULL, filmstrip_sensitive_callback, GDK_KEY_f, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
@@ -411,13 +412,13 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_top_submenu_entry(menus, lists, _("Thumbnail overlays"), index);
   parent = get_last_widget(lists);
 
-  add_sub_sub_menu_entry(parent, lists, _("Always hide"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Always hide"), index, NULL,
                          always_hide_overlays_callback, always_hide_overlays_checked_callback, NULL, NULL, 0, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("Show on hover"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Show on hover"), index, NULL,
                          hover_overlays_callback, hover_overlays_checked_callback, NULL, NULL, 0, 0);
 
-  add_sub_sub_menu_entry(parent, lists, _("Always show"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("Always show"), index, NULL,
                          always_show_overlays_callback, always_show_overlays_checked_callback, NULL, NULL, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL, 0, 0);
@@ -429,6 +430,5 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_menu_entry(menus, lists, _("Full screen"), index, NULL, full_screen_callback,
                      full_screen_checked_callback, NULL, NULL, GDK_KEY_F11, 0);
 
-  // specific top/bottom toggles
-  /*dt_action_register(pnl, N_("Toggle all panels visibility"), _toggle_side_borders_accel_callback, GDK_KEY_Tab, 0);*/
+  dt_accels_new_global_action(_toggle_side_borders_accel_callback, NULL, N_("Toggle all panels visibility"), GDK_KEY_Tab, 0);
 }

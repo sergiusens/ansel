@@ -1234,13 +1234,6 @@ GtkWidget *dt_action_button_new(dt_lib_module_t *self, const gchar *label, gpoin
   return button;
 }
 
-gchar *delete_underscore(const char *s)
-{
-  gchar **split = g_strsplit(s, "_", -1);
-  gchar *text = g_strjoinv("", split);
-  g_strfreev(split);
-  return text;
-}
 
 
 // clang-format off

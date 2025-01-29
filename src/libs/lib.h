@@ -164,9 +164,6 @@ gboolean dt_handle_dialog_enter(GtkWidget *widget, GdkEventKey *event, gpointer 
 GtkWidget *dt_action_button_new(dt_lib_module_t *self, const gchar *label, gpointer callback, gpointer data,
                                 const gchar *tooltip, guint accel_key, GdkModifierType mods);
 
-// remove mnemonics from module's name
-gchar *delete_underscore(const char *s);
-
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

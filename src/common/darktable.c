@@ -1297,6 +1297,13 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     dt_control_crawler_show_image_list(changed_xmp_files);
   }
 
+  if(init_gui)
+  {
+    dt_accels_load_user_config(darktable.gui->accels);
+    dt_accels_connect_accels(darktable.gui->accels);
+    dt_accels_connect_window(darktable.gui->accels, GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
+  }
+
   dt_print(DT_DEBUG_CONTROL, "[init] startup took %f seconds\n", dt_get_wtime() - start_wtime);
 
   return 0;

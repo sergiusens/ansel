@@ -676,6 +676,17 @@ static inline uint64_t dt_hash(uint64_t hash, const char *str, size_t size)
  */
 #define DT_MAX_PATH_FOR_PARAMS 4096
 
+
+// Remove underscore from GUI labels containing mnemonics
+static inline gchar *delete_underscore(const char *s)
+{
+  gchar **split = g_strsplit(s, "_", -1);
+  gchar *text = g_strjoinv("", split);
+  g_strfreev(split);
+  return text;
+}
+
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

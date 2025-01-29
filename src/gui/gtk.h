@@ -22,6 +22,7 @@
 #include "common/dtpthread.h"
 #include "dtgtk/thumbtable.h"
 #include "gui/window_manager.h"
+#include "gui/accelerators.h"
 
 #include <gtk/gtk.h>
 #include <stdint.h>
@@ -122,7 +123,7 @@ typedef struct dt_gui_gtk_t
   int32_t anchor_imgid;
 
   // Global accelerators for main menu, needed for GtkMenu mnemonics.
-  GtkAccelGroup * global_accels;
+  dt_accels_t *accels;
 
   GList *input_devices;
 
@@ -296,6 +297,8 @@ void dt_ellipsize_combo(GtkComboBox *cbox);
 // capitalize strings. Because grammar says sentences start with a capital,
 // and typography says it makes it easier to extract the structure of the text.
 void dt_capitalize_label(gchar *text);
+
+#define dt_accels_new_global_action(a, b, c, d, e) dt_accels_new_action_shortcut(darktable.gui->accels, G_CALLBACK(a), b, darktable.gui->accels->global_accels, c, d, e)
 
 static inline void dt_ui_section_label_set(GtkWidget *label)
 {
