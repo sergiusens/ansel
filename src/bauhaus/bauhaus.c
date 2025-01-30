@@ -2523,30 +2523,40 @@ static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
 static gboolean _widget_key_press(GtkWidget *widget, GdkEventKey *event)
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
-
   int delta = -1;
-  switch(event->keyval)
+
+  if(w->type == DT_BAUHAUS_SLIDER)
   {
-    case GDK_KEY_Up:
-    case GDK_KEY_KP_Up:
-    case GDK_KEY_Right:
-    case GDK_KEY_KP_Right:
-      delta = 1;
-    case GDK_KEY_Down:
-    case GDK_KEY_KP_Down:
-    case GDK_KEY_Left:
-    case GDK_KEY_KP_Left:
-      bauhaus_request_focus(w);
-
-      if(w->type == DT_BAUHAUS_SLIDER)
+    switch(event->keyval)
+    {
+      case GDK_KEY_Right:
+      case GDK_KEY_KP_Right:
+        delta = 1;
+      case GDK_KEY_Left:
+      case GDK_KEY_KP_Left:
         _slider_add_step(widget, delta, event->state);
-      else
-        _combobox_next_sensitive(w, -delta);
-
-      return TRUE;
-    default:
-      return FALSE;
+        return TRUE;
+      default:
+        return FALSE;
+    }
   }
+  else if(dt_modifier_is(event->state, 0))
+  {
+    // Discard Ctrl+Up/Down because it's captured by focus navigation
+    switch(event->keyval)
+    {
+      case GDK_KEY_Up:
+      case GDK_KEY_KP_Up:
+        delta = 1;
+      case GDK_KEY_Down:
+      case GDK_KEY_KP_Down:
+        _combobox_next_sensitive(w, -delta);
+        return TRUE;
+      default:
+        return FALSE;
+    }
+  }
+  return FALSE;
 }
 
 static gboolean dt_bauhaus_combobox_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
