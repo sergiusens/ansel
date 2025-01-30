@@ -513,6 +513,7 @@ static void _gui_delete_callback(GtkButton *button, dt_iop_module_t *module)
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   g_slist_free(module->widget_list);
+  g_slist_free(module->widget_list_bh);
 
   // don't delete the module, a pipe may still need it
   dev->alliop = g_list_append(dev->alliop, module);
@@ -1698,6 +1699,7 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   g_slist_free(module->widget_list);
+  g_slist_free(module->widget_list_bh);
   module->widget_list = NULL;
   module->gui_cleanup(module);
   dt_iop_gui_cleanup_blending(module);
