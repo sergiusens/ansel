@@ -1,6 +1,7 @@
 #include "accelerators.h"
 
 #include <assert.h>
+#include <glib.h>
 
 
 guint dt_accels_keypad_alternatives(const guint key_val)
@@ -79,7 +80,7 @@ guint dt_accels_keypad_alternatives(const guint key_val)
 dt_accels_t * dt_accels_init(char *config_file)
 {
   dt_accels_t *accels = malloc(sizeof(dt_accels_t));
-  accels->config_file = g_strdup_inline(config_file);
+  accels->config_file = g_strdup(config_file);
   accels->global_accels = gtk_accel_group_new();
   accels->acceleratables = NULL;
   return accels;
@@ -116,7 +117,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
   shortcut->accel_group = accel_group;
   shortcut->widget = widget;
   shortcut->closure = NULL;
-  shortcut->path = g_strdup_inline(accel_path);
+  shortcut->path = g_strdup(accel_path);
   shortcut->signal = signal;
   shortcut->key = key_val;
   shortcut->mods = accel_mods;
@@ -175,7 +176,7 @@ void dt_accels_connect_accels(dt_accels_t *accels)
     {
       key.accel_key = shortcut->key;
       key.accel_mods = shortcut->mods;
-      gtk_accel_map_change_entry(shortcut->path, shortcut->key, shortcut->mods, TRUE);
+      gtk_accel_map_change_entry(shortcut->path, shortcut->key, shortcut->mods, FALSE);
     }
 
     // Adding shortcuts without defined keys makes Gtk issue warnings, so avoid it.
