@@ -158,6 +158,8 @@ static gboolean _modulegroups_switch_tab_next(GtkAccelGroup *accel_group, GObjec
                                               GdkModifierType modifier, gpointer data)
 {
   dt_develop_t *dev = (dt_develop_t *)data;
+  if(!dev) return FALSE;
+
   dt_iop_module_t *focused = dev->gui_module;
   if(focused) dt_iop_gui_set_expanded(focused, FALSE, TRUE);
 
@@ -170,11 +172,14 @@ static gboolean _modulegroups_switch_tab_next(GtkAccelGroup *accel_group, GObjec
 static gboolean _modulegroups_switch_tab_previous(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                               GdkModifierType modifier, gpointer data)
 {
-  dt_iop_module_t *focused = darktable.develop->gui_module;
+  dt_develop_t *dev = (dt_develop_t *)data;
+  if(!dev) return FALSE;
+
+  dt_iop_module_t *focused = dev->gui_module;
   if(focused) dt_iop_gui_set_expanded(focused, FALSE, TRUE);
 
-  uint32_t current = dt_dev_modulegroups_get(darktable.develop);
-  dt_dev_modulegroups_set(darktable.develop, _modulegroups_cycle_tabs(current - 1));
+  uint32_t current = dt_dev_modulegroups_get(dev);
+  dt_dev_modulegroups_set(dev, _modulegroups_cycle_tabs(current - 1));
   dt_iop_request_focus(NULL);
 
   return TRUE;
@@ -294,9 +299,9 @@ void gui_init(dt_lib_module_t *self)
   darktable.develop->proxy.modulegroups.switch_group = _lib_modulegroups_switch_group;
   darktable.develop->proxy.modulegroups.search_text_focus = _lib_modulegroups_search_text_focus;
 
-  dt_accels_new_global_action(_modulegroups_switch_tab_next, NULL, N_("Darkroom"), N_("move to the next modules tab"), GDK_KEY_Tab,
+  dt_accels_new_global_action(_modulegroups_switch_tab_next, darktable.develop, N_("Darkroom"), N_("move to the next modules tab"), GDK_KEY_Tab,
                               GDK_CONTROL_MASK);
-  dt_accels_new_global_action(_modulegroups_switch_tab_previous, NULL, N_("Darkroom"), N_("move to the previous modules tab"),
+  dt_accels_new_global_action(_modulegroups_switch_tab_previous, darktable.develop, N_("Darkroom"), N_("move to the previous modules tab"),
                               GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   /* let's connect to view changed signal to set default group */
