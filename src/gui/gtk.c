@@ -1191,6 +1191,8 @@ char *dt_gui_show_standalone_string_dialog(const char *title, const char *markup
   gtk_box_pack_start(GTK_BOX(vbox), label, TRUE, TRUE, 0);
 
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
+
   g_object_ref(entry);
   if(placeholder)
     gtk_entry_set_placeholder_text(GTK_ENTRY(entry), placeholder);
@@ -1888,6 +1890,32 @@ GtkBox * attach_help_popover(GtkWidget *widget, const char *label)
   gtk_label_set_line_wrap(GTK_LABEL(popover_label), TRUE);
   gtk_label_set_max_width_chars(GTK_LABEL(popover_label), 60);
   return attach_popover(widget, "help-about", popover_label);
+}
+
+static gboolean _text_entry_focus_in_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
+{
+  gtk_window_remove_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), darktable.gui->accels->global_accels);
+  return FALSE;
+}
+
+static gboolean _text_entry_focus_out_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
+{
+  gtk_window_add_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), darktable.gui->accels->global_accels);
+  return FALSE;
+}
+
+static gboolean _text_entry_key_pressed(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+  if(event->keyval == GDK_KEY_Escape) gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  return FALSE;
+}
+
+void dt_accels_disconnect_on_text_input(GtkWidget *widget)
+{
+  gtk_widget_add_events(widget, GDK_FOCUS_CHANGE_MASK);
+  g_signal_connect(G_OBJECT(widget), "focus-in-event", G_CALLBACK(_text_entry_focus_in_event), NULL);
+  g_signal_connect(G_OBJECT(widget), "focus-out-event", G_CALLBACK(_text_entry_focus_out_event), NULL);
+  g_signal_connect(G_OBJECT(widget), "key-press-event", G_CALLBACK(_text_entry_key_pressed), NULL);
 }
 
 // clang-format off

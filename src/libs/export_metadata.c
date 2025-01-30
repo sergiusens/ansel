@@ -170,6 +170,7 @@ static void _add_tag_button_clicked(GtkButton *button, dt_lib_export_metadata_t 
   gtk_container_add(GTK_CONTAINER(area), vbox);
 
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
   d->sel_entry = entry;
   gtk_entry_set_text(GTK_ENTRY(entry), "");
   gtk_widget_set_tooltip_text(entry, _("list filter"));

@@ -1707,6 +1707,7 @@ void gui_init(dt_iop_module_t *self)
 #ifdef HAVE_GMIC
   // text entry
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
   gtk_widget_set_tooltip_text(entry, _("enter lut name"));
   gtk_box_pack_start((GtkBox *)self->widget,entry, TRUE, TRUE, 0);
   gtk_widget_add_events(entry, GDK_KEY_RELEASE_MASK);

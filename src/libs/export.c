@@ -1110,14 +1110,17 @@ void gui_init(dt_lib_module_t *self)
                                N_("original resolution"));
 
   d->print_width = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->print_width);
   gtk_widget_set_tooltip_text(d->print_width, _("maximum output width limit.\n"
                                                 "click middle mouse button to reset to 0."));
   gtk_entry_set_width_chars(GTK_ENTRY(d->print_width), 5);
   d->print_height = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->print_height);
   gtk_widget_set_tooltip_text(d->print_height, _("maximum output height limit.\n"
                                                  "click middle mouse button to reset to 0."));
   gtk_entry_set_width_chars(GTK_ENTRY(d->print_height), 5);
   d->print_dpi = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->print_dpi);
   gtk_widget_set_tooltip_text(d->print_dpi, _("resolution in dot per inch"));
   gtk_entry_set_width_chars(GTK_ENTRY(d->print_dpi), 4);
   const char *dpi = dt_conf_get_string_const(CONFIG_PREFIX "print_dpi");
@@ -1125,10 +1128,12 @@ void gui_init(dt_lib_module_t *self)
 
 
   d->width = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->width);
   gtk_widget_set_tooltip_text(d->width, _("maximum output width limit.\n"
                                           "click middle mouse button to reset to 0."));
   gtk_entry_set_width_chars(GTK_ENTRY(d->width), 5);
   d->height = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->height);
   gtk_widget_set_tooltip_text(d->height, _("maximum output height limit.\n"
                                            "click middle mouse button to reset to 0."));
   gtk_entry_set_width_chars(GTK_ENTRY(d->height), 5);
@@ -1164,6 +1169,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_container_foreach(GTK_CONTAINER(d->px_size), (GtkCallback)gtk_widget_set_can_focus, GINT_TO_POINTER(FALSE));
 
   d->scale = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->scale);
   gtk_entry_set_width_chars(GTK_ENTRY(d->scale), 5);
   gtk_entry_set_text (GTK_ENTRY(d->scale), dt_conf_get_string_const(CONFIG_PREFIX "resizing_factor"));
   gtk_widget_set_tooltip_text(d->scale, _("it can be an integer, decimal number or simple fraction.\n"

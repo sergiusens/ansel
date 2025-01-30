@@ -573,6 +573,7 @@ void gui_init(dt_imageio_module_format_t *self)
   gtk_grid_attach(grid, dt_ui_label_new(_("title")), 0, ++line, 1, 1);
 
   d->title = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(d->title));
   gtk_entry_set_placeholder_text(d->title, "untitled");
   gtk_entry_set_width_chars(d->title, 5);
   gtk_widget_set_hexpand(GTK_WIDGET(d->title), TRUE);
@@ -617,6 +618,7 @@ void gui_init(dt_imageio_module_format_t *self)
   gtk_grid_attach(grid, dt_ui_label_new(_("border")), 0, ++line, 1, 1);
 
   d->border = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(d->border));
   gtk_entry_set_width_chars(d->border, 5);
   gtk_entry_set_max_length(d->border, sizeof(((dt_imageio_pdf_params_t *)NULL)->border) - 1);
   gtk_entry_set_placeholder_text(d->border, "0 mm");

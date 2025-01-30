@@ -453,6 +453,7 @@ static void _presets_show_edit_dialog(dt_gui_presets_edit_dialog_t *g, gboolean 
   gtk_container_add(content_area, GTK_WIDGET(box));
 
   g->name = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(g->name));
   gtk_entry_set_text(g->name, g->original_name);
   if(allow_name_change)
     gtk_entry_set_activates_default(g->name, TRUE);
@@ -462,6 +463,7 @@ static void _presets_show_edit_dialog(dt_gui_presets_edit_dialog_t *g, gboolean 
   gtk_widget_set_tooltip_text(GTK_WIDGET(g->name), _("name of the preset"));
 
   g->description = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(g->description));
   if(allow_desc_change)
     gtk_entry_set_activates_default(g->description, TRUE);
   else
@@ -497,6 +499,7 @@ static void _presets_show_edit_dialog(dt_gui_presets_edit_dialog_t *g, gboolean 
 
   // model, maker, lens
   g->model = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(g->model);
   gtk_widget_set_hexpand(GTK_WIDGET(g->model), TRUE);
   /* xgettext:no-c-format */
   gtk_widget_set_tooltip_text(g->model, _("string to match model (use % as wildcard)"));
@@ -506,6 +509,7 @@ static void _presets_show_edit_dialog(dt_gui_presets_edit_dialog_t *g, gboolean 
   gtk_grid_attach_next_to(GTK_GRID(g->details), g->model, label, GTK_POS_RIGHT, 2, 1);
 
   g->maker = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(g->maker);
   /* xgettext:no-c-format */
   gtk_widget_set_tooltip_text(g->maker, _("string to match maker (use % as wildcard)"));
   label = gtk_label_new(_("maker"));
@@ -514,6 +518,7 @@ static void _presets_show_edit_dialog(dt_gui_presets_edit_dialog_t *g, gboolean 
   gtk_grid_attach_next_to(GTK_GRID(g->details), g->maker, label, GTK_POS_RIGHT, 2, 1);
 
   g->lens = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(g->lens);
   /* xgettext:no-c-format */
   gtk_widget_set_tooltip_text(g->lens, _("string to match lens (use % as wildcard)"));
   label = gtk_label_new(_("lens"));

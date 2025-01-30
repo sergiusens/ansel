@@ -1078,6 +1078,7 @@ void gui_init(struct dt_iop_module_t *self)
   // Simple text
   label = dt_ui_label_new(_("text"));
   g->text = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(g->text);
   gtk_entry_set_width_chars(GTK_ENTRY(g->text), 1);
   gtk_widget_set_tooltip_text(g->text, _("text string, tag:\n$(WATERMARK_TEXT)"));
   const char *str = dt_conf_get_string_const("plugins/darkroom/watermark/text");

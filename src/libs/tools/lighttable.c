@@ -104,6 +104,7 @@ void gui_init(dt_lib_module_t *self)
 
   /* manual entry of the zoom level */
   d->zoom_entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->zoom_entry);
   dt_gui_add_class(GTK_WIDGET(d->zoom_entry), "menu-text-entry");
   gtk_entry_set_alignment(GTK_ENTRY(d->zoom_entry), 1.0);
   gtk_entry_set_max_length(GTK_ENTRY(d->zoom_entry), 2);

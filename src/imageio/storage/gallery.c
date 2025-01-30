@@ -151,6 +151,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   GtkWidget *widget;
 
   widget = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(widget);
   gtk_entry_set_width_chars(GTK_ENTRY(widget), 0);
   gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
   const char *dir = dt_conf_get_string_const("plugins/imageio/storage/gallery/file_directory");
@@ -177,6 +178,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), hbox, TRUE, TRUE, 0);
   gtk_box_pack_start(GTK_BOX(hbox), dt_ui_label_new(_("title")), FALSE, FALSE, 0);
   d->title_entry = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(d->title_entry));
   gtk_entry_set_width_chars(d->title_entry, 0);
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->title_entry), TRUE, TRUE, 0);
   gtk_widget_set_tooltip_text(GTK_WIDGET(d->title_entry), _("enter the title of the website"));

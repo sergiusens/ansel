@@ -1635,6 +1635,7 @@ static void _pop_menu_dictionary_create_tag(GtkWidget *menuitem, dt_lib_module_t
   label = gtk_label_new(_("name: "));
   gtk_box_pack_start(GTK_BOX(box), label, FALSE, TRUE, 0);
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
   gtk_box_pack_end(GTK_BOX(box), entry, TRUE, TRUE, 0);
 
   GtkWidget *category;
@@ -1782,6 +1783,7 @@ static void _pop_menu_dictionary_edit_tag(GtkWidget *menuitem, dt_lib_module_t *
   label = gtk_label_new(_("name: "));
   gtk_box_pack_start(GTK_BOX(box), label, FALSE, TRUE, 0);
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
   gtk_entry_set_text(GTK_ENTRY(entry), subtag ? subtag : tagname);
   gtk_box_pack_end(GTK_BOX(box), entry, TRUE, TRUE, 0);
 
@@ -2052,6 +2054,7 @@ static void _pop_menu_dictionary_change_path(GtkWidget *menuitem, dt_lib_module_
   g_free(text);
 
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
   gtk_entry_set_text(GTK_ENTRY(entry), tagname);
   gtk_box_pack_start(GTK_BOX(vbox), entry, FALSE, TRUE, 0);
 
@@ -3118,6 +3121,7 @@ void gui_init(dt_lib_module_t *self)
 
   // text entry
   w = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(w);
   gtk_entry_set_text(GTK_ENTRY(w), "");
   gtk_entry_set_width_chars(GTK_ENTRY(w), 0);
   gtk_widget_set_tooltip_text(w, _("enter tag name"
@@ -3376,6 +3380,7 @@ static void _lib_tagging_tag_show(dt_action_t *action)
   gtk_window_move(GTK_WINDOW(d->floating_tag_window), x, y);
 
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
   gtk_widget_set_size_request(entry, FLOATING_ENTRY_WIDTH, -1);
   gtk_widget_add_events(entry, GDK_FOCUS_CHANGE_MASK);
 

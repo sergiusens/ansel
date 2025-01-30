@@ -422,6 +422,15 @@ GtkBox *attach_popover(GtkWidget *widget, const char *icon, GtkWidget *content);
 GtkBox *attach_help_popover(GtkWidget *widget, const char *label);
 
 
+/**
+ * @brief Disconnects accels when a text or search entry gets the focus,
+ * and reconnects them when it looses it. This helps dealing with one-key shortcuts.
+ *
+ * @param widget
+ */
+void dt_accels_disconnect_on_text_input(GtkWidget *widget);
+
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

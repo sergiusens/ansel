@@ -449,6 +449,8 @@ void dt_import_metadata_init(dt_import_metadata_t *metadata)
     labelev = _set_up_label(metadata_label, GTK_ALIGN_START, i + DT_META_META_VALUE, metadata);
 
     GtkWidget *metadata_entry = gtk_entry_new();
+    dt_accels_disconnect_on_text_input(metadata_entry);
+
     setting = g_strdup_printf("ui_last/import_last_%s", metadata_name);
     const char *str = dt_conf_get_string_const(setting);
     _set_up_entry(metadata_entry, str, metadata_name, i + DT_META_META_VALUE, metadata);
@@ -477,6 +479,8 @@ void dt_import_metadata_init(dt_import_metadata_t *metadata)
   labelev = _set_up_label(label, GTK_ALIGN_START, DT_META_TAGS_VALUE, metadata);
 
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
+  
   gtk_widget_set_visible(entry, TRUE);
   const char *str = dt_conf_get_string_const("ui_last/import_last_tags");
   _set_up_entry(entry, str, "tags", DT_META_TAGS_VALUE, metadata);

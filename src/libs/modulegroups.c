@@ -127,7 +127,6 @@ static gboolean _text_entry_key_press_callback(GtkWidget *widget, GdkEventKey *e
     dt_lib_module_t *self = (dt_lib_module_t *)user_data;
     dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
     gtk_entry_set_text(GTK_ENTRY(widget), "");
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
     gtk_widget_set_sensitive(d->notebook, TRUE);
     return TRUE;
   }
@@ -155,17 +154,21 @@ int _modulegroups_cycle_tabs(int user_set_group)
   return group;
 }
 
-void _modulegroups_switch_tab_next()
+static gboolean _modulegroups_switch_tab_next(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                              GdkModifierType modifier, gpointer data)
 {
-  dt_iop_module_t *focused = darktable.develop->gui_module;
+  dt_develop_t *dev = (dt_develop_t *)data;
+  dt_iop_module_t *focused = dev->gui_module;
   if(focused) dt_iop_gui_set_expanded(focused, FALSE, TRUE);
 
-  uint32_t current = dt_dev_modulegroups_get(darktable.develop);
-  dt_dev_modulegroups_set(darktable.develop, _modulegroups_cycle_tabs(current + 1));
+  uint32_t current = dt_dev_modulegroups_get(dev);
+  dt_dev_modulegroups_set(dev, _modulegroups_cycle_tabs(current + 1));
   dt_iop_request_focus(NULL);
+  return TRUE;
 }
 
-void _modulegroups_switch_tab_previous()
+static gboolean _modulegroups_switch_tab_previous(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                              GdkModifierType modifier, gpointer data)
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
   if(focused) dt_iop_gui_set_expanded(focused, FALSE, TRUE);
@@ -173,6 +176,8 @@ void _modulegroups_switch_tab_previous()
   uint32_t current = dt_dev_modulegroups_get(darktable.develop);
   dt_dev_modulegroups_set(darktable.develop, _modulegroups_cycle_tabs(current - 1));
   dt_iop_request_focus(NULL);
+
+  return TRUE;
 }
 
 static gboolean _lib_modulegroups_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer user_data)
@@ -228,7 +233,7 @@ void gui_init(dt_lib_module_t *self)
   d->hbox_search_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   d->text_entry = gtk_search_entry_new();
   gtk_entry_set_placeholder_text(GTK_ENTRY(d->text_entry), _("Search a module..."));
-  gtk_widget_add_events(d->text_entry, GDK_FOCUS_CHANGE_MASK);
+  dt_accels_disconnect_on_text_input(d->text_entry);
   gtk_widget_add_events(d->text_entry, GDK_KEY_PRESS_MASK);
   g_signal_connect(G_OBJECT(d->text_entry), "search-changed", G_CALLBACK(_text_entry_changed_callback), self);
   g_signal_connect(G_OBJECT(d->text_entry), "icon-press", G_CALLBACK(_text_entry_icon_press_callback), self);
@@ -289,11 +294,10 @@ void gui_init(dt_lib_module_t *self)
   darktable.develop->proxy.modulegroups.switch_group = _lib_modulegroups_switch_group;
   darktable.develop->proxy.modulegroups.search_text_focus = _lib_modulegroups_search_text_focus;
 
-  /* Bloody accels from the great MIDI turducken */
-#if 0
-  dt_action_register(self, N_("move to the next modules tab"), _modulegroups_switch_tab_next, GDK_KEY_Tab, GDK_CONTROL_MASK);
-  dt_action_register(self, N_("move to the previous modules tab"), _modulegroups_switch_tab_previous, GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
-#endif
+  dt_accels_new_global_action(_modulegroups_switch_tab_next, NULL, N_("move to the next modules tab"), GDK_KEY_Tab,
+                              GDK_CONTROL_MASK);
+  dt_accels_new_global_action(_modulegroups_switch_tab_previous, NULL, N_("move to the previous modules tab"),
+                              GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   /* let's connect to view changed signal to set default group */
   dt_control_signal_connect(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED,
@@ -332,12 +336,13 @@ static gboolean _lib_modulesgroups_search_active(const gchar *text_entered, dt_i
     }
     else
     {
-      const int is_match_name = (g_strstr_len(g_utf8_casefold(delete_underscore(dt_iop_get_localized_name(module->op)), -1), -1,
-                                          g_utf8_casefold(text_entered, -1))
-                                != NULL);
+      gchar *name = delete_underscore(dt_iop_get_localized_name(module->op));
+      const int is_match_name  = (g_strstr_len(g_utf8_casefold(name, -1), -1, g_utf8_casefold(text_entered, -1)) != NULL);
+      g_free(name);
+
       const int is_match_alias = (g_strstr_len(g_utf8_casefold(dt_iop_get_localized_aliases(module->op), -1), -1,
-                                          g_utf8_casefold(text_entered, -1))
-                                != NULL);
+                                               g_utf8_casefold(text_entered, -1))
+                                  != NULL);
       gtk_widget_set_visible(w, (is_match_name || is_match_alias));
     }
     is_handled = TRUE;

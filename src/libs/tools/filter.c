@@ -519,6 +519,7 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(label, "quickfilter-label");
 
   d->text = gtk_search_entry_new();
+  dt_accels_disconnect_on_text_input(d->text);
   dt_gui_add_class(GTK_WIDGET(d->text), "menu-text-entry");
   char *text = _decode_text_filter(dt_collection_get_text_filter(darktable.collection));
   gtk_entry_set_text(GTK_ENTRY(d->text), text);

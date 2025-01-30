@@ -807,6 +807,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   // server
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   ui->server_entry = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(ui->server_entry));
   gtk_widget_set_tooltip_text(GTK_WIDGET(ui->server_entry),
                               _("the server name\ndefault protocol is https\nspecify http:// if non secure server"));
   gtk_widget_set_hexpand(GTK_WIDGET(ui->server_entry), TRUE);
@@ -821,6 +822,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   // login
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   ui->user_entry = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(ui->user_entry));
   gtk_widget_set_hexpand(GTK_WIDGET(ui->user_entry), TRUE);
   gtk_entry_set_text(ui->user_entry, last_account?last_account->username:"");
   g_signal_connect(G_OBJECT(ui->user_entry), "changed", G_CALLBACK(_piwigo_entry_changed), (gpointer)ui);
@@ -832,6 +834,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   // password
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   ui->pwd_entry = GTK_ENTRY(gtk_entry_new());
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(ui->pwd_entry));
   gtk_entry_set_visibility(GTK_ENTRY(ui->pwd_entry), FALSE);
   gtk_widget_set_hexpand(GTK_WIDGET(ui->pwd_entry), TRUE);
   gtk_entry_set_text(ui->pwd_entry, last_account?last_account->password:"");
@@ -895,6 +898,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   gtk_box_pack_start(GTK_BOX(hbox), label, FALSE, FALSE, 0);
 
   ui->new_album_entry = GTK_ENTRY(gtk_entry_new()); // Album title
+  dt_accels_disconnect_on_text_input(GTK_WIDGET(ui->new_album_entry));
   gtk_entry_set_text(ui->new_album_entry, _("new album"));
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(ui->new_album_entry), TRUE, TRUE, 0);
   gtk_entry_set_width_chars(GTK_ENTRY(ui->new_album_entry), 0);

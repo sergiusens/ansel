@@ -3239,6 +3239,7 @@ void gui_init(dt_lib_module_t *self)
     gtk_box_pack_start(box, GTK_WIDGET(hbox), FALSE, FALSE, 0);
 
     w = gtk_search_entry_new();
+    dt_accels_disconnect_on_text_input(w);
     d->rule[i].text = w;
     gtk_widget_add_events(w, GDK_FOCUS_CHANGE_MASK);
     gtk_entry_set_placeholder_text(GTK_ENTRY(d->rule[i].text), _("Search..."));

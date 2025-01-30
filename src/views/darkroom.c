@@ -1229,11 +1229,7 @@ static void _toggle_mask_visibility_callback(dt_action_t *action)
   }
 }
 
-static void search_callback(dt_action_t *action)
-{
-  // set focus to the search module text box
-  dt_dev_modulegroups_search_text_focus(darktable.develop);
-}
+
 #endif
 
 static gboolean _quickbutton_press_release(GtkWidget *button, GdkEventButton *event, GtkWidget *popover)

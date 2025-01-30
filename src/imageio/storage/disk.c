@@ -166,6 +166,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, FALSE, 0);
 
   widget = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(widget);
   gtk_box_pack_start(GTK_BOX(hbox), widget, TRUE, TRUE, 0);
   const char *dir = dt_conf_get_string_const("plugins/imageio/storage/disk/file_directory");
   if(dir)

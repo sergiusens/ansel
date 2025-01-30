@@ -803,6 +803,7 @@ void dt_iop_gui_rename_module(dt_iop_module_t *module)
   if(focused && GTK_IS_ENTRY(focused)) return;
 
   GtkWidget *entry = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(entry);
 
   gtk_widget_set_name(entry, "iop-panel-label");
   gtk_entry_set_width_chars(GTK_ENTRY(entry), 0);

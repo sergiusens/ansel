@@ -831,6 +831,8 @@ static void init_tab_presets(GtkWidget *stack)
   gtk_widget_set_name(hbox, "preset_controls");
 
   GtkWidget *search_presets = gtk_search_entry_new();
+  dt_accels_disconnect_on_text_input(search_presets);
+
   gtk_box_pack_start(GTK_BOX(hbox), search_presets, FALSE, TRUE, 0);
   gtk_entry_set_placeholder_text(GTK_ENTRY(search_presets), _("search presets list"));
   gtk_widget_set_tooltip_text(GTK_WIDGET(search_presets), _("incrementally search the list of presets\npress up or down keys to cycle through matches"));
@@ -1358,6 +1360,7 @@ GtkWidget *dt_gui_preferences_string(GtkGrid *grid, const char *key, const guint
   gtk_container_add(GTK_CONTAINER(labelev), w_label);
 
   GtkWidget *w = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(w);
   const char *str = dt_conf_get_string_const(key);
   gtk_entry_set_text(GTK_ENTRY(w), str);
   gtk_widget_set_hexpand(w, TRUE);

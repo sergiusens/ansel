@@ -1068,6 +1068,7 @@ static void gui_init(dt_lib_import_t *d)
   GtkWidget *calendar_label = gtk_label_new(_("Project date"));
   gtk_widget_set_halign(calendar_label, GTK_ALIGN_START);
   d->datetime = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(d->datetime);
   gtk_entry_set_width_chars(GTK_ENTRY(d->datetime), 20);
   g_signal_connect(G_OBJECT(d->datetime), "changed", G_CALLBACK(_datetime_changed_callback), d);
 
@@ -1090,6 +1091,7 @@ static void gui_init(dt_lib_import_t *d)
 
   // Base directory of projects
   GtkWidget *jobcode = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(jobcode);
   gtk_entry_set_text(GTK_ENTRY(jobcode), dt_conf_get_string("ui_last/import_jobcode"));
   gtk_widget_set_hexpand(jobcode, TRUE);
   g_signal_connect(G_OBJECT(jobcode), "changed", G_CALLBACK(_jobcode_changed), d);
@@ -1116,6 +1118,7 @@ static void gui_init(dt_lib_import_t *d)
   GtkWidget *sep2 = gtk_label_new(G_DIR_SEPARATOR_S);
 
   GtkWidget *project_dir = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(project_dir);
   gtk_entry_set_text(GTK_ENTRY(project_dir), dt_conf_get_string("session/sub_directory_pattern"));
   gtk_widget_set_hexpand(project_dir, TRUE);
   dt_gtkentry_setup_completion(GTK_ENTRY(project_dir), dt_gtkentry_get_default_path_compl_list());
@@ -1123,6 +1126,7 @@ static void gui_init(dt_lib_import_t *d)
   g_signal_connect(G_OBJECT(project_dir), "changed", G_CALLBACK(_project_dir_changed), d);
 
   GtkWidget *file = gtk_entry_new();
+  dt_accels_disconnect_on_text_input(file);
   gtk_entry_set_text(GTK_ENTRY(file), dt_conf_get_string("session/filename_pattern"));
   gtk_widget_set_hexpand(file, TRUE);
   dt_gtkentry_setup_completion(GTK_ENTRY(file), dt_gtkentry_get_default_path_compl_list());
