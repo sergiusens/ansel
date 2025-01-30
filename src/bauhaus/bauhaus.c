@@ -322,6 +322,7 @@ static _bh_active_region_t _popup_coordinates(GtkWidget *widget, const double x_
 
 void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
 {
+  // TODO: put that in some module callback so we don't have to care here
   if(w->module)
     dt_iop_request_focus((dt_iop_module_t *)w->module);
 
@@ -332,6 +333,22 @@ void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
   // because of Gtk notebooks (tabs): Gtk gives focus automatically to the first
   // notebook child, which is not what we want for scroll event capture.
   darktable.gui->has_scroll_focus = GTK_WIDGET(w);
+}
+
+gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                              GdkModifierType modifier, gpointer data)
+{
+  dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)data;
+  if(w->module)
+  {
+    // TODO: put that in some module callback so we don't have to care here
+    dt_iop_module_t *module = (dt_iop_module_t *)w->module;
+    dt_iop_gui_set_expanded(module, TRUE, TRUE);
+    darktable.gui->scroll_to[1] = module->expander;
+  }
+
+  bauhaus_request_focus(data);
+  return TRUE;
 }
 
 static void _combobox_next_sensitive(struct dt_bauhaus_widget_t *w, int delta)
@@ -1140,6 +1157,15 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
         m->widget_list = first;
       }
     }
+
+    // Wire the focusing action
+    // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.
+    // No need to wire all possible events/interactions.
+    gchar *clean_name = delete_underscore(w->module->name());
+    gchar *plugin_name = g_strdup_printf("%s/%s/%s", clean_name, (w->type == DT_BAUHAUS_SLIDER) ? "slider" : "combobox", label);
+    dt_accels_new_global_action(_action_request_focus, w, "Plugins", plugin_name, 0, 0);
+    g_free(plugin_name);
+    g_free(clean_name);
 
     gtk_widget_queue_draw(GTK_WIDGET(w));
   }

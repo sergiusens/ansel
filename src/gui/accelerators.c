@@ -196,6 +196,13 @@ void dt_accels_connect_accels(dt_accels_t *accels)
       }
       else if(shortcut->closure)
       {
+        // Attempt disconnection in case it's not the first time we run the function
+        // That only prevents scary CRITICAL in stderr.
+        // Need to increase the number of references to avoid loosing the closure just yet.
+        g_closure_ref(shortcut->closure);
+        g_closure_sink(shortcut->closure);
+        gtk_accel_group_disconnect(shortcut->accel_group, shortcut->closure);
+
         gtk_accel_group_connect(shortcut->accel_group, key.accel_key, key.accel_mods, GTK_ACCEL_VISIBLE,
                                 shortcut->closure);
         // closures can be connected only at one accel at a time, so we don't handle keypad duplicates
