@@ -1134,28 +1134,9 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     if(m && w->field)
       m->widget_list = g_slist_prepend(m->widget_list, w);
 
-    // if new bauhaus widget added to front of widget_list; move it to the back
-    // WHY ???
     if(w->field && m->widget_list && ((gpointer)m->widget_list->data) == (gpointer)widget)
     {
-      if(!m->widget_list_bh)
-      {
-        m->widget_list_bh = m->widget_list;
-        if(m->widget_list->next)
-        {
-          GSList *last = g_slist_last(m->widget_list);
-          last->next = m->widget_list;
-          m->widget_list = m->widget_list->next;
-          last->next->next = NULL;
-        }
-      }
-      else
-      {
-        GSList *first = m->widget_list->next;
-        m->widget_list->next = m->widget_list_bh->next;
-        m->widget_list_bh->next = m->widget_list;
-        m->widget_list = first;
-      }
+      m->widget_list_bh = g_slist_prepend(m->widget_list_bh, w);
     }
 
     // Wire the focusing action
