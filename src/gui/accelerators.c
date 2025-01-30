@@ -124,20 +124,19 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
 
   // Gtk circuitery with compile-time defaults. Init with no keys so Gtk collects them from user config later.
   gtk_accel_map_add_entry(accel_path, 0, 0);
-  gtk_widget_set_accel_path(widget, accel_path, accel_group);
 
   accels->acceleratables = g_slist_prepend(accels->acceleratables, shortcut);
 }
 
 
-void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback), gpointer data, GtkAccelGroup *accel_group, const gchar *action_name, guint key_val, GdkModifierType accel_mods)
+void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback), gpointer data, GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name, guint key_val, GdkModifierType accel_mods)
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   dt_shortcut_t *shortcut = malloc(sizeof(dt_shortcut_t));
   shortcut->accel_group = accel_group;
   shortcut->widget = NULL;
   shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
-  shortcut->path = dt_accels_build_path("Generic actions", action_name);
+  shortcut->path = dt_accels_build_path(action_scope, action_name);
   shortcut->signal = "";
   shortcut->key = key_val;
   shortcut->mods = accel_mods;

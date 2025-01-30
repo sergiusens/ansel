@@ -112,10 +112,11 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
  * @param accels
  * @param data
  * @param accel_group
+ * @param action_scope Human-readable, translated, category or scope of the action. Will be turned into path internally
  * @param action_name Human-readable, translated, name or description of the action. Will be turned into path internally
  * @param key_val
  * @param accel_mods
  */
 void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
-                                   GtkAccelGroup *accel_group, const gchar *action_name, guint key_val,
-                                   GdkModifierType accel_mods);
+                                   GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
+                                   guint key_val, GdkModifierType accel_mods);

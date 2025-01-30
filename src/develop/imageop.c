@@ -1981,6 +1981,12 @@ static gboolean _iop_plugin_header_activate(GtkWidget* self, gboolean group_cycl
   return TRUE;
 }
 
+static gboolean _iop_plugin_focus_accel(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                        GdkModifierType modifier, gpointer data)
+{
+  return _iop_plugin_header_activate(NULL, FALSE, data);
+}
+
 static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e, gpointer user_data)
 {
   if(e->type == GDK_2BUTTON_PRESS || e->type == GDK_3BUTTON_PRESS) return TRUE;
@@ -2211,6 +2217,10 @@ void dt_iop_gui_set_expander(dt_iop_module_t *module)
   g_signal_connect(G_OBJECT(header_evb), "button-press-event", G_CALLBACK(_iop_plugin_header_button_press), module);
   g_signal_connect(G_OBJECT(header_evb), "mnemonic-activate", G_CALLBACK(_iop_plugin_header_activate), module);
   gtk_widget_add_events(header_evb, GDK_POINTER_MOTION_MASK);
+
+  gchar *clean_name = delete_underscore(module->name());
+  dt_accels_new_global_action(_iop_plugin_focus_accel, module, "Plugins", clean_name, 0, 0);
+  g_free(clean_name);
 
   /* connect mouse button callbacks for focus and presets */
   g_signal_connect(G_OBJECT(body_evb), "button-press-event", G_CALLBACK(_iop_plugin_body_button_press), module);

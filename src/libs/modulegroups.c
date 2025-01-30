@@ -294,9 +294,9 @@ void gui_init(dt_lib_module_t *self)
   darktable.develop->proxy.modulegroups.switch_group = _lib_modulegroups_switch_group;
   darktable.develop->proxy.modulegroups.search_text_focus = _lib_modulegroups_search_text_focus;
 
-  dt_accels_new_global_action(_modulegroups_switch_tab_next, NULL, N_("move to the next modules tab"), GDK_KEY_Tab,
+  dt_accels_new_global_action(_modulegroups_switch_tab_next, NULL, N_("Darkroom"), N_("move to the next modules tab"), GDK_KEY_Tab,
                               GDK_CONTROL_MASK);
-  dt_accels_new_global_action(_modulegroups_switch_tab_previous, NULL, N_("move to the previous modules tab"),
+  dt_accels_new_global_action(_modulegroups_switch_tab_previous, NULL, N_("Darkroom"), N_("move to the previous modules tab"),
                               GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   /* let's connect to view changed signal to set default group */

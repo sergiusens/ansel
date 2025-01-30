@@ -2127,6 +2127,9 @@ void enter(dt_view_t *self)
   // Init the starting point of undo/redo
   dt_dev_undo_start_record(dev);
   dt_dev_undo_end_record(dev);
+
+  // Attach shortcuts to new widgets
+  dt_accels_connect_accels(darktable.gui->accels);
 }
 
 void leave(dt_view_t *self)
