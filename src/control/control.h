@@ -48,6 +48,7 @@ gboolean dt_control_draw_endmarker(GtkWidget *widget, cairo_t *crf, gpointer use
 void dt_control_button_pressed(double x, double y, double pressure, int which, int type, uint32_t state);
 void dt_control_button_released(double x, double y, int which, uint32_t state);
 void dt_control_mouse_moved(double x, double y, double pressure, int which);
+void dt_control_key_pressed(GdkEventKey *event);
 void dt_control_mouse_leave();
 void dt_control_mouse_enter();
 gboolean dt_control_configure(GtkWidget *da, GdkEventConfigure *event, gpointer user_data);

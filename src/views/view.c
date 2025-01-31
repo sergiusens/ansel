@@ -515,6 +515,33 @@ void dt_view_manager_mouse_moved(dt_view_manager_t *vm, double x, double y, doub
   if(!handled && v->mouse_moved) v->mouse_moved(v, x, y, pressure, which);
 }
 
+int dt_view_manager_key_pressed(dt_view_manager_t *vm, GdkEventKey *event)
+{
+  if(!vm->current_view) return 0;
+  dt_view_t *v = vm->current_view;
+
+  /* lets check if any plugins want to handle button press */
+  gboolean handled = FALSE;
+  for(const GList *plugins = g_list_last(darktable.lib->plugins);
+      plugins;
+      plugins = g_list_previous(plugins))
+  {
+    dt_lib_module_t *plugin = (dt_lib_module_t *)(plugins->data);
+
+    /* does this module belong to current view ?*/
+    if(plugin->key_pressed && dt_lib_is_visible_in_view(plugin, v))
+      if(plugin->key_pressed(plugin, event)) handled = TRUE;
+  }
+
+  if(handled)
+    return 1;
+  /* if not handled by any plugin let pass to view handler*/
+  else if(v->key_pressed)
+    v->key_pressed(v, event);
+
+  return 0;
+}
+
 int dt_view_manager_button_released(dt_view_manager_t *vm, double x, double y, int which, uint32_t state)
 {
   if(!vm->current_view) return 0;

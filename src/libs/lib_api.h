@@ -17,6 +17,7 @@
 */
 
 #include "common/module_api.h"
+#include "gui/gtk.h"
 #include <glib.h>
 
 #ifdef FULL_API_H
@@ -75,6 +76,7 @@ OPTIONAL(int, mouse_moved, struct dt_lib_module_t *self, double x, double y, dou
 OPTIONAL(int, button_released, struct dt_lib_module_t *self, double x, double y, int which, uint32_t state);
 OPTIONAL(int, button_pressed, struct dt_lib_module_t *self, double x, double y, double pressure, int which, int type,
                    uint32_t state);
+OPTIONAL(int, key_pressed, struct dt_lib_module_t *self, GdkEventKey *event);
 OPTIONAL(int, scrolled, struct dt_lib_module_t *self, double x, double y, int up);
 OPTIONAL(void, configure, struct dt_lib_module_t *self, int width, int height);
 OPTIONAL(int, position, );
@@ -106,4 +108,3 @@ DEFAULT(gboolean, preset_autoapply, struct dt_lib_module_t *self);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

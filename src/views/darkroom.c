@@ -1997,9 +1997,11 @@ static void _unregister_modules_drag_n_drop(dt_view_t *self)
 }
 
 
-
 void enter(dt_view_t *self)
 {
+  // Reset focus to center view
+  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+
   // clean the undo list
   dt_undo_clear(darktable.undo, DT_UNDO_DEVELOP);
 
@@ -2515,8 +2517,6 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
     return 1;
   }
 
-  if(which == 1) dt_control_change_cursor(GDK_LEFT_PTR);
-
   if(which == 2)
   {
     // zoom to 1:1 2:1 and back
@@ -2720,12 +2720,6 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
      && dev->gui_module->button_pressed(dev->gui_module, x, y, pressure, which, type, state))
      return 1;
 
-  if(which == 1 && type == GDK_2BUTTON_PRESS) return 0;
-  if(which == 1)
-  {
-    dt_control_change_cursor(GDK_HAND1);
-    return 1;
-  }
   return 0;
 }
 

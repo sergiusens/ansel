@@ -748,7 +748,7 @@ void init_main_table(GtkWidget *container, dt_ui_t *ui)
   gtk_widget_set_hexpand(ocda, TRUE);
   gtk_widget_set_vexpand(ocda, TRUE);
   gtk_widget_set_app_paintable(cda, TRUE);
-  gtk_widget_set_events(cda, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK
+  gtk_widget_set_events(cda, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK
                              | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK
                              | darktable.gui->scroll_mask);
   gtk_widget_set_can_focus(cda, TRUE);

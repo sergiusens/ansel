@@ -294,6 +294,11 @@ void dt_control_mouse_moved(double x, double y, double pressure, int which)
   dt_view_manager_mouse_moved(darktable.view_manager, x, y, pressure, which);
 }
 
+void dt_control_key_pressed(GdkEventKey *event)
+{
+  dt_view_manager_key_pressed(darktable.view_manager, event);
+}
+
 void dt_control_button_released(double x, double y, int which, uint32_t state)
 {
   darktable.control->button_down = 0;

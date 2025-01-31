@@ -17,6 +17,7 @@
 */
 
 #include "common/module_api.h"
+#include "gui/gtk.h"
 
 #ifdef FULL_API_H
 
@@ -57,6 +58,8 @@ OPTIONAL(void, mouse_moved, struct dt_view_t *self, double x, double y, double p
 OPTIONAL(int, button_released, struct dt_view_t *self, double x, double y, int which, uint32_t state);
 OPTIONAL(int, button_pressed, struct dt_view_t *self, double x, double y, double pressure,
                               int which, int type, uint32_t state);
+OPTIONAL(int, key_pressed, struct dt_view_t *self, GdkEventKey *event);
+
 OPTIONAL(void, configure, struct dt_view_t *self, int width, int height);
 OPTIONAL(void, scrolled, struct dt_view_t *self, double x, double y, int up, int state); // mouse scrolled in view
 OPTIONAL(void, scrollbar_changed, struct dt_view_t *self, double x, double y); // scrollbars changed in view

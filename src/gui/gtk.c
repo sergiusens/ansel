@@ -496,8 +496,9 @@ static gboolean _window_configure(GtkWidget *da, GdkEvent *event, gpointer user_
 static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer user_data)
 {
   /* Reset Gtk focus */
-  gtk_window_set_focus(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), NULL);
+  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
   darktable.gui->has_scroll_focus = NULL;
+  gtk_widget_grab_focus(w);
 
   double pressure = 1.0;
   GdkDevice *device = gdk_event_get_source_device((GdkEvent *)event);
@@ -506,7 +507,6 @@ static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer us
   {
     gdk_event_get_axis((GdkEvent *)event, GDK_AXIS_PRESSURE, &pressure);
   }
-  gtk_widget_grab_focus(w);
   dt_control_button_pressed(event->x, event->y, pressure, event->button, event->type, event->state & 0xf);
   return FALSE;
 }
@@ -528,6 +528,12 @@ static gboolean _mouse_moved(GtkWidget *w, GdkEventMotion *event, gpointer user_
   }
   dt_control_mouse_moved(event->x, event->y, pressure, event->state & 0xf);
   return FALSE;
+}
+
+static gboolean _key_pressed(GtkWidget *w, GdkEventKey *event)
+{
+  dt_control_key_pressed(event);
+  return TRUE;
 }
 
 static gboolean _center_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
@@ -658,6 +664,7 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   g_signal_connect(G_OBJECT(widget), "configure-event", G_CALLBACK(_configure), gui);
   g_signal_connect(G_OBJECT(widget), "draw", G_CALLBACK(_draw), NULL);
   g_signal_connect(G_OBJECT(widget), "motion-notify-event", G_CALLBACK(_mouse_moved), NULL);
+  g_signal_connect(G_OBJECT(widget), "key-press-event", G_CALLBACK(_key_pressed), NULL);
   g_signal_connect(G_OBJECT(widget), "leave-notify-event", G_CALLBACK(_center_leave), NULL);
   g_signal_connect(G_OBJECT(widget), "enter-notify-event", G_CALLBACK(_center_enter), NULL);
   g_signal_connect(G_OBJECT(widget), "button-press-event", G_CALLBACK(_button_pressed), NULL);
@@ -686,12 +693,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   gtk_widget_grab_default(widget);
   gtk_widget_grab_focus(widget);
 
-  // TODO: make this work as: libgnomeui testgnome.c
-  /*  GtkContainer *box = GTK_CONTAINER(darktable.gui->widgets.plugins_vbox);
-  GtkScrolledWindow *swin = GTK_SCROLLED_WINDOW(darktable.gui->
-                                                widgets.right_scrolled_window);
-  gtk_container_set_focus_vadjustment (box, gtk_scrolled_window_get_vadjustment (swin));
-  */
   dt_colorspaces_set_display_profile(DT_COLORSPACE_DISPLAY);
   // update the profile when the window is moved. resize is already handled in configure()
   widget = dt_ui_main_window(darktable.gui->ui);
