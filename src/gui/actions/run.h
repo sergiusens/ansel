@@ -51,6 +51,8 @@ static int32_t preload_image_cache(dt_job_t *job)
     dt_control_job_set_progress(job, i / imgs);
     collection = g_list_next(collection);
   }
+
+  g_list_free(collection);
   return 0;
 }
 
