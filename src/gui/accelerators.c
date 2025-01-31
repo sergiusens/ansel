@@ -204,7 +204,12 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
-  if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
+  if(shortcut && shortcut->widget == widget)
+  {
+    // reference is still up-to-date. Nothing to do.
+    return;
+  }
+  else if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
   {
     // If we already have a shortcut object wired to Gtk for this accel path, just update it
     GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
@@ -212,7 +217,8 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
     shortcut->widget = widget;
     if(shortcut->key > 0) _add_widget_accel(shortcut, &key);
   }
-  else
+  // else if shortcut && shortcut->type == DT_SHORTCUT_UNSET, we need to wait for the next call to dt_accels_connect_accels()
+  else if(!shortcut)
   {
     shortcut = malloc(sizeof(dt_shortcut_t));
     shortcut->accel_group = accel_group;
@@ -237,7 +243,12 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback),
   gchar *accel_path = dt_accels_build_path(action_scope, action_name);
 
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
-  if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
+  if(shortcut && shortcut->closure->data == data)
+  {
+    // reference is still up-to-date: nothing to do.
+    return;
+  }
+  else if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
   {
     // If we already have a shortcut object wired to Gtk for this accel path, just update it
     GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
@@ -245,7 +256,9 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback),
     shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
     if(shortcut->key > 0) _add_generic_accel(shortcut, &key);
   }
-  else {
+  // else if shortcut && shortcut->type == DT_SHORTCUT_UNSET, we need to wait for the next call to dt_accels_connect_accels()
+  else if(!shortcut)
+  {
     // Create a new object.
     shortcut = malloc(sizeof(dt_shortcut_t));
     shortcut->accel_group = accel_group;
@@ -265,20 +278,12 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback),
   g_free(accel_path);
 }
 
-/* Print debug stuff
-void _foreach_accel(gpointer data, const gchar *accel_path, guint accel_key, GdkModifierType accel_mods,
-                    gboolean changed)
-{
-  fprintf(stdout, "path: %s - accel: %i\n", accel_path, accel_key);
-}
-*/
 
 void dt_accels_load_user_config(dt_accels_t *accels)
 {
-  //gtk_accel_map_foreach_unfiltered(NULL, _foreach_accel);
   gtk_accel_map_load(accels->config_file);
-  //gtk_accel_map_foreach_unfiltered(NULL, _foreach_accel);
 }
+
 
 void _connect_accel(gpointer _key, gpointer value, gpointer user_data)
 {
@@ -385,8 +390,9 @@ gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels)
   //fprintf(stdout, "keystroke: %i - %i -> %s\n", keyval, mods, gdk_keyval_name(keyval));
 
   // Get the accelerator entry from the accel group
-  gchar *accel_name = gtk_accelerator_name (keyval, mods);
-  GQuark accel_quark = g_quark_from_string (accel_name);
+  gchar *accel_name = gtk_accelerator_name(keyval, mods);
+  GQuark accel_quark = g_quark_from_string(accel_name);
+  //fprintf(stdout, "accel: %s\n", accel_name);
   g_free(accel_name);
 
   // Look into the active group first, aka darkroom, lighttable, etc.
