@@ -752,15 +752,6 @@ static void zoom_out_callback(dt_action_t *action)
   scrolled(self, dev->width / 2, dev->height / 2, 0, GDK_CONTROL_MASK);
 }
 
-static void skip_f_key_accel_callback(dt_action_t *action)
-{
-  dt_dev_jump_image(dt_action_view(action)->data, 1, TRUE);
-}
-
-static void skip_b_key_accel_callback(dt_action_t *action)
-{
-  dt_dev_jump_image(dt_action_view(action)->data, -1, TRUE);
-}
 #endif
 
 static void _darkroom_ui_pipe_finish_signal_callback(gpointer instance, gpointer data)
@@ -1262,120 +1253,55 @@ void connect_button_press_release(GtkWidget *w, GtkWidget *p)
   g_signal_connect(w, "button-release-event", G_CALLBACK(_quickbutton_press_release), p);
 }
 
-#if 0
-static void _focus_module(dt_iop_module_t *module)
+gboolean _switch_to_next_picture(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                 GdkModifierType modifier, gpointer data)
 {
-  if(module && dt_iop_gui_module_is_visible(module))
+  dt_develop_t *dev = (dt_develop_t *)data;
+  int32_t current_img = dev->image_storage.id;
+  GList *current_collection = dt_collection_get_all(darktable.collection, -1);
+  GList *current_item = g_list_find(current_collection, GINT_TO_POINTER(current_img));
+
+  if(current_item && current_item->next)
   {
-    dt_iop_request_focus(module);
-    dt_iop_gui_set_expanded(module, TRUE, TRUE);
-    darktable.gui->scroll_to[1] = module->expander;
+    int32_t next_img = GPOINTER_TO_INT(current_item->next->data);
+    g_list_free(current_collection);
+    _dev_change_image(next_img);
   }
   else
-  {
-    // we reached the extremity of the list.
-    dt_iop_request_focus(NULL);
-  }
+    g_list_free(current_collection);
+
+  return TRUE;
 }
 
-static void _focus_next_module()
+gboolean _switch_to_prev_picture(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                 GdkModifierType modifier, gpointer data)
 {
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused == NULL)
+  dt_develop_t *dev = (dt_develop_t *)data;
+  int32_t current_img = dev->image_storage.id;
+  GList *current_collection = dt_collection_get_all(darktable.collection, -1);
+  GList *current_item = g_list_find(current_collection, GINT_TO_POINTER(current_img));
+
+  if(current_item && current_item->prev)
   {
-    // No focused module : give focus to the first visible module of the stack
-    GList *modules = darktable.develop->iop;
-    if(modules)
-    {
-      modules = g_list_last(modules);
-      dt_iop_module_t *module = NULL;
-      do
-      {
-        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
-        if(mod && dt_iop_gui_module_is_visible(mod))
-        {
-          module = mod;
-          break;
-        }
-      } while((modules = g_list_previous(modules)) != NULL);
-      _focus_module(module);
-    }
+    int32_t prev_img = GPOINTER_TO_INT(current_item->prev->data);
+    g_list_free(current_collection);
+    _dev_change_image(prev_img);
   }
   else
-  {
-    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
-    _focus_module(dt_iop_gui_get_previous_visible_module(focused));
-  }
+    g_list_free(current_collection);
+
+  return TRUE;
 }
 
-static void _focus_previous_module()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused == NULL)
-  {
-    // No focused module : give focus to the last visible module of the stack
-    GList *modules = darktable.develop->iop;
-    if(modules)
-    {
-      modules = g_list_first(modules);
-      dt_iop_module_t *module = NULL;
-      do
-      {
-        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
-        if(mod && dt_iop_gui_module_is_visible(mod))
-        {
-          module = mod;
-          break;
-        }
-      } while((modules = g_list_next(modules)) != NULL);
-      _focus_module(module);
-    }
-  }
-  else
-  {
-    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
-    _focus_module(dt_iop_gui_get_next_visible_module(focused));
-  }
-}
-
-static void _enable_module()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused != NULL && dt_iop_gui_module_is_visible(focused))
-  {
-    if(!focused->enabled)
-    {
-      focused->enabled = TRUE;
-      dt_iop_gui_set_enable_button(focused);
-    }
-    // else : don't change the enabled status but still grab focus on the internal widget
-
-    darktable.gui->scroll_to[1] = focused->expander;
-    gtk_widget_grab_focus(focused->widget);
-  }
-}
-
-static void _disable_module()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused != NULL && dt_iop_gui_module_is_visible(focused))
-  {
-    if(focused->enabled)
-    {
-      focused->enabled = FALSE;
-      dt_iop_gui_set_enable_button(focused);
-    }
-    // else : don't change the enabled status but still grab focus on the external widget
-
-    gtk_widget_grab_focus(focused->expander);
-  }
-}
-#endif
 
 void gui_init(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
+  dt_accels_new_darkroom_action(_switch_to_next_picture, darktable.develop, N_("Darkroom/Actions"),
+                                N_("switch to the next picture"), GDK_KEY_Right, GDK_MOD1_MASK);
+  dt_accels_new_darkroom_action(_switch_to_prev_picture, darktable.develop, N_("Darkroom/Actions"),
+                                N_("switch to the previous picture"), GDK_KEY_Left, GDK_MOD1_MASK);
   /*
    * Add view specific tool buttons
    */
@@ -2469,10 +2395,11 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
     dt_control_set_dev_zoom_y(zy);
     ctl->button_x = x - offx;
     ctl->button_y = y - offy;
+
     dt_control_queue_redraw_center();
     dt_control_navigation_redraw();
 
-    dt_dev_invalidate(dev);
+    dt_dev_invalidate_zoom(dev);
     dt_dev_refresh_ui_images(dev);
   }
 }
@@ -2497,7 +2424,6 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
 
     dt_control_queue_redraw_center();
 
-    // FIXME: use invalidate_top in the future
     dt_dev_invalidate_preview(dev);
     dt_dev_refresh_ui_images(dev);
     return 1;
@@ -2506,7 +2432,6 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
   if(dev->form_visible && dt_masks_events_button_released(dev->gui_module, x, y, which, state))
   {
     // Change on mask parameters and image output.
-    // FIXME: use invalidate_top in the future
     dt_control_queue_redraw_center();
     _do_delayed_history_commit(dev);
     return 1;
@@ -2879,6 +2804,12 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
 
   dt_dev_invalidate_zoom(dev);
   dt_dev_refresh_ui_images(dev);
+}
+
+
+int key_pressed(dt_view_t *self, GdkEventKey *event)
+{
+  return 0;
 }
 
 void configure(dt_view_t *self, int wd, int ht)
