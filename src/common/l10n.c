@@ -256,7 +256,7 @@ static void get_language_names(GList *languages)
 
           // we initialize the name to the language code to have something on systems lacking iso-codes, so free it!
           g_free(language->name);
-          language->name = g_strdup_printf("%s (%s)%s", localized_name, language->code, language->is_default ? " *" : "");
+          language->name = g_strdup_printf("%s (%s)", localized_name, language->code);
           g_free(localized_name);
 
           // we can't break out of the loop here. at least pt is in our list twice!
@@ -379,7 +379,7 @@ dt_l10n_t *dt_l10n_init(gboolean init_list)
           }
 
           language->code = g_strdup(locale);
-          language->name = g_strdup_printf("%s%s", locale, language->is_default ? " *" : "");
+          language->name = g_strdup(locale);
 
           if(g_strcmp0(ui_lang, language->code) == 0)
             selected = language;
