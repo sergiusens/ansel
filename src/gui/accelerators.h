@@ -71,16 +71,6 @@ void dt_accels_cleanup(dt_accels_t *accels);
  */
 
 
-/**
- * @brief Find the numpad equivalent key of any given key.
- * Use this to define/handle alternative shortcuts.
- *
- * @param key_val
- * @return guint
- */
-guint dt_accels_keypad_alternatives(const guint key_val);
-
-
 gchar *dt_accels_build_path(const gchar *scope, const gchar *feature);
 
 /**
