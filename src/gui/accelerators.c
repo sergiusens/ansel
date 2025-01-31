@@ -32,8 +32,6 @@ dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
 }
 
 
-
-
 void dt_accels_cleanup(dt_accels_t *accels)
 {
   gtk_accel_map_save(accels->config_file);
@@ -52,6 +50,7 @@ void dt_accels_cleanup(dt_accels_t *accels)
   g_free(accels->config_file);
   g_free(accels);
 }
+
 
 void dt_accels_connect_window(dt_accels_t *accels, const gchar *group)
 {
@@ -88,6 +87,7 @@ void dt_accels_connect_window(dt_accels_t *accels, const gchar *group)
   }
 }
 
+
 void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const gboolean reset)
 {
   if(!accels->window) return;
@@ -107,60 +107,6 @@ void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const 
   }
 
   accels->reset++;
-}
-
-void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const gchar *signal, GtkAccelGroup *accel_group, const gchar *accel_path, guint key_val, GdkModifierType accel_mods)
-{
-  // Our own circuitery to keep track of things after user-defined shortcuts are updated
-  dt_shortcut_t *shortcut = malloc(sizeof(dt_shortcut_t));
-  shortcut->accel_group = accel_group;
-  shortcut->widget = widget;
-  shortcut->closure = NULL;
-  shortcut->path = g_strdup(accel_path);
-  shortcut->signal = signal;
-  shortcut->key = key_val;
-  shortcut->mods = accel_mods;
-  shortcut->type = DT_SHORTCUT_UNSET;
-
-  // Gtk circuitery with compile-time defaults. Init with no keys so Gtk collects them from user config later.
-  gtk_accel_map_add_entry(accel_path, 0, 0);
-
-  g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
-}
-
-
-void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback), gpointer data, GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name, guint key_val, GdkModifierType accel_mods)
-{
-  // Our own circuitery to keep track of things after user-defined shortcuts are updated
-  dt_shortcut_t *shortcut = malloc(sizeof(dt_shortcut_t));
-  shortcut->accel_group = accel_group;
-  shortcut->widget = NULL;
-  shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
-  shortcut->path = dt_accels_build_path(action_scope, action_name);
-  shortcut->signal = "";
-  shortcut->key = key_val;
-  shortcut->mods = accel_mods;
-  shortcut->type = DT_SHORTCUT_UNSET;
-
-  // Gtk circuitery with compile-time defaults. Init with no keys so Gtk collects them from user config later.
-  gtk_accel_map_add_entry(shortcut->path, 0, 0);
-
-  g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
-}
-
-/* Print debug stuff
-void _foreach_accel(gpointer data, const gchar *accel_path, guint accel_key, GdkModifierType accel_mods,
-                    gboolean changed)
-{
-  fprintf(stdout, "path: %s - accel: %i\n", accel_path, accel_key);
-}
-*/
-
-void dt_accels_load_user_config(dt_accels_t *accels)
-{
-  //gtk_accel_map_foreach_unfiltered(NULL, _foreach_accel);
-  gtk_accel_map_load(accels->config_file);
-  //gtk_accel_map_foreach_unfiltered(NULL, _foreach_accel);
 }
 
 
@@ -233,6 +179,107 @@ void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
     gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, alt_char, key->accel_mods);
 }
 
+
+void _remove_generic_accel(dt_shortcut_t *shortcut)
+{
+  gtk_accel_group_disconnect(shortcut->accel_group, shortcut->closure);
+}
+
+void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelKey *key)
+{
+  gtk_accel_group_connect(shortcut->accel_group, key->accel_key, key->accel_mods, GTK_ACCEL_VISIBLE,
+                          shortcut->closure);
+}
+
+
+void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
+{
+  // init an accel_map entry with no keys so Gtk collects them from user config later.
+  gtk_accel_map_add_entry(shortcut->path, 0, 0);
+  g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
+}
+
+
+void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const gchar *signal, GtkAccelGroup *accel_group, const gchar *accel_path, guint key_val, GdkModifierType accel_mods)
+{
+  // Our own circuitery to keep track of things after user-defined shortcuts are updated
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
+  if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
+  {
+    // If we already have a shortcut object wired to Gtk for this accel path, just update it
+    GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
+    if(shortcut->key > 0) _remove_widget_accel(shortcut, &key);
+    shortcut->widget = widget;
+    if(shortcut->key > 0) _add_widget_accel(shortcut, &key);
+  }
+  else
+  {
+    shortcut = malloc(sizeof(dt_shortcut_t));
+    shortcut->accel_group = accel_group;
+    shortcut->widget = widget;
+    shortcut->closure = NULL;
+    shortcut->path = g_strdup(accel_path);
+    shortcut->signal = signal;
+    shortcut->key = key_val;
+    shortcut->mods = accel_mods;
+    shortcut->type = DT_SHORTCUT_UNSET;
+    _insert_accel(accels, shortcut);
+    // accel is inited with empty keys so user config may set it.
+    // dt_accels_load_config needs to run next
+    // then dt_accels_connect_accels will update keys and possibly wire the widgets in Gtk
+  }
+}
+
+
+void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback), gpointer data, GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name, guint key_val, GdkModifierType accel_mods)
+{
+  // Our own circuitery to keep track of things after user-defined shortcuts are updated
+  gchar *accel_path = dt_accels_build_path(action_scope, action_name);
+
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
+  if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
+  {
+    // If we already have a shortcut object wired to Gtk for this accel path, just update it
+    GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
+    if(shortcut->key > 0) _remove_generic_accel(shortcut);
+    shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
+    if(shortcut->key > 0) _add_generic_accel(shortcut, &key);
+  }
+  else {
+    // Create a new object.
+    shortcut = malloc(sizeof(dt_shortcut_t));
+    shortcut->accel_group = accel_group;
+    shortcut->widget = NULL;
+    shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
+    shortcut->path = g_strdup(accel_path);
+    shortcut->signal = "";
+    shortcut->key = key_val;
+    shortcut->mods = accel_mods;
+    shortcut->type = DT_SHORTCUT_UNSET;
+    _insert_accel(accels, shortcut);
+    // accel is inited with empty keys so user config may set it.
+    // dt_accels_load_config needs to run next
+    // then dt_accels_connect_accels will update keys and possibly wire the widgets in Gtk
+  }
+
+  g_free(accel_path);
+}
+
+/* Print debug stuff
+void _foreach_accel(gpointer data, const gchar *accel_path, guint accel_key, GdkModifierType accel_mods,
+                    gboolean changed)
+{
+  fprintf(stdout, "path: %s - accel: %i\n", accel_path, accel_key);
+}
+*/
+
+void dt_accels_load_user_config(dt_accels_t *accels)
+{
+  //gtk_accel_map_foreach_unfiltered(NULL, _foreach_accel);
+  gtk_accel_map_load(accels->config_file);
+  //gtk_accel_map_foreach_unfiltered(NULL, _foreach_accel);
+}
+
 void _connect_accel(gpointer _key, gpointer value, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
@@ -263,16 +310,16 @@ void _connect_accel(gpointer _key, gpointer value, gpointer user_data)
   }
   else if(shortcut->closure)
   {
-    // Need to increase the number of references to avoid loosing the closure just yet.
-    g_closure_ref(shortcut->closure);
-    g_closure_sink(shortcut->closure);
-
     if(needs_cleanup)
-      gtk_accel_group_disconnect(shortcut->accel_group, shortcut->closure);
+    {
+      // Need to increase the number of references to avoid loosing the closure just yet.
+      g_closure_ref(shortcut->closure);
+      g_closure_sink(shortcut->closure);
+      _remove_generic_accel(shortcut);
+    }
 
     if(needs_init)
-      gtk_accel_group_connect(shortcut->accel_group, key.accel_key, key.accel_mods, GTK_ACCEL_VISIBLE,
-                              shortcut->closure);
+      _add_generic_accel(shortcut, &key);
     // closures can be connected only at one accel at a time, so we don't handle keypad duplicates
   }
   else
