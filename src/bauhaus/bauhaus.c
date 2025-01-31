@@ -983,6 +983,7 @@ static void _bauhaus_widget_init(struct dt_bauhaus_widget_t *w, dt_iop_module_t 
   w->field = NULL;
 
   w->section = NULL;
+  w->no_accels = FALSE;
 
   // no quad icon and no toggle button:
   w->quad_paint = 0;
@@ -1145,11 +1146,14 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     // Wire the focusing action
     // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.
     // No need to wire all possible events/interactions.
-    gchar *clean_name = delete_underscore(m->name());
-    gchar *plugin_name = g_strdup_printf("%s/%s/%s", clean_name, (w->type == DT_BAUHAUS_SLIDER) ? "slider" : "combobox", label);
-    dt_accels_new_darkroom_action(_action_request_focus, w, "Darkroom/Plugins", plugin_name, 0, 0);
-    g_free(plugin_name);
-    g_free(clean_name);
+    if(!w->no_accels)
+    {
+      gchar *clean_name = delete_underscore(m->name());
+      gchar *plugin_name = g_strdup_printf("%s/%s/%s", clean_name, (w->type == DT_BAUHAUS_SLIDER) ? "slider" : "combobox", label);
+      dt_accels_new_darkroom_action(_action_request_focus, w, "Darkroom/Plugins", plugin_name, 0, 0);
+      g_free(plugin_name);
+      g_free(clean_name);
+    }
 
     gtk_widget_queue_draw(GTK_WIDGET(w));
   }
@@ -3095,6 +3099,12 @@ static gboolean dt_bauhaus_slider_motion_notify(GtkWidget *widget, GdkEventMotio
   }
 
   return activated;
+}
+
+void dt_bauhaus_disable_accels(GtkWidget *widget)
+{
+  struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
+  w->no_accels = TRUE;
 }
 
 // clang-format off

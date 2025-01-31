@@ -173,6 +173,10 @@ typedef struct dt_bauhaus_widget_t
 
   // goes last, might extend past the end:
   dt_bauhaus_data_t data;
+
+  // TRUE if accels should not be enabled here.
+  // Use that for blending
+  gboolean no_accels;
 } dt_bauhaus_widget_t;
 
 // class of our new widget, inheriting from drawing area
@@ -355,6 +359,12 @@ void dt_bauhaus_combobox_entry_set_sensitive(GtkWidget *widget, int pos, gboolea
 void dt_bauhaus_combobox_set_entries_ellipsis(GtkWidget *widget, PangoEllipsizeMode ellipis);
 PangoEllipsizeMode dt_bauhaus_combobox_get_entries_ellipsis(GtkWidget *widget);
 void bauhaus_request_focus(struct dt_bauhaus_widget_t *w);
+
+/* Disable accels for this widget.
+* WARNING: accels are inited when setting the widget label. This function should be called before.
+* It will be useless for the "one-line" init & setter functions.
+*/
+void dt_bauhaus_disable_accels(GtkWidget *widget);
 
 static inline void set_color(cairo_t *cr, GdkRGBA color)
 {
