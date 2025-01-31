@@ -396,9 +396,6 @@ dt_l10n_t *dt_l10n_init(gboolean init_list)
     {
       sys_default = g_list_last(result->languages)->data;
       sys_default->is_default = TRUE;
-      gchar* name = sys_default->name;
-      sys_default->name = g_strdup_printf("%s *", name);
-      g_free(name);
     }
 
     // now try to find language names and translations!
