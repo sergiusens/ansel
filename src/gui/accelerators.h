@@ -14,7 +14,7 @@ typedef struct dt_accels_t
   GtkAccelGroup *lighttable_accels; // lighttable-specific accels
   GtkAccelGroup *active_group; // reference to the above group currently loaded in the main window. don't init,
                                // don't free, only update
-  GSList *acceleratables;      // list of dt_shortcut_t
+  GHashTable *acceleratables;  // Key/value list of path/dt_shortcut_t
   GtkWindow *window;           // window capturing shortcuts
   gint reset;                  // ref counter of how many parts disconnected accels
   GdkKeymap *keymap;           // default screen keymap to decode key values
