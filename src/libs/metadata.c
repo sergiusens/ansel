@@ -702,6 +702,7 @@ void gui_init(dt_lib_module_t *self)
               "\npress escape to exit the popup window"));
 
     GtkWidget *textview = gtk_text_view_new();
+    dt_accels_disconnect_on_text_input(textview);
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
     g_object_set_data(G_OBJECT(buffer), "buffer_tv", GINT_TO_POINTER(textview));
     g_object_set_data(G_OBJECT(textview), "tv_index", GINT_TO_POINTER(i));

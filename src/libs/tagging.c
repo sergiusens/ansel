@@ -1663,6 +1663,7 @@ static void _pop_menu_dictionary_create_tag(GtkWidget *menuitem, dt_lib_module_t
   label = gtk_label_new(_("synonyms: "));
   gtk_box_pack_start(GTK_BOX(box), label, FALSE, TRUE, 0);
   GtkWidget *synonyms = gtk_text_view_new();
+  dt_accels_disconnect_on_text_input(synonyms);
   gtk_box_pack_end(GTK_BOX(box), synonyms, TRUE, TRUE, 0);
   gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(synonyms), GTK_WRAP_WORD);
   buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(synonyms));
@@ -1808,6 +1809,7 @@ static void _pop_menu_dictionary_edit_tag(GtkWidget *menuitem, dt_lib_module_t *
     label = gtk_label_new(_("synonyms: "));
     gtk_box_pack_start(GTK_BOX(box), label, FALSE, TRUE, 0);
     GtkWidget *synonyms = gtk_text_view_new();
+    dt_accels_disconnect_on_text_input(synonyms);
     gtk_box_pack_end(GTK_BOX(box), synonyms, TRUE, TRUE, 0);
     gtk_text_view_set_wrap_mode(GTK_TEXT_VIEW(synonyms), GTK_WRAP_WORD);
     buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(synonyms));
