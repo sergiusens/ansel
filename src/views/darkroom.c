@@ -2052,6 +2052,7 @@ void enter(dt_view_t *self)
   dt_dev_undo_end_record(dev);
 
   // Attach shortcuts to new widgets
+  dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_window(darktable.gui->accels, "darkroom");
 }
 

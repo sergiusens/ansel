@@ -169,6 +169,7 @@ void enter(dt_view_t *self)
   dt_ui_restore_panels(darktable.gui->ui);
 
   // Attach shortcuts
+  dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_window(darktable.gui->accels, "lighttable");
 }
 
