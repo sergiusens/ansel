@@ -320,15 +320,9 @@ void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, Gd
   // Hopefully no more heuristics required...
 }
 
-
-gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
+gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels)
 {
-  dt_accels_t *accels = (dt_accels_t *)user_data;
-
-  // Ditch everything that is not a key stroke or key strokes that are modifiers alone
-  // Abort early for performance.
-  if(event->type != GDK_KEY_PRESS || accels->active_group == NULL || event->key.is_modifier || accels->reset > 0)
-    return FALSE;
+  gboolean found = FALSE;
 
   GdkModifierType mods;
   guint keyval;
@@ -342,7 +336,6 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
   g_free(accel_name);
 
   // Look into the active group first, aka darkroom, lighttable, etc.
-  gboolean found = FALSE;
   if(gtk_accel_group_activate(accels->active_group, accel_quark, G_OBJECT(w), keyval, mods))
     found = TRUE;
 
@@ -350,10 +343,24 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
   if(!found && gtk_accel_group_activate(accels->global_accels, accel_quark, G_OBJECT(w), keyval, mods))
     found = TRUE;
 
-  //if(found) fprintf(stdout, "found shortcut %s\n", gdk_keyval_name(keyval));
+  return found;
+}
 
-  // If found == FALSE, it is possible that we messed-up key value decoding
+
+gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
+{
+  dt_accels_t *accels = (dt_accels_t *)user_data;
+
+  // Ditch everything that is not a key stroke or key strokes that are modifiers alone
+  // Abort early for performance.
+  if(event->type != GDK_KEY_PRESS
+     || accels->active_group == NULL
+     || event->key.is_modifier || accels->reset > 0)
+    return FALSE;
+
+  return _key_pressed(w, event, accels);
+
+  // If return == FALSE, it is possible that we messed-up key value decoding
   // Default Gtk shortcuts handler will have another chance since the accel groups
   // are connected to the window in a standard way.
-  return found;
 }
