@@ -1383,6 +1383,9 @@ void dt_cleanup()
 
   if(init_gui)
   {
+    // prevent accels from disconnecting from the window that is soon to be destroyed
+    darktable.gui->accels->window = NULL;
+
     // hide main window and do rest of the cleanup in the background
     gtk_widget_hide(dt_ui_main_window(darktable.gui->ui));
 
