@@ -343,6 +343,11 @@ gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable,
   {
     // TODO: put that in some module callback so we don't have to care here
     dt_iop_module_t *module = (dt_iop_module_t *)w->module;
+
+    // Showing the module, if it isn't already visible
+    if(module->default_group() != dt_dev_modulegroups_get(darktable.develop))
+      dt_dev_modulegroups_switch(darktable.develop, module);
+
     if(module->expander)
     {
       dt_iop_gui_set_expanded(module, TRUE, TRUE);
