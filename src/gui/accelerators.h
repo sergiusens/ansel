@@ -19,8 +19,15 @@ typedef struct dt_accels_t
   gint reset;                  // ref counter of how many parts disconnected accels
   GdkKeymap *keymap;           // default screen keymap to decode key values
   GdkModifierType default_mod_mask; // set of modifier masks relevant only to key strokes
+  gboolean init; // TRUE if we didn't find a keyboardrc config file at startup and we need to init a new one
 } dt_accels_t;
 
+typedef enum dt_shortcut_type_t
+{
+  DT_SHORTCUT_UNSET = 0,     // shortcut non-inited
+  DT_SHORTCUT_DEFAULT = 1,   // shortcut inited with compile-time defaults
+  DT_SHORTCUT_USER = 2       // shortcut changed by user config
+} dt_shortcut_type_t;
 
 typedef struct dt_shortcut_t
 {
@@ -31,6 +38,7 @@ typedef struct dt_shortcut_t
   GtkAccelGroup *accel_group; // the accel_group to which this shortcut belongs
   guint key;                  // default key
   GdkModifierType mods;       // default modifier
+  dt_shortcut_type_t type;
 } dt_shortcut_t;
 
 

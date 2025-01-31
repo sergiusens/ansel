@@ -90,6 +90,7 @@ dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
   accels->reset = 1;
   accels->keymap = gdk_keymap_get_for_display(gdk_display_get_default());
   accels->default_mod_mask = gtk_accelerator_get_default_mod_mask();
+  accels->init = !g_file_test(accels->config_file, G_FILE_TEST_EXISTS);
   return accels;
 }
 
@@ -188,6 +189,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
   shortcut->signal = signal;
   shortcut->key = key_val;
   shortcut->mods = accel_mods;
+  shortcut->type = DT_SHORTCUT_UNSET;
 
   // Gtk circuitery with compile-time defaults. Init with no keys so Gtk collects them from user config later.
   gtk_accel_map_add_entry(accel_path, 0, 0);
@@ -207,6 +209,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void (*action_callback),
   shortcut->signal = "";
   shortcut->key = key_val;
   shortcut->mods = accel_mods;
+  shortcut->type = DT_SHORTCUT_UNSET;
 
   // Gtk circuitery with compile-time defaults. Init with no keys so Gtk collects them from user config later.
   gtk_accel_map_add_entry(shortcut->path, 0, 0);
@@ -230,54 +233,121 @@ void dt_accels_load_user_config(dt_accels_t *accels)
 }
 
 
+gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key, gboolean init)
+{
+  gboolean changed = FALSE;
+  if(shortcut->type == DT_SHORTCUT_UNSET)
+  {
+    // accel_map table is initially populated with shortcut->type = DT_SHORTCUT_UNSET
+    // so that means the entry is new
+    if(init)
+    {
+      // We have no user config file. Init shortcuts with defaults,
+      // then a brand new config will be saved on exiting the app.
+      // Note: they might still be zero, not all shortcuts are assigned.
+      key->accel_key = shortcut->key;
+      key->accel_mods = shortcut->mods;
+      gtk_accel_map_change_entry(shortcut->path, shortcut->key, shortcut->mods, TRUE);
+      shortcut->type = DT_SHORTCUT_DEFAULT;
+    }
+    else if(key->accel_key == shortcut->key && key->accel_mods == shortcut->mods)
+    {
+      // We loaded user config file and found our defaults in it. Nothing to do.
+      shortcut->type = DT_SHORTCUT_DEFAULT;
+    }
+    else
+    {
+      // We loaded user config file, and user made changes in there.
+      // We will need to update our "defaults", which now become rather a memory of previous state
+      shortcut->key = key->accel_key;
+      shortcut->mods = key->accel_mods;
+      shortcut->type = DT_SHORTCUT_USER;
+    }
+
+    // UNSET state always needs update, it means it's the first time we connect accels
+    changed = TRUE;
+  }
+  else if(key->accel_key != shortcut->key || key->accel_mods != shortcut->mods)
+  {
+    shortcut->key = key->accel_key;
+    shortcut->mods = key->accel_mods;
+    shortcut->type = DT_SHORTCUT_USER;
+    changed = TRUE;
+  }
+
+  return changed;
+}
+
+
+void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
+{
+  gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, key->accel_key,
+                              key->accel_mods, GTK_ACCEL_VISIBLE);
+
+  // Keypad numbers register as different keys. Find the numpad equivalent key here, if any.
+  guint alt_char = dt_accels_keypad_alternatives(key->accel_key);
+  if(key->accel_key != alt_char)
+    gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, alt_char,
+                                key->accel_mods, GTK_ACCEL_VISIBLE);
+}
+
+
+void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
+{
+  gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, key->accel_key, key->accel_mods);
+
+  // Keypad numbers register as different keys. Find the numpad equivalent key here, if any.
+  guint alt_char = dt_accels_keypad_alternatives(key->accel_key);
+  if(key->accel_key != alt_char)
+    gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, alt_char, key->accel_mods);
+}
+
 void dt_accels_connect_accels(dt_accels_t *accels)
 {
   for(GSList *item = accels->acceleratables; item; item = g_slist_next(item))
   {
     dt_shortcut_t *shortcut = (dt_shortcut_t *)item->data;
+
     GtkAccelKey key = { 0 };
 
-    // If we found a path but we have no shortcut defined for it: reset to default keys
-    if(gtk_accel_map_lookup_entry(shortcut->path, &key) && key.accel_key == 0)
-    {
-      key.accel_key = shortcut->key;
-      key.accel_mods = shortcut->mods;
-      gtk_accel_map_change_entry(shortcut->path, shortcut->key, shortcut->mods, TRUE);
-    }
+    // All shortcuts should be known, they are added to accel_map at init time.
+    const gboolean is_known = gtk_accel_map_lookup_entry(shortcut->path, &key);
+    if(!is_known) continue;
+
+    const GtkAccelKey oldkey = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
+    const dt_shortcut_type_t oldtype = shortcut->type;
+    const gboolean changed = _update_shortcut_state(shortcut, &key, accels->init);
+
+    // if old_key was non zero, we already had an accel on the stack.
+    // then, if the new shortcut is different, that means we need to remove the old accel.
+    const gboolean needs_cleanup = changed && oldkey.accel_key > 0 && oldtype != DT_SHORTCUT_UNSET;
+
+    // if key is non zero and new, or updated, we need to add a new accel
+    const gboolean needs_init = changed && key.accel_key > 0;
 
     // Adding shortcuts without defined keys makes Gtk issue warnings, so avoid it.
-    if(key.accel_key > 0)
+    if(shortcut->widget)
     {
-      if(shortcut->widget)
-      {
-        assert(shortcut->signal);
+      if(needs_cleanup) _remove_widget_accel(shortcut, &oldkey);
+      if(needs_init) _add_widget_accel(shortcut, &key);
+    }
+    else if(shortcut->closure)
+    {
+      // Need to increase the number of references to avoid loosing the closure just yet.
+      g_closure_ref(shortcut->closure);
+      g_closure_sink(shortcut->closure);
 
-        gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, key.accel_key,
-                                   key.accel_mods, GTK_ACCEL_VISIBLE);
-
-        // Keypad numbers register as different keys. Find the numpad equivalent key here, if any.
-        guint alt_char = dt_accels_keypad_alternatives(key.accel_key);
-        if(key.accel_key != alt_char)
-          gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, alt_char,
-                                     key.accel_mods, GTK_ACCEL_VISIBLE);
-      }
-      else if(shortcut->closure)
-      {
-        // Attempt disconnection in case it's not the first time we run the function
-        // That only prevents scary CRITICAL in stderr.
-        // Need to increase the number of references to avoid loosing the closure just yet.
-        g_closure_ref(shortcut->closure);
-        g_closure_sink(shortcut->closure);
+      if(needs_cleanup)
         gtk_accel_group_disconnect(shortcut->accel_group, shortcut->closure);
 
+      if(needs_init)
         gtk_accel_group_connect(shortcut->accel_group, key.accel_key, key.accel_mods, GTK_ACCEL_VISIBLE,
                                 shortcut->closure);
-        // closures can be connected only at one accel at a time, so we don't handle keypad duplicates
-      }
-      else
-      {
-        fprintf(stderr, "Invalid shortcut definition for path %s: no widget and no closure given\n", shortcut->path);
-      }
+      // closures can be connected only at one accel at a time, so we don't handle keypad duplicates
+    }
+    else
+    {
+      fprintf(stderr, "Invalid shortcut definition for path %s: no widget and no closure given\n", shortcut->path);
     }
   }
 }
