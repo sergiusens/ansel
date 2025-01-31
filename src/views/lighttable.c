@@ -167,6 +167,15 @@ void enter(dt_view_t *self)
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_RIGHT, FALSE, TRUE);
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, FALSE, TRUE);
   dt_ui_restore_panels(darktable.gui->ui);
+
+  // New widgets may have connected their accels. We need to reload the list.
+  dt_accels_connect_accels(darktable.gui->accels);
+
+  // Reload the config in case we already have records for the new accels
+  dt_accels_load_user_config(darktable.gui->accels);
+
+  // Attach shortcuts
+  dt_accels_connect_window(darktable.gui->accels, "lighttable");
 }
 
 void init(dt_view_t *self)
@@ -197,6 +206,9 @@ void init(dt_view_t *self)
 
 void leave(dt_view_t *self)
 {
+  // Detach shortcuts
+  dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
+
   // ensure we have no active image remaining
   if(darktable.view_manager->active_images)
   {

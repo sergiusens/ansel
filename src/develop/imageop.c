@@ -1898,7 +1898,7 @@ static void _gui_set_single_expanded(dt_iop_module_t *module, gboolean expanded)
 
 void dt_iop_gui_set_expanded(dt_iop_module_t *module, gboolean expanded, gboolean collapse_others)
 {
-  if(!module->expander) return;
+  if(!module || !module->expander) return;
   /* handle shiftclick on expander, hide all except this */
   if(collapse_others)
   {
@@ -1965,8 +1965,7 @@ static gboolean _iop_plugin_header_activate(GtkWidget* self, gboolean group_cycl
 {
   dt_iop_module_t *module = (dt_iop_module_t *)user_data;
 
-  gtk_widget_set_visible(module->expander, TRUE);
-
+  // Expand and scroll
   if(darktable.develop->gui_module != module)
   {
     dt_iop_request_focus(module);
@@ -1986,6 +1985,20 @@ static gboolean _iop_plugin_header_activate(GtkWidget* self, gboolean group_cycl
 static gboolean _iop_plugin_focus_accel(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                         GdkModifierType modifier, gpointer data)
 {
+  dt_iop_module_t *module = (dt_iop_module_t *)data;
+
+  // Showing the module, if it isn't already visible
+  const uint32_t current_group = dt_dev_modulegroups_get(module->dev);
+
+  if(module->default_group() != current_group)
+  {
+    dt_dev_modulegroups_switch(darktable.develop, module);
+  }
+  else
+  {
+    dt_dev_modulegroups_set(darktable.develop, current_group);
+  }
+
   return _iop_plugin_header_activate(NULL, FALSE, data);
 }
 
@@ -2221,7 +2234,7 @@ void dt_iop_gui_set_expander(dt_iop_module_t *module)
   gtk_widget_add_events(header_evb, GDK_POINTER_MOTION_MASK);
 
   gchar *clean_name = delete_underscore(module->name());
-  dt_accels_new_global_action(_iop_plugin_focus_accel, module, "Plugins", clean_name, 0, 0);
+  dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, "Darkroom/Plugins", clean_name, 0, 0);
   g_free(clean_name);
 
   /* connect mouse button callbacks for focus and presets */
@@ -2425,26 +2438,6 @@ int dt_iop_get_module_flags(const char *op)
 }
 
 #if 0
-static void _show_module_callback(dt_iop_module_t *module)
-{
-  // Showing the module, if it isn't already visible
-  const uint32_t current_group = dt_dev_modulegroups_get(module->dev);
-
-  if(module->default_group() != current_group)
-  {
-    dt_dev_modulegroups_switch(darktable.develop, module);
-  }
-  else
-  {
-    dt_dev_modulegroups_set(darktable.develop, current_group);
-  }
-
-  dt_iop_gui_set_expanded(module, TRUE, TRUE);
-  dt_iop_request_focus(module);
-  darktable.gui->scroll_to[1] = module->expander;
-
-  dt_iop_connect_accels_multi(module->so);
-}
 
 static void _enable_module_callback(dt_iop_module_t *module)
 {

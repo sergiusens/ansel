@@ -160,7 +160,7 @@ void add_top_menu_entry(GtkWidget *menu_bar, GtkWidget **menus, GList **lists, c
   gtk_menu_set_accel_group(GTK_MENU(menus[index]), darktable.gui->accels->global_accels);
 
   gchar *clean_label = delete_underscore(label);
-  gchar *accel_path = dt_accels_build_path("Global menu", clean_label);
+  gchar *accel_path = dt_accels_build_path("Global/Menu", clean_label);
   gtk_menu_set_accel_path(GTK_MENU(menus[index]), accel_path);
   g_free(clean_label);
   g_free(accel_path);

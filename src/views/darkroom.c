@@ -1665,11 +1665,6 @@ void gui_init(dt_view_t *self)
   dt_action_register(self, N_("search modules"), search_callback, GDK_KEY_f, GDK_CONTROL_MASK);
 
   // Focus on next/previous modules
-  dt_action_register(self, N_("focus on the next module"), _focus_next_module, GDK_KEY_Page_Down, 0);
-  dt_action_register(self, N_("focus on the previous module"), _focus_previous_module, GDK_KEY_Page_Up, 0);
-
-  dt_action_register(self, N_("enable focused module"), _enable_module, GDK_KEY_Return, 0);
-  dt_action_register(self, N_("disable focused module"), _disable_module, GDK_KEY_Return, GDK_SHIFT_MASK);
 #endif
 }
 
@@ -2130,12 +2125,21 @@ void enter(dt_view_t *self)
   dt_dev_undo_start_record(dev);
   dt_dev_undo_end_record(dev);
 
-  // Attach shortcuts to new widgets
+  // New widgets may have connected their accels. We need to reload the list.
   dt_accels_connect_accels(darktable.gui->accels);
+
+  // Reload the config in case we already have records for the new accels
+  dt_accels_load_user_config(darktable.gui->accels);
+
+  // Attach shortcuts to new widgets
+  dt_accels_connect_window(darktable.gui->accels, "darkroom");
 }
 
 void leave(dt_view_t *self)
 {
+  // Detach shortcuts
+  dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
+
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
   // Send all shutdown signals

@@ -343,8 +343,11 @@ gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable,
   {
     // TODO: put that in some module callback so we don't have to care here
     dt_iop_module_t *module = (dt_iop_module_t *)w->module;
-    dt_iop_gui_set_expanded(module, TRUE, TRUE);
-    darktable.gui->scroll_to[1] = module->expander;
+    if(module->expander)
+    {
+      dt_iop_gui_set_expanded(module, TRUE, TRUE);
+      darktable.gui->scroll_to[1] = module->expander;
+    }
   }
 
   bauhaus_request_focus(data);
@@ -1142,9 +1145,9 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     // Wire the focusing action
     // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.
     // No need to wire all possible events/interactions.
-    gchar *clean_name = delete_underscore(w->module->name());
+    gchar *clean_name = delete_underscore(m->name());
     gchar *plugin_name = g_strdup_printf("%s/%s/%s", clean_name, (w->type == DT_BAUHAUS_SLIDER) ? "slider" : "combobox", label);
-    dt_accels_new_global_action(_action_request_focus, w, "Plugins", plugin_name, 0, 0);
+    dt_accels_new_darkroom_action(_action_request_focus, w, "Darkroom/Plugins", plugin_name, 0, 0);
     g_free(plugin_name);
     g_free(clean_name);
 

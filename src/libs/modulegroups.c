@@ -17,6 +17,7 @@
 */
 
 
+#include "bauhaus/bauhaus.h"
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/image_cache.h"
@@ -51,7 +52,7 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self);
 */
 static void _lib_modulegroups_set(dt_lib_module_t *self, uint32_t group);
 /* modulegroups proxy update visibility function
-*/
+ */
 static void _lib_modulegroups_update_visibility_proxy(dt_lib_module_t *self);
 /* modulegroups proxy get group function
   \see dt_dev_modulegroups_get()
@@ -67,8 +68,8 @@ static void _lib_modulegroups_switch_group(dt_lib_module_t *self, dt_iop_module_
 static void _lib_modulegroups_search_text_focus(dt_lib_module_t *self);
 
 /* hook up with viewmanager view change to initialize modulegroup */
-static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view,
-                                                   dt_view_t *new_view, gpointer data);
+static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view, dt_view_t *new_view,
+                                                   gpointer data);
 
 const char *name(dt_lib_module_t *self)
 {
@@ -77,7 +78,7 @@ const char *name(dt_lib_module_t *self)
 
 const char **views(dt_lib_module_t *self)
 {
-  static const char *v[] = {"darkroom", NULL};
+  static const char *v[] = { "darkroom", NULL };
   return v;
 }
 
@@ -170,7 +171,7 @@ static gboolean _modulegroups_switch_tab_next(GtkAccelGroup *accel_group, GObjec
 }
 
 static gboolean _modulegroups_switch_tab_previous(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
-                                              GdkModifierType modifier, gpointer data)
+                                                  GdkModifierType modifier, gpointer data)
 {
   dt_develop_t *dev = (dt_develop_t *)data;
   if(!dev) return FALSE;
@@ -224,6 +225,144 @@ static gboolean _lib_modulegroups_scroll(GtkWidget *widget, GdkEventScroll *even
   return TRUE;
 }
 
+
+static void _focus_module(dt_iop_module_t *module)
+{
+  if(module && dt_iop_gui_module_is_visible(module))
+  {
+    dt_iop_request_focus(module);
+    dt_iop_gui_set_expanded(module, TRUE, TRUE);
+    darktable.gui->scroll_to[1] = module->expander;
+  }
+  else
+  {
+    // we reached the extremity of the list.
+    dt_iop_request_focus(NULL);
+  }
+}
+
+static gboolean _focus_next_module()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(focused == NULL)
+  {
+    // No focused module : give focus to the first visible module of the stack
+    GList *modules = darktable.develop->iop;
+    if(modules)
+    {
+      modules = g_list_last(modules);
+      dt_iop_module_t *module = NULL;
+      do
+      {
+        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
+        if(mod && dt_iop_gui_module_is_visible(mod))
+        {
+          module = mod;
+          break;
+        }
+      } while((modules = g_list_previous(modules)) != NULL);
+      _focus_module(module);
+    }
+  }
+  else
+  {
+    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
+    _focus_module(dt_iop_gui_get_previous_visible_module(focused));
+  }
+
+  return TRUE;
+}
+
+static gboolean _focus_previous_module()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(focused == NULL)
+  {
+    // No focused module : give focus to the last visible module of the stack
+    GList *modules = darktable.develop->iop;
+    if(modules)
+    {
+      modules = g_list_first(modules);
+      dt_iop_module_t *module = NULL;
+      do
+      {
+        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
+        if(mod && dt_iop_gui_module_is_visible(mod))
+        {
+          module = mod;
+          break;
+        }
+      } while((modules = g_list_next(modules)) != NULL);
+      _focus_module(module);
+    }
+  }
+  else
+  {
+    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
+    _focus_module(dt_iop_gui_get_next_visible_module(focused));
+  }
+
+  return TRUE;
+}
+
+static gboolean _focus_next_control()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(!focused || !focused->widget_list) return FALSE;
+
+  GtkWidget *current_widget = darktable.gui->has_scroll_focus;
+
+  // Widgets are prepended in the order of init, so we need to reverse the list
+  GSList *first_item = g_slist_reverse(g_slist_copy(focused->widget_list));
+
+  if(!current_widget)
+  {
+    // No active widget, start by the first
+    bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
+  }
+  else
+  {
+    GSList *current_item = g_slist_find(first_item, current_widget);
+    GSList *next_item = g_slist_next(current_item);
+    // Select the next item, if any
+    if(next_item) bauhaus_request_focus(DT_BAUHAUS_WIDGET(next_item->data));
+    // Cycle back to the beginning
+    else if(first_item)
+      bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
+  }
+
+  g_slist_free(first_item);
+  return TRUE;
+}
+
+static gboolean _focus_previous_control()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(!focused || !focused->widget_list) return FALSE;
+
+  GtkWidget *current_widget = darktable.gui->has_scroll_focus;
+  GSList *last_item = focused->widget_list;
+
+  if(!current_widget)
+  {
+    // No active widget, start by the last
+    bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
+  }
+  else
+  {
+    GSList *current_item = g_slist_find(last_item, current_widget);
+    GSList *previous_item = g_slist_next(current_item);
+    // Select the previous item, if any
+    if(previous_item) bauhaus_request_focus(DT_BAUHAUS_WIDGET(previous_item->data));
+    // Cycle back to the end
+    else if(last_item)
+      bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
+  }
+
+  return TRUE;
+}
+
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -252,24 +391,18 @@ void gui_init(dt_lib_module_t *self)
 
   /* Tabs */
   d->notebook = GTK_WIDGET(gtk_notebook_new());
-  char *labels[DT_MODULEGROUP_SIZE] = { _("Pipeline"),
-                                        _("Tones"),
-                                        _("Film"),
-                                        _("Color"),
-                                        _("Repair"),
-                                        _("Sharpness"),
-                                        _("Effects"),
-                                        _("Technics"),
-                                        _("All")};
-  char *tooltips[DT_MODULEGROUP_SIZE] = { _("List all modules currently enabled in the reverse order of application in the pipeline."),
-                                          _("Modules destined to adjust brightness, contrast and dynamic range."),
-                                          _("Modules used when working with film scans."),
-                                          _("Modules destined to adjust white balance and perform color-grading."),
-                                          _("Modules destined to repair and reconstruct noisy or missing pixels."),
-                                          _("Modules destined to manipulate local contrast, sharpness and blur."),
-                                          _("Modules applying special effects."),
-                                          _("Technical modules that can be ignored in most situations."),
-                                          _("All modules available in the software.") };
+  char *labels[DT_MODULEGROUP_SIZE] = { _("Pipeline"),  _("Tones"),   _("Film"),     _("Color"), _("Repair"),
+                                        _("Sharpness"), _("Effects"), _("Technics"), _("All") };
+  char *tooltips[DT_MODULEGROUP_SIZE]
+      = { _("List all modules currently enabled in the reverse order of application in the pipeline."),
+          _("Modules destined to adjust brightness, contrast and dynamic range."),
+          _("Modules used when working with film scans."),
+          _("Modules destined to adjust white balance and perform color-grading."),
+          _("Modules destined to repair and reconstruct noisy or missing pixels."),
+          _("Modules destined to manipulate local contrast, sharpness and blur."),
+          _("Modules applying special effects."),
+          _("Technical modules that can be ignored in most situations."),
+          _("All modules available in the software.") };
 
   for(int i = 0; i < DT_MODULEGROUP_SIZE; i++)
   {
@@ -299,10 +432,22 @@ void gui_init(dt_lib_module_t *self)
   darktable.develop->proxy.modulegroups.switch_group = _lib_modulegroups_switch_group;
   darktable.develop->proxy.modulegroups.search_text_focus = _lib_modulegroups_search_text_focus;
 
-  dt_accels_new_global_action(_modulegroups_switch_tab_next, darktable.develop, N_("Darkroom"), N_("move to the next modules tab"), GDK_KEY_Tab,
-                              GDK_CONTROL_MASK);
-  dt_accels_new_global_action(_modulegroups_switch_tab_previous, darktable.develop, N_("Darkroom"), N_("move to the previous modules tab"),
-                              GDK_KEY_Tab, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+  dt_accels_new_darkroom_action(_modulegroups_switch_tab_next, darktable.develop, N_("Darkroom/Actions"),
+                                N_("move to the next modules tab"), GDK_KEY_Tab, GDK_CONTROL_MASK);
+  dt_accels_new_darkroom_action(_modulegroups_switch_tab_previous, darktable.develop, N_("Darkroom/Actions"),
+                                N_("move to the previous modules tab"), GDK_KEY_Tab,
+                                GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+
+  dt_accels_new_darkroom_action(_focus_next_module, NULL, N_("Darkroom/Actions"), N_("Focus on the next module"),
+                                GDK_KEY_Page_Down, 0);
+  dt_accels_new_darkroom_action(_focus_previous_module, NULL, N_("Darkroom/Actions"), N_("Focus on the previous module"),
+                                GDK_KEY_Page_Up, 0);
+
+  dt_accels_new_darkroom_action(_focus_next_control, NULL, N_("Darkroom/Actions"), N_("Focus on the next module control"),
+                                GDK_KEY_Down, GDK_CONTROL_MASK);
+  dt_accels_new_darkroom_action(_focus_previous_control, NULL, N_("Darkroom/Actions"),
+                                N_("Focus on the previous module control"), GDK_KEY_Up, GDK_CONTROL_MASK);
+
 
   /* let's connect to view changed signal to set default group */
   dt_control_signal_connect(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED,
@@ -322,8 +467,8 @@ void gui_cleanup(dt_lib_module_t *self)
   self->data = NULL;
 }
 
-static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view,
-                                                   dt_view_t *new_view, gpointer data)
+static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view, dt_view_t *new_view,
+                                                   gpointer data)
 {
 }
 
@@ -342,7 +487,8 @@ static gboolean _lib_modulesgroups_search_active(const gchar *text_entered, dt_i
     else
     {
       gchar *name = delete_underscore(dt_iop_get_localized_name(module->op));
-      const int is_match_name  = (g_strstr_len(g_utf8_casefold(name, -1), -1, g_utf8_casefold(text_entered, -1)) != NULL);
+      const int is_match_name
+          = (g_strstr_len(g_utf8_casefold(name, -1), -1, g_utf8_casefold(text_entered, -1)) != NULL);
       g_free(name);
 
       const int is_match_alias = (g_strstr_len(g_utf8_casefold(dt_iop_get_localized_aliases(module->op), -1), -1,
@@ -359,13 +505,11 @@ static gboolean _lib_modulesgroups_search_active(const gchar *text_entered, dt_i
 
 static gboolean _is_module_in_history(const dt_iop_module_t *module)
 {
-  for(GList *history = g_list_last(darktable.develop->history);
-      history;
-      history = g_list_previous(history))
-    {
-      const dt_dev_history_item_t *hitem = (dt_dev_history_item_t *)(history->data);
-      if(hitem->module == module) return TRUE;
-    }
+  for(GList *history = g_list_last(darktable.develop->history); history; history = g_list_previous(history))
+  {
+    const dt_dev_history_item_t *hitem = (dt_dev_history_item_t *)(history->data);
+    if(hitem->module == module) return TRUE;
+  }
 
   return FALSE;
 }
@@ -376,8 +520,7 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
   dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
   const gchar *text_entered = gtk_entry_get_text(GTK_ENTRY(d->text_entry));
 
-  if (DT_IOP_ORDER_INFO)
-    fprintf(stderr,"\n^^^^^ modulegroups");
+  if(DT_IOP_ORDER_INFO) fprintf(stderr, "\n^^^^^ modulegroups");
 
   GList *modules = darktable.develop->iop;
   if(modules)
@@ -391,10 +534,10 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
       dt_iop_module_t *module = (dt_iop_module_t *)modules->data;
       GtkWidget *w = module->expander;
 
-      if ((DT_IOP_ORDER_INFO) && (module->enabled))
+      if((DT_IOP_ORDER_INFO) && (module->enabled))
       {
-        fprintf(stderr,"\n%20s %d",module->op, module->iop_order);
-        if(dt_iop_is_hidden(module)) fprintf(stderr,", hidden");
+        fprintf(stderr, "\n%20s %d", module->op, module->iop_order);
+        if(dt_iop_is_hidden(module)) fprintf(stderr, ", hidden");
       }
 
       /* skip modules without a gui */
@@ -437,7 +580,8 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
 
         default:
         {
-          if(d->current == module->default_group() && (!(module->flags() & IOP_FLAGS_DEPRECATED) || module->enabled))
+          if(d->current == module->default_group()
+             && (!(module->flags() & IOP_FLAGS_DEPRECATED) || module->enabled))
           {
             if(w) gtk_widget_show(w);
           }
@@ -450,7 +594,7 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
       }
     } while((modules = g_list_next(modules)) != NULL);
   }
-  if (DT_IOP_ORDER_INFO) fprintf(stderr,"\nvvvvv\n");
+  if(DT_IOP_ORDER_INFO) fprintf(stderr, "\nvvvvv\n");
   // now that visibility has been updated set multi-show
   dt_dev_modules_update_multishow(darktable.develop);
 }
@@ -466,9 +610,11 @@ static void _lib_modulegroups_toggle(GtkNotebook *notebook, GtkWidget *page, gui
     d->current = page_num;
 
   /* clear search text */
-  g_signal_handlers_block_matched(d->text_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _text_entry_changed_callback, NULL);
+  g_signal_handlers_block_matched(d->text_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _text_entry_changed_callback,
+                                  NULL);
   gtk_entry_set_text(GTK_ENTRY(d->text_entry), "");
-  g_signal_handlers_unblock_matched(d->text_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _text_entry_changed_callback, NULL);
+  g_signal_handlers_unblock_matched(d->text_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _text_entry_changed_callback,
+                                    NULL);
 
   /* update visibility */
   _lib_modulegroups_update_iop_visibility(self);

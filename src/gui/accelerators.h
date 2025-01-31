@@ -10,8 +10,8 @@ typedef struct dt_accels_t
 {
   char *config_file;
   GtkAccelGroup *global_accels;     // used, aka init it and free it
-  GtkAccelGroup *darkroom_accels;   // unused
-  GtkAccelGroup *lighttable_accels; // unused
+  GtkAccelGroup *darkroom_accels;   // darkroom-specific accels
+  GtkAccelGroup *lighttable_accels; // lighttable-specific accels
   GtkAccelGroup *active_group; // reference to the above group currently loaded in the main window. don't init,
                                // don't free, only update
   GSList *acceleratables;      // list of dt_shortcut_t
@@ -51,6 +51,15 @@ void dt_accels_cleanup(dt_accels_t *accels);
  * Because of that, we need to prepare the list of acceleratable widgets first, populate the accel maps
  * with their pathes, and only after fetching user-defined accels, we can connect actual actions.
  * So it's not straight-forward.
+ *
+ * Some keys appear reserved, like Tab or Enter, depending on OS. So we have to use our own, custom,
+ * shortcut handler, which is mostly a thin wrapper over Gtk native features.asm
+ *
+ * This allows us to decide in which order we process the several sets of shortcuts we maintain
+ * (global, lighttable, darkroom). Global shortcuts are processed last, for all views.
+ * Lighttable and darkroom shortcuts are processed first, for the relevant view.
+ * This lets user have different actions mapped to the same shortcuts, depending on view
+ * but also have the view-centric shortcuts overwrite global ones if needed.
  */
 
 
@@ -84,18 +93,25 @@ void dt_accels_connect_accels(dt_accels_t *accels);
 
 
 /**
- * @brief Connect the global accels group to the window
+ * @brief Connect the accels group to the window
  *
  * @param accels
+ * @param group any of the following: "global", "darkroom", "lighttable", "active".
+ * "darkroom" or "lighttable" will set their group the active one, that can be later
+ * retrieved with "active". The "active" option will not work on the first call of this function.
  */
-void dt_accels_connect_window(dt_accels_t *accels);
+void dt_accels_connect_window(dt_accels_t *accels, const gchar *group);
 
 /**
  * @brief Disconnect the global accels group to the window
  *
  * @param accels
+ * @param group any of the following: "global", "active". The active group is tracked internally when connecting
+ * windows
+ * @param reset set to TRUE if the active group should be reset. This will prevent later calls of
+ * `dt_accels_connect_window()` using "active". This has no effect when disconnecting the global group.
  */
-void dt_accels_disconnect_window(dt_accels_t *accels);
+void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const gboolean reset);
 
 /**
  * @brief Register a new shortcut for a widget, setting up its path, default keys and accel group.

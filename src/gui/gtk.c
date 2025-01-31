@@ -1899,13 +1899,15 @@ GtkBox * attach_help_popover(GtkWidget *widget, const char *label)
 
 static gboolean _text_entry_focus_in_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  dt_accels_disconnect_window(darktable.gui->accels);
+  dt_accels_disconnect_window(darktable.gui->accels, "global", FALSE);
+  dt_accels_disconnect_window(darktable.gui->accels, "active", FALSE);
   return FALSE;
 }
 
 static gboolean _text_entry_focus_out_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  dt_accels_connect_window(darktable.gui->accels);
+  dt_accels_connect_window(darktable.gui->accels, "global");
+  dt_accels_connect_window(darktable.gui->accels, "active");
   return FALSE;
 }
 

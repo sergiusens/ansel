@@ -300,6 +300,8 @@ void dt_capitalize_label(gchar *text);
 
 #define dt_accels_new_global_action(a, b, c, d, e, f) dt_accels_new_action_shortcut(darktable.gui->accels, G_CALLBACK(a), b, darktable.gui->accels->global_accels, c, d, e, f)
 
+#define dt_accels_new_darkroom_action(a, b, c, d, e, f) dt_accels_new_action_shortcut(darktable.gui->accels, G_CALLBACK(a), b, darktable.gui->accels->darkroom_accels, c, d, e, f)
+
 static inline void dt_ui_section_label_set(GtkWidget *label)
 {
   gtk_widget_set_halign(label, GTK_ALIGN_FILL); // make it span the whole available width

@@ -82,6 +82,8 @@ dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
   dt_accels_t *accels = malloc(sizeof(dt_accels_t));
   accels->config_file = g_strdup(config_file);
   accels->global_accels = gtk_accel_group_new();
+  accels->darkroom_accels = gtk_accel_group_new();
+  accels->lighttable_accels = gtk_accel_group_new();
   accels->acceleratables = NULL;
   accels->window = window;
   accels->active_group = NULL;
@@ -104,23 +106,74 @@ static void _clean_shortcut(gpointer data)
 void dt_accels_cleanup(dt_accels_t *accels)
 {
   gtk_accel_map_save(accels->config_file);
+
+  dt_accels_disconnect_window(accels, "global", FALSE);
+
+  accels->window = NULL;
+  accels->active_group = NULL;
+
   g_object_unref(accels->global_accels);
+  g_object_unref(accels->darkroom_accels);
+  g_object_unref(accels->lighttable_accels);
+
   g_slist_free_full(accels->acceleratables, _clean_shortcut);
   g_free(accels->config_file);
   g_free(accels);
 }
 
-void dt_accels_connect_window(dt_accels_t *accels)
+void dt_accels_connect_window(dt_accels_t *accels, const gchar *group)
 {
-  gtk_window_add_accel_group(accels->window, accels->global_accels);
-  accels->active_group = accels->global_accels;
-  accels->reset--;
+  // When closing the app, it may happen that a text entry releasing focus
+  // will re-connect accels on an already-destroyed window
+  if(!accels->window) return;
+
+  if(!g_strcmp0(group, "global") && accels->global_accels)
+  {
+    gtk_window_add_accel_group(accels->window, accels->global_accels);
+    accels->reset--;
+    // global is always active
+  }
+  else if(!g_strcmp0(group, "lighttable") && accels->lighttable_accels)
+  {
+    gtk_window_add_accel_group(accels->window, accels->lighttable_accels);
+    accels->reset--;
+    accels->active_group = accels->lighttable_accels;
+  }
+  else if(!g_strcmp0(group, "darkroom") && accels->darkroom_accels)
+  {
+    gtk_window_add_accel_group(accels->window, accels->darkroom_accels);
+    accels->reset--;
+    accels->active_group = accels->darkroom_accels;
+  }
+  else if(!g_strcmp0(group, "active") && accels->active_group)
+  {
+    gtk_window_add_accel_group(accels->window, accels->active_group);
+    accels->reset--;
+  }
+  else
+  {
+    fprintf(stderr, "[dt_accels_connect_window] INFO: unknown value: `%s'\n", group);
+  }
 }
 
-void dt_accels_disconnect_window(dt_accels_t *accels)
+void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const gboolean reset)
 {
-  gtk_window_remove_accel_group(accels->window, accels->global_accels);
-  accels->active_group = NULL;
+  if(!accels->window) return;
+
+  if(!g_strcmp0(group, "global") && accels->global_accels)
+  {
+    gtk_window_remove_accel_group(accels->window, accels->global_accels);
+  }
+  else if(!g_strcmp0(group, "active") && accels->active_group)
+  {
+    gtk_window_remove_accel_group(accels->window, accels->active_group);
+    if(reset) accels->active_group = NULL;
+  }
+  else
+  {
+    fprintf(stderr, "[dt_accels_disconnect_window] INFO: unknown value: `%s'\n", group);
+  }
+
   accels->reset++;
 }
 
@@ -276,7 +329,7 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
 
   // Ditch everything that is not a key stroke or key strokes that are modifiers alone
   // Abort early for performance.
-  if(event->type != GDK_KEY_PRESS || accels->active_group == NULL || event->key.is_modifier || accels->reset)
+  if(event->type != GDK_KEY_PRESS || accels->active_group == NULL || event->key.is_modifier || accels->reset > 0)
     return FALSE;
 
   GdkModifierType mods;
@@ -290,12 +343,19 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
   GQuark accel_quark = g_quark_from_string (accel_name);
   g_free(accel_name);
 
+  // Look into the active group first, aka darkroom, lighttable, etc.
   gboolean found = FALSE;
-  if(gtk_accel_group_activate(accels->global_accels, accel_quark, G_OBJECT(w), keyval, mods))
+  if(gtk_accel_group_activate(accels->active_group, accel_quark, G_OBJECT(w), keyval, mods))
     found = TRUE;
+
+  // If nothing found, try again with global accels.
+  if(!found && gtk_accel_group_activate(accels->global_accels, accel_quark, G_OBJECT(w), keyval, mods))
+    found = TRUE;
+
+  //if(found) fprintf(stdout, "found shortcut %s\n", gdk_keyval_name(keyval));
 
   // If found == FALSE, it is possible that we messed-up key value decoding
   // Default Gtk shortcuts handler will have another chance since the accel groups
-  // are connected to the window in a standard way
+  // are connected to the window in a standard way.
   return found;
 }

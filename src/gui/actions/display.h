@@ -1,5 +1,4 @@
 #include "common/darktable.h"
-#include "bauhaus/bauhaus.h"
 #include "control/control.h"
 #include "gui/actions/menu.h"
 #include "gui/gtk.h"
@@ -356,144 +355,6 @@ static gboolean focus_peaking_checked_callback()
   return darktable.gui->show_focus_peaking;
 }
 
-static void _focus_module(dt_iop_module_t *module)
-{
-  if(module && dt_iop_gui_module_is_visible(module))
-  {
-    dt_iop_request_focus(module);
-    dt_iop_gui_set_expanded(module, TRUE, TRUE);
-    darktable.gui->scroll_to[1] = module->expander;
-  }
-  else
-  {
-    // we reached the extremity of the list.
-    dt_iop_request_focus(NULL);
-  }
-}
-
-static gboolean _focus_next_module()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused == NULL)
-  {
-    // No focused module : give focus to the first visible module of the stack
-    GList *modules = darktable.develop->iop;
-    if(modules)
-    {
-      modules = g_list_last(modules);
-      dt_iop_module_t *module = NULL;
-      do
-      {
-        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
-        if(mod && dt_iop_gui_module_is_visible(mod))
-        {
-          module = mod;
-          break;
-        }
-      } while((modules = g_list_previous(modules)) != NULL);
-      _focus_module(module);
-    }
-  }
-  else
-  {
-    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
-    _focus_module(dt_iop_gui_get_previous_visible_module(focused));
-  }
-
-  return TRUE;
-}
-
-static gboolean _focus_previous_module()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused == NULL)
-  {
-    // No focused module : give focus to the last visible module of the stack
-    GList *modules = darktable.develop->iop;
-    if(modules)
-    {
-      modules = g_list_first(modules);
-      dt_iop_module_t *module = NULL;
-      do
-      {
-        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
-        if(mod && dt_iop_gui_module_is_visible(mod))
-        {
-          module = mod;
-          break;
-        }
-      } while((modules = g_list_next(modules)) != NULL);
-      _focus_module(module);
-    }
-  }
-  else
-  {
-    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
-    _focus_module(dt_iop_gui_get_next_visible_module(focused));
-  }
-
-  return TRUE;
-}
-
-static gboolean _focus_next_control()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(!focused || !focused->widget_list) return FALSE;
-
-  GtkWidget *current_widget = darktable.gui->has_scroll_focus;
-
-  // Widgets are prepended in the order of init, so we need to reverse the list
-  GSList *first_item = g_slist_reverse(g_slist_copy(focused->widget_list));
-
-  if(!current_widget)
-  {
-    // No active widget, start by the first
-    bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
-  }
-  else
-  {
-    GSList *current_item = g_slist_find(first_item, current_widget);
-    GSList *next_item = g_slist_next(current_item);
-    // Select the next item, if any
-    if(next_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(next_item->data));
-    // Cycle back to the beginning
-    else if(first_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
-  }
-
-  g_slist_free(first_item);
-  return TRUE;
-}
-
-static gboolean _focus_previous_control()
-{
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(!focused || !focused->widget_list) return FALSE;
-
-  GtkWidget *current_widget = darktable.gui->has_scroll_focus;
-  GSList *last_item = focused->widget_list;
-
-  if(!current_widget)
-  {
-    // No active widget, start by the last
-    bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
-  }
-  else
-  {
-    GSList *current_item = g_slist_find(last_item, current_widget);
-    GSList *previous_item = g_slist_next(current_item);
-    // Select the previous item, if any
-    if(previous_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(previous_item->data));
-    // Cycle back to the end
-    else if(last_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
-  }
-
-  return TRUE;
-}
-
 void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   // Parent sub-menu color profile
@@ -569,11 +430,5 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_menu_entry(menus, lists, _("Full screen"), index, NULL, full_screen_callback,
                      full_screen_checked_callback, NULL, NULL, GDK_KEY_F11, 0);
 
-  dt_accels_new_global_action(_toggle_side_borders_accel_callback, NULL, N_("Generic actions"), N_("Toggle all panels visibility"), GDK_KEY_Tab, 0);
-
-  dt_accels_new_global_action(_focus_next_module, NULL, N_("Darkroom"), N_("Focus on the next module"), GDK_KEY_Page_Down, 0);
-  dt_accels_new_global_action(_focus_previous_module, NULL, N_("Darkroom"), N_("Focus on the previous module"), GDK_KEY_Page_Up, 0);
-
-  dt_accels_new_global_action(_focus_next_control, NULL, N_("Darkroom"), N_("Focus on the next module control"), GDK_KEY_Down, GDK_CONTROL_MASK);
-  dt_accels_new_global_action(_focus_previous_control, NULL, N_("Darkroom"), N_("Focus on the previous module control"), GDK_KEY_Up, GDK_CONTROL_MASK);
+  dt_accels_new_global_action(_toggle_side_borders_accel_callback, NULL, N_("Global/Actions"), N_("Toggle all panels visibility"), GDK_KEY_Tab, 0);
 }
