@@ -739,9 +739,13 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // User switching between languages may loose their custom shortcuts if we didn't localize them.
   gchar *keyboardrc = g_strdup_printf("keyboardrc.%s", dt_l10n_get_current_lang(darktable.l10n));
   gchar *keyboardrc_path = g_build_filename(configdir, keyboardrc, NULL);
-  gui->accels = dt_accels_init(keyboardrc_path);
+  gui->accels = dt_accels_init(keyboardrc_path, GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
   g_free(keyboardrc);
   g_free(keyboardrc_path);
+
+  // Gtk seems to capture some reserved shortcuts (Tab). We need to bypass it entirely
+  // by hacking all events.
+  g_signal_connect(G_OBJECT(dt_ui_main_window(darktable.gui->ui)), "event", G_CALLBACK(dt_accels_dispatch), darktable.gui->accels);
 
   // finally set the cursor to be the default.
   // for some reason this is needed on some systems to pick up the correctly themed cursor
@@ -1894,13 +1898,13 @@ GtkBox * attach_help_popover(GtkWidget *widget, const char *label)
 
 static gboolean _text_entry_focus_in_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  gtk_window_remove_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), darktable.gui->accels->global_accels);
+  dt_accels_disconnect_window(darktable.gui->accels);
   return FALSE;
 }
 
 static gboolean _text_entry_focus_out_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  gtk_window_add_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), darktable.gui->accels->global_accels);
+  dt_accels_connect_window(darktable.gui->accels);
   return FALSE;
 }
 

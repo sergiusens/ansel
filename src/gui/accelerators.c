@@ -77,12 +77,17 @@ guint dt_accels_keypad_alternatives(const guint key_val)
 }
 
 
-dt_accels_t * dt_accels_init(char *config_file)
+dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
 {
   dt_accels_t *accels = malloc(sizeof(dt_accels_t));
   accels->config_file = g_strdup(config_file);
   accels->global_accels = gtk_accel_group_new();
   accels->acceleratables = NULL;
+  accels->window = window;
+  accels->active_group = NULL;
+  accels->reset = 1;
+  accels->keymap = gdk_keymap_get_for_display(gdk_display_get_default());
+  accels->default_mod_mask = gtk_accelerator_get_default_mod_mask();
   return accels;
 }
 
@@ -105,9 +110,18 @@ void dt_accels_cleanup(dt_accels_t *accels)
   g_free(accels);
 }
 
-void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *window)
+void dt_accels_connect_window(dt_accels_t *accels)
 {
-  gtk_window_add_accel_group(window, accels->global_accels);
+  gtk_window_add_accel_group(accels->window, accels->global_accels);
+  accels->active_group = accels->global_accels;
+  accels->reset--;
+}
+
+void dt_accels_disconnect_window(dt_accels_t *accels)
+{
+  gtk_window_remove_accel_group(accels->window, accels->global_accels);
+  accels->active_group = NULL;
+  accels->reset++;
 }
 
 void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const gchar *signal, GtkAccelGroup *accel_group, const gchar *accel_path, guint key_val, GdkModifierType accel_mods)
@@ -175,7 +189,7 @@ void dt_accels_connect_accels(dt_accels_t *accels)
     {
       key.accel_key = shortcut->key;
       key.accel_mods = shortcut->mods;
-      gtk_accel_map_change_entry(shortcut->path, shortcut->key, shortcut->mods, FALSE);
+      gtk_accel_map_change_entry(shortcut->path, shortcut->key, shortcut->mods, TRUE);
     }
 
     // Adding shortcuts without defined keys makes Gtk issue warnings, so avoid it.
@@ -219,4 +233,69 @@ void dt_accels_connect_accels(dt_accels_t *accels)
 gchar *dt_accels_build_path(const gchar *scope, const gchar *feature)
 {
   return g_strdup_printf("<Ansel>/%s/%s", scope, feature);
+}
+
+void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, GdkModifierType *mods)
+{
+  // Get modifiers
+  gdk_event_get_state(event, mods);
+
+  // Remove all modifiers that are irrelevant to key strokes
+  *mods &= accels->default_mod_mask;
+
+  // Get the canonical key code, that is without the modifiers
+  GdkModifierType consumed;
+  gdk_keymap_translate_keyboard_state(accels->keymap, event->key.hardware_keycode, event->key.state,
+                                      event->key.group, // this ensures that numlock or shift are properly decoded
+                                      keyval, NULL, NULL, &consumed);
+
+  // Remove the consumed Shift modifier for numbers.
+  // For French keyboards, numbers are accessed through Shift, e.g Shift + & = 1.
+  // Keeping Shift here would be meaningless and gets in the way.
+  if(gdk_keyval_to_lower(*keyval) == gdk_keyval_to_upper(*keyval))
+  {
+    *mods &= ~consumed;
+  }
+
+  // Shift + Tab gets decoded as ISO_Left_Tab and shift is consumed,
+  // so it gets absorbed by the previous correction.
+  // We need Ctrl+Shift+Tab to work as expected, so correct it.
+  if(*keyval == GDK_KEY_ISO_Left_Tab)
+  {
+    *keyval = GDK_KEY_Tab;
+    *mods |= GDK_SHIFT_MASK;
+  }
+
+  // Hopefully no more heuristics required...
+}
+
+
+gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
+{
+  dt_accels_t *accels = (dt_accels_t *)user_data;
+
+  // Ditch everything that is not a key stroke or key strokes that are modifiers alone
+  // Abort early for performance.
+  if(event->type != GDK_KEY_PRESS || accels->active_group == NULL || event->key.is_modifier || accels->reset)
+    return FALSE;
+
+  GdkModifierType mods;
+  guint keyval;
+  _accels_keys_decode(accels, event, &keyval, &mods);
+
+  //fprintf(stdout, "keystroke: %i - %i -> %s\n", keyval, mods, gdk_keyval_name(keyval));
+
+  // Get the accelerator entry from the accel group
+  gchar *accel_name = gtk_accelerator_name (keyval, mods);
+  GQuark accel_quark = g_quark_from_string (accel_name);
+  g_free(accel_name);
+
+  gboolean found = FALSE;
+  if(gtk_accel_group_activate(accels->global_accels, accel_quark, G_OBJECT(w), keyval, mods))
+    found = TRUE;
+
+  // If found == FALSE, it is possible that we messed-up key value decoding
+  // Default Gtk shortcuts handler will have another chance since the accel groups
+  // are connected to the window in a standard way
+  return found;
 }
