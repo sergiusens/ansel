@@ -1912,9 +1912,9 @@ void dt_iop_gui_set_expanded(dt_iop_module_t *module, gboolean expanded, gboolea
   /* handle shiftclick on expander, hide all except this */
   if(collapse_others)
   {
-    const int current_group = dt_dev_modulegroups_get(module->dev);
+    const int current_group = dt_dev_modulegroups_get(darktable.develop);
 
-    GList *iop = module->dev->iop;
+    GList *iop = darktable.develop->iop;
     gboolean all_other_closed = TRUE;
     while(iop)
     {
@@ -1996,18 +1996,11 @@ static gboolean _iop_plugin_focus_accel(GtkAccelGroup *accel_group, GObject *acc
                                         GdkModifierType modifier, gpointer data)
 {
   dt_iop_module_t *module = (dt_iop_module_t *)data;
+  if(!module) return FALSE;
 
   // Showing the module, if it isn't already visible
-  const uint32_t current_group = dt_dev_modulegroups_get(module->dev);
-
-  if(module->default_group() != current_group)
-  {
+  if(module->default_group() != dt_dev_modulegroups_get(darktable.develop))
     dt_dev_modulegroups_switch(darktable.develop, module);
-  }
-  else
-  {
-    dt_dev_modulegroups_set(darktable.develop, current_group);
-  }
 
   return _iop_plugin_header_activate(NULL, FALSE, data);
 }
