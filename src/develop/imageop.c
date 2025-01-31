@@ -75,6 +75,9 @@ typedef struct dt_iop_gui_simple_callback_t
   int index;
 } dt_iop_gui_simple_callback_t;
 
+static gboolean _iop_plugin_focus_accel(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                        GdkModifierType modifier, gpointer data);
+
 
 void dt_iop_load_default_params(dt_iop_module_t *module)
 {
@@ -404,6 +407,7 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
     return 1; // empty params hurt us in many places, just add a dummy value
   }
   module->enabled = module->default_enabled; // apply (possibly new) default.
+
   return 0;
 }
 
@@ -1024,6 +1028,12 @@ void dt_iop_gui_init(dt_iop_module_t *module)
   ++darktable.gui->reset;
   --darktable.bauhaus->skip_accel;
   module->focused = NULL;
+
+  // Add the accelerators
+  gchar *clean_name = delete_underscore(module->name());
+  dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, "Darkroom/Plugins", clean_name, 0, 0);
+  g_free(clean_name);
+
   if(module->gui_init) module->gui_init(module);
   ++darktable.bauhaus->skip_accel;
   --darktable.gui->reset;
@@ -2233,10 +2243,6 @@ void dt_iop_gui_set_expander(dt_iop_module_t *module)
   g_signal_connect(G_OBJECT(header_evb), "mnemonic-activate", G_CALLBACK(_iop_plugin_header_activate), module);
   gtk_widget_add_events(header_evb, GDK_POINTER_MOTION_MASK);
 
-  gchar *clean_name = delete_underscore(module->name());
-  dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, "Darkroom/Plugins", clean_name, 0, 0);
-  g_free(clean_name);
-
   /* connect mouse button callbacks for focus and presets */
   g_signal_connect(G_OBJECT(body_evb), "button-press-event", G_CALLBACK(_iop_plugin_body_button_press), module);
   gtk_widget_add_events(body_evb, GDK_POINTER_MOTION_MASK);
@@ -2446,6 +2452,39 @@ static void _enable_module_callback(dt_iop_module_t *module)
 
   gboolean active = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(module->off));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(module->off), !active);
+}
+
+static void _enable_module()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(focused != NULL && dt_iop_gui_module_is_visible(focused))
+  {
+    if(!focused->enabled)
+    {
+      focused->enabled = TRUE;
+      dt_iop_gui_set_enable_button(focused);
+    }
+    // else : don't change the enabled status but still grab focus on the internal widget
+
+    darktable.gui->scroll_to[1] = focused->expander;
+    gtk_widget_grab_focus(focused->widget);
+  }
+}
+
+static void _disable_module()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(focused != NULL && dt_iop_gui_module_is_visible(focused))
+  {
+    if(focused->enabled)
+    {
+      focused->enabled = FALSE;
+      dt_iop_gui_set_enable_button(focused);
+    }
+    // else : don't change the enabled status but still grab focus on the external widget
+
+    gtk_widget_grab_focus(focused->expander);
+  }
 }
 
 #endif

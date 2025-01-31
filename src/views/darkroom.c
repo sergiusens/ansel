@@ -2051,12 +2051,6 @@ void enter(dt_view_t *self)
   dt_dev_undo_start_record(dev);
   dt_dev_undo_end_record(dev);
 
-  // New widgets may have connected their accels. We need to reload the list.
-  dt_accels_connect_accels(darktable.gui->accels);
-
-  // Reload the config in case we already have records for the new accels
-  dt_accels_load_user_config(darktable.gui->accels);
-
   // Attach shortcuts to new widgets
   dt_accels_connect_window(darktable.gui->accels, "darkroom");
 }

@@ -168,12 +168,6 @@ void enter(dt_view_t *self)
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, FALSE, TRUE);
   dt_ui_restore_panels(darktable.gui->ui);
 
-  // New widgets may have connected their accels. We need to reload the list.
-  dt_accels_connect_accels(darktable.gui->accels);
-
-  // Reload the config in case we already have records for the new accels
-  dt_accels_load_user_config(darktable.gui->accels);
-
   // Attach shortcuts
   dt_accels_connect_window(darktable.gui->accels, "lighttable");
 }
