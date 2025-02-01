@@ -288,13 +288,14 @@ static gboolean _draw(GtkWidget *da, cairo_t *cr, gpointer user_data)
 
 static gboolean _scrolled(GtkWidget *widget, GdkEventScroll *event, gpointer user_data)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
+
   int delta_y;
   if(dt_gui_get_scroll_unit_delta(event, &delta_y))
   {
     dt_view_manager_scrolled(darktable.view_manager, event->x, event->y,
                              delta_y < 0,
                              event->state & 0xf);
-    gtk_widget_queue_draw(widget);
   }
 
   return TRUE;
@@ -495,6 +496,8 @@ static gboolean _window_configure(GtkWidget *da, GdkEvent *event, gpointer user_
 
 static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer user_data)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
+
   /* Reset Gtk focus */
   gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
   darktable.gui->has_scroll_focus = NULL;
@@ -513,12 +516,15 @@ static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer us
 
 static gboolean _button_released(GtkWidget *w, GdkEventButton *event, gpointer user_data)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
   dt_control_button_released(event->x, event->y, event->button, event->state & 0xf);
   return TRUE;
 }
 
 static gboolean _mouse_moved(GtkWidget *w, GdkEventMotion *event, gpointer user_data)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
+
   double pressure = 1.0;
   GdkDevice *device = gdk_event_get_source_device((GdkEvent *)event);
 
@@ -532,6 +538,7 @@ static gboolean _mouse_moved(GtkWidget *w, GdkEventMotion *event, gpointer user_
 
 static gboolean _key_pressed(GtkWidget *w, GdkEventKey *event)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
   dt_control_key_pressed(event);
   return TRUE;
 }

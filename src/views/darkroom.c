@@ -2328,9 +2328,6 @@ void _magic_schwalm_offset(dt_develop_t *dev, dt_view_t *self, float *offx, floa
 
 void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which)
 {
-  // Don't capture events if the window isn't active
-  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return;
-
   dt_develop_t *dev = (dt_develop_t *)self->data;
   float offx = 0.0f, offy = 0.0f;
   _magic_schwalm_offset(dev, self, &offx, &offy);
@@ -2432,9 +2429,6 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
 
 int button_released(dt_view_t *self, double x, double y, int which, uint32_t state)
 {
-  // Don't capture events if the window isn't active
-  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return 0;
-
   dt_develop_t *dev = (dt_develop_t *)self->data;
   float offx = 0.0f, offy = 0.0f;
   _magic_schwalm_offset(dev, self, &offx, &offy);
@@ -2536,9 +2530,6 @@ int button_released(dt_view_t *self, double x, double y, int which, uint32_t sta
 
 int button_pressed(dt_view_t *self, double x, double y, double pressure, int which, int type, uint32_t state)
 {
-  // Don't capture events if the window isn't active
-  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return 0;
-
   dt_colorpicker_sample_t *const sample = darktable.lib->proxy.colorpicker.primary_sample;
 
   dt_develop_t *dev = (dt_develop_t *)self->data;
@@ -2679,9 +2670,6 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
 
 void scrolled(dt_view_t *self, double x, double y, int up, int state)
 {
-  // Don't capture events if the window isn't active
-  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return;
-
   dt_develop_t *dev = (dt_develop_t *)self->data;
   float offx = 0.0f, offy = 0.0f;
   _magic_schwalm_offset(dev, self, &offx, &offy);
