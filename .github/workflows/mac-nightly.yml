@@ -89,7 +89,7 @@ jobs:
                  --conf plugins/lighttable/export/iccintent=0 || true # OpenMP builds crash for most configs
       - name: Package upload
         if: ${{ success() }}
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ansel.${{ env.BUILD_NAME }}.mac
           path: ${{ env.BUILD_DIR }}/ansel-*.dmg

@@ -1766,7 +1766,7 @@ static int _brush_events_button_released(struct dt_iop_module_t *module, float p
 
       if(crea_module)
       {
-
+        // TODO: handle this at the mask.c level
         dt_masks_set_edit_mode(crea_module, DT_MASKS_EDIT_FULL);
         dt_masks_iop_update(crea_module);
         dt_dev_masks_selection_change(darktable.develop, crea_module, form->formid, TRUE);
@@ -1960,6 +1960,7 @@ static int _brush_events_mouse_moved(struct dt_iop_module_t *module, float pzx, 
       dt_masks_dynbuf_add_2(gui->guipoints_payload, border, hardness);
       dt_masks_dynbuf_add_2(gui->guipoints_payload, density, pressure);
       gui->guipoints_count++;
+      fprintf(stdout, "pressure: %f\n", pressure);
 
       return 1;
     }
