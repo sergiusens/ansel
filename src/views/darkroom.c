@@ -1587,9 +1587,6 @@ void gui_init(dt_view_t *self)
   // toggle visibility of drawn masks for current gui module
   dt_action_register(self, N_("show drawn masks"), _toggle_mask_visibility_callback, 0, 0);
 
-  // set focus to the search modules text box
-  dt_action_register(self, N_("search modules"), search_callback, GDK_KEY_f, GDK_CONTROL_MASK);
-
   // Focus on next/previous modules
 #endif
 }

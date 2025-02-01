@@ -71,6 +71,12 @@ static void _lib_modulegroups_search_text_focus(dt_lib_module_t *self);
 static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view, dt_view_t *new_view,
                                                    gpointer data);
 
+static gboolean _focus_next_module();
+static gboolean _focus_previous_module();
+static gboolean _focus_next_control();
+static gboolean _focus_previous_control();
+
+
 const char *name(dt_lib_module_t *self)
 {
   return _("modulegroups");
@@ -127,9 +133,26 @@ static gboolean _text_entry_key_press_callback(GtkWidget *widget, GdkEventKey *e
   {
     dt_lib_module_t *self = (dt_lib_module_t *)user_data;
     dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
-    gtk_entry_set_text(GTK_ENTRY(widget), "");
     gtk_widget_set_sensitive(d->notebook, TRUE);
     return TRUE;
+  }
+  // Because shortcuts/accels are disabled at all in text entries,
+  // we need to re-implement them here.
+  else if(event->keyval == GDK_KEY_Page_Up || event->keyval == GDK_KEY_KP_Page_Up)
+  {
+    return _focus_previous_module();
+  }
+  else if(event->keyval == GDK_KEY_Page_Down || event->keyval == GDK_KEY_KP_Page_Down)
+  {
+    return _focus_next_module();
+  }
+  else if(event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up)
+  {
+    return _focus_previous_control();
+  }
+  else if(event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down)
+  {
+    return _focus_next_control();
   }
 
   return FALSE;
@@ -362,6 +385,13 @@ static gboolean _focus_previous_control()
   return TRUE;
 }
 
+gboolean _focus_search_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                              GdkModifierType modifier, gpointer data)
+{
+  dt_lib_module_t *self = (dt_lib_module_t *)data;
+  _lib_modulegroups_search_text_focus(self);
+  return TRUE;
+}
 
 void gui_init(dt_lib_module_t *self)
 {
@@ -448,6 +478,8 @@ void gui_init(dt_lib_module_t *self)
   dt_accels_new_darkroom_action(_focus_previous_control, NULL, N_("Darkroom/Actions"),
                                 N_("Focus on the previous module control"), GDK_KEY_Up, GDK_CONTROL_MASK);
 
+  dt_accels_new_darkroom_action(_focus_search_action, self, N_("Darkroom/Actions"), N_("Search a module"),
+                                GDK_KEY_f, GDK_CONTROL_MASK);
 
   /* let's connect to view changed signal to set default group */
   dt_control_signal_connect(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED,
