@@ -19,14 +19,11 @@
 
 #include "bauhaus/bauhaus.h"
 #include "common/calculator.h"
-#include "common/darktable.h"
 #include "common/math.h"
 #include "control/conf.h"
 #include "develop/develop.h"
-#include "develop/imageop.h"
 
 #include "gui/color_picker_proxy.h"
-#include "gui/gtk.h"
 #ifdef GDK_WINDOWING_QUARTZ
 #include "osx/osx.h"
 #endif
