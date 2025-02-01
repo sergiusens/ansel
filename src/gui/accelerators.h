@@ -47,6 +47,7 @@ typedef struct dt_shortcut_t
   guint key;                  // default key
   GdkModifierType mods;       // default modifier
   dt_shortcut_type_t type;
+  gboolean locked;            // this will not listen to user config
 } dt_shortcut_t;
 
 
@@ -130,10 +131,12 @@ void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const 
  * @param accel_path
  * @param key_val
  * @param accel_mods
+ * @param lock prevent user edition
+
  */
 void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const gchar *signal,
                                    GtkAccelGroup *accel_group, const gchar *accel_path, guint key_val,
-                                   GdkModifierType accel_mods);
+                                   GdkModifierType accel_mods, const gboolean lock);
 
 
 /**
@@ -158,10 +161,11 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
  * internally
  * @param key_val
  * @param accel_mods
+ * @param lock prevent user edition
  */
 void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
                                    GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
-                                   guint key_val, GdkModifierType accel_mods);
+                                   guint key_val, GdkModifierType accel_mods, const gboolean lock);
 
 
 /**

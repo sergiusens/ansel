@@ -105,7 +105,7 @@ static dt_menu_entry_t * set_menu_entry(GtkWidget **menus, GList **items_list, c
 
   // Publish a new accel to the global map and attach it to the menu entry widget
   dt_accels_new_widget_shortcut(darktable.gui->accels, entry->widget, "activate",
-                                darktable.gui->accels->global_accels, accel_path, key_val, mods);
+                                darktable.gui->accels->global_accels, accel_path, key_val, mods, FALSE);
 
   g_free(accel_path);
   g_free(clean_label);

@@ -468,15 +468,15 @@ void gui_init(dt_lib_module_t *self)
                                 N_("move to the previous modules tab"), GDK_KEY_Tab,
                                 GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
-  dt_accels_new_darkroom_action(_focus_next_module, NULL, N_("Darkroom/Actions"), N_("Focus on the next module"),
-                                GDK_KEY_Page_Down, 0);
-  dt_accels_new_darkroom_action(_focus_previous_module, NULL, N_("Darkroom/Actions"), N_("Focus on the previous module"),
-                                GDK_KEY_Page_Up, 0);
+  dt_accels_new_darkroom_locked_action(_focus_next_module, NULL, N_("Darkroom/Actions"),
+                                       N_("Focus on the next module"), GDK_KEY_Page_Down, 0);
+  dt_accels_new_darkroom_locked_action(_focus_previous_module, NULL, N_("Darkroom/Actions"),
+                                       N_("Focus on the previous module"), GDK_KEY_Page_Up, 0);
 
-  dt_accels_new_darkroom_action(_focus_next_control, NULL, N_("Darkroom/Actions"), N_("Focus on the next module control"),
-                                GDK_KEY_Down, GDK_CONTROL_MASK);
-  dt_accels_new_darkroom_action(_focus_previous_control, NULL, N_("Darkroom/Actions"),
-                                N_("Focus on the previous module control"), GDK_KEY_Up, GDK_CONTROL_MASK);
+  dt_accels_new_darkroom_locked_action(_focus_next_control, NULL, N_("Darkroom/Actions"),
+                                       N_("Focus on the next module control"), GDK_KEY_Down, GDK_CONTROL_MASK);
+  dt_accels_new_darkroom_locked_action(_focus_previous_control, NULL, N_("Darkroom/Actions"),
+                                       N_("Focus on the previous module control"), GDK_KEY_Up, GDK_CONTROL_MASK);
 
   dt_accels_new_darkroom_action(_focus_search_action, self, N_("Darkroom/Actions"), N_("Search a module"),
                                 GDK_KEY_f, GDK_CONTROL_MASK);
