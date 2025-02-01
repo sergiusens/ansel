@@ -1914,6 +1914,21 @@ static void _unregister_modules_drag_n_drop(dt_view_t *self)
   }
 }
 
+static gboolean _is_scroll_captured_by_widget()
+{
+  dt_accels_t *accels = darktable.gui->accels;
+  if(!darktable.gui->has_scroll_focus || accels->active_key.accel_key == 0) return FALSE;
+
+  // When declaring shortcuts, bauhaus widgets write their accel path into a private data field
+  gchar *accel_path = g_object_get_data(G_OBJECT(darktable.gui->has_scroll_focus), "accel-path");
+
+  // Find if the registered accel keys matches currently pressed keys
+  GtkAccelKey key = { 0 };
+  return gtk_accel_map_lookup_entry(accel_path, &key)
+    && key.accel_key == accels->active_key.accel_key
+    && key.accel_mods == accels->active_key.accel_mods;
+}
+
 
 // If a bauhaus widget has the scroll focus from a keyboard shortcut,
 // and the combination of keys attached to its accel path
@@ -1921,15 +1936,7 @@ static void _unregister_modules_drag_n_drop(dt_view_t *self)
 // Warning: if mouse is over the central widget, central widget takes precedence over scrolling.
 gboolean _scroll_on_focus(GdkEventScroll event, void *data)
 {
-  dt_accels_t *accels = darktable.gui->accels;
-  if(!darktable.gui->has_scroll_focus || accels->active_key.accel_key == 0) return FALSE;
-
-  // When declaring shortcuts, bauhaus widget write their accel path into a private data field
-  gchar *accel_path = g_object_get_data(G_OBJECT(darktable.gui->has_scroll_focus), "accel-path");
-
-  // Find if the registered accel keys matches currently pressed keys
-  GtkAccelKey key = { 0 };
-  if(gtk_accel_map_lookup_entry(accel_path, &key) && key.accel_key == accels->active_key.accel_key && key.accel_mods == accels->active_key.accel_mods)
+  if(_is_scroll_captured_by_widget())
   {
     // Pass-through the scrolling event to the scrolling handler of the widget
     gboolean ret;
@@ -2665,13 +2672,15 @@ int button_pressed(dt_view_t *self, double x, double y, double pressure, int whi
   return 0;
 }
 
-void scrolled(dt_view_t *self, double x, double y, int up, int state)
+int scrolled(dt_view_t *self, double x, double y, int up, int state)
 {
+  if(_is_scroll_captured_by_widget()) return FALSE;
+
   dt_develop_t *dev = (dt_develop_t *)self->data;
   float offx = 0.0f, offy = 0.0f;
   _magic_schwalm_offset(dev, self, &offx, &offy);
 
-  if(!mouse_in_actionarea(self, x, y)) return;
+  if(!mouse_in_actionarea(self, x, y)) return FALSE;
 
   // masks
   if(dev->form_visible && dt_masks_events_mouse_scrolled(dev->gui_module, x, y, up, state))
@@ -2680,7 +2689,7 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
     // FIXME: use invalidate_top in the future
     dt_control_queue_redraw_center();
     _do_delayed_history_commit(dev);
-    return;
+    return TRUE;
   }
 
   // module
@@ -2688,7 +2697,7 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
   {
     // Scroll in modules should handle history changes internally.
     dt_control_queue_redraw_center();
-    return;
+    return TRUE;
   }
   // free zoom
   int procw, proch;
@@ -2716,8 +2725,10 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
 
   if(up)
   {
-    if(fitscale <= 1.0f && (scale == (1.0f / ppd) || scale == (2.0f / ppd)) && constrained) return; // for large image size
-    else if(fitscale > 1.0f && fitscale <= 2.0f && scale == (2.0f / ppd) && constrained) return; // for medium image size
+    if(fitscale <= 1.0f && (scale == (1.0f / ppd) || scale == (2.0f / ppd)) && constrained)
+      return TRUE; // for large image size
+    else if(fitscale > 1.0f && fitscale <= 2.0f && scale == (2.0f / ppd) && constrained)
+      return TRUE; // for medium image size
 
     if((oldscale <= 1.0f / ppd) && constrained && (scale + stepup >= 1.0f / ppd))
       scale = 1.0f / ppd;
@@ -2725,7 +2736,7 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
       scale = 2.0f / ppd;
     // calculate new scale
     else if(scale >= 16.0f / ppd)
-      return;
+      return TRUE;
     else if(scale >= 8.0f / ppd)
       scale = 16.0f / ppd;
     else if(scale >= 4.0f / ppd)
@@ -2739,8 +2750,10 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
   }
   else
   {
-    if(fitscale <= 2.0f && ((scale == fitscale && constrained) || scale < 0.5 * fitscale)) return; // for large and medium image size
-    else if(fitscale > 2.0f && scale < 1.0f / ppd) return; // for small image size
+    if(fitscale <= 2.0f && ((scale == fitscale && constrained) || scale < 0.5 * fitscale))
+      return TRUE; // for large and medium image size
+    else if(fitscale > 2.0f && scale < 1.0f / ppd)
+      return TRUE; // for small image size
 
     // calculate new scale
     if(scale <= fitscale)
@@ -2814,6 +2827,7 @@ void scrolled(dt_view_t *self, double x, double y, int up, int state)
 
   dt_dev_invalidate_zoom(dev);
   dt_dev_refresh_ui_images(dev);
+  return TRUE;
 }
 
 

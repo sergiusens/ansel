@@ -293,12 +293,12 @@ static gboolean _scrolled(GtkWidget *widget, GdkEventScroll *event, gpointer use
   int delta_y;
   if(dt_gui_get_scroll_unit_delta(event, &delta_y))
   {
-    dt_view_manager_scrolled(darktable.view_manager, event->x, event->y,
-                             delta_y < 0,
-                             event->state & 0xf);
+    return dt_view_manager_scrolled(darktable.view_manager, event->x, event->y,
+                                    delta_y < 0,
+                                    event->state);
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 static gboolean _scrollbar_changed(GtkWidget *widget, gpointer user_data)

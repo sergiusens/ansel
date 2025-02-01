@@ -613,10 +613,12 @@ void dt_view_manager_configure(dt_view_manager_t *vm, int width, int height)
   }
 }
 
-void dt_view_manager_scrolled(dt_view_manager_t *vm, double x, double y, int up, int state)
+int dt_view_manager_scrolled(dt_view_manager_t *vm, double x, double y, int up, int state)
 {
-  if(!vm->current_view) return;
-  if(vm->current_view->scrolled) vm->current_view->scrolled(vm->current_view, x, y, up, state);
+  if(!vm->current_view) return FALSE;
+  if(vm->current_view->scrolled)
+    return vm->current_view->scrolled(vm->current_view, x, y, up, state);
+  return 0;
 }
 
 void dt_view_manager_scrollbar_changed(dt_view_manager_t *vm, double x, double y)
