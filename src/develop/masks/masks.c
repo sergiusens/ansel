@@ -1373,10 +1373,10 @@ void dt_masks_iop_use_same_as(dt_iop_module_t *module, dt_iop_module_t *src)
 
 }
 
-void dt_masks_iop_combo_populate(GtkWidget *w, struct dt_iop_module_t **m)
+void dt_masks_iop_combo_populate(GtkWidget *w, void *m)
 {
   // we ensure that the module has focus
-  dt_iop_module_t *module = *m;
+  dt_iop_module_t *module = (dt_iop_module_t *)m;
   dt_iop_request_focus(module);
   dt_iop_gui_blend_data_t *bd = (dt_iop_gui_blend_data_t *)module->blend_data;
 

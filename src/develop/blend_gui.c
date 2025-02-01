@@ -2465,9 +2465,9 @@ typedef struct raster_combo_entry_t
   int id;
 } raster_combo_entry_t;
 
-static void _raster_combo_populate(GtkWidget *w, struct dt_iop_module_t **m)
+static void _raster_combo_populate(GtkWidget *w, void *m)
 {
-  dt_iop_module_t *module = *m;
+  dt_iop_module_t *module = (dt_iop_module_t *)m;
   dt_iop_request_focus(module);
 
   dt_bauhaus_combobox_clear(w);
@@ -2558,7 +2558,7 @@ void dt_iop_gui_update_raster(dt_iop_module_t *module)
 
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(bd->raster_polarity), bp->raster_mask_invert);
 
-  _raster_combo_populate(bd->raster_combo, &module);
+  _raster_combo_populate(bd->raster_combo, module);
 }
 
 static void _raster_polarity_callback(GtkToggleButton *togglebutton, dt_iop_module_t *self)

@@ -188,7 +188,7 @@ static double _get_combobox_popup_height(struct dt_bauhaus_widget_t *w)
   const dt_bauhaus_combobox_data_t *d = &w->data.combobox;
 
   // Need to run the populating callback first for dynamically-populated ones.
-  if(d->populate) d->populate(GTK_WIDGET(w), &module);
+  if(d->populate) d->populate(GTK_WIDGET(w), module);
   if(!d->entries->len) return 0.;
 
   int num_lines = d->entries->len;
@@ -1371,7 +1371,7 @@ static dt_bauhaus_combobox_data_t *_combobox_data(GtkWidget *widget)
   return d;
 }
 
-void dt_bauhaus_combobox_add_populate_fct(GtkWidget *widget, void (*fct)(GtkWidget *w, struct dt_iop_module_t **module))
+void dt_bauhaus_combobox_add_populate_fct(GtkWidget *widget, void (*fct)(GtkWidget *w, void *module))
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
   if(w->type == DT_BAUHAUS_COMBOBOX)
