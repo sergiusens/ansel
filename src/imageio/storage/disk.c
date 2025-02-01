@@ -190,7 +190,7 @@ void gui_init(dt_imageio_module_storage_t *self)
   gtk_box_pack_start(GTK_BOX(hbox), widget, FALSE, FALSE, 0);
   g_signal_connect(G_OBJECT(widget), "clicked", G_CALLBACK(button_clicked), self);
 
-  d->onsave_action = dt_bauhaus_combobox_new(NULL);
+  d->onsave_action = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
   dt_bauhaus_widget_set_label(d->onsave_action, NULL, N_("on conflict"));
   gtk_widget_set_tooltip_text(d->onsave_action, _("Expected behaviour if the current naming pattern\n"
                                                   "produces a filename that already exists."));

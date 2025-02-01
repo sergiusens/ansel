@@ -1064,7 +1064,7 @@ void gui_init(struct dt_iop_module_t *self)
   dt_loc_get_user_config_dir(configdir, sizeof(configdir));
 
   GtkWidget *label = dtgtk_reset_label_new(_("marker"), self, &p->filename, sizeof(p->filename));
-  g->watermarks = dt_bauhaus_combobox_new(self);
+  g->watermarks = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   gtk_widget_set_hexpand(GTK_WIDGET(g->watermarks), TRUE);
   char *tooltip = g_strdup_printf(_("SVG watermarks in %s/watermarks or %s/watermarks"), configdir, datadir);
   gtk_widget_set_tooltip_text(g->watermarks, tooltip);

@@ -2099,7 +2099,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   self->widget = dt_ui_notebook_page(g->notebook, N_("main"), NULL);
 
-  g->hvflip = dt_bauhaus_combobox_new(self);
+  g->hvflip = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   dt_bauhaus_widget_set_label(g->hvflip, NULL, N_("flip"));
   dt_bauhaus_combobox_add(g->hvflip, _("none"));
   dt_bauhaus_combobox_add(g->hvflip, _("horizontal"));
@@ -2114,7 +2114,7 @@ void gui_init(struct dt_iop_module_t *self)
   dt_bauhaus_slider_set_format(g->angle, "\302\260");
   gtk_widget_set_tooltip_text(g->angle, _("right-click and drag a line on the image to drag a straight line"));
 
-  g->keystone_type = dt_bauhaus_combobox_new(self);
+  g->keystone_type = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   dt_bauhaus_widget_set_label(g->keystone_type, NULL, N_("keystone"));
   dt_bauhaus_combobox_add(g->keystone_type, _("none"));
   dt_bauhaus_combobox_add(g->keystone_type, _("vertical"));
@@ -2224,7 +2224,7 @@ void gui_init(struct dt_iop_module_t *self)
     }
   }
 
-  g->aspect_presets = dt_bauhaus_combobox_new(self);
+  g->aspect_presets = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   dt_bauhaus_combobox_set_editable(g->aspect_presets, 1);
   dt_bauhaus_widget_set_label(g->aspect_presets, NULL, N_("aspect"));
 

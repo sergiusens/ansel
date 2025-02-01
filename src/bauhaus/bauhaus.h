@@ -184,11 +184,6 @@ typedef struct dt_bauhaus_widget_t
 
 } dt_bauhaus_widget_t;
 
-// class of our new widget, inheriting from drawing area
-typedef struct dt_bauhaus_widget_class_t
-{
-  GtkDrawingAreaClass parent_class;
-} dt_bauhaus_widget_class_t;
 
 // global static data:
 enum
@@ -197,6 +192,16 @@ enum
   DT_BAUHAUS_QUAD_PRESSED_SIGNAL,
   DT_BAUHAUS_LAST_SIGNAL
 };
+
+
+// class of our new widget, inheriting from drawing area
+typedef struct dt_bauhaus_widget_class_t
+{
+  GtkDrawingAreaClass parent_class;
+
+  // our custom signals
+  guint signals[DT_BAUHAUS_LAST_SIGNAL];
+} dt_bauhaus_widget_class_t;
 
 typedef struct dt_bauhaus_t
 {
@@ -220,8 +225,7 @@ typedef struct dt_bauhaus_t
   // key input buffer
   char keys[64];
   int keys_cnt;
-  // our custom signals
-  guint signals[DT_BAUHAUS_LAST_SIGNAL];
+
   // flag set on button press indicating that popup should be hidden in button release handler
   gboolean hiding;
 
@@ -283,13 +287,13 @@ void dt_bauhaus_hide_popup();
 void dt_bauhaus_show_popup(GtkWidget *w);
 
 // slider:
-GtkWidget *dt_bauhaus_slider_new(dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_slider_new_with_range(dt_iop_module_t *self, float min, float max, float step,
+GtkWidget *dt_bauhaus_slider_new(dt_bauhaus_t *bh, dt_iop_module_t *self);
+GtkWidget *dt_bauhaus_slider_new_with_range(dt_bauhaus_t *bh, dt_iop_module_t *self, float min, float max, float step,
                                             float defval, int digits);
-GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_iop_module_t *self, float min, float max,
+GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_bauhaus_t *bh, dt_iop_module_t *self, float min, float max,
                                                          float step, float defval, int digits, int feedback);
 
-GtkWidget *dt_bauhaus_slider_from_widget(struct dt_bauhaus_widget_t* widget, dt_iop_module_t *self, float min, float max,
+GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *widget, dt_iop_module_t *self, float min, float max,
                                          float step, float defval, int digits, int feedback);
 
 // outside doesn't see the real type, we cast it internally.
@@ -328,14 +332,16 @@ void dt_bauhaus_slider_set_default(GtkWidget *widget, float def);
 float dt_bauhaus_slider_get_default(GtkWidget *widget);
 
 // combobox:
-void dt_bauhaus_combobox_from_widget(struct dt_bauhaus_widget_t* widget,dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_combobox_new(dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_combobox_new_full(dt_iop_module_t *self, const char *section, const char *label, const char *tip,
-                                        int pos, GtkCallback callback, gpointer data, const char **texts);
-#define DT_BAUHAUS_COMBOBOX_NEW_FULL(widget, action, section, label, tip, pos, callback, data, ...)          \
+void dt_bauhaus_combobox_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t* widget,dt_iop_module_t *self);
+GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_iop_module_t *self);
+GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_iop_module_t *self, const char *section,
+                                        const char *label, const char *tip, int pos, GtkCallback callback,
+                                        gpointer data, const char **texts);
+
+#define DT_BAUHAUS_COMBOBOX_NEW_FULL(bauhaus, widget, action, section, label, tip, pos, callback, data, ...)          \
 {                                                                                                            \
   static const gchar *texts[] = { __VA_ARGS__, NULL };                                                       \
-  widget = dt_bauhaus_combobox_new_full(action, section, label, tip, pos, callback, data, texts); \
+  widget = dt_bauhaus_combobox_new_full(bauhaus, action, section, label, tip, pos, callback, data, texts); \
 }
 
 void dt_bauhaus_combobox_add(GtkWidget *widget, const char *text);

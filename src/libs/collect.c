@@ -3228,7 +3228,7 @@ void gui_init(dt_lib_module_t *self)
     gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(box), TRUE, TRUE, 0);
     gtk_widget_set_name(GTK_WIDGET(box), "lib-dtbutton");
 
-    d->rule[i].combo = dt_bauhaus_combobox_new(NULL);
+    d->rule[i].combo = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
     dt_bauhaus_combobox_set_selected_text_align(d->rule[i].combo, DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT);
     _populate_collect_combo(d->rule[i].combo);
 

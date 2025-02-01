@@ -1943,11 +1943,11 @@ void gui_init(struct dt_iop_module_t *self)
 
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
 
-  g->profile_combobox = dt_bauhaus_combobox_new(self);
+  g->profile_combobox = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   dt_bauhaus_widget_set_label(g->profile_combobox, NULL, N_("input profile"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->profile_combobox, TRUE, TRUE, 0);
 
-  g->work_combobox = dt_bauhaus_combobox_new(self);
+  g->work_combobox = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   dt_bauhaus_widget_set_label(g->work_combobox, NULL, N_("working profile"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->work_combobox, TRUE, TRUE, 0);
 

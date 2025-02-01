@@ -647,7 +647,7 @@ void gui_init(dt_imageio_module_format_t *self)
   const int preset_last = dt_conf_get_int("plugins/imageio/format/j2k/preset");
   const int quality_last = dt_conf_get_int("plugins/imageio/format/j2k/quality");
 
-  gui->format = dt_bauhaus_combobox_new(NULL);
+  gui->format = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
   dt_bauhaus_widget_set_label(gui->format, NULL, N_("format"));
   dt_bauhaus_combobox_add(gui->format, _("J2K"));
   dt_bauhaus_combobox_add(gui->format, _("jp2"));
@@ -655,7 +655,7 @@ void gui_init(dt_imageio_module_format_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), gui->format, TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(gui->format), "value-changed", G_CALLBACK(format_changed), NULL);
 
-  gui->quality = dt_bauhaus_slider_new_with_range(NULL,
+  gui->quality = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL,
                                                   dt_confgen_get_int("plugins/imageio/format/j2k/quality", DT_MIN),
                                                   dt_confgen_get_int("plugins/imageio/format/j2k/quality", DT_MAX),
                                                   1,
@@ -667,7 +667,7 @@ void gui_init(dt_imageio_module_format_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(gui->quality), TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(gui->quality), "value-changed", G_CALLBACK(quality_changed), NULL);
 
-  gui->preset = dt_bauhaus_combobox_new(NULL);
+  gui->preset = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
   dt_bauhaus_widget_set_label(gui->preset, NULL, N_("DCP mode"));
   dt_bauhaus_combobox_add(gui->preset, _("off"));
   dt_bauhaus_combobox_add(gui->preset, _("Cinema2K, 24FPS"));
@@ -707,4 +707,3 @@ int flags(dt_imageio_module_data_t *data)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

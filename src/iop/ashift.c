@@ -5604,7 +5604,7 @@ void gui_init(struct dt_iop_module_t *self)
                                    _("rotation only"),
                                    _("lens shift only"), NULL };
   g->fitting_option
-      = dt_bauhaus_combobox_new_full(self, NULL, _("Fit for"), NULL, ASHIFT_FITTING_ALL,
+      = dt_bauhaus_combobox_new_full(darktable.bauhaus, self, NULL, _("Fit for"), NULL, ASHIFT_FITTING_ALL,
                                      (GtkCallback)fitting_option_changed, self, option_labels);
   gtk_box_pack_start(GTK_BOX(self->widget), g->fitting_option, TRUE, TRUE, 0);
 

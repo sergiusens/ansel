@@ -823,7 +823,7 @@ void gui_init(dt_lib_module_t *self)
                                dt_conf_get_bool("ui_last/styles_create_duplicate"));
   gtk_widget_set_tooltip_text(d->duplicate, _("creates a duplicate of the image before applying style"));
 
-  d->applymode = dt_bauhaus_combobox_new(NULL);
+  d->applymode = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->applymode), TRUE, FALSE, 0);
   dt_bauhaus_widget_set_label(d->applymode, NULL, N_("mode"));
   dt_bauhaus_combobox_add(d->applymode, _("append"));

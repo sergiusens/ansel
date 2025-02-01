@@ -419,7 +419,7 @@ void gui_init(dt_lib_module_t *self)
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(d->comparator, NULL, NULL, N_("comparator"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->comparator, NULL, NULL, N_("comparator"),
                                _("filter by images rating"),
                                dt_collection_get_rating_comparator(darktable.collection),
                                _lib_filter_comparator_changed, self,
@@ -433,7 +433,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->comparator), TRUE, TRUE, 0);
 
   /* create the filter combobox */
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(d->stars, NULL, NULL, N_("ratings"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->stars, NULL, NULL, N_("ratings"),
                                _("filter by images rating"),
                                dt_collection_get_rating(darktable.collection),
                                _lib_filter_combobox_changed, self,
@@ -488,10 +488,9 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(label, "quickfilter-label");
 
   const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
-  d->sort = dt_bauhaus_combobox_new_full(NULL, NULL, N_("sort by"),
-                                         _("determine the sort order of shown images"),
-                                         _filter_get_items(sort), _lib_filter_sort_combobox_changed, self,
-                                         _sort_names);
+  d->sort = dt_bauhaus_combobox_new_full(darktable.bauhaus, NULL, NULL, N_("sort by"),
+                                         _("determine the sort order of shown images"), _filter_get_items(sort),
+                                         _lib_filter_sort_combobox_changed, self, _sort_names);
   dt_bauhaus_widget_set_label(d->sort, NULL, NULL);
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->sort), FALSE, FALSE, 0);
   dt_gui_add_class(hbox, "quick_filter_box");

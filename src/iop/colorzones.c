@@ -2445,7 +2445,7 @@ void gui_init(struct dt_iop_module_t *self)
     #define CATMULL_ROM 1
     #define MONOTONE_HERMITE 2
   */
-  c->interpolator = dt_bauhaus_combobox_new(self);
+  c->interpolator = dt_bauhaus_combobox_new(darktable.bauhaus, self);
   dt_bauhaus_widget_set_label(c->interpolator, NULL, N_("interpolation method"));
   dt_bauhaus_combobox_add(c->interpolator, _("cubic spline"));
   dt_bauhaus_combobox_add(c->interpolator, _("centripetal spline"));
