@@ -28,6 +28,11 @@ dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
   accels->keymap = gdk_keymap_get_for_display(gdk_display_get_default());
   accels->default_mod_mask = gtk_accelerator_get_default_mod_mask();
   accels->init = !g_file_test(accels->config_file, G_FILE_TEST_EXISTS);
+  accels->active_key.accel_flags = 0;
+  accels->active_key.accel_key = 0;
+  accels->active_key.accel_mods = 0;
+  accels->scroll.callback = NULL;
+  accels->scroll.data = NULL;
   return accels;
 }
 
@@ -379,15 +384,9 @@ void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, Gd
   // Hopefully no more heuristics required...
 }
 
-gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels)
+gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels, guint keyval, GdkModifierType mods)
 {
   gboolean found = FALSE;
-
-  GdkModifierType mods;
-  guint keyval;
-  _accels_keys_decode(accels, event, &keyval, &mods);
-
-  //fprintf(stdout, "keystroke: %i - %i -> %s\n", keyval, mods, gdk_keyval_name(keyval));
 
   // Get the accelerator entry from the accel group
   gchar *accel_name = gtk_accelerator_name(keyval, mods);
@@ -413,14 +412,56 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
 
   // Ditch everything that is not a key stroke or key strokes that are modifiers alone
   // Abort early for performance.
-  if(event->type != GDK_KEY_PRESS
-     || accels->active_group == NULL
-     || event->key.is_modifier || accels->reset > 0)
+  if(event->key.is_modifier || accels->active_group == NULL || accels->reset > 0) return FALSE;
+
+
+  if(!(event->type == GDK_KEY_PRESS || event->type == GDK_KEY_RELEASE || event->type == GDK_SCROLL))
     return FALSE;
 
-  return _key_pressed(w, event, accels);
+  // Scroll event: dispatch and return
+  if(event->type == GDK_SCROLL)
+  {
+    if(accels->scroll.callback)
+      return accels->scroll.callback(event->scroll, accels->scroll.data);
+    else
+      return FALSE;
+  }
 
-  // If return == FALSE, it is possible that we messed-up key value decoding
-  // Default Gtk shortcuts handler will have another chance since the accel groups
-  // are connected to the window in a standard way.
+  // Key events: decode and dispatch
+  GdkModifierType mods;
+  guint keyval;
+  _accels_keys_decode(accels, event, &keyval, &mods);
+
+  if(event->type == GDK_KEY_PRESS)
+  {
+    // Store active keys until release
+    accels->active_key.accel_key = keyval;
+    accels->active_key.accel_mods = mods;
+    return _key_pressed(w, event, accels, keyval, mods);
+    // If return == FALSE, it is possible that we messed-up key value decoding
+    // Default Gtk shortcuts handler will have another chance since the accel groups
+    // are connected to the window in a standard way.
+  }
+  else if(event->type == GDK_KEY_RELEASE)
+  {
+    // Reset active keys
+    accels->active_key.accel_key = 0;
+    accels->active_key.accel_mods = 0;
+    return FALSE;
+  }
+
+  return FALSE;
+}
+
+
+void dt_accels_attach_scroll_handler(dt_accels_t *accels, gboolean (*callback)(GdkEventScroll event, void *data), void *data)
+{
+  accels->scroll.callback = callback;
+  accels->scroll.data = data;
+}
+
+void dt_accels_detach_scroll_handler(dt_accels_t *accels)
+{
+  accels->scroll.callback = NULL;
+  accels->scroll.data = NULL;
 }

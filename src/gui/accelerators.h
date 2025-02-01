@@ -20,6 +20,14 @@ typedef struct dt_accels_t
   GdkKeymap *keymap;           // default screen keymap to decode key values
   GdkModifierType default_mod_mask; // set of modifier masks relevant only to key strokes
   gboolean init; // TRUE if we didn't find a keyboardrc config file at startup and we need to init a new one
+  GtkAccelKey active_key;      // between key_pressed and key_release events, store the active key strokes
+
+  // Views can register a global callback to handle scroll events
+  // for example while keystrokes are on.
+  struct scroll {
+    gboolean (*callback)(GdkEventScroll event, void *data);
+    void *data;
+  } scroll;
 } dt_accels_t;
 
 typedef enum dt_shortcut_type_t
@@ -165,3 +173,13 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), 
  * @return gboolean
  */
 gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data);
+
+/**
+ * @brief Attach a new global scroll event callback
+ *
+ * @param callback
+ * @param data
+ */
+void dt_accels_attach_scroll_handler(dt_accels_t *accels, gboolean (*callback)(GdkEventScroll event, void *data), void *data);
+
+void dt_accels_detach_scroll_handler(dt_accels_t *accels);

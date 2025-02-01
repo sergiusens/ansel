@@ -1918,6 +1918,32 @@ static void _unregister_modules_drag_n_drop(dt_view_t *self)
 }
 
 
+// If a bauhaus widget has the scroll focus from a keyboard shortcut,
+// and the combination of keys attached to its accel path
+// is still pressed, then we redirect any scroll event in the window to this widget.
+// Warning: if mouse is over the central widget, central widget takes precedence over scrolling.
+gboolean _scroll_on_focus(GdkEventScroll event, void *data)
+{
+  dt_accels_t *accels = darktable.gui->accels;
+  if(!darktable.gui->has_scroll_focus || accels->active_key.accel_key == 0) return FALSE;
+
+  // When declaring shortcuts, bauhaus widget write their accel path into a private data field
+  gchar *accel_path = g_object_get_data(G_OBJECT(darktable.gui->has_scroll_focus), "accel-path");
+
+  // Find if the registered accel keys matches currently pressed keys
+  GtkAccelKey key = { 0 };
+  if(gtk_accel_map_lookup_entry(accel_path, &key) && key.accel_key == accels->active_key.accel_key && key.accel_mods == accels->active_key.accel_mods)
+  {
+    // Pass-through the scrolling event to the scrolling handler of the widget
+    gboolean ret;
+    g_signal_emit_by_name(G_OBJECT(darktable.gui->has_scroll_focus), "scroll-event", &event, &ret);
+    return ret;
+  }
+
+  return FALSE;
+}
+
+
 void enter(dt_view_t *self)
 {
   // Reset focus to center view
@@ -2054,10 +2080,14 @@ void enter(dt_view_t *self)
   // Attach shortcuts to new widgets
   dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_window(darktable.gui->accels, "darkroom");
+
+  dt_accels_attach_scroll_handler(darktable.gui->accels, _scroll_on_focus, dev);
 }
 
 void leave(dt_view_t *self)
 {
+  dt_accels_detach_scroll_handler(darktable.gui->accels);
+
   // Detach shortcuts
   dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
 
