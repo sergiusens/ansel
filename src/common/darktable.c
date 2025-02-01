@@ -1166,7 +1166,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
       fprintf(stderr, "ERROR: can't init gui, aborting.\n");
       return 1;
     }
-    dt_bauhaus_init();
+    darktable.bauhaus = dt_bauhaus_init();
   }
   else
     darktable.gui = NULL;
@@ -1472,7 +1472,7 @@ void dt_cleanup()
 
   if(init_gui)
   {
-    dt_bauhaus_cleanup();
+    dt_bauhaus_cleanup(darktable.bauhaus);
   }
 
   if (darktable.noiseprofile_parser)

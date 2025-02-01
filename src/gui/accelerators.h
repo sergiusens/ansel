@@ -4,6 +4,32 @@
 #include <gdk/gdkwayland.h>
 #endif
 
+/**
+ * @file accelerators.h
+ * @brief Handle default and user-set shortcuts (accelerators)
+ *
+ * Gtk is a bit weird here, so we need to :
+ *
+ *  1. have each acceleratable widget declare its accel path and default shortcut (if any),
+ *  2. read the accels map file, which only import accels for already-known pathes (from previous step),
+ *     and may update the default shortcut with user-defined one,
+ *  3. connect widget relevant signal and shortcut through the active GtkAccelGroup. But the actual
+ *     signal depends on the widget type.
+ *
+ * Because of that, we need to prepare the list of acceleratable widgets first, populate the accel maps
+ * with their pathes, and only after fetching user-defined accels, we can connect actual actions.
+ * So it's not straight-forward.
+ *
+ * Some keys appear reserved, like Tab or Enter, depending on OS. So we have to use our own, custom,
+ * shortcut handler, which is mostly a thin wrapper over Gtk native features.asm
+ *
+ * This allows us to decide in which order we process the several sets of shortcuts we maintain
+ * (global, lighttable, darkroom). Global shortcuts are processed last, for all views.
+ * Lighttable and darkroom shortcuts are processed first, for the relevant view.
+ * This lets user have different actions mapped to the same shortcuts, depending on view
+ * but also have the view-centric shortcuts overwrite global ones if needed.
+ */
+
 #pragma once
 
 typedef struct dt_accels_t
@@ -53,31 +79,6 @@ typedef struct dt_shortcut_t
 
 dt_accels_t *dt_accels_init(char *config_file, GtkWindow *window);
 void dt_accels_cleanup(dt_accels_t *accels);
-
-/**
- * @brief Handle default and user-set shortcuts (accelerators)
- *
- * Gtk is a bit weird here, so we need to :
- *
- *  1. have each acceleratable widget declare its accel path and default shortcut (if any),
- *  2. read the accels map file, which only import accels for already-known pathes (from previous step),
- *     and may update the default shortcut with user-defined one,
- *  3. connect widget relevant signal and shortcut through the active GtkAccelGroup. But the actual
- *     signal depends on the widget type.
- *
- * Because of that, we need to prepare the list of acceleratable widgets first, populate the accel maps
- * with their pathes, and only after fetching user-defined accels, we can connect actual actions.
- * So it's not straight-forward.
- *
- * Some keys appear reserved, like Tab or Enter, depending on OS. So we have to use our own, custom,
- * shortcut handler, which is mostly a thin wrapper over Gtk native features.asm
- *
- * This allows us to decide in which order we process the several sets of shortcuts we maintain
- * (global, lighttable, darkroom). Global shortcuts are processed last, for all views.
- * Lighttable and darkroom shortcuts are processed first, for the relevant view.
- * This lets user have different actions mapped to the same shortcuts, depending on view
- * but also have the view-centric shortcuts overwrite global ones if needed.
- */
 
 
 gchar *dt_accels_build_path(const gchar *scope, const gchar *feature);

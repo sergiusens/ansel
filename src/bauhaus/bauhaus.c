@@ -21,7 +21,6 @@
 #include "common/calculator.h"
 #include "common/math.h"
 #include "control/conf.h"
-#include "develop/develop.h"
 
 #include "gui/color_picker_proxy.h"
 #ifdef GDK_WINDOWING_QUARTZ
@@ -830,10 +829,10 @@ static void dt_bh_class_init(DtBauhausWidgetClass *class)
   G_OBJECT_CLASS(class)->finalize = _widget_finalize;
 }
 
-void dt_bauhaus_load_theme()
+void dt_bauhaus_load_theme(dt_bauhaus_t *bauhaus)
 {
-  darktable.bauhaus->line_height = 3;
-  darktable.bauhaus->marker_size = 0.25f;
+  bauhaus->line_height = 3;
+  bauhaus->marker_size = 0.25f;
 
   GtkWidget *root_window = dt_ui_main_window(darktable.gui->ui);
   GtkStyleContext *ctx = gtk_style_context_new();
@@ -841,50 +840,50 @@ void dt_bauhaus_load_theme()
   gtk_style_context_set_path(ctx, path);
   gtk_style_context_set_screen (ctx, gtk_widget_get_screen(root_window));
 
-  gtk_style_context_lookup_color(ctx, "bauhaus_fg", &darktable.bauhaus->color_fg);
-  gtk_style_context_lookup_color(ctx, "bauhaus_fg_insensitive", &darktable.bauhaus->color_fg_insensitive);
-  gtk_style_context_lookup_color(ctx, "bauhaus_bg", &darktable.bauhaus->color_bg);
-  gtk_style_context_lookup_color(ctx, "bauhaus_border", &darktable.bauhaus->color_border);
-  gtk_style_context_lookup_color(ctx, "bauhaus_fill", &darktable.bauhaus->color_fill);
-  gtk_style_context_lookup_color(ctx, "bauhaus_indicator_border", &darktable.bauhaus->indicator_border);
+  gtk_style_context_lookup_color(ctx, "bauhaus_fg", &bauhaus->color_fg);
+  gtk_style_context_lookup_color(ctx, "bauhaus_fg_insensitive", &bauhaus->color_fg_insensitive);
+  gtk_style_context_lookup_color(ctx, "bauhaus_bg", &bauhaus->color_bg);
+  gtk_style_context_lookup_color(ctx, "bauhaus_border", &bauhaus->color_border);
+  gtk_style_context_lookup_color(ctx, "bauhaus_fill", &bauhaus->color_fill);
+  gtk_style_context_lookup_color(ctx, "bauhaus_indicator_border", &bauhaus->indicator_border);
 
-  gtk_style_context_lookup_color(ctx, "graph_bg", &darktable.bauhaus->graph_bg);
-  gtk_style_context_lookup_color(ctx, "graph_exterior", &darktable.bauhaus->graph_exterior);
-  gtk_style_context_lookup_color(ctx, "graph_border", &darktable.bauhaus->graph_border);
-  gtk_style_context_lookup_color(ctx, "graph_grid", &darktable.bauhaus->graph_grid);
-  gtk_style_context_lookup_color(ctx, "graph_fg", &darktable.bauhaus->graph_fg);
-  gtk_style_context_lookup_color(ctx, "graph_fg_active", &darktable.bauhaus->graph_fg_active);
-  gtk_style_context_lookup_color(ctx, "graph_overlay", &darktable.bauhaus->graph_overlay);
-  gtk_style_context_lookup_color(ctx, "inset_histogram", &darktable.bauhaus->inset_histogram);
-  gtk_style_context_lookup_color(ctx, "graph_red", &darktable.bauhaus->graph_colors[0]);
-  gtk_style_context_lookup_color(ctx, "graph_green", &darktable.bauhaus->graph_colors[1]);
-  gtk_style_context_lookup_color(ctx, "graph_blue", &darktable.bauhaus->graph_colors[2]);
+  gtk_style_context_lookup_color(ctx, "graph_bg", &bauhaus->graph_bg);
+  gtk_style_context_lookup_color(ctx, "graph_exterior", &bauhaus->graph_exterior);
+  gtk_style_context_lookup_color(ctx, "graph_border", &bauhaus->graph_border);
+  gtk_style_context_lookup_color(ctx, "graph_grid", &bauhaus->graph_grid);
+  gtk_style_context_lookup_color(ctx, "graph_fg", &bauhaus->graph_fg);
+  gtk_style_context_lookup_color(ctx, "graph_fg_active", &bauhaus->graph_fg_active);
+  gtk_style_context_lookup_color(ctx, "graph_overlay", &bauhaus->graph_overlay);
+  gtk_style_context_lookup_color(ctx, "inset_histogram", &bauhaus->inset_histogram);
+  gtk_style_context_lookup_color(ctx, "graph_red", &bauhaus->graph_colors[0]);
+  gtk_style_context_lookup_color(ctx, "graph_green", &bauhaus->graph_colors[1]);
+  gtk_style_context_lookup_color(ctx, "graph_blue", &bauhaus->graph_colors[2]);
   gtk_style_context_lookup_color(ctx, "colorlabel_red",
-                                 &darktable.bauhaus->colorlabels[DT_COLORLABELS_RED]);
+                                 &bauhaus->colorlabels[DT_COLORLABELS_RED]);
   gtk_style_context_lookup_color(ctx, "colorlabel_yellow",
-                                 &darktable.bauhaus->colorlabels[DT_COLORLABELS_YELLOW]);
+                                 &bauhaus->colorlabels[DT_COLORLABELS_YELLOW]);
   gtk_style_context_lookup_color(ctx, "colorlabel_green",
-                                 &darktable.bauhaus->colorlabels[DT_COLORLABELS_GREEN]);
+                                 &bauhaus->colorlabels[DT_COLORLABELS_GREEN]);
   gtk_style_context_lookup_color(ctx, "colorlabel_blue",
-                                 &darktable.bauhaus->colorlabels[DT_COLORLABELS_BLUE]);
+                                 &bauhaus->colorlabels[DT_COLORLABELS_BLUE]);
   gtk_style_context_lookup_color(ctx, "colorlabel_purple",
-                                 &darktable.bauhaus->colorlabels[DT_COLORLABELS_PURPLE]);
+                                 &bauhaus->colorlabels[DT_COLORLABELS_PURPLE]);
 
   PangoFontDescription *pfont = 0;
   gtk_style_context_get(ctx, GTK_STATE_FLAG_NORMAL, "font", &pfont, NULL);
 
   // make sure we release previously loaded font
-  if(darktable.bauhaus->pango_font_desc)
-    pango_font_description_free(darktable.bauhaus->pango_font_desc);
+  if(bauhaus->pango_font_desc)
+    pango_font_description_free(bauhaus->pango_font_desc);
 
-  darktable.bauhaus->pango_font_desc = pfont;
+  bauhaus->pango_font_desc = pfont;
   gtk_widget_path_free(path);
 
   cairo_surface_t *cst = cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 128, 128);
   cairo_t *cr = cairo_create(cst);
   PangoLayout *layout = pango_cairo_create_layout(cr);
   pango_layout_set_text(layout, "XMp", -1);
-  pango_layout_set_font_description(layout, darktable.bauhaus->pango_font_desc);
+  pango_layout_set_font_description(layout, bauhaus->pango_font_desc);
 
   int pango_width;
   int pango_height;
@@ -893,64 +892,64 @@ void dt_bauhaus_load_theme()
   cairo_destroy(cr);
   cairo_surface_destroy(cst);
 
-  darktable.bauhaus->line_height = pango_height / PANGO_SCALE;
-  darktable.bauhaus->quad_width = darktable.bauhaus->line_height;
+  bauhaus->line_height = pango_height / PANGO_SCALE;
+  bauhaus->quad_width = bauhaus->line_height;
 
-  darktable.bauhaus->baseline_size = DT_PIXEL_APPLY_DPI(5); // absolute size in Cairo unit
-  darktable.bauhaus->border_width = DT_PIXEL_APPLY_DPI(2); // absolute size in Cairo unit
-  darktable.bauhaus->marker_size = pango_height / PANGO_SCALE * 0.6;
+  bauhaus->baseline_size = DT_PIXEL_APPLY_DPI(5); // absolute size in Cairo unit
+  bauhaus->border_width = DT_PIXEL_APPLY_DPI(2); // absolute size in Cairo unit
+  bauhaus->marker_size = pango_height / PANGO_SCALE * 0.6;
 }
 
-void dt_bauhaus_init()
+dt_bauhaus_t * dt_bauhaus_init()
 {
-  darktable.bauhaus = (dt_bauhaus_t *)calloc(1, sizeof(dt_bauhaus_t));
-  darktable.bauhaus->keys_cnt = 0;
-  darktable.bauhaus->current = NULL;
-  darktable.bauhaus->popup_area = gtk_drawing_area_new();
-  darktable.bauhaus->pango_font_desc = NULL;
+  dt_bauhaus_t * bauhaus = (dt_bauhaus_t *)calloc(1, sizeof(dt_bauhaus_t));
+  bauhaus->keys_cnt = 0;
+  bauhaus->current = NULL;
+  bauhaus->popup_area = gtk_drawing_area_new();
+  bauhaus->pango_font_desc = NULL;
 
-  dt_bauhaus_load_theme();
+  dt_bauhaus_load_theme(bauhaus);
 
-  darktable.bauhaus->skip_accel = 1;
+  bauhaus->skip_accel = 1;
 
   // this easily gets keyboard input:
-  // darktable.bauhaus->popup_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  // bauhaus->popup_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   // but this doesn't flicker, and the above hack with key input seems to work well.
-  darktable.bauhaus->popup_window = gtk_window_new(GTK_WINDOW_POPUP);
+  bauhaus->popup_window = gtk_window_new(GTK_WINDOW_POPUP);
 #ifdef GDK_WINDOWING_QUARTZ
-  dt_osx_disallow_fullscreen(darktable.bauhaus->popup_window);
+  dt_osx_disallow_fullscreen(bauhaus->popup_window);
 #endif
   // this is needed for popup, not for toplevel.
   // since popup_area gets the focus if we show the window, this is all
   // we need.
 
-  gtk_window_set_resizable(GTK_WINDOW(darktable.bauhaus->popup_window), FALSE);
-  gtk_window_set_default_size(GTK_WINDOW(darktable.bauhaus->popup_window), 260, 260);
-  gtk_window_set_modal(GTK_WINDOW(darktable.bauhaus->popup_window), TRUE);
+  gtk_window_set_resizable(GTK_WINDOW(bauhaus->popup_window), FALSE);
+  gtk_window_set_default_size(GTK_WINDOW(bauhaus->popup_window), 260, 260);
+  gtk_window_set_modal(GTK_WINDOW(bauhaus->popup_window), TRUE);
 
   // Needed for Wayland and Sway :
-  gtk_window_set_transient_for(GTK_WINDOW(darktable.bauhaus->popup_window),
+  gtk_window_set_transient_for(GTK_WINDOW(bauhaus->popup_window),
                                GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
 
-  gtk_window_set_decorated(GTK_WINDOW(darktable.bauhaus->popup_window), FALSE);
-  gtk_window_set_attached_to(GTK_WINDOW(darktable.bauhaus->popup_window), NULL);
+  gtk_window_set_decorated(GTK_WINDOW(bauhaus->popup_window), FALSE);
+  gtk_window_set_attached_to(GTK_WINDOW(bauhaus->popup_window), NULL);
 
   // needed on macOS to avoid fullscreening the popup with newer GTK
-  gtk_window_set_type_hint(GTK_WINDOW(darktable.bauhaus->popup_window), GDK_WINDOW_TYPE_HINT_POPUP_MENU);
+  gtk_window_set_type_hint(GTK_WINDOW(bauhaus->popup_window), GDK_WINDOW_TYPE_HINT_POPUP_MENU);
 
-  gtk_container_add(GTK_CONTAINER(darktable.bauhaus->popup_window), darktable.bauhaus->popup_area);
-  gtk_widget_set_hexpand(darktable.bauhaus->popup_area, TRUE);
-  gtk_widget_set_vexpand(darktable.bauhaus->popup_area, TRUE);
-  gtk_window_set_keep_above(GTK_WINDOW(darktable.bauhaus->popup_window), TRUE);
-  gtk_window_set_gravity(GTK_WINDOW(darktable.bauhaus->popup_window), GDK_GRAVITY_STATIC);
+  gtk_container_add(GTK_CONTAINER(bauhaus->popup_window), bauhaus->popup_area);
+  gtk_widget_set_hexpand(bauhaus->popup_area, TRUE);
+  gtk_widget_set_vexpand(bauhaus->popup_area, TRUE);
+  gtk_window_set_keep_above(GTK_WINDOW(bauhaus->popup_window), TRUE);
+  gtk_window_set_gravity(GTK_WINDOW(bauhaus->popup_window), GDK_GRAVITY_STATIC);
 
-  gtk_widget_set_can_focus(darktable.bauhaus->popup_area, TRUE);
-  gtk_widget_add_events(darktable.bauhaus->popup_area, GDK_POINTER_MOTION_MASK
+  gtk_widget_set_can_focus(bauhaus->popup_area, TRUE);
+  gtk_widget_add_events(bauhaus->popup_area, GDK_POINTER_MOTION_MASK
                                                        | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
                                                        | GDK_KEY_PRESS_MASK | GDK_LEAVE_NOTIFY_MASK
                                                        | darktable.gui->scroll_mask);
 
-  GObject *window = G_OBJECT(darktable.bauhaus->popup_window), *area = G_OBJECT(darktable.bauhaus->popup_area);
+  GObject *window = G_OBJECT(bauhaus->popup_window), *area = G_OBJECT(bauhaus->popup_area);
   g_signal_connect(window, "show", G_CALLBACK(dt_bauhaus_window_show), area);
   g_signal_connect(area, "draw", G_CALLBACK(dt_bauhaus_popup_draw), NULL);
   g_signal_connect(area, "motion-notify-event", G_CALLBACK(dt_bauhaus_popup_motion_notify), NULL);
@@ -959,9 +958,11 @@ void dt_bauhaus_init()
   g_signal_connect(area, "button-release-event", G_CALLBACK (dt_bauhaus_popup_button_release), NULL);
   g_signal_connect(area, "key-press-event", G_CALLBACK(dt_bauhaus_popup_key_press), NULL);
   g_signal_connect(area, "scroll-event", G_CALLBACK(dt_bauhaus_popup_scroll), NULL);
+
+  return bauhaus;
 }
 
-void dt_bauhaus_cleanup()
+void dt_bauhaus_cleanup(dt_bauhaus_t *bauhaus)
 {
 }
 

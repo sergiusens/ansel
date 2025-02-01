@@ -48,6 +48,8 @@ extern GType DT_BAUHAUS_WIDGET_TYPE;
 #define DT_BAUHAUS_SLIDER_MAX_STOPS 20
 #define DT_BAUHAUS_COMBO_MAX_TEXT 180
 
+typedef struct dt_bauhaus_t dt_bauhaus_t;
+
 typedef enum dt_bauhaus_type_t
 {
   DT_BAUHAUS_SLIDER = 1,
@@ -170,12 +172,16 @@ typedef struct dt_bauhaus_widget_t
 
   int timeout;
 
-  // goes last, might extend past the end:
-  dt_bauhaus_data_t data;
-
   // TRUE if accels should not be enabled here.
   // Use that for blending
   gboolean no_accels;
+
+  // Reference to the global bauhaus structure holding common styles and such.
+  dt_bauhaus_t *bauhaus;
+
+  // goes last, might extend past the end:
+  dt_bauhaus_data_t data;
+
 } dt_bauhaus_widget_t;
 
 // class of our new widget, inheriting from drawing area
@@ -194,11 +200,15 @@ enum
 
 typedef struct dt_bauhaus_t
 {
+  // The bauhaus widget popup is shared across widgets,
+  // so we need to track which one is currently capturing it
   struct dt_bauhaus_widget_t *current;
   GtkWidget *popup_window;
   GtkWidget *popup_area;
+
   // are set by the motion notification, to be used during drawing.
   float mouse_x, mouse_y;
+
   // time when the popup window was opened. this is sortof a hack to
   // detect `double clicks between windows' to reset the combobox.
   guint32 opentime;
@@ -239,11 +249,11 @@ typedef struct dt_bauhaus_t
 #define DT_BAUHAUS_SPACE 0
 
 
-void dt_bauhaus_init();
-void dt_bauhaus_cleanup();
+dt_bauhaus_t * dt_bauhaus_init();
+void dt_bauhaus_cleanup(dt_bauhaus_t *bauhaus);
 
 // load theme colors, fonts, etc
-void dt_bauhaus_load_theme();
+void dt_bauhaus_load_theme(dt_bauhaus_t *bauhaus);
 
 // set the bauhaus widget as a module section and in this case the font used will be the one
 // from the CSS section_label.
