@@ -280,7 +280,7 @@ void dt_bauhaus_widget_set_quad_visibility(GtkWidget *w, const gboolean visible)
 // set pointer to iop params field:
 void dt_bauhaus_widget_set_field(GtkWidget *w, gpointer field, dt_introspection_type_t field_type);
 
-void dt_bauhaus_hide_popup();
+void dt_bauhaus_hide_popup(dt_bauhaus_t *bh);
 void dt_bauhaus_show_popup(GtkWidget *w);
 
 // slider:
