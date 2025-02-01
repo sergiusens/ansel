@@ -203,7 +203,7 @@ typedef struct dt_bauhaus_widget_class_t
   guint signals[DT_BAUHAUS_LAST_SIGNAL];
 } dt_bauhaus_widget_class_t;
 
-typedef struct dt_bauhaus_t
+struct dt_bauhaus_t
 {
   // The bauhaus widget popup is shared across widgets,
   // so we need to track which one is currently capturing it

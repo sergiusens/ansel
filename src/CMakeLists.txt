@@ -216,7 +216,7 @@ include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/external/OpenCL)
 # initial compiler flags
 add_definitions(-DHAVE_CONFIG_H=1)
 
-set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD 11)
 set(CMAKE_C_STANDARD_REQUIRED ON)
 set(CMAKE_C_EXTENSIONS OFF)
 
