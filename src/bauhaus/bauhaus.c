@@ -727,7 +727,7 @@ static gboolean dt_bauhaus_popup_button_press(GtkWidget *widget, GdkEventButton 
       if(active == BH_REGION_OUT)
       {
         dt_bauhaus_widget_reject(w);
-        dt_bauhaus_hide_popup();
+        dt_bauhaus_hide_popup(bh);
         return TRUE;
       }
 
