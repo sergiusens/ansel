@@ -2826,6 +2826,59 @@ void dt_iop_gui_changed(dt_iop_module_t *action, GtkWidget *widget, gpointer dat
 
   dt_iop_gui_set_enable_button(module);
 }
+
+
+void dt_bauhaus_update_module(dt_iop_module_t *self)
+{
+  for(GSList *w = self->widget_list_bh; w; w = w->next)
+  {
+    GtkWidget *widget = (GtkWidget *)w->data;
+    struct dt_bauhaus_widget_t *bhw = DT_BAUHAUS_WIDGET(widget);
+    if(!bhw) continue;
+
+    switch(bhw->type)
+    {
+      case DT_BAUHAUS_SLIDER:
+        switch(bhw->field_type)
+        {
+          case DT_INTROSPECTION_TYPE_FLOAT:
+            dt_bauhaus_slider_set(widget, *(float *)bhw->field);
+            break;
+          case DT_INTROSPECTION_TYPE_INT:
+            dt_bauhaus_slider_set(widget, *(int *)bhw->field);
+            break;
+          case DT_INTROSPECTION_TYPE_USHORT:
+            dt_bauhaus_slider_set(widget, *(unsigned short *)bhw->field);
+            break;
+          default:
+            fprintf(stderr, "[dt_bauhaus_update_module] unsupported slider data type\n");
+        }
+        break;
+      case DT_BAUHAUS_COMBOBOX:
+        switch(bhw->field_type)
+        {
+          case DT_INTROSPECTION_TYPE_ENUM:
+            dt_bauhaus_combobox_set_from_value(widget, *(int *)bhw->field);
+            break;
+          case DT_INTROSPECTION_TYPE_INT:
+            dt_bauhaus_combobox_set(widget, *(int *)bhw->field);
+            break;
+          case DT_INTROSPECTION_TYPE_UINT:
+            dt_bauhaus_combobox_set(widget, *(unsigned int *)bhw->field);
+            break;
+          case DT_INTROSPECTION_TYPE_BOOL:
+            dt_bauhaus_combobox_set(widget, *(gboolean *)bhw->field);
+            break;
+          default:
+            fprintf(stderr, "[dt_bauhaus_update_module] unsupported combo data type\n");
+        }
+        break;
+      default:
+        fprintf(stderr, "[dt_bauhaus_update_module] invalid bauhaus widget type encountered\n");
+    }
+  }
+}
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

@@ -474,6 +474,9 @@ void dt_iop_gui_rename_module(dt_iop_module_t *module);
 
 void dt_iop_gui_changed(dt_iop_module_t *module, GtkWidget *widget, gpointer data);
 
+// update all bauhaus widgets in an iop module from their params fields
+void dt_bauhaus_update_module(dt_iop_module_t *self);
+
 
 /** Uniform way of getting the full state hash of user-defined parameters, including masks and blending.
  * Writes the value in module->hash. Needs module->blendop_hash to be inited first,
