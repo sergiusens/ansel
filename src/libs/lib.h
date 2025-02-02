@@ -20,6 +20,7 @@
 
 #include "common/darktable.h"
 #include "common/iop_profile.h"
+#include "common/gui_module_api.h"
 #include "views/view.h"
 #include <gmodule.h>
 #include <gtk/gtk.h>
@@ -69,8 +70,12 @@ typedef struct dt_lib_t
   } proxy;
 } dt_lib_t;
 
+
 typedef struct dt_lib_module_t
 {
+  // Needs to stay on top for casting
+  dt_gui_module_t common_fields;
+
 #define INCLUDE_API_FROM_MODULE_H
 #include "libs/lib_api.h"
 
@@ -92,6 +97,7 @@ typedef struct dt_lib_module_t
   GtkWidget *arrow;
   GtkWidget *reset_button;
   GtkWidget *presets_button;
+
 } dt_lib_module_t;
 
 void dt_lib_init(dt_lib_t *lib);

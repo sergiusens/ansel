@@ -166,7 +166,7 @@ static const char *_labels[] = {
 
 static gboolean _dndactive = FALSE;
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("EXIF & IPTC");
 }

@@ -53,7 +53,7 @@ static gboolean _lib_lighttable_zoom_entry_changed(GtkWidget *entry, GdkEventKey
 
 static void _set_zoom(dt_lib_module_t *self, int zoom);
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("lighttable");
 }

@@ -1336,14 +1336,14 @@ void gui_init(dt_view_t *self)
     gtk_container_add(GTK_CONTAINER(dev->display.floating_window), vbox);
 
     /** let's fill the encapsulating widgets */
-    GtkWidget *brightness = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL, 0, 100, 5, 50, 0);
+    GtkWidget *brightness = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 100, 5, 50, 0);
     dt_bauhaus_slider_set(brightness, (int)dt_conf_get_int("display/brightness"));
     dt_bauhaus_widget_set_label(brightness, NULL, N_("Background brightness"));
     dt_bauhaus_slider_set_format(brightness, "%");
     g_signal_connect(G_OBJECT(brightness), "value-changed", G_CALLBACK(display_brightness_callback), dev);
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(brightness), TRUE, TRUE, 0);
 
-    GtkWidget *borders = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL, 0, 250, 5, 10, 0);
+    GtkWidget *borders = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 250, 5, 10, 0);
     dt_bauhaus_slider_set(borders, dt_conf_get_int("plugins/darkroom/ui/border_size"));
     dt_bauhaus_widget_set_label(borders, NULL, N_("Picture margins"));
     dt_bauhaus_slider_set_format(borders, "px");
@@ -1381,7 +1381,7 @@ void gui_init(dt_view_t *self)
 
     /* color scheme */
     // FIXME can't use DT_BAUHAUS_COMBOBOX_NEW_FULL because of (unnecessary?) translation context
-    colorscheme = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+    colorscheme = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
     dt_bauhaus_widget_set_label(colorscheme, N_("raw overexposed"), N_("color scheme"));
     dt_bauhaus_combobox_add(colorscheme, C_("solidcolor", "red"));
     dt_bauhaus_combobox_add(colorscheme, C_("solidcolor", "green"));
@@ -1395,7 +1395,7 @@ void gui_init(dt_view_t *self)
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(colorscheme), TRUE, TRUE, 0);
 
     /* threshold */
-    GtkWidget *threshold = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL, 0.0, 2.0, 0.01, 1.0, 3);
+    GtkWidget *threshold = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0.0, 2.0, 0.01, 1.0, 3);
     dt_bauhaus_slider_set(threshold, dev->rawoverexposed.threshold);
     dt_bauhaus_widget_set_label(threshold, N_("raw overexposed"), N_("clipping threshold"));
     gtk_widget_set_tooltip_text(
@@ -1440,7 +1440,7 @@ void gui_init(dt_view_t *self)
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(colorscheme), TRUE, TRUE, 0);
 
     /* lower */
-    GtkWidget *lower = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL, -32., -4., 1., -12.69, 2);
+    GtkWidget *lower = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), -32., -4., 1., -12.69, 2);
     dt_bauhaus_slider_set(lower, dev->overexposed.lower);
     dt_bauhaus_slider_set_format(lower, _(" EV"));
     dt_bauhaus_widget_set_label(lower, N_("overexposed"), N_("lower threshold"));
@@ -1457,7 +1457,7 @@ void gui_init(dt_view_t *self)
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(lower), TRUE, TRUE, 0);
 
     /* upper */
-    GtkWidget *upper = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL, 0.0, 100.0, 0.1, 99.99, 2);
+    GtkWidget *upper = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0.0, 100.0, 0.1, 99.99, 2);
     dt_bauhaus_slider_set(upper, dev->overexposed.upper);
     dt_bauhaus_slider_set_format(upper, "%");
     dt_bauhaus_widget_set_label(upper, N_("overexposed"), N_("upper threshold"));
@@ -1504,7 +1504,7 @@ void gui_init(dt_view_t *self)
     dt_loc_get_user_config_dir(confdir, sizeof(confdir));
     dt_loc_get_datadir(datadir, sizeof(datadir));
 
-    GtkWidget *softproof_profile = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+    GtkWidget *softproof_profile = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
     dt_bauhaus_widget_set_label(softproof_profile, N_("profiles"), N_("softproof profile"));
     dt_bauhaus_combobox_set_entries_ellipsis(softproof_profile, PANGO_ELLIPSIZE_MIDDLE);
     gtk_box_pack_start(GTK_BOX(vbox), softproof_profile, TRUE, TRUE, 0);

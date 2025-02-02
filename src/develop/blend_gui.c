@@ -2310,7 +2310,7 @@ void dt_iop_gui_init_blendif(GtkBox *blendw, dt_iop_module_t *module)
       gtk_box_pack_start(GTK_BOX(bd->blendif_box), GTK_WIDGET(sl->box), TRUE, FALSE, 0);
     }
 
-    bd->channel_boost_factor_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, 0.0f, 18.0f, 0, 0.0f, 3);
+    bd->channel_boost_factor_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), 0.0f, 18.0f, 0, 0.0f, 3);
     dt_bauhaus_slider_set_format(bd->channel_boost_factor_slider, _(" EV"));
     dt_bauhaus_widget_set_label(bd->channel_boost_factor_slider, N_("blend"), N_("boost factor"));
     dt_bauhaus_slider_set_soft_range(bd->channel_boost_factor_slider, 0.0, 3.0);
@@ -2406,7 +2406,7 @@ void dt_iop_gui_init_masks(GtkBox *blendw, dt_iop_module_t *module)
     GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
     dt_gui_add_class(hbox, "dt_section_label"); // make the combo look like a section label
 
-    bd->masks_combo = dt_bauhaus_combobox_new(darktable.bauhaus, module);
+    bd->masks_combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
     dt_bauhaus_widget_set_label(bd->masks_combo, N_("blend"), N_("drawn mask"));
 
     dt_bauhaus_combobox_add(bd->masks_combo, _("no mask used"));
@@ -2588,7 +2588,7 @@ void dt_iop_gui_init_raster(GtkBox *blendw, dt_iop_module_t *module)
   {
     GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    bd->raster_combo = dt_bauhaus_combobox_new(darktable.bauhaus, module);
+    bd->raster_combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
     dt_bauhaus_widget_set_label(bd->raster_combo, N_("blend"), N_("raster mask"));
     dt_bauhaus_combobox_add(bd->raster_combo, _("no mask used"));
     g_signal_connect(G_OBJECT(bd->raster_combo), "value-changed",
@@ -2646,7 +2646,7 @@ static gboolean _add_blendmode_combo(GtkWidget *combobox, dt_develop_blend_mode_
 static GtkWidget *_combobox_new_from_list(dt_iop_module_t *module, const gchar *label,
                                           const dt_develop_name_value_t *list, uint32_t *field, const gchar *tooltip)
 {
-  GtkWidget *combo = dt_bauhaus_combobox_new(darktable.bauhaus, module);
+  GtkWidget *combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
   dt_bauhaus_disable_accels(combo);
 
   if(field)
@@ -3053,7 +3053,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     g_signal_connect(G_OBJECT(bd->mask_mode_combo), "value-changed", G_CALLBACK(_blendop_masks_mode_changed), module);
     GtkWidget *blend_modes_hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
-    bd->blend_modes_combo = dt_bauhaus_combobox_new(darktable.bauhaus, module);
+    bd->blend_modes_combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
     dt_bauhaus_disable_accels(bd->blend_modes_combo);
     dt_bauhaus_widget_set_label(bd->blend_modes_combo, N_("blend"), N_("blend mode"));
     gtk_widget_set_tooltip_text(bd->blend_modes_combo, _("choose blending mode"));
@@ -3070,7 +3070,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
                                                                "\nby default the output will be blended on top of the input,"
                                                                "\norder can be reversed by clicking on the icon (input on top of output)"));
 
-    bd->blend_mode_parameter_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, -18.0f, 18.0f, 0, 0.0f, 3);
+    bd->blend_mode_parameter_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), -18.0f, 18.0f, 0, 0.0f, 3);
     dt_bauhaus_disable_accels(bd->blend_mode_parameter_slider);
     dt_bauhaus_widget_set_field(bd->blend_mode_parameter_slider, &module->blend_params->blend_parameter, DT_INTROSPECTION_TYPE_FLOAT);
     dt_bauhaus_widget_set_label(bd->blend_mode_parameter_slider, N_("blend"), N_("blend fulcrum"));
@@ -3080,7 +3080,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
                                                                    " operations"));
     gtk_widget_set_visible(bd->blend_mode_parameter_slider, FALSE);
 
-    bd->opacity_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, 0.0, 100.0, 0, 100.0, 0);
+    bd->opacity_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), 0.0, 100.0, 0, 100.0, 0);
     dt_bauhaus_disable_accels(bd->opacity_slider);
     dt_bauhaus_widget_set_field(bd->opacity_slider, &module->blend_params->opacity, DT_INTROSPECTION_TYPE_FLOAT);
     dt_bauhaus_widget_set_label(bd->opacity_slider, N_("blend"), N_("opacity"));
@@ -3099,7 +3099,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     g_signal_connect(G_OBJECT(bd->masks_invert_combo), "value-changed",
                      G_CALLBACK(_blendop_masks_invert_callback), bd);
 
-    bd->details_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, -1.0f, 1.0f, 0, 0.0f, 2);
+    bd->details_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), -1.0f, 1.0f, 0, 0.0f, 2);
     dt_bauhaus_widget_set_label(bd->details_slider, N_("blend"), N_("details threshold"));
     dt_bauhaus_slider_set_format(bd->details_slider, "%");
     gtk_widget_set_tooltip_text(bd->details_slider, _("adjust the threshold for the details mask (using raw data), "
@@ -3112,21 +3112,21 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
                                                                _("choose to guide mask by input or output image and"
                                                                  "\nchoose to apply feathering before or after mask blur"));
 
-    bd->feathering_radius_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, 0.0, 250.0, 0, 0.0, 1);
+    bd->feathering_radius_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), 0.0, 250.0, 0, 0.0, 1);
     dt_bauhaus_disable_accels(bd->feathering_radius_slider);
     dt_bauhaus_widget_set_field(bd->feathering_radius_slider, &module->blend_params->feathering_radius, DT_INTROSPECTION_TYPE_FLOAT);
     dt_bauhaus_widget_set_label(bd->feathering_radius_slider, N_("blend"), N_("feathering radius"));
     dt_bauhaus_slider_set_format(bd->feathering_radius_slider, " px");
     gtk_widget_set_tooltip_text(bd->feathering_radius_slider, _("spatial radius of feathering"));
 
-    bd->blur_radius_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, 0.0, 100.0, 0, 0.0, 1);
+    bd->blur_radius_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), 0.0, 100.0, 0, 0.0, 1);
     dt_bauhaus_disable_accels(bd->blur_radius_slider);
     dt_bauhaus_widget_set_field(bd->blur_radius_slider, &module->blend_params->blur_radius, DT_INTROSPECTION_TYPE_FLOAT);
     dt_bauhaus_widget_set_label(bd->blur_radius_slider, N_("blend"), N_("blurring radius"));
     dt_bauhaus_slider_set_format(bd->blur_radius_slider, " px");
     gtk_widget_set_tooltip_text(bd->blur_radius_slider, _("radius for gaussian blur of blend mask"));
 
-    bd->brightness_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, -1.0, 1.0, 0, 0.0, 2);
+    bd->brightness_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), -1.0, 1.0, 0, 0.0, 2);
     dt_bauhaus_disable_accels(bd->brightness_slider);
     dt_bauhaus_widget_set_field(bd->brightness_slider, &module->blend_params->brightness, DT_INTROSPECTION_TYPE_FLOAT);
     dt_bauhaus_widget_set_label(bd->brightness_slider, N_("blend"), N_("mask opacity"));
@@ -3135,7 +3135,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
                                                          "brightness without affecting fully transparent/fully opaque "
                                                          "regions"));
 
-    bd->contrast_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, module, -1.0, 1.0, 0, 0.0, 2);
+    bd->contrast_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), -1.0, 1.0, 0, 0.0, 2);
     dt_bauhaus_disable_accels(bd->contrast_slider);
     dt_bauhaus_widget_set_field(bd->contrast_slider, &module->blend_params->contrast, DT_INTROSPECTION_TYPE_FLOAT);
     dt_bauhaus_widget_set_label(bd->contrast_slider, N_("blend"), N_("mask contrast"));

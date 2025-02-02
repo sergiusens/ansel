@@ -776,7 +776,7 @@ void gui_init(struct dt_iop_module_t *self)
   g->random = self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
 
 #if 0
-  g->radius = dt_bauhaus_slider_new_with_range(darktable.bauhaus, self, 0.0, 200.0, 0.1, p->random.radius, 2);
+  g->radius = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), 0.0, 200.0, 0.1, p->random.radius, 2);
   gtk_widget_set_tooltip_text(g->radius, _("radius for blurring step"));
   dt_bauhaus_widget_set_label(g->radius, NULL, N_("radius"));
 

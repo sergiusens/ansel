@@ -18,7 +18,7 @@ typedef struct dt_lib_tool_mask_t
   GtkWidget *opacity;
 } dt_lib_tool_mask_t;
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("mask toolbar");
 }
@@ -118,7 +118,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_valign(self->widget, GTK_ALIGN_CENTER);
   gtk_widget_set_name(self->widget, "mask-toolbar");
 
-  d->opacity = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL, 0., 1., 0.01, 1., 2);
+  d->opacity = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0., 1., 0.01, 1., 2);
   dt_bauhaus_widget_set_label(d->opacity, NULL, N_("Mask opacity"));
   dt_bauhaus_slider_set_factor(d->opacity, 100.);
   dt_bauhaus_slider_set_format(d->opacity, "%");

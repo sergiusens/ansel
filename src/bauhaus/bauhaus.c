@@ -184,7 +184,7 @@ static double _get_slider_bar_height(struct dt_bauhaus_widget_t *w)
 
 static double _get_combobox_popup_height(struct dt_bauhaus_widget_t *w)
 {
-  dt_iop_module_t *module = (dt_iop_module_t *)(w->module);
+  dt_gui_module_t *module = (dt_gui_module_t *)(w->module);
   const dt_bauhaus_combobox_data_t *d = &w->data.combobox;
 
   // Need to run the populating callback first for dynamically-populated ones.
@@ -319,8 +319,10 @@ static _bh_active_region_t _popup_coordinates(dt_bauhaus_t *bh, const double x_r
 void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
 {
   // TODO: put that in some module callback so we don't have to care here
+  /*
   if(w->module)
-    dt_iop_request_focus((dt_iop_module_t *)w->module);
+    dt_iop_request_focus((dt_gui_module_t *)w->module);
+  */
 
   gtk_widget_grab_focus(GTK_WIDGET(w));
   gtk_widget_set_state_flags(GTK_WIDGET(w), GTK_STATE_FLAG_FOCUSED, TRUE);
@@ -334,11 +336,12 @@ void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
 gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                               GdkModifierType modifier, gpointer data)
 {
+  /*
   dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)data;
   if(w->module)
   {
     // TODO: put that in some module callback so we don't have to care here
-    dt_iop_module_t *module = (dt_iop_module_t *)w->module;
+    dt_gui_module_t *module = (dt_gui_module_t *)w->module;
 
     // Showing the module, if it isn't already visible
     if(module->default_group() != dt_dev_modulegroups_get(darktable.develop))
@@ -350,6 +353,7 @@ gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable,
       darktable.gui->scroll_to[1] = module->expander;
     }
   }
+  */
 
   bauhaus_request_focus(data);
   return TRUE;
@@ -991,7 +995,7 @@ static gboolean dt_bauhaus_combobox_button_press(GtkWidget *widget, GdkEventButt
 
 
 // common initialization
-static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, dt_iop_module_t *self)
+static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, dt_gui_module_t *self)
 {
   w->module = self;
   w->field = NULL;
@@ -1149,7 +1153,7 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
   if(w->module)
   {
     // Widgets auto-set by params introspection need to be added to the list of stuff to auto-update
-    dt_iop_module_t *m = w->module;
+    dt_gui_module_t *m = w->module;
     if(m && w->field)
       m->widget_list = g_slist_prepend(m->widget_list, w);
 
@@ -1163,12 +1167,10 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     // No need to wire all possible events/interactions.
     if(!w->no_accels)
     {
-      gchar *clean_name = delete_underscore(m->name());
-      gchar *plugin_name = g_strdup_printf("%s/%s/%s", clean_name, (w->type == DT_BAUHAUS_SLIDER) ? "slider" : "combobox", label);
+      gchar *plugin_name = g_strdup_printf("%s/%s/%s", m->name, (w->type == DT_BAUHAUS_SLIDER) ? _("Slider") : _("Combobox"), label);
       dt_accels_new_darkroom_action(_action_request_focus, w, "Darkroom/Plugins", plugin_name, 0, 0);
       g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Plugins", plugin_name));
       g_free(plugin_name);
-      g_free(clean_name);
     }
 
     gtk_widget_queue_draw(GTK_WIDGET(w));
@@ -1252,18 +1254,18 @@ void dt_bauhaus_widget_release_quad(GtkWidget *widget)
   }
 }
 
-GtkWidget *dt_bauhaus_slider_new(dt_bauhaus_t *bh, dt_iop_module_t *self)
+GtkWidget *dt_bauhaus_slider_new(dt_bauhaus_t *bh, dt_gui_module_t *self)
 {
   return dt_bauhaus_slider_new_with_range(bh, self, 0.0, 1.0, 0.1, 0.5, 3);
 }
 
-GtkWidget *dt_bauhaus_slider_new_with_range(dt_bauhaus_t *bh, dt_iop_module_t *self, float min, float max, float step,
+GtkWidget *dt_bauhaus_slider_new_with_range(dt_bauhaus_t *bh, dt_gui_module_t *self, float min, float max, float step,
                                             float defval, int digits)
 {
   return dt_bauhaus_slider_new_with_range_and_feedback(bh, self, min, max, step, defval, digits, 1);
 }
 
-GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_bauhaus_t *bh, dt_iop_module_t *self, float min, float max,
+GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_bauhaus_t *bh, dt_gui_module_t *self, float min, float max,
                                                          float step, float defval, int digits, int feedback)
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(g_object_new(DT_BAUHAUS_WIDGET_TYPE, NULL));
@@ -1284,7 +1286,7 @@ static void _style_updated(GtkWidget *widget)
     gtk_widget_set_size_request(widget, DT_PIXEL_APPLY_DPI(180), _get_slider_height(widget));
 }
 
-GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *w,dt_iop_module_t *self, float min, float max,
+GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *w,dt_gui_module_t *self, float min, float max,
                                          float step, float defval, int digits, int feedback)
 {
   w->type = DT_BAUHAUS_SLIDER;
@@ -1320,14 +1322,14 @@ GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *
   return GTK_WIDGET(w);
 }
 
-GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_iop_module_t *self)
+GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_gui_module_t *self)
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(g_object_new(DT_BAUHAUS_WIDGET_TYPE, NULL));
   dt_bauhaus_combobox_from_widget(bh, w, self);
   return GTK_WIDGET(w);
 }
 
-GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_iop_module_t *self, const char *section, const char *label, const char *tip,
+GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_gui_module_t *self, const char *section, const char *label, const char *tip,
                                         int pos, GtkCallback callback, gpointer data, const char **texts)
 {
   GtkWidget *combo = dt_bauhaus_combobox_new(bh, self);
@@ -1340,7 +1342,7 @@ GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_iop_module_t *self,
   return combo;
 }
 
-void dt_bauhaus_combobox_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t* w,dt_iop_module_t *self)
+void dt_bauhaus_combobox_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t* w,dt_gui_module_t *self)
 {
   w->type = DT_BAUHAUS_COMBOBOX;
   _bauhaus_widget_init(bh, w, self);
@@ -1547,30 +1549,9 @@ void dt_bauhaus_combobox_set_text(GtkWidget *widget, const char *text)
   g_strlcpy(d->text, text, DT_BAUHAUS_COMBO_MAX_TEXT);
 }
 
-static gint _delayed_combobox_commit(gpointer data)
+/*
+static gboolean _default_combobox_value_change_callback()
 {
-  // Commit combobox value change to pipeline history, handling a safety timout
-  // so incremental scrollings don't trigger a recompute at every scroll step.
-
-  // API-wise, this is fucked up because IOPs are the GUI parents of Bauhaus widgets.
-  // Parents can call children modules (for methods and data structure),
-  // but children should be independent from parents, so the dependency tree is linear and vertical,
-  // and each child is a self-enclosed and self-reliant module.
-
-  // The following introduces a circular dependency of children from their parent, that
-  // violates the modularity principle, and any change in parent scope will need to be propagated into the children scope,
-  // which is unexpected and unreliable given the non-existence of a dev doc.
-
-  // A mitigation would be to define `dt_iop_gui_changed()` as a callback in the parent,
-  // then handle the following as a call to an opaque callback defined at implementation time.
-  // This would advertise the existence of the callback in the parent scope
-  // AND make the following immune to changes in parent.
-
-  struct dt_bauhaus_widget_t *w = data;
-  dt_bauhaus_combobox_data_t *d = &w->data.combobox;
-  d->timeout_handle = 0;
-  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
-
   // TODO: make this a callback in module scope
   if(w->field && w->module) {
     switch(w->field_type)
@@ -1599,6 +1580,17 @@ static gint _delayed_combobox_commit(gpointer data)
         fprintf(stderr, "[_bauhaus_combobox_set] unsupported combo data type\n");
     }
   }
+}
+*/
+
+static gint _delayed_combobox_commit(gpointer data)
+{
+  // Commit combobox value change to pipeline history, handling a safety timout
+  // so incremental scrollings don't trigger a recompute at every scroll step.
+  struct dt_bauhaus_widget_t *w = data;
+  dt_bauhaus_combobox_data_t *d = &w->data.combobox;
+  d->timeout_handle = 0;
+  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
 
   return G_SOURCE_REMOVE;
 }
@@ -2728,30 +2720,9 @@ void dt_bauhaus_slider_set_offset(GtkWidget *widget, float offset)
   d->offset = offset;
 }
 
-static gboolean _delayed_slider_commit(gpointer data)
+/*
+static gboolean _default_slider_value_changed_callback()
 {
-  // Commit slider value change to pipeline history, handling a safety timout
-  // so incremental scrolls don't trigger a recompute at every scroll step.
-
-  // API-wise, this is fucked up because IOPs are the GUI parents of Bauhaus widgets.
-  // Parents can call children modules (for methods and data structure),
-  // but children should be independent from parents, so the dependency tree is linear and vertical,
-  // and each child is a self-enclosed and self-reliant module.
-
-  // The following introduces a circular dependency of children from their parent, that
-  // violates the modularity principle, and any change in parent scope will need to be propagated into the children scope,
-  // which is unexpected and unreliable given the non-existence of a dev doc.
-
-  // A mitigation would be to define `dt_iop_gui_changed()` as a callback in the parent,
-  // then handle the following as a call to an opaque callback defined at implementation time.
-  // This would advertise the existence of the callback in the parent scope
-  // AND make the following immune to changes in parent.
-
-  struct dt_bauhaus_widget_t *w = data;
-  w->data.slider.timeout_handle = 0;
-  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
-
-  // TODO: rewrite that as callback.
   if(w->field && w->module)
   {
     float val = dt_bauhaus_slider_get(GTK_WIDGET(w));
@@ -2773,7 +2744,16 @@ static gboolean _delayed_slider_commit(gpointer data)
         fprintf(stderr, "[_bauhaus_slider_value_change] unsupported slider data type\n");
     }
   }
+}
+*/
 
+static gboolean _delayed_slider_commit(gpointer data)
+{
+  // Commit slider value change to pipeline history, handling a safety timout
+  // so incremental scrolls don't trigger a recompute at every scroll step.
+  struct dt_bauhaus_widget_t *w = data;
+  w->data.slider.timeout_handle = 0;
+  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
   return G_SOURCE_REMOVE;
 }
 

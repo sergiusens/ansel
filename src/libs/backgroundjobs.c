@@ -47,7 +47,7 @@ static void _lib_backgroundjobs_message_updated(dt_lib_module_t *self, dt_lib_ba
                                                 const gchar *message);
 
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("background jobs");
 }
@@ -323,4 +323,3 @@ static void _lib_backgroundjobs_message_updated(dt_lib_module_t *self, dt_lib_ba
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

@@ -57,7 +57,7 @@ static gboolean _lib_navigation_leave_notify_callback(GtkWidget *widget, GdkEven
 /* helper function for position set */
 static void _lib_navigation_set_position(struct dt_lib_module_t *self, double x, double y, int wd, int ht);
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("navigation");
 }

@@ -778,7 +778,7 @@ void gui_init(dt_imageio_module_format_t *self)
   /*
    * Bit depth combo box
    */
-  gui->bit_depth = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+  gui->bit_depth = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
 
   dt_bauhaus_widget_set_label(gui->bit_depth, NULL, N_("bit depth"));
   size_t idx = 0;
@@ -800,7 +800,7 @@ void gui_init(dt_imageio_module_format_t *self)
   /*
    * Color mode combo box
    */
-  gui->color_mode = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+  gui->color_mode = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
   dt_bauhaus_widget_set_label(gui->color_mode,
                               NULL,
                               _("color mode"));
@@ -821,7 +821,7 @@ void gui_init(dt_imageio_module_format_t *self)
   /*
    * Tiling combo box
    */
-  gui->tiling = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+  gui->tiling = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
   dt_bauhaus_widget_set_label(gui->tiling,
                               NULL,
                               N_("tiling"));
@@ -846,7 +846,7 @@ void gui_init(dt_imageio_module_format_t *self)
   /*
    * Compression type combo box
    */
-  gui->compression_type = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+  gui->compression_type = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
   dt_bauhaus_widget_set_label(gui->compression_type,
                               NULL,
                               N_("compression type"));
@@ -868,7 +868,7 @@ void gui_init(dt_imageio_module_format_t *self)
   /*
    * Quality combo box
    */
-  gui->quality = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL,
+  gui->quality = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL),
                                                   dt_confgen_get_int("plugins/imageio/format/avif/quality", DT_MIN), /* min */
                                                   dt_confgen_get_int("plugins/imageio/format/avif/quality", DT_MAX), /* max */
                                                   1, /* step */

@@ -378,14 +378,14 @@ void gui_init(dt_imageio_module_format_t *self)
 
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
-  gui->compression = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+  gui->compression = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
   dt_bauhaus_widget_set_label(gui->compression, NULL, N_("compression type"));
   dt_bauhaus_combobox_add(gui->compression, _("lossy"));
   dt_bauhaus_combobox_add(gui->compression, _("lossless"));
   dt_bauhaus_combobox_set(gui->compression, comp_type);
   gtk_box_pack_start(GTK_BOX(self->widget), gui->compression, TRUE, TRUE, 0);
 
-  gui->quality = dt_bauhaus_slider_new_with_range(darktable.bauhaus, NULL,
+  gui->quality = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL),
                                                   dt_confgen_get_int("plugins/imageio/format/webp/quality", DT_MIN),
                                                   dt_confgen_get_int("plugins/imageio/format/webp/quality", DT_MAX),
                                                   1,
@@ -404,7 +404,7 @@ void gui_init(dt_imageio_module_format_t *self)
   if (comp_type == webp_lossless)
     gtk_widget_set_sensitive(gui->quality, FALSE);
 
-  gui->hint = dt_bauhaus_combobox_new(darktable.bauhaus, NULL);
+  gui->hint = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
   dt_bauhaus_widget_set_label(gui->hint, NULL, N_("image hint"));
   gtk_widget_set_tooltip_text(gui->hint,
                _("image characteristics hint for the underlying encoder.\n"

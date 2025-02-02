@@ -1028,7 +1028,7 @@ void gui_init(struct dt_iop_module_t *self)
   dt_bauhaus_slider_set_format(g->size, "%");
   gtk_widget_set_tooltip_text(g->size, _("size of the border in percent of the full image"));
 
-  g->aspect = dt_bauhaus_combobox_new(darktable.bauhaus, self);
+  g->aspect = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->aspect, 1);
   dt_bauhaus_widget_set_label(g->aspect, NULL, N_("aspect"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->aspect, TRUE, TRUE, 0);
@@ -1044,7 +1044,7 @@ void gui_init(struct dt_iop_module_t *self)
   dt_bauhaus_combobox_add(g->aspect_orient, _("landscape"));
   gtk_widget_set_tooltip_text(g->aspect_orient, _("aspect ratio orientation of the image with border"));
 
-  g->pos_h = dt_bauhaus_combobox_new(darktable.bauhaus, self);
+  g->pos_h = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->pos_h, 1);
   dt_bauhaus_widget_set_label(g->pos_h, NULL, N_("horizontal position"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->pos_h, TRUE, TRUE, 0);
@@ -1054,7 +1054,7 @@ void gui_init(struct dt_iop_module_t *self)
   g->pos_h_slider = dt_bauhaus_slider_from_params(self, "pos_h");
   gtk_widget_set_tooltip_text(g->pos_h_slider, _("custom horizontal position"));
 
-  g->pos_v = dt_bauhaus_combobox_new(darktable.bauhaus, self);
+  g->pos_v = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->pos_v, 1);
   dt_bauhaus_widget_set_label(g->pos_v, NULL, N_("vertical position"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->pos_v, TRUE, TRUE, 0);

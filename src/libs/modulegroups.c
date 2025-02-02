@@ -77,7 +77,7 @@ static gboolean _focus_next_control();
 static gboolean _focus_previous_control();
 
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("modulegroups");
 }
@@ -331,12 +331,13 @@ static gboolean _focus_previous_module()
 static gboolean _focus_next_control()
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(!focused || !focused->widget_list) return FALSE;
+  dt_gui_module_t *m = DT_GUI_MODULE(focused);
+  if(!focused || !m->widget_list) return FALSE;
 
   GtkWidget *current_widget = darktable.gui->has_scroll_focus;
 
   // Widgets are prepended in the order of init, so we need to reverse the list
-  GSList *first_item = g_slist_reverse(g_slist_copy(focused->widget_list));
+  GSList *first_item = g_slist_reverse(g_slist_copy(m->widget_list));
 
   if(!current_widget)
   {
@@ -361,10 +362,11 @@ static gboolean _focus_next_control()
 static gboolean _focus_previous_control()
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(!focused || !focused->widget_list) return FALSE;
+  dt_gui_module_t *m = DT_GUI_MODULE(focused);
+  if(!focused || !m->widget_list) return FALSE;
 
   GtkWidget *current_widget = darktable.gui->has_scroll_focus;
-  GSList *last_item = focused->widget_list;
+  GSList *last_item = m->widget_list;
 
   if(!current_widget)
   {

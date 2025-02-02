@@ -32,6 +32,7 @@ typedef struct dt_iop_roi_t
 
 #include "common/darktable.h"
 #include "common/introspection.h"
+#include "common/gui_module_api.h"
 #include "common/opencl.h"
 
 #include "control/settings.h"
@@ -140,6 +141,9 @@ typedef enum dt_iop_colorspace_type_t
 /** part of the module which only contains the cached dlopen stuff. */
 typedef struct dt_iop_module_so_t
 {
+  // Needs to stay on top for casting
+  dt_gui_module_t common_fields;
+
 #define INCLUDE_API_FROM_MODULE_H
 #include "iop/iop_api.h"
 
@@ -164,6 +168,9 @@ typedef struct dt_iop_module_so_t
 
 typedef struct dt_iop_module_t
 {
+  // Needs to stay on top for casting
+  dt_gui_module_t common_fields;
+
 #define INCLUDE_API_FROM_MODULE_H
 #include "iop/iop_api.h"
 
@@ -255,10 +262,6 @@ typedef struct dt_iop_module_t
   GtkWidget *presets_button;
   /** fusion slider */
   GtkWidget *fusion_slider;
-
-  /* list of instance widgets and associated actions. Bauhaus with field pointer at end, starting from widget_list_bh */
-  GSList *widget_list;
-  GSList *widget_list_bh;
 
   /** show/hide guide button and combobox */
   GtkWidget *guides_toggle;

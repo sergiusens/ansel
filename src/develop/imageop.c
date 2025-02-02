@@ -408,6 +408,12 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   }
   module->enabled = module->default_enabled; // apply (possibly new) default.
 
+  /* pass on the dt_gui_module_t args for bauhaus widgets */
+  module->common_fields.name = delete_underscore(module->name());
+  module->common_fields.view = g_strdup(_("Darkroom")); // IOP modules belong necessarily to darkroom
+  module->common_fields.widget_list = NULL;
+  module->common_fields.widget_list_bh = NULL;
+
   return 0;
 }
 
@@ -516,8 +522,11 @@ static void _gui_delete_callback(GtkButton *button, dt_iop_module_t *module)
   }
 
   // widget_list doesn't own the widget referenced, so don't deep_free
-  g_slist_free(module->widget_list);
-  g_slist_free(module->widget_list_bh);
+  dt_gui_module_t *m = DT_GUI_MODULE(module);
+  g_slist_free(m->widget_list);
+  g_slist_free(m->widget_list_bh);
+  g_free(m->name);
+  g_free(m->view);
 
   // don't delete the module, a pipe may still need it
   dev->alliop = g_list_append(dev->alliop, module);
@@ -1708,9 +1717,12 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
     ; // remove multiple delayed gtk_widget_queue_draw triggers
 
   // widget_list doesn't own the widget referenced, so don't deep_free
-  g_slist_free(module->widget_list);
-  g_slist_free(module->widget_list_bh);
-  module->widget_list = NULL;
+  dt_gui_module_t *m = DT_GUI_MODULE(module);
+  g_slist_free(m->widget_list);
+  g_slist_free(m->widget_list_bh);
+  g_free(m->name);
+  g_free(m->view);
+
   module->gui_cleanup(module);
   dt_iop_gui_cleanup_blending(module);
 }
@@ -1726,27 +1738,6 @@ void dt_iop_gui_update(dt_iop_module_t *module)
 
       if(module->params && module->gui_update)
         module->gui_update(module);
-
-      // Shitty dependency graph ahead !!!
-      // dt_bauhaus_update_module is in bauhaus.c
-      // 1. it calls dt_bauhaus_slider_set() and dt_bauhaus_combobox_set()
-      // 2. those call dt_iop_gui_changed() from here (imageop.c)
-      // 3. dt_iop_gui_changed() calls module->gui_changed() if available
-      //    BUT only if darktable.gui->reset is 0.
-      // So we have to call module->gui_update() which may or may not call module->gui_changed(),
-      // depending on modules, to init and reset sliders and comboboxes not linked to module params.
-      // Because those widgets directly declared from params introspection are added to the module->bh_widget_list
-      // (GSList *), which is updated in dt_bauhaus_update_module();
-      // TODO: fix this FUCKING mess:
-      // 1. the bauhaus lib should not change its behaviour based on the state of the global variable darktable.gui->reset,
-      //    instead the global variable should be checked upstream before dispatching bauhaus events (like set,
-      //    reset, update). Nesting dependencies across layers of libs to the state of a global variable is super unreliable and prone
-      //    to race conditions.
-      // 2. the bauhaus lib should be unaware of imageop.c lib (modules). If modules need to perform operations,
-      //    they should connect callbacks to the `value-changed` signal. The bauhaus lib should be treated as an
-      //    an extension of Gtk, implementation-agnostic.
-      // 3. Ideally, all sliders and comboboxes should be updated through an unified method to prevent
-      //    programmer errors in the future because, again, WE DON'T HAVE DEV DOC, so API need to be dummy-proof.
 
       dt_iop_gui_update_blending(module);
       dt_iop_gui_update_expanded(module);
@@ -2830,7 +2821,9 @@ void dt_iop_gui_changed(dt_iop_module_t *action, GtkWidget *widget, gpointer dat
 
 void dt_bauhaus_update_module(dt_iop_module_t *self)
 {
-  for(GSList *w = self->widget_list_bh; w; w = w->next)
+  dt_gui_module_t *m = DT_GUI_MODULE(self);
+
+  for(GSList *w = m->widget_list_bh; w; w = w->next)
   {
     GtkWidget *widget = (GtkWidget *)w->data;
     struct dt_bauhaus_widget_t *bhw = DT_BAUHAUS_WIDGET(widget);

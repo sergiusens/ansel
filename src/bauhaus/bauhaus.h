@@ -22,7 +22,7 @@
 #include "common/introspection.h"
 #include "common/colorlabels.h"
 #include "control/control.h"
-#include "develop/imageop.h"
+#include "common/gui_module_api.h"
 #include "gui/draw.h"
 
 #include <assert.h>
@@ -142,7 +142,7 @@ typedef struct dt_bauhaus_widget_t
   // which type of control
   dt_bauhaus_type_t type;
   // associated image operation module (to handle focus and such)
-  dt_iop_module_t *module;
+  dt_gui_module_t *module;
   // pointer to iop field linked to widget
   gpointer field;
   // type of field
@@ -284,13 +284,13 @@ void dt_bauhaus_hide_popup(dt_bauhaus_t *bh);
 void dt_bauhaus_show_popup(GtkWidget *w);
 
 // slider:
-GtkWidget *dt_bauhaus_slider_new(dt_bauhaus_t *bh, dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_slider_new_with_range(dt_bauhaus_t *bh, dt_iop_module_t *self, float min, float max, float step,
+GtkWidget *dt_bauhaus_slider_new(dt_bauhaus_t *bh, dt_gui_module_t *self);
+GtkWidget *dt_bauhaus_slider_new_with_range(dt_bauhaus_t *bh, dt_gui_module_t *self, float min, float max, float step,
                                             float defval, int digits);
-GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_bauhaus_t *bh, dt_iop_module_t *self, float min, float max,
+GtkWidget *dt_bauhaus_slider_new_with_range_and_feedback(dt_bauhaus_t *bh, dt_gui_module_t *self, float min, float max,
                                                          float step, float defval, int digits, int feedback);
 
-GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *widget, dt_iop_module_t *self, float min, float max,
+GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *widget, dt_gui_module_t *self, float min, float max,
                                          float step, float defval, int digits, int feedback);
 
 // outside doesn't see the real type, we cast it internally.
@@ -329,9 +329,9 @@ void dt_bauhaus_slider_set_default(GtkWidget *widget, float def);
 float dt_bauhaus_slider_get_default(GtkWidget *widget);
 
 // combobox:
-void dt_bauhaus_combobox_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t* widget,dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_iop_module_t *self);
-GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_iop_module_t *self, const char *section,
+void dt_bauhaus_combobox_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t* widget,dt_gui_module_t *self);
+GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_gui_module_t *self);
+GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_gui_module_t *self, const char *section,
                                         const char *label, const char *tip, int pos, GtkCallback callback,
                                         gpointer data, const char **texts);
 

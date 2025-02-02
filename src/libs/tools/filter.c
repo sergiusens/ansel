@@ -123,7 +123,7 @@ static int _filter_get_items(const dt_collection_sort_t sort)
   return 0;
 }
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("filter");
 }
@@ -488,7 +488,7 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(label, "quickfilter-label");
 
   const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
-  d->sort = dt_bauhaus_combobox_new_full(darktable.bauhaus, NULL, NULL, N_("sort by"),
+  d->sort = dt_bauhaus_combobox_new_full(darktable.bauhaus, DT_GUI_MODULE(NULL), NULL, N_("sort by"),
                                          _("determine the sort order of shown images"), _filter_get_items(sort),
                                          _lib_filter_sort_combobox_changed, self, _sort_names);
   dt_bauhaus_widget_set_label(d->sort, NULL, NULL);

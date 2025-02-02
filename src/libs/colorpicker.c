@@ -66,7 +66,7 @@ typedef struct dt_lib_colorpicker_t
   dt_colorpicker_sample_t primary_sample;
 } dt_lib_colorpicker_t;
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("color picker");
 }

@@ -36,7 +36,7 @@ typedef struct dt_lib_menubuttons_t
   GtkWidget *close_button;
 } dt_lib_menubuttons_t;
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("Menu buttons");
 }

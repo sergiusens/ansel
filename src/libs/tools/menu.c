@@ -28,7 +28,7 @@ typedef struct dt_lib_menu_t
   GList *item_lists[DT_MENU_LAST];
 } dt_lib_menu_t;
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("Main menu");
 }

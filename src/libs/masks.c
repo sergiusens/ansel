@@ -50,7 +50,7 @@ typedef struct dt_lib_masks_t
 } dt_lib_masks_t;
 
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("Masks");
 }

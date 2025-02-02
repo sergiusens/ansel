@@ -35,7 +35,7 @@ typedef struct dt_lib_ioporder_t
   GtkWidget *widget;
 } dt_lib_ioporder_t;
 
-const char *name(dt_lib_module_t *self)
+const char *name()
 {
   return _("module order");
 }
