@@ -123,7 +123,7 @@ static int _filter_get_items(const dt_collection_sort_t sort)
   return 0;
 }
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("filter");
 }

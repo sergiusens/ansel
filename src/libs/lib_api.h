@@ -42,7 +42,7 @@ struct dt_gui_module_t;
 #endif // FULL_API_H
 
 /** get name of the module, to be translated. */
-REQUIRED(const char *, name, void);
+REQUIRED(const char *, name, struct dt_lib_module_t *self);
 
 /** get the views which the module should be loaded in. */
 REQUIRED(const char **, views, struct dt_lib_module_t *self);

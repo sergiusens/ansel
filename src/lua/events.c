@@ -563,76 +563,10 @@ int dt_lua_init_early_events(lua_State *L)
  ****************************/
 
 
-/*
- * shortcut events
- * keyed event with a tuned registration to handle shortcuts
- */
-static void shortcut_callback(dt_action_t *action)
-{
-  dt_lua_async_call_alien(dt_lua_event_trigger_wrapper,
-      0, NULL, NULL,
-      LUA_ASYNC_TYPENAME,"const char*","shortcut",
-      LUA_ASYNC_TYPENAME_WITH_FREE,"char*",strdup(action->label),g_cclosure_new(G_CALLBACK(&free),NULL,NULL),
-      LUA_ASYNC_DONE);
-}
-
-
-static int register_shortcut_event(lua_State *L)
-{
-  // 1 is the data table
-  // 2 is the index table
-  // 3 is the index name
-  // 4 is the event name (checked)
-  // 5 is the action to perform (checked)
-  // 6 is the key itself
-
-  // duplicate the key for use elsewhere - do not free as it's in use elsewhere
-  char *tmp = strdup(luaL_checkstring(L, 6));
-
-  // register the event
-  int result = dt_lua_event_keyed_register(L); // will raise an error in case of duplicate key
-
-  // set up the accelerator path
-  dt_action_register(&darktable.control->actions_lua, tmp, shortcut_callback,  0, 0);
-
-  return result;
-}
-
-static int destroy_shortcut_event(lua_State *L)
-{
-  // 1 is the data table
-  // 2 is the index table
-  // 3 is the index name
-  // 4 is the event name (checked)
-
-  // get the key from the index
-  lua_getfield(L, 2, luaL_checkstring(L, 3));
-
-  // duplicate the key for use elsewhere - do not free, destroyed elsewhere
-  char *tmp = strdup(luaL_checkstring(L, -1));
-
-  // remove the key from the stack
-  lua_pop(L, 1);
-
-  // destroy the event
-  int result = dt_lua_event_keyed_destroy(L); // will raise an error in case of duplicate key
-
-  // remove the accelerator from the lua shortcuts
-  dt_action_t *ac = dt_action_section(&darktable.control->actions_lua, tmp);
-  dt_action_rename(ac, NULL);
-
-  // free temporary buffer
-  free(tmp);
-
-  return result;
-}
-
 int dt_lua_init_events(lua_State *L)
 {
 
   // events that don't really fit anywhere else
-  lua_pushcfunction(L, register_shortcut_event);
-  lua_pushcfunction(L, destroy_shortcut_event);
   lua_pushcfunction(L, dt_lua_event_keyed_trigger);
   dt_lua_event_add(L, "shortcut");
 

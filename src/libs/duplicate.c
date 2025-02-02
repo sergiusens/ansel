@@ -55,7 +55,7 @@ typedef struct dt_lib_duplicate_t
   GList *thumbs;
 } dt_lib_duplicate_t;
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("Duplicates");
 }

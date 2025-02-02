@@ -41,7 +41,7 @@ typedef struct dt_lib_module_toolbox_t
   GList * child_views;
 } dt_lib_module_toolbox_t;
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("module toolbox");
 }

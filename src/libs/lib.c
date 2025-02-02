@@ -64,7 +64,7 @@ gboolean dt_lib_is_visible_in_view(dt_lib_module_t *module, const dt_view_t *vie
 {
   if(!module->views)
   {
-    fprintf(stderr, "module %s doesn't have views flags\n", module->name());
+    fprintf(stderr, "module %s doesn't have views flags\n", module->name(module));
     return FALSE;
   }
 
@@ -644,7 +644,7 @@ static int dt_lib_load_module(void *m, const char *libname, const char *module_n
   if(module->init) module->init(module);
 
   /* pass on the dt_gui_module_t args for bauhaus widgets */
-  module->common_fields.name = g_strdup(module->name());
+  module->common_fields.name = g_strdup(module->name(module));
   module->common_fields.view = NULL; // view is set at gui_init time
   module->common_fields.widget_list = NULL;
   module->common_fields.widget_list_bh = NULL;
@@ -1009,7 +1009,7 @@ GtkWidget *dt_lib_gui_get_expander(dt_lib_module_t *module)
   GtkWidget *label = gtk_label_new("");
   GtkWidget *label_evb = gtk_event_box_new();
   gtk_container_add(GTK_CONTAINER(label_evb), label);
-  gchar *mname = g_markup_escape_text(module->name(), -1);
+  gchar *mname = g_markup_escape_text(module->name(module), -1);
   dt_capitalize_label(mname);
   gtk_label_set_markup(GTK_LABEL(label), mname);
   gtk_widget_set_tooltip_text(label_evb, mname);
@@ -1157,7 +1157,7 @@ gchar *dt_lib_get_localized_name(const gchar *plugin_name)
     for(const GList *lib = darktable.lib->plugins; lib; lib = g_list_next(lib))
     {
       dt_lib_module_t *module = (dt_lib_module_t *)lib->data;
-      g_hash_table_insert(module_names, module->plugin_name, g_strdup(module->name()));
+      g_hash_table_insert(module_names, module->plugin_name, g_strdup(module->name(module)));
     }
   }
 

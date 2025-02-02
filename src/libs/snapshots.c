@@ -76,7 +76,7 @@ typedef struct dt_lib_snapshots_t
 static void _lib_snapshots_add_button_clicked_callback(GtkWidget *widget, gpointer user_data);
 static void _lib_snapshots_toggled_callback(GtkToggleButton *widget, gpointer user_data);
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("Snapshots");
 }

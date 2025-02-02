@@ -35,7 +35,7 @@ typedef struct dt_lib_imageinfo_t
   GtkWidget *tview;
 } dt_lib_imageinfo_t;
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("image infos");
 }

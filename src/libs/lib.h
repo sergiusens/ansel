@@ -110,8 +110,6 @@ void dt_lib_gui_set_expanded(dt_lib_module_t *module, gboolean expanded);
 /** get the expanded state of a plugin */
 gboolean dt_lib_gui_get_expanded(dt_lib_module_t *module);
 
-extern const struct dt_action_def_t dt_action_def_lib;
-
 /** return the plugin with the given name */
 dt_lib_module_t *dt_lib_get_module(const char *name);
 

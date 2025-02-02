@@ -34,7 +34,7 @@
 
 DT_MODULE(1)
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("map settings");
 }

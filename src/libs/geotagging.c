@@ -136,7 +136,7 @@ static void free_tz_tuple(gpointer data)
   free(tz_tuple);
 }
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("Datetime & GPS");
 }

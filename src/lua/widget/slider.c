@@ -37,7 +37,7 @@ static void slider_init(lua_State*L)
   luaA_to(L,lua_slider,&slider,-1);
   // as the sliders setup calls are asynchronous, we weed to initialize
   // min to -INF and max to INF, sort of, in order not to cut prematurely soft_min and soft_max
-  dt_bauhaus_slider_from_widget(DT_BAUHAUS_WIDGET(slider->widget),NULL, -1.0E9, 1.0E9, 1.0, 0.0, 3,0);
+  dt_bauhaus_slider_from_widget(darktable.bauhaus, DT_BAUHAUS_WIDGET(slider->widget),NULL, -1.0E9, 1.0E9, 1.0, 0.0, 3,0);
 }
 
 
@@ -196,4 +196,3 @@ int dt_lua_init_widget_slider(lua_State* L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

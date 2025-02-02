@@ -80,7 +80,7 @@ static void _lib_history_will_change_callback(gpointer instance, GList *history,
 static void _lib_history_change_callback(gpointer instance, gpointer user_data);
 static void _lib_history_module_remove_callback(gpointer instance, dt_iop_module_t *module, gpointer user_data);
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("History of changes");
 }

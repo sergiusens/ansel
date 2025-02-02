@@ -377,8 +377,6 @@ void dt_iop_gui_init(dt_iop_module_t *module);
 /** reloads certain gui/param defaults when the image was switched. */
 void dt_iop_reload_defaults(dt_iop_module_t *module);
 
-extern const struct dt_action_def_t dt_action_def_iop;
-
 /*
  * must be called in dt_dev_change_image() to fix wrong histogram in levels
  * just after switching images and before full redraw

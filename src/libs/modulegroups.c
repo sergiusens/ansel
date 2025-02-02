@@ -77,7 +77,7 @@ static gboolean _focus_next_control();
 static gboolean _focus_previous_control();
 
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("modulegroups");
 }

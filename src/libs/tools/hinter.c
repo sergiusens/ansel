@@ -37,7 +37,7 @@ typedef struct dt_lib_hinter_t
 
 static void _lib_hinter_set_message(dt_lib_module_t *self, const char *message);
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("hinter");
 }

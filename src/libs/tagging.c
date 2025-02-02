@@ -95,7 +95,7 @@ typedef enum dt_tag_sort_id
 
 static void _save_last_tag_used(const char *tags, dt_lib_tagging_t *d);
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("Tags");
 }

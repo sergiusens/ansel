@@ -166,6 +166,7 @@ static void view_leave_wrapper(struct dt_lib_module_t *self,struct dt_view_t *ol
 }
 
 static dt_lib_module_t ref_lib = {
+  .common_fields = { 0 },
   .module = NULL,
   .data = NULL,
   .plugin_name ={ 0 },
@@ -196,6 +197,7 @@ static dt_lib_module_t ref_lib = {
   .presets_button = NULL,
   .view_enter = view_enter_wrapper,
   .view_leave = view_leave_wrapper,
+  .lib_focus = NULL,
 };
 
 static int register_lib(lua_State *L)

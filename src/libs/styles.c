@@ -47,7 +47,7 @@ typedef struct dt_lib_styles_t
 } dt_lib_styles_t;
 
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("apply styles");
 }

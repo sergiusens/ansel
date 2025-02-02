@@ -151,7 +151,7 @@ static inline float pixels2print(dt_lib_export_t *self, const uint32_t pix)
   return (float)pix;
 }
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("export");
 }

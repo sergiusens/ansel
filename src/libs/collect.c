@@ -149,7 +149,7 @@ static gboolean item_is_numeric_collection(dt_collection_properties_t item)
          || item == DT_COLLECTION_PROP_RATING;
 }
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("Library");
 }

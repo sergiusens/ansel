@@ -41,7 +41,7 @@
 
 DT_MODULE(4)
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("print settings");
 }

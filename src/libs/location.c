@@ -95,7 +95,7 @@ static void _lib_location_parser_start_element(GMarkupParseContext *cxt, const c
 
 static void clear_search(dt_lib_location_t *lib);
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("find location");
 }

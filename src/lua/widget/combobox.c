@@ -34,7 +34,7 @@ static void combobox_init(lua_State*L)
 {
   lua_combobox combobox;
   luaA_to(L,lua_combobox,&combobox,-1);
-  dt_bauhaus_combobox_from_widget(DT_BAUHAUS_WIDGET(combobox->widget),NULL);
+  dt_bauhaus_combobox_from_widget(darktable.bauhaus, DT_BAUHAUS_WIDGET(combobox->widget), NULL);
 
 }
 
@@ -206,4 +206,3 @@ int dt_lua_init_widget_combobox(lua_State* L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

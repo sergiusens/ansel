@@ -18,7 +18,7 @@ typedef struct dt_lib_tool_mask_t
   GtkWidget *opacity;
 } dt_lib_tool_mask_t;
 
-const char *name()
+const char *name(struct dt_lib_module_t *self)
 {
   return _("mask toolbar");
 }
