@@ -2883,17 +2883,23 @@ void dt_bauhaus_value_changed_default_callback(GtkWidget *widget)
       switch(w->field_type)
       {
         case DT_INTROSPECTION_TYPE_FLOAT:
+        {
           float *f = w->field, prevf = *f; *f = val;
           if(*f != prevf) dt_iop_gui_changed(module, widget, &prevf);
           break;
+        }
         case DT_INTROSPECTION_TYPE_INT:
+        {
           int *i = w->field, previ = *i; *i = val;
           if(*i != previ) dt_iop_gui_changed(module, widget, &previ);
           break;
+        }
         case DT_INTROSPECTION_TYPE_USHORT:
+        {
           unsigned short *s = w->field, prevs = *s; *s = val;
           if(*s != prevs) dt_iop_gui_changed(module, widget, &prevs);
           break;
+        }
         default:
           fprintf(stderr, "[_bauhaus_slider_value_change] unsupported slider data type\n");
       }
@@ -2905,6 +2911,7 @@ void dt_bauhaus_value_changed_default_callback(GtkWidget *widget)
       switch(w->field_type)
       {
         case DT_INTROSPECTION_TYPE_ENUM:
+        {
           if(d->active >= 0)
           {
             const dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, d->active);
@@ -2912,18 +2919,25 @@ void dt_bauhaus_value_changed_default_callback(GtkWidget *widget)
             if(*e != preve) dt_iop_gui_changed(module, widget, &preve);
           }
           break;
+        }
         case DT_INTROSPECTION_TYPE_INT:
+        {
           int *i = w->field, previ = *i; *i = d->active;
           if(*i != previ) dt_iop_gui_changed(module, widget, &previ);
           break;
+        }
         case DT_INTROSPECTION_TYPE_UINT:
+        {
           unsigned int *u = w->field, prevu = *u; *u = d->active;
           if(*u != prevu) dt_iop_gui_changed(module, widget, &prevu);
           break;
+        }
         case DT_INTROSPECTION_TYPE_BOOL:
+        {
           gboolean *b = w->field, prevb = *b; *b = d->active;
           if(*b != prevb) dt_iop_gui_changed(module, widget, &prevb);
           break;
+        }
         default:
           fprintf(stderr, "[_bauhaus_combobox_set] unsupported combo data type\n");
       }
