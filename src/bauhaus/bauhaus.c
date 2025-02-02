@@ -321,11 +321,7 @@ static _bh_active_region_t _popup_coordinates(dt_bauhaus_t *bh, const double x_r
 
 void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
 {
-  // TODO: put that in some module callback so we don't have to care here
-  /*
-  if(w->module)
-    dt_iop_request_focus((dt_gui_module_t *)w->module);
-  */
+  if(w->module) w->module->focus(w->module, FALSE);
 
   gtk_widget_grab_focus(GTK_WIDGET(w));
   gtk_widget_set_state_flags(GTK_WIDGET(w), GTK_STATE_FLAG_FOCUSED, TRUE);
@@ -339,25 +335,6 @@ void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
 gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                               GdkModifierType modifier, gpointer data)
 {
-  /*
-  dt_bauhaus_widget_t *w = (dt_bauhaus_widget_t *)data;
-  if(w->module)
-  {
-    // TODO: put that in some module callback so we don't have to care here
-    dt_gui_module_t *module = (dt_gui_module_t *)w->module;
-
-    // Showing the module, if it isn't already visible
-    if(module->default_group() != dt_dev_modulegroups_get(darktable.develop))
-      dt_dev_modulegroups_switch(darktable.develop, module);
-
-    if(module->expander)
-    {
-      dt_iop_gui_set_expanded(module, TRUE, TRUE);
-      darktable.gui->scroll_to[1] = module->expander;
-    }
-  }
-  */
-
   bauhaus_request_focus(data);
   return TRUE;
 }
@@ -1172,8 +1149,10 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     if(!w->no_accels)
     {
       gchar *plugin_name = g_strdup_printf("%s/%s/%s", m->name, (w->type == DT_BAUHAUS_SLIDER) ? _("Slider") : _("Combobox"), label);
-      dt_accels_new_darkroom_action(_action_request_focus, w, "Darkroom/Plugins", plugin_name, 0, 0);
+      gchar *scope = g_strdup_printf("%s/Plugins", m->view);
+      dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0);
       g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Plugins", plugin_name));
+      g_free(scope);
       g_free(plugin_name);
     }
 

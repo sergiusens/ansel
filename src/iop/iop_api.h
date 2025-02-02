@@ -46,6 +46,7 @@ struct dt_dev_pixelpipe_iop_t;
 struct dt_iop_roi_t;
 struct dt_develop_tiling_t;
 struct dt_iop_buffer_dsc_t;
+struct dt_gui_module_t;
 struct _GtkWidget;
 
 #ifndef DT_IOP_PARAMS_T
@@ -76,6 +77,9 @@ DEFAULT(int, default_group, void);
 DEFAULT(int, flags, void);
 /** get the deprecated message if needed, to be translated. */
 DEFAULT(const char *, deprecated_msg, void);
+
+/** give focus to the current module and adapt other parts of the GUI if needed */
+DEFAULT(int, iop_focus, struct dt_gui_module_t *module, gboolean toggle);
 
 /** get a descriptive text used for example in a tooltip in more modules */
 DEFAULT(const char **, description, struct dt_iop_module_t *self);

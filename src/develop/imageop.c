@@ -60,15 +60,6 @@
 #endif
 #include <time.h>
 
-enum
-{
-  DT_ACTION_ELEMENT_SHOW = 0,
-  DT_ACTION_ELEMENT_ENABLE = 1,
-  DT_ACTION_ELEMENT_INSTANCE = 3,
-  DT_ACTION_ELEMENT_RESET = 4,
-  DT_ACTION_ELEMENT_PRESETS = 5,
-};
-
 typedef struct dt_iop_gui_simple_callback_t
 {
   dt_iop_module_t *self;
@@ -292,6 +283,32 @@ void dt_iop_default_init(dt_iop_module_t *module)
   }
 }
 
+int default_iop_focus(dt_gui_module_t *m, gboolean toggle)
+{
+  dt_iop_module_t *module = (dt_iop_module_t *) m;
+
+  // Showing the module, if it isn't already visible
+  uint32_t current_group = dt_dev_modulegroups_get(darktable.develop);
+  if(!dt_is_module_in_group(module, current_group))
+    dt_dev_modulegroups_switch(darktable.develop, module);
+
+  // Expand and scroll
+  if(darktable.develop->gui_module != module)
+  {
+    dt_iop_request_focus(module);
+    dt_iop_gui_set_expanded(module, TRUE, TRUE);
+    darktable.gui->scroll_to[1] = module->expander;
+  }
+  else if(toggle)
+  {
+    darktable.develop->gui_module = NULL;
+    dt_iop_gui_set_expanded(module, FALSE, TRUE);
+    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  }
+
+  return 1;
+}
+
 int dt_iop_load_module_so(void *m, const char *libname, const char *module_name)
 {
   dt_iop_module_so_t *module = (dt_iop_module_so_t *)m;
@@ -413,6 +430,7 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   module->common_fields.view = g_strdup(_("Darkroom")); // IOP modules belong necessarily to darkroom
   module->common_fields.widget_list = NULL;
   module->common_fields.widget_list_bh = NULL;
+  module->common_fields.focus = module->iop_focus;
 
   return 0;
 }
@@ -1910,7 +1928,7 @@ void dt_iop_gui_set_expanded(dt_iop_module_t *module, gboolean expanded, gboolea
     while(iop)
     {
       dt_iop_module_t *m = (dt_iop_module_t *)iop->data;
-      if(m != module && (is_module_in_group(m, current_group) || is_module_group_global(current_group)))
+      if(m != module && (dt_is_module_in_group(m, current_group) || dt_is_module_group_global(current_group)))
       {
         all_other_closed = all_other_closed && !m->expanded;
         _gui_set_single_expanded(m, FALSE);
@@ -1964,36 +1982,17 @@ static gboolean _iop_plugin_body_button_press(GtkWidget *w, GdkEventButton *e, g
 
 static gboolean _iop_plugin_header_activate(GtkWidget* self, gboolean group_cycling, gpointer user_data)
 {
-  dt_iop_module_t *module = (dt_iop_module_t *)user_data;
-
-  // Expand and scroll
-  if(darktable.develop->gui_module != module)
-  {
-    dt_iop_request_focus(module);
-    dt_iop_gui_set_expanded(module, TRUE, TRUE);
-    darktable.gui->scroll_to[1] = module->expander;
-  }
-  else
-  {
-    darktable.develop->gui_module = NULL;
-    dt_iop_gui_set_expanded(module, FALSE, TRUE);
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
-  }
-
-  return TRUE;
+  dt_gui_module_t *module = (dt_gui_module_t *)user_data;
+  if(!module || !module->focus) return FALSE;
+  return module->focus(module, TRUE);
 }
 
 static gboolean _iop_plugin_focus_accel(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                         GdkModifierType modifier, gpointer data)
 {
-  dt_iop_module_t *module = (dt_iop_module_t *)data;
-  if(!module) return FALSE;
-
-  // Showing the module, if it isn't already visible
-  if(module->default_group() != dt_dev_modulegroups_get(darktable.develop))
-    dt_dev_modulegroups_switch(darktable.develop, module);
-
-  return _iop_plugin_header_activate(NULL, FALSE, data);
+  dt_gui_module_t *module = (dt_gui_module_t *)data;
+  if(!module || !module->focus) return FALSE;
+  return module->focus(module, FALSE);
 }
 
 static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e, gpointer user_data)

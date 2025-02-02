@@ -39,16 +39,16 @@ typedef enum dt_lib_modulegroup_t
   DT_MODULEGROUP_SIZE,
 } dt_lib_modulegroup_t;
 
-gboolean is_module_group_global(dt_lib_modulegroup_t group)
+static inline gboolean dt_is_module_group_global(dt_lib_modulegroup_t group)
 {
   // Is group a special "global module group : enabled modules or "all" ?
   return (group == DT_MODULEGROUP_ACTIVE_PIPE || group == DT_MODULEGROUP_NONE);
 }
 
-gboolean is_module_in_group(dt_iop_module_t *module, dt_lib_modulegroup_t group)
+static inline gboolean dt_is_module_in_group(dt_iop_module_t *module, dt_lib_modulegroup_t group)
 {
   // Does module belong to group ?
-  return (module->default_group() == group);
+  return (module->default_group() == group) || (group == DT_MODULEGROUP_NONE) || (module->enabled && group == DT_MODULEGROUP_ACTIVE_PIPE);
 }
 
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.sh

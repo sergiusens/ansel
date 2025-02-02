@@ -2,6 +2,7 @@
 
 #include <glib.h>
 
+typedef struct dt_gui_module_t dt_gui_module_t;
 
 /**
  * @brief
@@ -19,7 +20,8 @@
  *
  * Warning: keep in sync with the number and order of elements in libs/lib.h and develop/imageop.h
  */
-typedef struct dt_gui_module_t
+
+struct dt_gui_module_t
 {
   /* list of children widgets */
   GSList *widget_list;
@@ -31,7 +33,11 @@ typedef struct dt_gui_module_t
   /** translated name of the view */
   char *view;
 
-} dt_gui_module_t;
+  /** give focus to the current module and adapt other parts of the GUI if needed
+   * @param toggle if TRUE, adopt a show/hide behaviour. Otherwise, always show.
+  */
+  int (*focus)(dt_gui_module_t *module, gboolean toggle);
+};
 
 /* Cast dt_lib_module_t and dt_iop_module_t to dt_gui_module_t */
 #define DT_GUI_MODULE(x) ((dt_gui_module_t *)x)

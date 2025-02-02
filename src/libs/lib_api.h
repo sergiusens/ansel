@@ -33,6 +33,7 @@ extern "C" {
 
 struct dt_lib_module_t;
 struct dt_view_t;
+struct dt_gui_module_t;
 
 /* early definition of modules to do type checking */
 
@@ -51,6 +52,9 @@ REQUIRED(uint32_t, container, struct dt_lib_module_t *self);
     will make the module expandable and storing the expanding state,
     if not the module will always be shown without the expander. */
 DEFAULT(gboolean, expandable, struct dt_lib_module_t *self);
+
+/** give focus to the current module and adapt other parts of the GUI if needed */
+DEFAULT(int, lib_focus, struct dt_gui_module_t *module, gboolean toggle);
 
 /** constructor */
 OPTIONAL(void, init, struct dt_lib_module_t *self);

@@ -592,6 +592,11 @@ static gboolean default_preset_autoapply(dt_lib_module_t *self)
   return FALSE;
 }
 
+int default_lib_focus(dt_gui_module_t *module, gboolean toogle)
+{
+  return 1;
+}
+
 static int _lib_plugin_body_button_press(GtkWidget *w, GdkEventButton *e, gpointer user_data)
 {
   /* Reset the scrolling focus. If the click happened on any bauhaus element,
@@ -643,6 +648,7 @@ static int dt_lib_load_module(void *m, const char *libname, const char *module_n
   module->common_fields.view = NULL; // view is set at gui_init time
   module->common_fields.widget_list = NULL;
   module->common_fields.widget_list_bh = NULL;
+  module->common_fields.focus = module->lib_focus;
 
   return 0;
 }
