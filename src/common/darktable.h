@@ -303,7 +303,10 @@ static inline void *dt_alloc_align(size_t size)
 
 
 #ifdef _WIN32
-  static inline void dt_free_align(void *mem) _aligned_free(mem);;
+  static inline void dt_free_align(void *mem)
+  {
+    _aligned_free(mem);
+  }
   #define dt_free_align_ptr dt_free_align
 #elif _DEBUG // debug build makes sure that we get a crash on using plain free() on an aligned allocation
   static inline void dt_free_align(void *mem)
