@@ -16,8 +16,6 @@
 
 #include <xmmintrin.h>
 
-#include "common/darktable.h"
-
 
 /**
  * Fast SSE2 implementation of special math functions.
@@ -146,4 +144,3 @@ static inline float _mm_vectorGetByIndex( __m128 V, unsigned int i)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

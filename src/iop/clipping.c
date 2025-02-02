@@ -32,6 +32,7 @@
 #include "develop/imageop_gui.h"
 #include "develop/tiling.h"
 
+#include "gui/draw.h"
 #include "gui/gtk.h"
 #include "gui/guides.h"
 #include "gui/presets.h"

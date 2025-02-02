@@ -1272,7 +1272,7 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
   const float Labmax[] = { INFINITY, INFINITY, INFINITY, INFINITY };
   const float Labmin[] = { -INFINITY, -INFINITY, -INFINITY, -INFINITY };
 
-  unsigned int *const tea_states = alloc_tea_states(dt_get_num_threads());
+  unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
   buf = dt_alloc_align(width * height * bpp);
   if(buf == NULL) goto error;
@@ -1351,7 +1351,7 @@ static float dt_opencl_benchmark_cpu(const size_t width, const size_t height, co
   const float Labmax[] = { INFINITY, INFINITY, INFINITY, INFINITY };
   const float Labmin[] = { -INFINITY, -INFINITY, -INFINITY, -INFINITY };
 
-  unsigned int *const tea_states = alloc_tea_states(dt_get_num_threads());
+  unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
   buf = dt_alloc_align(width * height * bpp);
   if(buf == NULL) goto error;

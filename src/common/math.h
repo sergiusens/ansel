@@ -21,9 +21,7 @@
 #include <stddef.h>
 #include <math.h>
 #include <stdint.h>
-#ifdef __SSE__
-#include <xmmintrin.h>
-#endif
+
 #include "common/darktable.h"
 
 #define NORM_MIN 1.52587890625e-05f // norm can't be < to 2^(-16)
@@ -47,6 +45,27 @@
 #define DT_M_PI (3.14159265358979324)
 
 #define DT_M_LN2f (0.6931471805599453f)
+
+// If platform supports hardware-accelerated fused-multiply-add
+// This is not only faster but more accurate because rounding happens at the right place
+#ifdef FP_FAST_FMAF
+  #define DT_FMA(x, y, z) fmaf(x, y, z)
+#else
+  #define DT_FMA(x, y, z) ((x) * (y) + (z))
+#endif
+
+// Golden number (1+sqrt(5))/2
+#ifndef PHI
+#define PHI 1.61803398874989479F
+#endif
+
+// 1/PHI
+#ifndef INVPHI
+#define INVPHI 0.61803398874989479F
+#endif
+
+// NaN-safe clamping (NaN compares false, and will thus result in H)
+#define CLAMPS(A, L, H) ((A) > (L) ? ((A) < (H) ? (A) : (H)) : (L))
 
 // clip channel value to be between 0 and 1
 // NaN-safe: NaN compares false and will result in 0.0
@@ -162,26 +181,6 @@ static inline void mat3mul(float *const __restrict__ dest, const float *const __
   }
 }
 
-// multiply two padded 3x3 matrices
-// dest needs to be different from m1 and m2
-// dest = m1 * m2 in this order
-#ifdef _OPENMP
-#pragma omp declare simd
-#endif
-static inline void mat3SSEmul(dt_colormatrix_t dest, const dt_colormatrix_t m1, const dt_colormatrix_t m2)
-{
-  for(int k = 0; k < 3; k++)
-  {
-    for(int i = 0; i < 3; i++)
-    {
-      float x = 0.0f;
-      for(int j = 0; j < 3; j++)
-        x += m1[k][j] * m2[j][i];
-      dest[k][i] = x;
-    }
-  }
-}
-
 #ifdef _OPENMP
 #pragma omp declare simd
 #endif
@@ -207,19 +206,6 @@ static inline float scalar_product(const dt_aligned_pixel_t v_1, const dt_aligne
   for(size_t c = 0; c < 3; c++) acc += v_1[c] * v_2[c];
 
   return acc;
-}
-
-
-#ifdef _OPENMP
-#pragma omp declare simd uniform(M) aligned(M:64) aligned(v_in, v_out:16)
-#endif
-static inline void dot_product(const dt_aligned_pixel_t v_in, const dt_colormatrix_t M, dt_aligned_pixel_t v_out)
-{
-  // specialized 3x4 dot products of 4x1 RGB-alpha pixels
-  #ifdef _OPENMP
-  #pragma omp simd aligned(M:64) aligned(v_in, v_out:16)
-  #endif
-  for(size_t i = 0; i < 3; ++i) v_out[i] = scalar_product(v_in, M[i]);
 }
 
 
@@ -530,7 +516,6 @@ static inline void dt_vector_sin(const dt_aligned_pixel_t arg,
   for_four_channels(c)
     sine[c] = scaled[c] * (p[c] * (abs_scaled[c] - one[c]) + one[c]);
 }
-
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

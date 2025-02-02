@@ -23,6 +23,8 @@
 #include "develop/imageop_gui.h"
 #include "dtgtk/button.h"
 #include "gui/guides.h"
+#include "gui/draw.h"
+#include "control/control.h"
 
 #define DEFAULT_GUIDE_NAME "rules of thirds"
 

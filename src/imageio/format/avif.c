@@ -34,6 +34,7 @@
 #include "common/imageio.h"
 #include "common/imageio_module.h"
 #include "control/conf.h"
+#include "control/control.h"
 #include "imageio/format/imageio_format_api.h"
 
 #include <avif/avif.h>
@@ -542,7 +543,7 @@ int write_image(struct dt_imageio_module_data_t *data,
        */
       max_threads = (1 << encoder->tileRowsLog2) * (1 << encoder->tileColsLog2);
 
-      encoder->maxThreads = MIN(max_threads, dt_get_num_threads());
+      encoder->maxThreads = MIN(max_threads, darktable.num_openmp_threads);
     }
     case AVIF_TILING_OFF:
       break;

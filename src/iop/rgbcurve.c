@@ -29,6 +29,8 @@
 #include "dtgtk/drawingarea.h"
 #include "gui/color_picker_proxy.h"
 #include "gui/presets.h"
+#include "gui/draw.h"
+#include "control/control.h"
 
 #include "libs/colorpicker.h"
 

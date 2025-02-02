@@ -33,6 +33,7 @@
 #include "dtgtk/expander.h"
 
 #include "gui/gtk.h"
+#include "gui/draw.h"
 #include "gui/guides.h"
 #include "gui/presets.h"
 #include "iop/iop_api.h"

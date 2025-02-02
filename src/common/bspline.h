@@ -3,6 +3,7 @@
 #include "common/darktable.h"
 #include "common/dwt.h"
 #include "develop/openmp_maths.h"
+#include "math.h"
 
 // B spline filter
 #define BSPLINE_FSIZE 5

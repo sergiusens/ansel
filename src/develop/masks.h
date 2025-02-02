@@ -23,6 +23,8 @@
 #include "develop/pixelpipe.h"
 #include "dtgtk/button.h"
 #include "dtgtk/gradientslider.h"
+#include "gui/draw.h"
+#include "control/control.h"
 
 #include <assert.h>
 

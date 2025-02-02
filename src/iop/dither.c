@@ -622,7 +622,7 @@ static void process_random(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t 
 
   const float dither = powf(2.0f, data->random.damping / 10.0f);
 
-  unsigned int *const tea_states = alloc_tea_states(dt_get_num_threads());
+  unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
 #ifdef _OPENMP
 #pragma omp parallel default(none) \

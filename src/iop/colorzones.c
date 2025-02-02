@@ -25,13 +25,16 @@
 #include "common/colorspaces_inline_conversions.h"
 #include "common/imagebuf.h"
 #include "common/math.h"
+#include "control/control.h"
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/drawingarea.h"
 
 #include "gui/color_picker_proxy.h"
+#include "gui/draw.h"
 #include "gui/presets.h"
 #include "libs/colorpicker.h"
+#include "libs/lib.h"
 
 DT_MODULE_INTROSPECTION(5, dt_iop_colorzones_params_t)
 

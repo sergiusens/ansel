@@ -29,10 +29,6 @@
 // needs to be defined before any system header includes for control/conf.h to work in C++ code
 #define __STDC_FORMAT_MACROS
 
-#if defined _WIN32
-#include "win/win.h"
-#endif
-
 #if !defined(O_BINARY)
 // To have portable g_open() on *nix and on Windows
 #define O_BINARY 0
@@ -45,7 +41,6 @@
 #endif
 #include "common/database.h"
 #include "common/dtpthread.h"
-#include "common/dttypes.h"
 #include "common/utility.h"
 #ifdef _WIN32
 #include "win/getrusage.h"
@@ -64,91 +59,6 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-
-#ifdef __APPLE__
-#include <mach/mach.h>
-#include <sys/sysctl.h>
-#endif
-
-#if defined(__DragonFly__) || defined(__FreeBSD__)
-typedef unsigned int u_int;
-#include <sys/sysctl.h>
-#include <sys/types.h>
-#endif
-#if defined(__NetBSD__) || defined(__OpenBSD__)
-#include <sys/param.h>
-#include <sys/sysctl.h>
-#endif
-
-#ifdef _OPENMP
-# include <omp.h>
-
-/* See https://redmine.darktable.org/issues/12568#note-14 */
-# ifdef HAVE_OMP_FIRSTPRIVATE_WITH_CONST
-   /* If the compiler correctly supports firstprivate, use it. */
-#  define dt_omp_firstprivate(...) firstprivate(__VA_ARGS__)
-# else /* HAVE_OMP_FIRSTPRIVATE_WITH_CONST */
-   /* This is needed for clang < 7.0 */
-#  define dt_omp_firstprivate(...)
-# endif/* HAVE_OMP_FIRSTPRIVATE_WITH_CONST */
-
-#ifndef dt_omp_sharedconst
-#ifdef _OPENMP
-#if defined(__clang__) || __GNUC__ > 8
-# define dt_omp_sharedconst(...) shared(__VA_ARGS__)
-#else
-  // GCC 8.4 throws string of errors "'x' is predetermined 'shared' for 'shared'" if we explicitly declare
-  //  'const' variables as shared
-# define dt_omp_sharedconst(var, ...)
-#endif
-#endif /* _OPENMP */
-#endif /* dt_omp_sharedconst */
-
-#ifndef dt_omp_nontemporal
-// Clang 10+ supports the nontemporal() OpenMP directive
-// GCC 9 recognizes it as valid, but does not do anything with it
-// GCC 10+ ???
-#if (__clang__+0 >= 10 || __GNUC__ >= 9)
-#  define dt_omp_nontemporal(...) nontemporal(__VA_ARGS__)
-#else
-// GCC7/8 only support OpenMP 4.5, which does not have the nontemporal() directive.
-#  define dt_omp_nontemporal(var, ...)
-#endif
-#endif /* dt_omp_nontemporal */
-
-#else /* _OPENMP */
-
-# define omp_get_max_threads() 1
-# define omp_get_thread_num() 0
-
-#endif /* _OPENMP */
-
-#if defined(__aarch64__)
-#include <arm_neon.h>
-#endif
-
-#if defined(__SSE__)
-#include <xmmintrin.h> // needed for _mm_stream_ps
-#endif
-
-/* Create cloned functions for various CPU SSE generations */
-/* See for instructions https://hannes.hauswedell.net/post/2017/12/09/fmv/ */
-/* TL;DR : use only on SIMD functions containing low-level paralellized/vectorized loops */
-#if __has_attribute(target_clones) && !defined(_WIN32) && !defined(__APPLE__) && !defined(NATIVE_ARCH)
-# if defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64)
-#define __DT_CLONE_TARGETS__ __attribute__((target_clones("default", "sse2", "sse3", "sse4.1", "sse4.2", "popcnt", "avx", "avx2", "avx512f", "fma4")))
-# elif defined(__PPC64__)
-/* __PPC64__ is the only macro tested for in is_supported_platform.h, other macros would fail there anyway. */
-#define __DT_CLONE_TARGETS__ __attribute__((target_clones("default","cpu=power9")))
-# else
-#define __DT_CLONE_TARGETS__
-# endif
-#else
-#define __DT_CLONE_TARGETS__
-#endif
-
-/* Helper to force stack vectors to be aligned on DT_CACHELINE_BYTES blocks to enable AVX2 */
-#define DT_IS_ALIGNED(x) __builtin_assume_aligned(x, DT_CACHELINE_BYTES)
 
 #ifndef _RELEASE
 #include "common/poison.h"
@@ -207,19 +117,6 @@ gboolean dt_is_dev_version();
 // returns the darktable version as <major>.<minor>
 char *dt_version_major_minor();
 
-// Golden number (1+sqrt(5))/2
-#ifndef PHI
-#define PHI 1.61803398874989479F
-#endif
-
-// 1/PHI
-#ifndef INVPHI
-#define INVPHI 0.61803398874989479F
-#endif
-
-// NaN-safe clamping (NaN compares false, and will thus result in H)
-#define CLAMPS(A, L, H) ((A) > (L) ? ((A) < (H) ? (A) : (H)) : (L))
-
 #undef STR_HELPER
 #define STR_HELPER(x) #x
 
@@ -228,13 +125,316 @@ char *dt_version_major_minor();
 
 #define DT_IMAGE_DBLOCKS 64
 
-// If platform supports hardware-accelerated fused-multiply-add
-// This is not only faster but more accurate because rounding happens at the right place
-#ifdef FP_FAST_FMAF
-  #define DT_FMA(x, y, z) fmaf(x, y, z)
+// When included by a C++ file, restrict qualifiers are not allowed
+#ifdef __cplusplus
+#define DT_RESTRICT
 #else
-  #define DT_FMA(x, y, z) ((x) * (y) + (z))
+#define DT_RESTRICT restrict
 #endif
+
+
+/********************************* */
+
+/**
+ * We need to include all OS-centric & arch-centric libs here, because
+ * they typically contain low-level info useful to plan for SIMD memory use
+ * (mem alloc, mem alignment, SSE level, CPU features, etc.).
+ */
+
+#if defined _WIN32
+#include "win/win.h"
+#endif
+
+#ifdef __APPLE__
+#include <mach/mach.h>
+#include <sys/sysctl.h>
+#endif
+
+#if defined(__DragonFly__) || defined(__FreeBSD__)
+typedef unsigned int u_int;
+#include <sys/sysctl.h>
+#include <sys/types.h>
+#endif
+#if defined(__NetBSD__) || defined(__OpenBSD__)
+#include <sys/param.h>
+#include <sys/sysctl.h>
+#endif
+
+#if defined(__aarch64__)
+#include <arm_neon.h>
+#endif
+
+#if defined(__SSE__)
+#include <xmmintrin.h> // needed for _mm_stream_ps
+#endif
+
+#include <glib.h>
+#include <stdint.h>
+
+#ifdef _OPENMP
+# include <omp.h>
+
+/* See https://redmine.darktable.org/issues/12568#note-14 */
+# ifdef HAVE_OMP_FIRSTPRIVATE_WITH_CONST
+   /* If the compiler correctly supports firstprivate, use it. */
+#  define dt_omp_firstprivate(...) firstprivate(__VA_ARGS__)
+# else /* HAVE_OMP_FIRSTPRIVATE_WITH_CONST */
+   /* This is needed for clang < 7.0 */
+#  define dt_omp_firstprivate(...)
+# endif/* HAVE_OMP_FIRSTPRIVATE_WITH_CONST */
+
+#ifndef dt_omp_sharedconst
+#ifdef _OPENMP
+#if defined(__clang__) || __GNUC__ > 8
+# define dt_omp_sharedconst(...) shared(__VA_ARGS__)
+#else
+  // GCC 8.4 throws string of errors "'x' is predetermined 'shared' for 'shared'" if we explicitly declare
+  //  'const' variables as shared
+# define dt_omp_sharedconst(var, ...)
+#endif
+#endif /* _OPENMP */
+#endif /* dt_omp_sharedconst */
+
+#ifndef dt_omp_nontemporal
+// Clang 10+ supports the nontemporal() OpenMP directive
+// GCC 9 recognizes it as valid, but does not do anything with it
+// GCC 10+ ???
+#if (__clang__+0 >= 10 || __GNUC__ >= 9)
+#  define dt_omp_nontemporal(...) nontemporal(__VA_ARGS__)
+#else
+// GCC7/8 only support OpenMP 4.5, which does not have the nontemporal() directive.
+#  define dt_omp_nontemporal(var, ...)
+#endif
+#endif /* dt_omp_nontemporal */
+
+#else /* _OPENMP */
+
+# define omp_get_max_threads() 1
+# define omp_get_thread_num() 0
+
+#endif /* _OPENMP */
+
+static inline int dt_get_thread_num()
+{
+#ifdef _OPENMP
+  return omp_get_thread_num();
+#else
+  return 0;
+#endif
+}
+
+/* Create cloned functions for various CPU SSE generations */
+/* See for instructions https://hannes.hauswedell.net/post/2017/12/09/fmv/ */
+/* TL;DR : use only on SIMD functions containing low-level paralellized/vectorized loops */
+#if __has_attribute(target_clones) && !defined(_WIN32) && !defined(__APPLE__) && !defined(NATIVE_ARCH)
+  # if defined(__amd64__) || defined(__amd64) || defined(__x86_64__) || defined(__x86_64)
+    #define __DT_CLONE_TARGETS__ __attribute__((target_clones("default", "sse2", "sse3", "sse4.1", "sse4.2", "popcnt", "avx", "avx2", "avx512f", "fma4")))
+  # elif defined(__PPC64__)
+    /* __PPC64__ is the only macro tested for in is_supported_platform.h, other macros would fail there anyway. */
+    #define __DT_CLONE_TARGETS__ __attribute__((target_clones("default","cpu=power9")))
+  # else
+    #define __DT_CLONE_TARGETS__
+  # endif
+#else
+  #define __DT_CLONE_TARGETS__
+#endif
+
+/* Helper to force stack vectors to be aligned on DT_CACHELINE_BYTES blocks to enable AVX2 */
+#define DT_IS_ALIGNED(x) __builtin_assume_aligned(x, DT_CACHELINE_BYTES)
+
+// Configure the size of a CPU cacheline in bytes, floats, and pixels.  On most current architectures,
+// a cacheline contains 64 bytes, but Apple Silicon (M-series processors) uses 128-byte cache lines.
+#if defined(__APPLE__) && defined(__aarch64__)
+  #define DT_CACHELINE_BYTES 128
+  #define DT_CACHELINE_FLOATS 32
+  #define DT_CACHELINE_PIXELS 8
+#else
+  #define DT_CACHELINE_BYTES 64
+  #define DT_CACHELINE_FLOATS 16
+  #define DT_CACHELINE_PIXELS 4
+#endif /* __APPLE__ && __aarch64__ */
+
+// Helper to force heap vectors to be aligned on 64 byte blocks to enable AVX2
+// If this is applied to a struct member and the struct is allocated on the heap, then it must be allocated
+// on a 64 byte boundary to avoid crashes or undefined behavior because of unaligned memory access.
+#define DT_ALIGNED_ARRAY __attribute__((aligned(DT_CACHELINE_BYTES)))
+#define DT_ALIGNED_PIXEL __attribute__((aligned(16)))
+
+
+static inline gboolean dt_is_aligned(const void *pointer, size_t byte_count)
+{
+    return (uintptr_t)pointer % byte_count == 0;
+}
+
+static inline size_t dt_round_size(const size_t size, const size_t alignment)
+{
+  // Round the size of a buffer to the closest higher multiple
+  return ((size % alignment) == 0) ? size : ((size - 1) / alignment + 1) * alignment;
+}
+
+static inline size_t dt_round_size_sse(const size_t size)
+{
+  // Round the size of a buffer to the closest 64 higher multiple
+  return dt_round_size(size, 64);
+}
+
+static inline void *dt_alloc_align(size_t size)
+{
+  const size_t alignment = DT_CACHELINE_BYTES;
+  const size_t aligned_size = dt_round_size(size, alignment);
+#if defined(__FreeBSD_version) && __FreeBSD_version < 700013
+  return malloc(aligned_size);
+#elif defined(_WIN32)
+  return _aligned_malloc(aligned_size, alignment);
+#elif defined(_DEBUG)
+  // for a debug build, ensure that we get a crash if we use plain free() to release the allocated memory, by
+  // returning a pointer which isn't a valid memory block address
+  void *ptr = NULL;
+  if(posix_memalign(&ptr, alignment, aligned_size + alignment)) return NULL;
+  short *offset = (short*)(((char*)ptr) + alignment - sizeof(short));
+  *offset = alignment;
+  return ((char*)ptr) + alignment ;
+#else
+  void *ptr = NULL;
+  if(posix_memalign(&ptr, alignment, aligned_size)) return NULL;
+  return ptr;
+#endif
+}
+
+
+#ifdef _WIN32
+  static inline void dt_free_align(void *mem) _aligned_free(mem);;
+  #define dt_free_align_ptr dt_free_align
+#elif _DEBUG // debug build makes sure that we get a crash on using plain free() on an aligned allocation
+  static inline void dt_free_align(void *mem)
+  {
+    // on a debug build, we deliberately offset the returned pointer from dt_alloc_align, so eliminate the offset
+    if (mem)
+    {
+      short offset = ((short*)mem)[-1];
+      free(((char*)mem)-offset);
+    }
+  }
+  #define dt_free_align_ptr dt_free_align
+#else
+  #define dt_free_align(A) if(A) free(A)
+  #define dt_free_align_ptr free
+#endif
+
+
+static inline void* dt_calloc_align(size_t size)
+{
+  void *buf = dt_alloc_align(size);
+  if(buf) memset(buf, 0, size);
+  return buf;
+}
+static inline float *dt_alloc_align_float(size_t pixels)
+{
+  return (float*)__builtin_assume_aligned(dt_alloc_align(pixels * sizeof(float)), DT_CACHELINE_BYTES);
+}
+static inline float *dt_calloc_align_float(size_t pixels)
+{
+  float *const buf = (float*)dt_alloc_align(pixels * sizeof(float));
+  if(buf) memset(buf, 0, pixels * sizeof(float));
+  return (float*)__builtin_assume_aligned(buf, DT_CACHELINE_BYTES);
+}
+
+static inline void * dt_alloc_sse_ps(size_t pixels)
+{
+  return __builtin_assume_aligned(dt_alloc_align(pixels * sizeof(float)), DT_CACHELINE_BYTES);
+}
+
+static inline void * dt_check_sse_aligned(void * pointer)
+{
+  if(dt_is_aligned(pointer, DT_CACHELINE_BYTES))
+    return __builtin_assume_aligned(pointer, DT_CACHELINE_BYTES);
+  else
+    return NULL;
+}
+
+// Most code in dt assumes that the compiler is capable of auto-vectorization.  In some cases, this will yield
+// suboptimal code if the compiler in fact does NOT auto-vectorize.  Uncomment the following line for such a
+// compiler.
+//#define DT_NO_VECTORIZATION
+
+// For some combinations of compiler and architecture, the compiler may actually emit inferior code if given
+// a hint to vectorize a loop.  Uncomment the following line if such a combination is the compilation target.
+//#define DT_NO_SIMD_HINTS
+
+// utility type to ease declaration of aligned small arrays to hold a pixel (and document their purpose)
+typedef DT_ALIGNED_PIXEL float dt_aligned_pixel_t[4];
+
+// To be able to vectorize per-pixel loops, we need to operate on all four channels, but if the compiler does
+// not auto-vectorize, doing so increases computation by 1/3 for a channel which typically is ignored anyway.
+// Select the appropriate number of channels over which to loop to produce the fastest code.
+#ifdef DT_NO_VECTORIZATION
+#define DT_PIXEL_SIMD_CHANNELS 3
+#else
+#define DT_PIXEL_SIMD_CHANNELS 4
+#endif
+
+// A macro which gives us a configurable shorthand to produce the optimal performance when processing all of the
+// channels in a pixel.  Its first argument is the name of the variable to be used inside the 'for' loop it creates,
+// while the optional second argument is a set of OpenMP directives, typically specifying variable alignment.
+// If indexing off of the begining of any buffer allocated with dt's image or aligned allocation functions, the
+// alignment to specify is 64; otherwise, use 16, as there may have been an odd number of pixels from the start.
+// Sample usage:
+//         for_each_channel(k,aligned(src,dest:16))
+//         {
+//           src[k] = dest[k] / 3.0f;
+//         }
+#if defined(_OPENMP) && defined(OPENMP_SIMD_) && !defined(DT_NO_SIMD_HINTS)
+//https://stackoverflow.com/questions/45762357/how-to-concatenate-strings-in-the-arguments-of-pragma
+#define _DT_Pragma_(x) _Pragma(#x)
+#define _DT_Pragma(x) _DT_Pragma_(x)
+#define for_each_channel(_var, ...) \
+  _DT_Pragma(omp simd __VA_ARGS__) \
+  for (size_t _var = 0; _var < DT_PIXEL_SIMD_CHANNELS; _var++)
+#define for_four_channels(_var, ...) \
+  _DT_Pragma(omp simd __VA_ARGS__) \
+  for (size_t _var = 0; _var < 4; _var++)
+#else
+#define for_each_channel(_var, ...) \
+  for (size_t _var = 0; _var < DT_PIXEL_SIMD_CHANNELS; _var++)
+#define for_four_channels(_var, ...) \
+  for (size_t _var = 0; _var < 4; _var++)
+#endif
+
+
+// copy the RGB channels of a pixel using nontemporal stores if
+// possible; includes the 'alpha' channel as well if faster due to
+// vectorization, but subsequent code should ignore the value of the
+// alpha unless explicitly set afterwards (since it might not have
+// been copied).  NOTE: nontemporal stores will actually be *slower*
+// if we immediately access the pixel again.  This function should
+// only be used when processing an entire image before doing anything
+// else with the destination buffer.
+static inline void copy_pixel_nontemporal(
+	float *const __restrict__ out,
+        const float *const __restrict__ in)
+{
+#if defined(__SSE__)
+  _mm_stream_ps(out, *((__m128*)in));
+#elif defined(__aarch64__)
+  vst1q_f32(out, *((float32x4_t *)in));
+#elif (__clang__+0 > 7) && (__clang__+0 < 10)
+  for_each_channel(k,aligned(in,out:16)) __builtin_nontemporal_store(in[k],out[k]);
+#else
+  for_each_channel(k,aligned(in,out:16) dt_omp_nontemporal(out)) out[k] = in[k];
+#endif
+}
+
+
+// copy the RGB channels of a pixel; includes the 'alpha' channel as well if faster due to vectorization, but
+// subsequent code should ignore the value of the alpha unless explicitly set afterwards (since it might not have
+// been copied)
+static inline void copy_pixel(float *const __restrict__ out, const float *const __restrict__ in)
+{
+  for_each_channel(k,aligned(in,out:16)) out[k] = in[k];
+}
+
+
+/********************************* */
 
 struct dt_gui_gtk_t;
 struct dt_control_t;
@@ -394,37 +594,6 @@ static inline void memset_zero(void *const buffer, size_t size)
   }
 }
 
-void *dt_alloc_align(size_t size);
-static inline void* dt_calloc_align(size_t size)
-{
-  void *buf = dt_alloc_align(size);
-  if(buf) memset(buf, 0, size);
-  return buf;
-}
-static inline float *dt_alloc_align_float(size_t pixels)
-{
-  return (float*)__builtin_assume_aligned(dt_alloc_align(pixels * sizeof(float)), DT_CACHELINE_BYTES);
-}
-static inline float *dt_calloc_align_float(size_t pixels)
-{
-  float *const buf = (float*)dt_alloc_align(pixels * sizeof(float));
-  if(buf) memset(buf, 0, pixels * sizeof(float));
-  return (float*)__builtin_assume_aligned(buf, DT_CACHELINE_BYTES);
-}
-size_t dt_round_size(const size_t size, const size_t alignment);
-size_t dt_round_size_sse(const size_t size);
-
-#ifdef _WIN32
-void dt_free_align(void *mem);
-#define dt_free_align_ptr dt_free_align
-#elif _DEBUG // debug build makes sure that we get a crash on using plain free() on an aligned allocation
-void dt_free_align(void *mem);
-#define dt_free_align_ptr dt_free_align
-#else
-#define dt_free_align(A) if(A) free(A)
-#define dt_free_align_ptr free
-#endif
-
 // check whether the specified mask of modifier keys exactly matches, among the set Shift+Control+(Alt/Meta).
 // ignores the state of any other shifting keys
 static inline gboolean dt_modifier_is(const GdkModifierType state, const GdkModifierType desired_modifier_mask)
@@ -441,25 +610,6 @@ static inline gboolean dt_modifiers_include(const GdkModifierType state, const G
   const GdkModifierType modifiers = gtk_accelerator_get_default_mod_mask();
   // check whether all modifier bits of interest are turned on
   return (state & (modifiers & desired_modifier_mask)) == desired_modifier_mask;
-}
-
-
-static inline gboolean dt_is_aligned(const void *pointer, size_t byte_count)
-{
-    return (uintptr_t)pointer % byte_count == 0;
-}
-
-static inline void * dt_alloc_sse_ps(size_t pixels)
-{
-  return __builtin_assume_aligned(dt_alloc_align(pixels * sizeof(float)), DT_CACHELINE_BYTES);
-}
-
-static inline void * dt_check_sse_aligned(void * pointer)
-{
-  if(dt_is_aligned(pointer, DT_CACHELINE_BYTES))
-    return __builtin_assume_aligned(pointer, DT_CACHELINE_BYTES);
-  else
-    return NULL;
 }
 
 int dt_capabilities_check(char *capability);
@@ -489,108 +639,6 @@ void dt_show_times_f(const dt_times_t *start, const char *prefix, const char *su
 
 /** \brief check if file is a supported image */
 gboolean dt_supported_image(const gchar *filename);
-
-static inline size_t dt_get_num_threads()
-{
-#ifdef _OPENMP
-  // we can safely assume omp_get_num_procs is > 0
-  return (size_t)omp_get_num_procs();
-#else
-  return 1;
-#endif
-}
-
-static inline int dt_get_thread_num()
-{
-#ifdef _OPENMP
-  return omp_get_thread_num();
-#else
-  return 0;
-#endif
-}
-
-// Allocate a buffer for 'n' objects each of size 'objsize' bytes for each of the program's threads.
-// Ensures that there is no false sharing among threads by aligning and rounding up the allocation to
-// a multiple of the cache line size.  Returns a pointer to the allocated pool and the adjusted number
-// of objects in each thread's buffer.  Use dt_get_perthread or dt_get_bythread (see below) to access
-// a specific thread's buffer.
-static inline void *dt_alloc_perthread(const size_t n, const size_t objsize, size_t* padded_size)
-{
-  const size_t alloc_size = n * objsize;
-  const size_t cache_lines = (alloc_size + DT_CACHELINE_BYTES - 1) / DT_CACHELINE_BYTES;
-  *padded_size = DT_CACHELINE_BYTES * cache_lines / objsize;
-  return __builtin_assume_aligned(dt_alloc_align(DT_CACHELINE_BYTES * cache_lines * dt_get_num_threads()), DT_CACHELINE_BYTES);
-}
-static inline void *dt_calloc_perthread(const size_t n, const size_t objsize, size_t* padded_size)
-{
-  void *const buf = (float*)dt_alloc_perthread(n, objsize, padded_size);
-  memset(buf, 0, *padded_size * dt_get_num_threads() * objsize);
-  return buf;
-}
-// Same as dt_alloc_perthread, but the object is a float.
-static inline float *dt_alloc_perthread_float(const size_t n, size_t* padded_size)
-{
-  return (float*)dt_alloc_perthread(n, sizeof(float), padded_size);
-}
-// Allocate floats, cleared to zero
-static inline float *dt_calloc_perthread_float(const size_t n, size_t* padded_size)
-{
-  float *const buf = (float*)dt_alloc_perthread(n, sizeof(float), padded_size);
-  if (buf)
-  {
-    for (size_t i = 0; i < *padded_size * dt_get_num_threads(); i++)
-      buf[i] = 0.0f;
-  }
-  return buf;
-}
-
-// Given the buffer and object count returned by dt_alloc_perthread, return the current thread's private buffer.
-#define dt_get_perthread(buf, padsize) DT_IS_ALIGNED((buf) + ((padsize) * dt_get_thread_num()))
-// Given the buffer and object count returned by dt_alloc_perthread and a thread count in 0..dt_get_num_threads(),
-// return a pointer to the indicated thread's private buffer.
-#define dt_get_bythread(buf, padsize, tnum) DT_IS_ALIGNED((buf) + ((padsize) * (tnum)))
-
-// Most code in dt assumes that the compiler is capable of auto-vectorization.  In some cases, this will yield
-// suboptimal code if the compiler in fact does NOT auto-vectorize.  Uncomment the following line for such a
-// compiler.
-//#define DT_NO_VECTORIZATION
-
-// For some combinations of compiler and architecture, the compiler may actually emit inferior code if given
-// a hint to vectorize a loop.  Uncomment the following line if such a combination is the compilation target.
-//#define DT_NO_SIMD_HINTS
-
-
-// copy the RGB channels of a pixel using nontemporal stores if
-// possible; includes the 'alpha' channel as well if faster due to
-// vectorization, but subsequent code should ignore the value of the
-// alpha unless explicitly set afterwards (since it might not have
-// been copied).  NOTE: nontemporal stores will actually be *slower*
-// if we immediately access the pixel again.  This function should
-// only be used when processing an entire image before doing anything
-// else with the destination buffer.
-static inline void copy_pixel_nontemporal(
-	float *const __restrict__ out,
-        const float *const __restrict__ in)
-{
-#if defined(__SSE__)
-  _mm_stream_ps(out, *((__m128*)in));
-#elif defined(__aarch64__)
-  vst1q_f32(out, *((float32x4_t *)in));
-#elif (__clang__+0 > 7) && (__clang__+0 < 10)
-  for_each_channel(k,aligned(in,out:16)) __builtin_nontemporal_store(in[k],out[k]);
-#else
-  for_each_channel(k,aligned(in,out:16) dt_omp_nontemporal(out)) out[k] = in[k];
-#endif
-}
-
-
-// copy the RGB channels of a pixel; includes the 'alpha' channel as well if faster due to vectorization, but
-// subsequent code should ignore the value of the alpha unless explicitly set afterwards (since it might not have
-// been copied)
-static inline void copy_pixel(float *const __restrict__ out, const float *const __restrict__ in)
-{
-  for_each_channel(k,aligned(in,out:16)) out[k] = in[k];
-}
 
 // a few macros and helper functions to speed up certain frequently-used GLib operations
 #define g_list_is_singleton(list) ((list) && (!(list)->next))
@@ -642,6 +690,47 @@ static inline void dt_unreachable_codepath_with_caller(const char *description, 
           description, file, line, function);
   __builtin_unreachable();
 }
+
+// Allocate a buffer for 'n' objects each of size 'objsize' bytes for each of the program's threads.
+// Ensures that there is no false sharing among threads by aligning and rounding up the allocation to
+// a multiple of the cache line size.  Returns a pointer to the allocated pool and the adjusted number
+// of objects in each thread's buffer.  Use dt_get_perthread or dt_get_bythread (see below) to access
+// a specific thread's buffer.
+static inline void *dt_alloc_perthread(const size_t n, const size_t objsize, size_t* padded_size)
+{
+  const size_t alloc_size = n * objsize;
+  const size_t cache_lines = (alloc_size + DT_CACHELINE_BYTES - 1) / DT_CACHELINE_BYTES;
+  *padded_size = DT_CACHELINE_BYTES * cache_lines / objsize;
+  return __builtin_assume_aligned(dt_alloc_align(DT_CACHELINE_BYTES * cache_lines * darktable.num_openmp_threads), DT_CACHELINE_BYTES);
+}
+static inline void *dt_calloc_perthread(const size_t n, const size_t objsize, size_t* padded_size)
+{
+  void *const buf = (float*)dt_alloc_perthread(n, objsize, padded_size);
+  memset(buf, 0, *padded_size * darktable.num_openmp_threads * objsize);
+  return buf;
+}
+// Same as dt_alloc_perthread, but the object is a float.
+static inline float *dt_alloc_perthread_float(const size_t n, size_t* padded_size)
+{
+  return (float*)dt_alloc_perthread(n, sizeof(float), padded_size);
+}
+// Allocate floats, cleared to zero
+static inline float *dt_calloc_perthread_float(const size_t n, size_t* padded_size)
+{
+  float *const buf = (float*)dt_alloc_perthread(n, sizeof(float), padded_size);
+  if (buf)
+  {
+    for (size_t i = 0; i < *padded_size * darktable.num_openmp_threads; i++)
+      buf[i] = 0.0f;
+  }
+  return buf;
+}
+
+// Given the buffer and object count returned by dt_alloc_perthread, return the current thread's private buffer.
+#define dt_get_perthread(buf, padsize) DT_IS_ALIGNED((buf) + ((padsize) * dt_get_thread_num()))
+// Given the buffer and object count returned by dt_alloc_perthread and a thread count in 0..darktable.num_openmp_threads,
+// return a pointer to the indicated thread's private buffer.
+#define dt_get_bythread(buf, padsize, tnum) DT_IS_ALIGNED((buf) + ((padsize) * (tnum)))
 
 // Scramble bits in str to create an (hopefully) unique hash representing the state of str
 // Dan Bernstein algo v2 http://www.cse.yorku.ca/~oz/hash.html

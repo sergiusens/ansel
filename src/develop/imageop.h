@@ -38,6 +38,7 @@ typedef struct dt_iop_roi_t
 #include "control/settings.h"
 #include "develop/pixelpipe.h"
 #include "dtgtk/togglebutton.h"
+#include "gui/gtk.h"
 
 struct dt_develop_t;
 struct dt_dev_pixelpipe_t;

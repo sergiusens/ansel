@@ -21,6 +21,7 @@
 
 #include "common/colorspaces_inline_conversions.h"
 #include "common/colorspaces.h"
+#include "common/matrices.h"
 #include "develop/imageop.h"
 
 #ifdef HAVE_CONFIG_H
@@ -400,4 +401,3 @@ static inline float dt_ioppr_uncompensate_middle_grey(const float x, const dt_io
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

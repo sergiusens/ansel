@@ -39,6 +39,7 @@
 #include "common/box_filters.h"
 #include "common/darktable.h"
 #include "common/guided_filter.h"
+#include "control/control.h"
 #include "develop/imageop.h"
 #include "develop/imageop_math.h"
 #include "develop/imageop_gui.h"

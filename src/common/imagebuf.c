@@ -89,7 +89,7 @@ gboolean dt_iop_alloc_image_buffers(struct dt_iop_module_t *const module,
     {
       *bufptr = dt_alloc_perthread_float(nfloats,paddedsize);
       if ((size & DT_IMGSZ_CLEARBUF) && *bufptr)
-        memset(*bufptr, 0, *paddedsize * dt_get_num_threads() * sizeof(float));
+        memset(*bufptr, 0, *paddedsize * darktable.num_openmp_threads * sizeof(float));
     }
     else
     {

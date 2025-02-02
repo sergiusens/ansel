@@ -200,7 +200,7 @@ static void color_picker_helper_4ch_parallel(const dt_iop_buffer_dsc_t *const ds
 
   const float w = 1.0f / (float)size;
 
-  const size_t numthreads = dt_get_num_threads();
+  const size_t numthreads = darktable.num_openmp_threads;
 
   size_t allocsize;
   float *const restrict mean = dt_alloc_perthread_float(4, &allocsize);
@@ -374,7 +374,7 @@ static void color_picker_helper_bayer_parallel(const dt_iop_buffer_dsc_t *const 
 
   uint32_t weights[4] = { 0u, 0u, 0u, 0u };
 
-  const size_t numthreads = dt_get_num_threads();
+  const size_t numthreads = darktable.num_openmp_threads;
 
   //TODO: convert to use dt_alloc_perthread
   float *const msum = malloc(sizeof(float) * numthreads * 4);
@@ -503,7 +503,7 @@ static void color_picker_helper_xtrans_parallel(const dt_iop_buffer_dsc_t *const
 
   uint32_t weights[3] = { 0u, 0u, 0u };
 
-  const size_t numthreads = dt_get_num_threads();
+  const size_t numthreads = darktable.num_openmp_threads;
 
   //TODO: convert to use dt_alloc_perthread
   float *const mmin = malloc(sizeof(float) * numthreads * 3);

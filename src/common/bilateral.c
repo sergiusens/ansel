@@ -17,11 +17,12 @@
 */
 
 #include "common/bilateral.h"
-#include "common/darktable.h" // for CLAMPS, dt_alloc_align, dt_free_align
+#include "common/darktable.h" // dt_print, dt_alloc_align, dt_free_align
+#include "common/math.h"      // for CLAMPS, roundf
 #include <glib.h>             // for MIN, MAX
-#include <math.h>             // for roundf
 #include <stdlib.h>           // for size_t, free, malloc, NULL
 #include <string.h>           // for memset
+#include <stdio.h>            // fprintf
 
 // These limits clamp away insane memory requirements.  They should reasonably faithfully represent the full
 // precision though, so tiling will help reduce the memory footprint and export will look the same as darkroom
@@ -463,4 +464,3 @@ void dt_bilateral_free(dt_bilateral_t *b)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

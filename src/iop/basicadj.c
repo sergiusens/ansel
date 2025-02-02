@@ -25,6 +25,7 @@
 #endif
 
 #include "bauhaus/bauhaus.h"
+#include "control/control.h"
 #include "common/colorspaces_inline_conversions.h"
 #include "common/math.h"
 #include "common/rgb_norms.h"

@@ -18,15 +18,12 @@
 
 #pragma once
 
-#include "common/math.h"
-
 #ifdef __SSE2__
-#include "common/sse.h" // also loads darkable.h
-#include <xmmintrin.h>
-#else
-#include "common/darktable.h"
+#include "common/sse.h"
 #endif
 
+#include "common/matrices.h"
+#include "common/math.h"
 
 #ifdef __SSE2__
 static inline __m128 lab_f_inv_m(const __m128 x)

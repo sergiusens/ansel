@@ -1193,7 +1193,7 @@ static inline gint reconstruct_highlights(const float *const restrict in, const 
   float *const restrict HF_grey = dt_alloc_sse_ps(ch * roi_out->width * roi_out->height); // high-frequencies RGB backup
 
   // alloc a permanent reusable buffer for intermediate computations - avoid multiple alloc/free
-  float *const restrict temp = dt_alloc_sse_ps(dt_get_num_threads() * ch * roi_out->width);
+  float *const restrict temp = dt_alloc_sse_ps(darktable.num_openmp_threads * ch * roi_out->width);
 
   if(!LF_even || !LF_odd || !HF_RGB || !HF_grey || !temp)
   {

@@ -28,6 +28,7 @@
 #include "common/box_filters.h"
 #include "common/darktable.h"
 #include "common/imagebuf.h"
+#include "control/control.h"
 
 
 /* NOTE: this code complies with the optimizations in "common/extra_optimizations.h".
@@ -76,7 +77,7 @@ typedef enum dt_iop_guided_filter_blending_t
  *  - iterations : apply the guided filtering recursively, with kernel size increasing by sqrt(2)
  *    between each iteration, to diffuse the filter and soften edges transitions.
  *
- * Reference : 
+ * Reference :
  *  Kaiming He, Jian Sun, Microsoft : https://arxiv.org/abs/1505.00996
  **/
 

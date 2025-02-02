@@ -58,8 +58,8 @@ static gboolean _togglebutton_draw(GtkWidget *widget, cairo_t *cr)
     flags &= ~CPF_ACTIVE;
 
   /* update focus state paint flag */
-  const gboolean hasfocus = ((DTGTK_TOGGLEBUTTON(widget)->icon_data == darktable.develop->gui_module)
-                         && darktable.develop->gui_module);
+  const gboolean hasfocus = gtk_widget_has_focus(widget);
+
   if(hasfocus)
     flags |= CPF_FOCUS;
   else
@@ -177,4 +177,3 @@ void dtgtk_togglebutton_set_paint(GtkDarktableToggleButton *button, DTGTKCairoPa
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

@@ -35,6 +35,7 @@
 
 #include "gui/gtk.h"
 #include "gui/presets.h"
+#include "gui/draw.h"
 #include "iop/iop_api.h"
 #include <gtk/gtk.h>
 #include <inttypes.h>
@@ -697,7 +698,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
       dither = 0.0f;
   }
 
-  unsigned int *const tea_states = alloc_tea_states(dt_get_num_threads());
+  unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \

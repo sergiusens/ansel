@@ -18,6 +18,7 @@
 #pragma once
 
 #include "common/image_cache.h"
+#include "develop/develop.h"
 
 typedef struct dt_focus_cluster_t
 {

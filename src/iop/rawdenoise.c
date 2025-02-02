@@ -30,6 +30,7 @@
 #include "develop/openmp_maths.h"
 #include "dtgtk/drawingarea.h"
 
+#include "gui/draw.h"
 #include "gui/gtk.h"
 #include "iop/iop_api.h"
 
@@ -330,7 +331,7 @@ static void wavelet_denoise_xtrans(const float *const restrict in, float *const 
       fimg[col] = 0.5f;
       fimg[(size_t)(height-1)*width + col] = 0.5f;
     }
-    const size_t nthreads = darktable.num_openmp_threads; // go direct, dt_get_num_threads() always returns numprocs
+    const size_t nthreads = darktable.num_openmp_threads; // go direct, darktable.num_openmp_threads always returns numprocs
     const size_t chunksize = (height + nthreads - 1) / nthreads;
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \

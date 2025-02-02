@@ -21,6 +21,9 @@
 #include "common/calculator.h"
 #include "common/math.h"
 #include "control/conf.h"
+#include "control/control.h"
+#include "common/debug.h"
+
 
 #include "gui/color_picker_proxy.h"
 #ifdef GDK_WINDOWING_QUARTZ

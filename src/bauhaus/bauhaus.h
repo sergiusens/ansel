@@ -18,11 +18,9 @@
 
 #pragma once
 
-#include "common/debug.h"
 #include "common/colorlabels.h"
-#include "control/control.h"
 #include "common/gui_module_api.h"
-#include "gui/draw.h"
+#include "common/introspection.h"
 
 #include <assert.h>
 #include <gdk/gdkkeysyms.h>

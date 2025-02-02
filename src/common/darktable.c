@@ -490,7 +490,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 
   darktable.num_openmp_threads = 1;
 #ifdef _OPENMP
-  darktable.num_openmp_threads = omp_get_num_procs();
+  darktable.num_openmp_threads = omp_get_max_threads();
 #endif
   darktable.unmuted = 0;
   GSList *config_override = NULL;
@@ -1140,7 +1140,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 #endif
 
   darktable.points = (dt_points_t *)calloc(1, sizeof(dt_points_t));
-  dt_points_init(darktable.points, dt_get_num_threads());
+  dt_points_init(darktable.points, darktable.num_openmp_threads);
 
   darktable.noiseprofile_parser = dt_noiseprofile_init(noiseprofiles_from_command);
 
@@ -1529,59 +1529,6 @@ void dt_vprint(dt_debug_thread_t thread, const char *msg, ...)
   }
 }
 
-void *dt_alloc_align(size_t size)
-{
-  const size_t alignment = DT_CACHELINE_BYTES;
-  const size_t aligned_size = dt_round_size(size, alignment);
-#if defined(__FreeBSD_version) && __FreeBSD_version < 700013
-  return malloc(aligned_size);
-#elif defined(_WIN32)
-  return _aligned_malloc(aligned_size, alignment);
-#elif defined(_DEBUG)
-  // for a debug build, ensure that we get a crash if we use plain free() to release the allocated memory, by
-  // returning a pointer which isn't a valid memory block address
-  void *ptr = NULL;
-  if(posix_memalign(&ptr, alignment, aligned_size + alignment)) return NULL;
-  short *offset = (short*)(((char*)ptr) + alignment - sizeof(short));
-  *offset = alignment;
-  return ((char*)ptr) + alignment ;
-#else
-  void *ptr = NULL;
-  if(posix_memalign(&ptr, alignment, aligned_size)) return NULL;
-  return ptr;
-#endif
-}
-
-size_t dt_round_size(const size_t size, const size_t alignment)
-{
-  // Round the size of a buffer to the closest higher multiple
-  return ((size % alignment) == 0) ? size : ((size - 1) / alignment + 1) * alignment;
-}
-
-size_t dt_round_size_sse(const size_t size)
-{
-  // Round the size of a buffer to the closest 64 higher multiple
-  return dt_round_size(size, 64);
-}
-
-
-#ifdef _WIN32
-void dt_free_align(void *mem)
-{
-  _aligned_free(mem);
-}
-#elif defined(_DEBUG)
-void dt_free_align(void *mem)
-{
-  // on a debug build, we deliberately offset the returned pointer from dt_alloc_align, so eliminate the offset
-  if (mem)
-  {
-    short offset = ((short*)mem)[-1];
-    free(((char*)mem)-offset);
-  }
-}
-#endif
-
 void dt_show_times(const dt_times_t *start, const char *prefix)
 {
   /* Skip all the calculations an everything if -d perf isn't on */
@@ -1619,7 +1566,7 @@ void dt_show_times_f(const dt_times_t *start, const char *prefix, const char *su
 
 int dt_worker_threads()
 {
-  const size_t threads = dt_get_num_threads();
+  const size_t threads = darktable.num_openmp_threads;
   const size_t mem = _get_total_memory();
   const int wthreads = (mem >= (8lu << 20) && threads >= 4) ? 4 : MIN(2, threads);
   dt_print(DT_DEBUG_DEV, "[dt_worker_threads] using %i worker threads\n", wthreads);
@@ -1652,7 +1599,7 @@ size_t dt_get_singlebuffer_mem()
 
 void dt_configure_runtime_performance(const int old, char *info)
 {
-  const size_t threads = dt_get_num_threads();
+  const size_t threads = darktable.num_openmp_threads;
   const size_t mem = darktable.dtresources.total_memory / 1024lu / 1024lu;
   const size_t bits = CHAR_BIT * sizeof(void *);
   const gboolean sufficient = mem >= 4096 && threads >= 2;

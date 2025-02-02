@@ -20,6 +20,7 @@
 #pragma once
 
 #include "common/darktable.h"
+#include "common/matrices.h"
 
 #include <lcms2.h>
 

@@ -241,7 +241,7 @@ static void dwt_wavelet_decompose(float *img, dwt_params_t *const p, _dwt_layer_
   // buffer to reconstruct the image
   layers = dt_alloc_align_float((size_t)4 * p->width * p->height);
   // scratch buffer for decomposition
-  temp = dt_alloc_align_float(dt_get_num_threads() * 4 * p->width);
+  temp = dt_alloc_align_float(darktable.num_openmp_threads * 4 * p->width);
 
   if(buffer[1] == NULL || layers == NULL || temp == NULL)
   {
@@ -945,4 +945,3 @@ cl_int dwt_decompose_cl(dwt_params_cl_t *p, _dwt_layer_func_cl layer_func)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

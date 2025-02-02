@@ -23,6 +23,7 @@
 #include "common/imageio_module.h"
 #include "common/math.h"
 #include "control/conf.h"
+#include "control/control.h"
 #include "imageio/format/imageio_format_api.h"
 #include "develop/pixelpipe_hb.h"
 #include <inttypes.h>

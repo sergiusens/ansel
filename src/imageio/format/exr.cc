@@ -38,6 +38,7 @@ extern "C" {
 #include "common/imageio_exr.h"
 #include "common/imageio_module.h"
 #include "control/conf.h"
+#include "control/control.h"
 #include "imageio/format/imageio_format_api.h"
 }
 #include "common/imageio_exr.hh"
@@ -127,7 +128,7 @@ int write_image(dt_imageio_module_data_t *tmp, const char *filename, const void 
 {
   const dt_imageio_exr_t *exr = (dt_imageio_exr_t *)tmp;
 
-  Imf::setGlobalThreadCount(dt_get_num_threads());
+  Imf::setGlobalThreadCount(darktable.num_openmp_threads);
 
   Imf::Header header(exr->global.width, exr->global.height, 1, Imath::V2f(0, 0), 1, Imf::INCREASING_Y,
                      (Imf::Compression)exr->compression);

@@ -20,6 +20,8 @@
 #include "develop/imageop.h"
 #include "bauhaus/bauhaus.h"
 #include "dtgtk/button.h"
+#include "common/darktable.h"
+#include "gui/gtk.h"
 
 
 #ifdef GDK_WINDOWING_QUARTZ

@@ -208,7 +208,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, const 
   else
   {
     for(int k = 0; k < 5; k++) sigma[k] = 1.0f / sigma[k];
-    PermutohedralLattice<5, 4> lattice((size_t)roi_in->width * roi_in->height, dt_get_num_threads());
+    PermutohedralLattice<5, 4> lattice((size_t)roi_in->width * roi_in->height, darktable.num_openmp_threads);
 
 // splat into the lattice
 #ifdef _OPENMP

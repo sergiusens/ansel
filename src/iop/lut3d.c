@@ -26,6 +26,7 @@
 #include "common/colorspaces_inline_conversions.h"
 #include "common/file_location.h"
 #include "common/iop_profile.h"
+#include "control/control.h"
 #include "develop/imageop.h"
 #include "develop/imageop_gui.h"
 #include "dtgtk/button.h"
