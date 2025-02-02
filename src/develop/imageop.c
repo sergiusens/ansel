@@ -2802,8 +2802,6 @@ gboolean dt_iop_have_required_input_format(const int req_ch, struct dt_iop_modul
   }
 }
 
-// WARNING: this is called in bauhaus.c too when slider & comboboxes values are changed.
-// Mind that if any change is done here.
 void dt_iop_gui_changed(dt_iop_module_t *action, GtkWidget *widget, gpointer data)
 {
   if(!action) return;
@@ -2869,6 +2867,70 @@ void dt_bauhaus_update_module(dt_iop_module_t *self)
       default:
         fprintf(stderr, "[dt_bauhaus_update_module] invalid bauhaus widget type encountered\n");
     }
+  }
+}
+
+void dt_bauhaus_value_changed_default_callback(GtkWidget *widget)
+{
+  dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
+  dt_iop_module_t *module = (dt_iop_module_t *)w->module;
+  if(!w->field || !module) return;
+
+  switch(w->type)
+  {
+    case DT_BAUHAUS_SLIDER:
+    {
+      float val = dt_bauhaus_slider_get(widget);
+      switch(w->field_type)
+      {
+        case DT_INTROSPECTION_TYPE_FLOAT:
+          float *f = w->field, prevf = *f; *f = val;
+          if(*f != prevf) dt_iop_gui_changed(module, widget, &prevf);
+          break;
+        case DT_INTROSPECTION_TYPE_INT:
+          int *i = w->field, previ = *i; *i = val;
+          if(*i != previ) dt_iop_gui_changed(module, widget, &previ);
+          break;
+        case DT_INTROSPECTION_TYPE_USHORT:
+          unsigned short *s = w->field, prevs = *s; *s = val;
+          if(*s != prevs) dt_iop_gui_changed(module, widget, &prevs);
+          break;
+        default:
+          fprintf(stderr, "[_bauhaus_slider_value_change] unsupported slider data type\n");
+      }
+      break;
+    }
+    case DT_BAUHAUS_COMBOBOX:
+    {
+      dt_bauhaus_combobox_data_t *d = &w->data.combobox;
+      switch(w->field_type)
+      {
+        case DT_INTROSPECTION_TYPE_ENUM:
+          if(d->active >= 0)
+          {
+            const dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, d->active);
+            int *e = w->field, preve = *e; *e = GPOINTER_TO_INT(entry->data);
+            if(*e != preve) dt_iop_gui_changed(module, widget, &preve);
+          }
+          break;
+        case DT_INTROSPECTION_TYPE_INT:
+          int *i = w->field, previ = *i; *i = d->active;
+          if(*i != previ) dt_iop_gui_changed(module, widget, &previ);
+          break;
+        case DT_INTROSPECTION_TYPE_UINT:
+          unsigned int *u = w->field, prevu = *u; *u = d->active;
+          if(*u != prevu) dt_iop_gui_changed(module, widget, &prevu);
+          break;
+        case DT_INTROSPECTION_TYPE_BOOL:
+          gboolean *b = w->field, prevb = *b; *b = d->active;
+          if(*b != prevb) dt_iop_gui_changed(module, widget, &prevb);
+          break;
+        default:
+          fprintf(stderr, "[_bauhaus_combobox_set] unsupported combo data type\n");
+      }
+    }
+    default:
+        fprintf(stderr, "[dt_bauhaus_value_changed_default_callback] invalid bauhaus widget type encountered\n");
   }
 }
 

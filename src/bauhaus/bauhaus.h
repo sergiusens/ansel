@@ -19,7 +19,6 @@
 #pragma once
 
 #include "common/debug.h"
-#include "common/introspection.h"
 #include "common/colorlabels.h"
 #include "control/control.h"
 #include "common/gui_module_api.h"
@@ -179,6 +178,10 @@ typedef struct dt_bauhaus_widget_t
   // Reference to the global bauhaus structure holding common styles and such.
   dt_bauhaus_t *bauhaus;
 
+  // Use the app-wise default value-changed callback from *bauhaus
+  // or use custom implementation
+  gboolean use_default_callback;
+
   // goes last, might extend past the end:
   dt_bauhaus_data_t data;
 
@@ -248,6 +251,10 @@ struct dt_bauhaus_t
   GdkRGBA graph_bg, graph_exterior, graph_border, graph_fg, graph_grid, graph_fg_active, graph_overlay, inset_histogram;
   GdkRGBA graph_colors[3];               // primaries
   GdkRGBA colorlabels[DT_COLORLABELS_LAST];
+
+  // View-wise default callback to wire to the value-changed signal
+  // if the widget declaration sets the boolean
+  void (*default_value_changed_callback)(GtkWidget *widget);
 };
 
 #define DT_BAUHAUS_SPACE 0

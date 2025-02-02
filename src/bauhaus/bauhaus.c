@@ -1003,6 +1003,7 @@ static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, 
   w->section = NULL;
   w->no_accels = FALSE;
   w->bauhaus = bauhaus;
+  w->use_default_callback = FALSE;
 
   // no quad icon and no toggle button:
   w->quad_paint = 0;
@@ -1549,39 +1550,6 @@ void dt_bauhaus_combobox_set_text(GtkWidget *widget, const char *text)
   g_strlcpy(d->text, text, DT_BAUHAUS_COMBO_MAX_TEXT);
 }
 
-/*
-static gboolean _default_combobox_value_change_callback()
-{
-  // TODO: make this a callback in module scope
-  if(w->field && w->module) {
-    switch(w->field_type)
-    {
-      case DT_INTROSPECTION_TYPE_ENUM:;
-        if(d->active >= 0)
-        {
-          const dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, d->active);
-          int *e = w->field, preve = *e; *e = GPOINTER_TO_INT(entry->data);
-          if(*e != preve) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &preve);
-        }
-        break;
-      case DT_INTROSPECTION_TYPE_INT:;
-        int *i = w->field, previ = *i; *i = d->active;
-        if(*i != previ) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &previ);
-        break;
-      case DT_INTROSPECTION_TYPE_UINT:;
-        unsigned int *u = w->field, prevu = *u; *u = d->active;
-        if(*u != prevu) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &prevu);
-        break;
-      case DT_INTROSPECTION_TYPE_BOOL:;
-        gboolean *b = w->field, prevb = *b; *b = d->active;
-        if(*b != prevb) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &prevb);
-        break;
-      default:
-        fprintf(stderr, "[_bauhaus_combobox_set] unsupported combo data type\n");
-    }
-  }
-}
-*/
 
 static gint _delayed_combobox_commit(gpointer data)
 {
@@ -1590,7 +1558,22 @@ static gint _delayed_combobox_commit(gpointer data)
   struct dt_bauhaus_widget_t *w = data;
   dt_bauhaus_combobox_data_t *d = &w->data.combobox;
   d->timeout_handle = 0;
-  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+
+  if(w->use_default_callback)
+  {
+    if(w->bauhaus->default_value_changed_callback)
+      w->bauhaus->default_value_changed_callback(GTK_WIDGET(w));
+    else
+      fprintf(stderr, "ERROR: %s - %s is set to use default callback but none is provided\n", w->module->name,
+            w->label);
+  }
+  else
+  {
+    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+    if(w->module)
+      fprintf(stderr, "WARNING: %s - %s has an IOP module but doesn't use default callback\n", w->module->name,
+            w->label);
+  }
 
   return G_SOURCE_REMOVE;
 }
@@ -2720,40 +2703,30 @@ void dt_bauhaus_slider_set_offset(GtkWidget *widget, float offset)
   d->offset = offset;
 }
 
-/*
-static gboolean _default_slider_value_changed_callback()
-{
-  if(w->field && w->module)
-  {
-    float val = dt_bauhaus_slider_get(GTK_WIDGET(w));
-    switch(w->field_type)
-    {
-      case DT_INTROSPECTION_TYPE_FLOAT:;
-        float *f = w->field, prevf = *f; *f = val;
-        if(*f != prevf) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &prevf);
-        break;
-      case DT_INTROSPECTION_TYPE_INT:;
-        int *i = w->field, previ = *i; *i = val;
-        if(*i != previ) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &previ);
-        break;
-      case DT_INTROSPECTION_TYPE_USHORT:;
-        unsigned short *s = w->field, prevs = *s; *s = val;
-        if(*s != prevs) dt_iop_gui_changed(w->module, GTK_WIDGET(w), &prevs);
-        break;
-      default:
-        fprintf(stderr, "[_bauhaus_slider_value_change] unsupported slider data type\n");
-    }
-  }
-}
-*/
-
 static gboolean _delayed_slider_commit(gpointer data)
 {
   // Commit slider value change to pipeline history, handling a safety timout
   // so incremental scrolls don't trigger a recompute at every scroll step.
   struct dt_bauhaus_widget_t *w = data;
   w->data.slider.timeout_handle = 0;
-  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+
+  if(w->use_default_callback)
+  {
+    if(w->bauhaus->default_value_changed_callback)
+      w->bauhaus->default_value_changed_callback(GTK_WIDGET(w));
+    else
+      fprintf(stderr, "ERROR: %s - %s is set to use default callback but none is provided\n", w->module->name,
+            w->label);
+  }
+  else
+  {
+    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
+
+    if(w->module)
+      fprintf(stderr, "WARNING: %s - %s has an IOP module but doesn't use default callback\n", w->module->name,
+            w->label);
+  }
+
   return G_SOURCE_REMOVE;
 }
 

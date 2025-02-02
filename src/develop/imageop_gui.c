@@ -156,6 +156,9 @@ GtkWidget *dt_bauhaus_slider_from_params(dt_iop_module_t *self, const char *para
   if(!self->widget) self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
   gtk_box_pack_start(GTK_BOX(self->widget), slider, FALSE, FALSE, 0);
 
+  dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(slider);
+  w->use_default_callback = TRUE;
+
   g_free(param_name);
 
   return slider;
@@ -218,6 +221,9 @@ GtkWidget *dt_bauhaus_combobox_from_params(dt_iop_module_t *self, const char *pa
 
   if(!self->widget) self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
   gtk_box_pack_start(GTK_BOX(self->widget), combobox, FALSE, FALSE, 0);
+
+  dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(combobox);
+  w->use_default_callback = TRUE;
 
   return combobox;
 }

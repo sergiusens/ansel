@@ -1953,6 +1953,9 @@ void enter(dt_view_t *self)
   // Reset focus to center view
   gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
 
+  // Attach bauhaus default signal callback to IOP
+  darktable.bauhaus->default_value_changed_callback = dt_bauhaus_value_changed_default_callback;
+
   // clean the undo list
   dt_undo_clear(darktable.undo, DT_UNDO_DEVELOP);
 

@@ -475,10 +475,15 @@ gboolean dt_iop_have_required_input_format(const int required_ch, struct dt_iop_
 /* bring up module rename dialog */
 void dt_iop_gui_rename_module(dt_iop_module_t *module);
 
+/* dispatch post-value-changed GUI events within module and commit changes to history */
 void dt_iop_gui_changed(dt_iop_module_t *module, GtkWidget *widget, gpointer data);
 
 // update all bauhaus widgets in an iop module from their params fields
 void dt_bauhaus_update_module(dt_iop_module_t *self);
+
+// default callback to connect to value-changed signal for bauhaus widgets
+// it will automatically call dt_iop_changed for the right module.
+void dt_bauhaus_value_changed_default_callback(GtkWidget *widget);
 
 
 /** Uniform way of getting the full state hash of user-defined parameters, including masks and blending.
