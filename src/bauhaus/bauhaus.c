@@ -2460,17 +2460,13 @@ static gboolean _widget_key_press(GtkWidget *widget, GdkEventKey *event)
         return FALSE;
     }
   }
-  else if(dt_modifier_is(event->state, 0))
+  else
   {
-    // Discard Ctrl+Up/Down because it's captured by focus navigation
     switch(event->keyval)
     {
-      case GDK_KEY_Up:
-      case GDK_KEY_KP_Up:
-        delta = 1;
-      case GDK_KEY_Down:
-      case GDK_KEY_KP_Down:
-        _combobox_next_sensitive(w, -delta);
+      case GDK_KEY_KP_Enter:
+      case GDK_KEY_Return:
+        dt_bauhaus_show_popup(widget);
         return TRUE;
       default:
         return FALSE;
@@ -2859,11 +2855,11 @@ static gboolean dt_bauhaus_popup_key_press(GtkWidget *widget, GdkEventKey *event
         memset(bh->keys, 0, sizeof(bh->keys));
         dt_bauhaus_hide_popup(bh);
       }
-      else if(event->keyval == GDK_KEY_Up)
+      else if(event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up)
       {
         _combobox_next_sensitive(w, -1);
       }
-      else if(event->keyval == GDK_KEY_Down)
+      else if(event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down)
       {
         _combobox_next_sensitive(w, +1);
       }
