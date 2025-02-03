@@ -983,8 +983,19 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->deflicker_histogram = NULL;
 
+  // Start building top level widget
+  // Note: stupid dt_bauhaus_toggle/combobox/slider_from_params read self directly
+  // and are hard-coded to pack_start widgets to self->widget.
+  // So we need to store the main widget first, stupidly update the ref to self->widget,
+  // as we add boxes and restore it last to the main widget.
+  // The guy who thought of that should really burn his computer and do everyone a favour.
+  GtkWidget *main_widget = self->widget = GTK_WIDGET(gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE));
+
+  g->mode = dt_bauhaus_combobox_from_params(self, N_("mode"));
+
   g->mode_stack = GTK_STACK(gtk_stack_new());
   gtk_stack_set_homogeneous(GTK_STACK(g->mode_stack),FALSE);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->mode_stack), TRUE, TRUE, 0);
 
   GtkWidget *vbox_manual = self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
   gtk_stack_add_named(GTK_STACK(g->mode_stack), vbox_manual, "manual");
@@ -999,6 +1010,14 @@ void gui_init(struct dt_iop_module_t *self)
   dt_bauhaus_slider_set_digits(g->exposure, 3);
   dt_bauhaus_slider_set_format(g->exposure, _(" EV"));
   dt_bauhaus_slider_set_soft_range(g->exposure, -3.0, 4.0);
+
+  g->black = dt_bauhaus_slider_from_params(self, "black");
+  gtk_widget_set_tooltip_text(g->black, _("adjust the black level to unclip negative RGB values.\n"
+                                          "you should never use it to add more density in blacks!\n"
+                                          "if poorly set, it will clip near-black colors out of gamut\n"
+                                          "by pushing RGB values into negatives."));
+  dt_bauhaus_slider_set_digits(g->black, 4);
+  dt_bauhaus_slider_set_soft_range(g->black, -0.1, 0.1);
 
   GtkWidget *vbox_deflicker = self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
   gtk_stack_add_named(GTK_STACK(g->mode_stack), vbox_deflicker, "deflicker");
@@ -1024,22 +1043,6 @@ void gui_init(struct dt_iop_module_t *self)
   g->deflicker_computed_exposure = NAN;
   dt_iop_gui_leave_critical_section(self);
 
-  gtk_box_pack_start(GTK_BOX(vbox_deflicker), GTK_WIDGET(hbox1), FALSE, FALSE, 0);
-
-  // Start building top level widget
-  self->widget = GTK_WIDGET(gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE));
-
-  g->mode = dt_bauhaus_combobox_from_params(self, N_("mode"));
-
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->mode_stack), TRUE, TRUE, 0);
-
-  g->black = dt_bauhaus_slider_from_params(self, "black");
-  gtk_widget_set_tooltip_text(g->black, _("adjust the black level to unclip negative RGB values.\n"
-                                          "you should never use it to add more density in blacks!\n"
-                                          "if poorly set, it will clip near-black colors out of gamut\n"
-                                          "by pushing RGB values into negatives."));
-  dt_bauhaus_slider_set_digits(g->black, 4);
-  dt_bauhaus_slider_set_soft_range(g->black, -0.1, 0.1);
 
   dt_gui_new_collapsible_section
     (&g->cs,
@@ -1104,6 +1107,8 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(g->cs.container), GTK_WIDGET(hhbox), FALSE, FALSE, 0);
 
   g_signal_connect(G_OBJECT(self->widget), "draw", G_CALLBACK(_draw), self);
+
+  self->widget = main_widget;
 
   /* register hooks with current dev so that  histogram
      can interact with this module.
