@@ -813,41 +813,67 @@ static const dt_dev_history_item_t * _find_previous_history_step(const dt_dev_hi
   return hitem;
 }
 
-static gboolean _changes_tooltip_callback(GtkWidget *widget, gint x, gint y, gboolean keyboard_mode,
-                                          GtkTooltip *tooltip, dt_dev_history_item_t *hitem)
+#define add_blend_history_change(field, format, label)                                                            \
+  if((hitem->blend_params->field) != (old_blend->field))                                                          \
+  {                                                                                                               \
+    gchar *full_format = g_strconcat("%s\t", format, "\t\u2192\t", format, NULL);                                 \
+    change_parts[num_parts++]                                                                                     \
+        = g_strdup_printf(full_format, label, (old_blend->field), (hitem->blend_params->field));                  \
+    g_free(full_format);                                                                                          \
+  }
+
+#define add_blend_history_change_enum(field, label, list)                                                         \
+  if((hitem->blend_params->field) != (old_blend->field))                                                          \
+  {                                                                                                               \
+    const char *old_str = NULL, *new_str = NULL;                                                                  \
+    for(const dt_develop_name_value_t *i = list; *i->name; i++)                                                   \
+    {                                                                                                             \
+      if(i->value == (old_blend->field)) old_str = i->name;                                                       \
+      if(i->value == (hitem->blend_params->field)) new_str = i->name;                                             \
+    }                                                                                                             \
+                                                                                                                  \
+    change_parts[num_parts++]                                                                                     \
+        = (!old_str || !new_str)                                                                                  \
+              ? g_strdup_printf("%s\t%d\t\u2192\t%d", label, old_blend->field, hitem->blend_params->field)        \
+              : g_strdup_printf("%s\t%s\t\u2192\t%s", label, _(g_dpgettext2(NULL, "blendmode", old_str)),         \
+                                _(g_dpgettext2(NULL, "blendmode", new_str)));                                     \
+  }
+
+#define add_history_change(field, format, label)                                                                  \
+  if((hitem->field) != (hprev->field))                                                                            \
+  {                                                                                                               \
+    gchar *full_format = g_strconcat("%s\t", format, "\t\u2192\t", format, NULL);                                 \
+    change_parts[num_parts++] = g_strdup_printf(full_format, label, (hprev->field), (hitem->field));              \
+    g_free(full_format);                                                                                          \
+  }
+
+#define add_history_change_string(field, label)                                                                   \
+  if(strcmp(hitem->field, hprev->field))                                                                          \
+  {                                                                                                               \
+    change_parts[num_parts++]                                                                                     \
+        = g_strdup_printf("%s\t\"%s\"\t\u2192\t\"%s\"", label, (hprev->field), (hitem->field));                   \
+  }
+
+#define add_history_change_boolean(field, label)                                                                  \
+  if((hitem->field) != (hprev->field))                                                                            \
+  {                                                                                                               \
+    change_parts[num_parts++] = g_strdup_printf("%s\t%s\t\u2192\t%s", label, (hprev->field) ? _("on") : _("off"), \
+                                                (hitem->field) ? _("on") : _("off"));                             \
+  }
+
+
+static gchar *_create_tooltip_text(const dt_dev_history_item_t *hitem)
 {
+  if(!hitem || !hitem->module) return NULL;
+
   const dt_dev_history_item_t *hprev = _find_previous_history_step(hitem);
-  dt_iop_params_t *old_params = (hprev == hitem || hprev == NULL) ? hitem->module->default_params : hprev->module->params;
-  dt_develop_blend_params_t *old_blend = (hprev == hitem || hprev == NULL) ? hitem->module->default_blendop_params : hprev->module->blend_params;
+  dt_iop_params_t *old_params
+      = (hprev == hitem || hprev == NULL) ? hitem->module->default_params : hprev->module->params;
+  dt_develop_blend_params_t *old_blend
+      = (hprev == hitem || hprev == NULL) ? hitem->module->default_blendop_params : hprev->module->blend_params;
 
-
-  gchar **change_parts = g_malloc0_n(sizeof(dt_develop_blend_params_t) / (sizeof(float)) + 10, sizeof(char*));
+  gchar **change_parts = g_malloc0_n(sizeof(dt_develop_blend_params_t) / (sizeof(float)) + 24, sizeof(char*));
   int num_parts = 0;
-
-  #define add_history_change(field, format, label)                                           \
-  if((hitem->field) != (hprev->field))                                                       \
-  {                                                                                          \
-    gchar *full_format = g_strconcat("%s\t", format, "\t\u2192\t", format, NULL);            \
-    change_parts[num_parts++] = g_strdup_printf(full_format, label,                          \
-                                (hprev->field), (hitem->field));                             \
-    g_free(full_format);                                                                     \
-  }
-
-  #define add_history_change_string(field, label)                                            \
-  if(strcmp(hitem->field, hprev->field))                                                     \
-  {                                                                                          \
-    change_parts[num_parts++] = g_strdup_printf("%s\t\"%s\"\t\u2192\t\"%s\"",                \
-                                label, (hprev->field), (hitem->field));                      \
-  }
-
-  #define add_history_change_boolean(field, label)                                           \
-  if((hitem->field) != (hprev->field))                                                       \
-  {                                                                                          \
-    change_parts[num_parts++] = g_strdup_printf("%s\t%s\t\u2192\t%s",                        \
-                                label,                                                       \
-                                (hprev->field) ? _("on") : _("off"),                         \
-                                (hitem->field) ? _("on") : _("off"));                        \
-  }
 
   const gboolean enabled_by_default = (hitem->module->force_enable && hitem->module->force_enable(hitem->module, hitem->enabled))
                                       || hitem->module->default_enabled;
@@ -876,33 +902,6 @@ static gboolean _changes_tooltip_callback(GtkWidget *widget, gint x, gint y, gbo
 
   if(hitem->module->flags() & IOP_FLAGS_SUPPORTS_BLENDING)
   {
-    #define add_blend_history_change(field, format, label)                                       \
-      if((hitem->blend_params->field) != (old_blend->field))                                     \
-      {                                                                                          \
-        gchar *full_format = g_strconcat("%s\t", format, "\t\u2192\t", format, NULL);            \
-        change_parts[num_parts++] = g_strdup_printf(full_format, label,                          \
-                                    (old_blend->field), (hitem->blend_params->field));           \
-        g_free(full_format);                                                                     \
-      }
-
-    #define add_blend_history_change_enum(field, label, list)                                    \
-      if((hitem->blend_params->field) != (old_blend->field))                                     \
-      {                                                                                          \
-        const char *old_str = NULL, *new_str = NULL;                                             \
-        for(const dt_develop_name_value_t *i = list; *i->name; i++)                              \
-        {                                                                                        \
-          if(i->value == (old_blend->field)) old_str = i->name;                                  \
-          if(i->value == (hitem->blend_params->field)) new_str = i->name;                        \
-        }                                                                                        \
-                                                                                                 \
-        change_parts[num_parts++] = (!old_str || !new_str)                                       \
-                                  ? g_strdup_printf("%s\t%d\t\u2192\t%d", label,                 \
-                                                    old_blend->field, hitem->blend_params->field)\
-                                  : g_strdup_printf("%s\t%s\t\u2192\t%s", label,                 \
-                                                    _(g_dpgettext2(NULL, "blendmode", old_str)), \
-                                                    _(g_dpgettext2(NULL, "blendmode", new_str)));\
-      }
-
     add_blend_history_change_enum(blend_cst, _("colorspace"), dt_develop_blend_colorspace_names);
     add_blend_history_change_enum(mask_mode, _("mask mode"), dt_develop_mask_mode_names);
     add_blend_history_change_enum(blend_mode & DEVELOP_BLEND_MODE_MASK, _("blend mode"), dt_develop_blend_mode_names);
@@ -980,57 +979,59 @@ static gboolean _changes_tooltip_callback(GtkWidget *widget, gint x, gint y, gbo
   gchar *tooltip_text = g_strjoinv("\n", change_parts);
   g_strfreev(change_parts);
 
-  gboolean show_tooltip = *tooltip_text;
+  return tooltip_text;
+}
 
-  if(show_tooltip)
+static gboolean _changes_tooltip_callback(GtkWidget *widget, gint x, gint y, gboolean keyboard_mode,
+                                          GtkTooltip *tooltip)
+{
+  const gchar *tooltip_text = g_object_get_data(G_OBJECT(widget), "tooltip-text");
+  if(!tooltip_text || !tooltip_text[0]) return FALSE;
+
+  static GtkWidget *view = NULL;
+  if(!view)
   {
-    static GtkWidget *view = NULL;
-    if(!view)
-    {
-      view = gtk_text_view_new();
-      dt_gui_add_class(view, "dt_transparent_background");
-      dt_gui_add_class(view, "dt_monospace");
-      g_signal_connect(G_OBJECT(view), "destroy", G_CALLBACK(gtk_widget_destroyed), &view);
-    }
-
-    GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
-    gtk_text_buffer_set_text(buffer, tooltip_text, -1);
-    gtk_tooltip_set_custom(tooltip, view);
-    gtk_widget_map(view); // FIXME: workaround added in order to fix #9908, probably a Gtk issue, remove when fixed upstream
-
-    int count_column1 = 0, count_column2 = 0;
-    for(gchar *line = tooltip_text; *line; )
-    {
-      gchar *endline = g_strstr_len(line, -1, "\n");
-      if(!endline) endline = line + strlen(line);
-
-      gchar *found_tab1 = g_strstr_len(line, endline - line, "\t");
-      if(found_tab1)
-      {
-        if(found_tab1 - line >= count_column1) count_column1 = found_tab1 - line + 1;
-
-        gchar *found_tab2 = g_strstr_len(found_tab1 + 1, endline - found_tab1 - 1, "\t");
-        if(found_tab2 - found_tab1 > count_column2) count_column2 = found_tab2 - found_tab1;
-      }
-
-      line = endline;
-      if(*line) line++;
-    }
-
-    PangoLayout *layout = gtk_widget_create_pango_layout(view, " ");
-    int char_width;
-    pango_layout_get_size(layout, &char_width, NULL);
-    g_object_unref(layout);
-    PangoTabArray *tabs = pango_tab_array_new_with_positions(3, FALSE, PANGO_TAB_LEFT, (count_column1) * char_width,
-                                                                       PANGO_TAB_LEFT, (count_column1 + count_column2) * char_width,
-                                                                       PANGO_TAB_LEFT, (count_column1 + count_column2 + 2) * char_width);
-    gtk_text_view_set_tabs(GTK_TEXT_VIEW(view), tabs);
-    pango_tab_array_free(tabs);
+    view = gtk_text_view_new();
+    dt_gui_add_class(view, "dt_transparent_background");
+    dt_gui_add_class(view, "dt_monospace");
+    g_signal_connect(G_OBJECT(view), "destroy", G_CALLBACK(gtk_widget_destroyed), &view);
   }
 
-  g_free(tooltip_text);
+  GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(view));
+  gtk_text_buffer_set_text(buffer, tooltip_text, -1);
+  gtk_tooltip_set_custom(tooltip, view);
+  gtk_widget_map(view); // FIXME: workaround added in order to fix #9908, probably a Gtk issue, remove when fixed upstream
 
-  return show_tooltip;
+  int count_column1 = 0, count_column2 = 0;
+  for(gchar *line = (gchar *)tooltip_text; *line;)
+  {
+    gchar *endline = g_strstr_len(line, -1, "\n");
+    if(!endline) endline = line + strlen(line);
+
+    gchar *found_tab1 = g_strstr_len(line, endline - line, "\t");
+    if(found_tab1)
+    {
+      if(found_tab1 - line >= count_column1) count_column1 = found_tab1 - line + 1;
+
+      gchar *found_tab2 = g_strstr_len(found_tab1 + 1, endline - found_tab1 - 1, "\t");
+      if(found_tab2 - found_tab1 > count_column2) count_column2 = found_tab2 - found_tab1;
+    }
+
+    line = endline;
+    if(*line) line++;
+  }
+
+  PangoLayout *layout = gtk_widget_create_pango_layout(view, " ");
+  int char_width;
+  pango_layout_get_size(layout, &char_width, NULL);
+  g_object_unref(layout);
+  PangoTabArray *tabs = pango_tab_array_new_with_positions(3, FALSE, PANGO_TAB_LEFT, (count_column1) * char_width,
+                                                                      PANGO_TAB_LEFT, (count_column1 + count_column2) * char_width,
+                                                                      PANGO_TAB_LEFT, (count_column1 + count_column2 + 2) * char_width);
+  gtk_text_view_set_tabs(GTK_TEXT_VIEW(view), tabs);
+  pango_tab_array_free(tabs);
+
+  return TRUE;
 }
 
 static void _lib_history_change_callback(gpointer instance, gpointer user_data)
@@ -1095,10 +1096,12 @@ static void _lib_history_change_callback(gpointer instance, gpointer user_data)
     gchar *star = (hitem == _find_previous_history_step(hitem) && enabled_by_default) ? " *" : "";
 
     gchar *label;
+    gchar *clean_name = delete_underscore(hitem->module->name());
     if(!hitem->multi_name[0] || strcmp(hitem->multi_name, "0") == 0)
-      label = g_strdup_printf("%s%s", delete_underscore(hitem->module->name()), star);
+      label = g_strdup_printf("%s%s", clean_name, star);
     else
-      label = g_strdup_printf("%s %s%s", delete_underscore(hitem->module->name()), hitem->multi_name, star);
+      label = g_strdup_printf("%s %s%s", clean_name, hitem->multi_name, star);
+    g_free(clean_name);
 
     const gboolean selected = (num == dt_dev_get_history_end(darktable.develop) - 1);
     widget =
@@ -1108,8 +1111,10 @@ static void _lib_history_change_callback(gpointer instance, gpointer user_data)
 
     g_free(label);
 
+    // FIXME: is that a memleak ?
+    g_object_set_data(G_OBJECT(widget), "tooltip-text", _create_tooltip_text(hitem));
     gtk_widget_set_has_tooltip(widget, TRUE);
-    g_signal_connect(G_OBJECT(widget), "query-tooltip", G_CALLBACK(_changes_tooltip_callback), (void *)hitem);
+    g_signal_connect(G_OBJECT(widget), "query-tooltip", G_CALLBACK(_changes_tooltip_callback), NULL);
 
     gtk_box_pack_start(GTK_BOX(d->history_box), widget, FALSE, FALSE, 0);
     gtk_box_reorder_child(GTK_BOX(d->history_box), widget, 0);
