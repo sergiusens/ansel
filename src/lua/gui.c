@@ -106,25 +106,6 @@ static int _current_view_cb(lua_State *L)
   return 1;
 }
 
-static int _action_cb(lua_State *L)
-{
-  const gchar *action = luaL_checkstring(L, 1);
-  int instance = luaL_checkinteger(L, 2);
-  const gchar *element = lua_type(L, 3) == LUA_TSTRING ? luaL_checkstring(L, 3) : NULL;
-  const gchar *effect = lua_type(L, 4) == LUA_TSTRING ? luaL_checkstring(L, 4) : NULL;
-
-  float move_size = NAN;
-
-  if(lua_type(L, 5) == LUA_TNUMBER ||
-     (lua_type(L, 5) == LUA_TSTRING && strlen(luaL_checkstring(L, 5)) > 0))
-  {
-    move_size = luaL_checknumber(L, 5);
-  }
-
-
-  return 1;
-}
-
 static int _panel_visible_cb(lua_State *L)
 {
   dt_ui_panel_t p;
@@ -377,9 +358,6 @@ int dt_lua_init_gui(lua_State *L)
     lua_pushcfunction(L, _current_view_cb);
     lua_pushcclosure(L, dt_lua_type_member_common, 1);
     dt_lua_type_register_const_type(L, type_id, "current_view");
-    lua_pushcfunction(L, _action_cb);
-    lua_pushcclosure(L, dt_lua_type_member_common, 1);
-    dt_lua_type_register_const_type(L, type_id, "action");
     lua_pushcfunction(L, _panel_visible_cb);
     lua_pushcclosure(L, dt_lua_type_member_common, 1);
     dt_lua_type_register_const_type(L, type_id, "panel_visible");
