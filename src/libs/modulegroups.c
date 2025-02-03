@@ -75,7 +75,7 @@ static gboolean _focus_next_module();
 static gboolean _focus_previous_module();
 static gboolean _focus_next_control();
 static gboolean _focus_previous_control();
-
+static gboolean _is_module_in_history(const dt_iop_module_t *module);
 
 const char *name(struct dt_lib_module_t *self)
 {
@@ -253,8 +253,9 @@ static void _focus_module(dt_iop_module_t *module)
 {
   if(module && dt_iop_gui_module_is_visible(module))
   {
-    dt_gui_module_t *m = (dt_gui_module_t *)module;
-    m->focus(m, FALSE);
+    dt_iop_request_focus(module);
+    dt_iop_gui_set_expanded(module, TRUE, TRUE);
+    darktable.gui->scroll_to[1] = module->expander;
   }
   else
   {
@@ -267,7 +268,8 @@ static dt_iop_module_t *_module_from_active_group(dt_iop_module_t *mod, uint32_t
 {
   if(!mod) return NULL; // that should never happen
 
-  if(dt_is_module_in_group(mod, current_group))
+  if(dt_iop_gui_module_is_visible(mod) &&
+    (dt_is_module_in_group(mod, current_group) || _is_module_in_history(mod)))
     return mod;
   else
     return NULL;
