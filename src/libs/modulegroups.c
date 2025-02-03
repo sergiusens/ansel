@@ -329,13 +329,38 @@ static gboolean _focus_previous_module()
 
 static gboolean _is_valid_widget(GtkWidget *widget)
 {
-  return gtk_widget_is_visible(widget) && gtk_widget_is_sensitive(widget);
+  // The parent will always be a GtkBox
+  GtkWidget *parent = gtk_widget_get_parent(widget);
+  GtkWidget *grandparent = gtk_widget_get_parent(parent);
+  GType type = G_OBJECT_TYPE(grandparent);
+
+  gboolean visible_parent = TRUE;
+
+  if(type == GTK_TYPE_NOTEBOOK)
+  {
+    // Find the page in which the current widget is and try to show it
+    gint page_num = gtk_notebook_page_num(GTK_NOTEBOOK(grandparent), parent);
+    if(page_num > -1)
+      gtk_notebook_set_current_page(GTK_NOTEBOOK(grandparent), page_num);
+    else
+      visible_parent = FALSE;
+  }
+  else if(type == GTK_TYPE_STACK)
+  {
+    // Stack pages are enabled based on user parameteters,
+    // so if not visible, then do nothing.
+    GtkWidget *visible_child = gtk_stack_get_visible_child(GTK_STACK(grandparent));
+    if(visible_child != parent) visible_parent = FALSE;
+  }
+
+  return gtk_widget_is_visible(widget) && gtk_widget_is_sensitive(widget) && gtk_widget_get_realized(widget)
+         && visible_parent;
 }
 
 
 // Because Gtk can't focus on invisible widgets without errors
 // (and weird behaviour on user's end), getting the first widget in the list is not enough.
-static GList *_find_previous_visible_widget(GList *widgets)
+static GList *_find_next_visible_widget(GList *widgets)
 {
   for(GList *first = widgets; first; first = g_list_next(first))
   {
@@ -346,7 +371,7 @@ static GList *_find_previous_visible_widget(GList *widgets)
 }
 
 
-static GList *_find_next_visible_widget(GList *widgets)
+static GList *_find_previous_visible_widget(GList *widgets)
 {
   for(GList *last = widgets; last; last = g_list_previous(last))
   {
@@ -405,6 +430,7 @@ static gboolean _focus_previous_control()
   {
     GList *current_item = g_list_find(m->widget_list, current_widget);
     GList *previous_item = _find_previous_visible_widget(g_list_previous(current_item));
+
     // Select the previous item, if any
     if(previous_item)
       bauhaus_request_focus(DT_BAUHAUS_WIDGET(previous_item->data));
