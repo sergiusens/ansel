@@ -1144,7 +1144,7 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
     // Wire the focusing action
     // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.
     // No need to wire all possible events/interactions.
-    if(!w->no_accels)
+    if(!w->no_accels && !w->module->deprecated)
     {
       gchar *plugin_name = g_strdup_printf("%s/%s/%s", m->name, (w->type == DT_BAUHAUS_SLIDER) ? _("Slider") : _("Combobox"), label);
       gchar *scope = g_strdup_printf("%s/Plugins", m->view);

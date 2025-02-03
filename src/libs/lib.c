@@ -649,6 +649,7 @@ static int dt_lib_load_module(void *m, const char *libname, const char *module_n
   module->common_fields.widget_list = NULL;
   module->common_fields.widget_list_bh = NULL;
   module->common_fields.focus = module->lib_focus;
+  module->common_fields.deprecated = FALSE;
 
   return 0;
 }

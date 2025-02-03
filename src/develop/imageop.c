@@ -431,6 +431,7 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   module->common_fields.widget_list = NULL;
   module->common_fields.widget_list_bh = NULL;
   module->common_fields.focus = module->iop_focus;
+  module->common_fields.deprecated = (module->flags() & IOP_FLAGS_DEPRECATED) == IOP_FLAGS_DEPRECATED;
 
   return 0;
 }

@@ -33,6 +33,9 @@ struct dt_gui_module_t
   /** translated name of the view */
   char *view;
 
+  /** this module will not appear in view for new edits */
+  gboolean deprecated;
+
   /** give focus to the current module and adapt other parts of the GUI if needed
    * @param toggle if TRUE, adopt a show/hide behaviour. Otherwise, always show.
   */
