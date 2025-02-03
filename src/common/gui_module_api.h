@@ -24,8 +24,8 @@ typedef struct dt_gui_module_t dt_gui_module_t;
 struct dt_gui_module_t
 {
   /* list of children widgets */
-  GSList *widget_list;
-  GSList *widget_list_bh;
+  GList *widget_list;
+  GList *widget_list_bh;
 
   /** translated name of the module */
   char *name;

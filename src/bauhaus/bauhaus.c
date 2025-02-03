@@ -323,6 +323,10 @@ void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
 {
   if(w->module) w->module->focus(w->module, FALSE);
 
+  // If the widget is not visible, then Gtk will throw a critical error
+  // because it can't be realized
+  if(!gtk_widget_is_visible(GTK_WIDGET(w)) || !gtk_widget_is_sensitive(GTK_WIDGET(w))) return;
+
   gtk_widget_grab_focus(GTK_WIDGET(w));
   gtk_widget_set_state_flags(GTK_WIDGET(w), GTK_STATE_FLAG_FOCUSED, TRUE);
 
@@ -1136,12 +1140,10 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     // Widgets auto-set by params introspection need to be added to the list of stuff to auto-update
     dt_gui_module_t *m = w->module;
     if(m && w->field)
-      m->widget_list = g_slist_prepend(m->widget_list, w);
+      m->widget_list = g_list_append(m->widget_list, w);
 
     if(w->field && m->widget_list && ((gpointer)m->widget_list->data) == (gpointer)widget)
-    {
-      m->widget_list_bh = g_slist_prepend(m->widget_list_bh, w);
-    }
+      m->widget_list_bh = g_list_append(m->widget_list_bh, w);
 
     // Wire the focusing action
     // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.

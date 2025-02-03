@@ -253,9 +253,8 @@ static void _focus_module(dt_iop_module_t *module)
 {
   if(module && dt_iop_gui_module_is_visible(module))
   {
-    dt_iop_request_focus(module);
-    dt_iop_gui_set_expanded(module, TRUE, TRUE);
-    darktable.gui->scroll_to[1] = module->expander;
+    dt_gui_module_t *m = (dt_gui_module_t *)module;
+    m->focus(m, FALSE);
   }
   else
   {
@@ -328,6 +327,36 @@ static gboolean _focus_previous_module()
   return TRUE;
 }
 
+static gboolean _is_valid_widget(GtkWidget *widget)
+{
+  return gtk_widget_is_visible(widget) && gtk_widget_is_sensitive(widget);
+}
+
+
+// Because Gtk can't focus on invisible widgets without errors
+// (and weird behaviour on user's end), getting the first widget in the list is not enough.
+static GList *_find_previous_visible_widget(GList *widgets)
+{
+  for(GList *first = widgets; first; first = g_list_next(first))
+  {
+    GtkWidget *widget = (GtkWidget *)first->data;
+    if(_is_valid_widget(widget)) return first;
+  }
+  return NULL;
+}
+
+
+static GList *_find_next_visible_widget(GList *widgets)
+{
+  for(GList *last = widgets; last; last = g_list_previous(last))
+  {
+    GtkWidget *widget = (GtkWidget *)last->data;
+    if(_is_valid_widget(widget)) return last;
+  }
+  return NULL;
+}
+
+
 static gboolean _focus_next_control()
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
@@ -335,27 +364,26 @@ static gboolean _focus_next_control()
   if(!focused || !m->widget_list) return FALSE;
 
   GtkWidget *current_widget = darktable.gui->has_scroll_focus;
+  GList *first_item = _find_next_visible_widget(g_list_first(m->widget_list));
 
-  // Widgets are prepended in the order of init, so we need to reverse the list
-  GSList *first_item = g_slist_reverse(g_slist_copy(m->widget_list));
-
-  if(!current_widget)
+  if(!current_widget && first_item)
   {
     // No active widget, start by the first
     bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
   }
   else
   {
-    GSList *current_item = g_slist_find(first_item, current_widget);
-    GSList *next_item = g_slist_next(current_item);
-    // Select the next item, if any
-    if(next_item) bauhaus_request_focus(DT_BAUHAUS_WIDGET(next_item->data));
+    GList *current_item = g_list_find(m->widget_list, current_widget);
+    GList *next_item = _find_next_visible_widget(g_list_next(current_item));
+
+    // Select the next visible item, if any
+    if(next_item)
+      bauhaus_request_focus(DT_BAUHAUS_WIDGET(next_item->data));
     // Cycle back to the beginning
     else if(first_item)
       bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
   }
 
-  g_slist_free(first_item);
   return TRUE;
 }
 
@@ -366,19 +394,20 @@ static gboolean _focus_previous_control()
   if(!focused || !m->widget_list) return FALSE;
 
   GtkWidget *current_widget = darktable.gui->has_scroll_focus;
-  GSList *last_item = m->widget_list;
+  GList *last_item = _find_previous_visible_widget(g_list_last(m->widget_list));
 
-  if(!current_widget)
+  if(!current_widget && last_item)
   {
     // No active widget, start by the last
     bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
   }
   else
   {
-    GSList *current_item = g_slist_find(last_item, current_widget);
-    GSList *previous_item = g_slist_next(current_item);
+    GList *current_item = g_list_find(m->widget_list, current_widget);
+    GList *previous_item = _find_previous_visible_widget(g_list_previous(current_item));
     // Select the previous item, if any
-    if(previous_item) bauhaus_request_focus(DT_BAUHAUS_WIDGET(previous_item->data));
+    if(previous_item)
+      bauhaus_request_focus(DT_BAUHAUS_WIDGET(previous_item->data));
     // Cycle back to the end
     else if(last_item)
       bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));

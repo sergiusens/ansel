@@ -796,8 +796,8 @@ static void dt_lib_init_module(void *m)
 void dt_lib_unload_module(dt_lib_module_t *module)
 {
   dt_gui_module_t *m = DT_GUI_MODULE(module);
-  g_slist_free(m->widget_list);
-  g_slist_free(m->widget_list_bh);
+  g_list_free(m->widget_list);
+  g_list_free(m->widget_list_bh);
   g_free(m->name);
   g_free(m->view);
 

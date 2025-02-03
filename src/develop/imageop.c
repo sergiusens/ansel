@@ -541,8 +541,8 @@ static void _gui_delete_callback(GtkButton *button, dt_iop_module_t *module)
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   dt_gui_module_t *m = DT_GUI_MODULE(module);
-  g_slist_free(m->widget_list);
-  g_slist_free(m->widget_list_bh);
+  g_list_free(m->widget_list);
+  g_list_free(m->widget_list_bh);
   g_free(m->name);
   g_free(m->view);
 
@@ -1736,8 +1736,8 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   dt_gui_module_t *m = DT_GUI_MODULE(module);
-  g_slist_free(m->widget_list);
-  g_slist_free(m->widget_list_bh);
+  g_list_free(m->widget_list);
+  g_list_free(m->widget_list_bh);
   g_free(m->name);
   g_free(m->view);
 
@@ -2820,7 +2820,7 @@ void dt_bauhaus_update_module(dt_iop_module_t *self)
 {
   dt_gui_module_t *m = DT_GUI_MODULE(self);
 
-  for(GSList *w = m->widget_list_bh; w; w = w->next)
+  for(GList *w = m->widget_list_bh; w; w = g_list_next(w))
   {
     GtkWidget *widget = (GtkWidget *)w->data;
     struct dt_bauhaus_widget_t *bhw = DT_BAUHAUS_WIDGET(widget);
@@ -2941,9 +2941,10 @@ void dt_bauhaus_value_changed_default_callback(GtkWidget *widget)
         default:
           fprintf(stderr, "[_bauhaus_combobox_set] unsupported combo data type\n");
       }
+      break;
     }
     default:
-        fprintf(stderr, "[dt_bauhaus_value_changed_default_callback] invalid bauhaus widget type encountered\n");
+      fprintf(stderr, "[dt_bauhaus_value_changed_default_callback] invalid bauhaus widget type encountered for %s %s: %i\n", w->label, w->module->name, w->type);
   }
 }
 
