@@ -996,7 +996,7 @@ static void _iop_panel_label(dt_iop_module_t *module)
   GtkWidget *lab = dt_gui_container_nth_child(GTK_CONTAINER(module->header), IOP_MODULE_LABEL);
   lab = gtk_bin_get_child(GTK_BIN(lab));
   gtk_widget_set_name(lab, "iop-panel-label");
-  char *module_name = dt_history_item_get_name_html(module);
+  char *module_name = dt_history_item_get_label(module);
 
   dt_capitalize_label(module_name);
   gtk_label_set_markup_with_mnemonic(GTK_LABEL(lab), module_name);

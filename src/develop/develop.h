@@ -502,9 +502,14 @@ void dt_dev_module_remove(dt_develop_t *dev, struct dt_iop_module_t *module);
 void dt_dev_module_update_multishow(dt_develop_t *dev, struct dt_iop_module_t *module);
 /** same, but for all modules */
 void dt_dev_modules_update_multishow(dt_develop_t *dev);
-/** generates item multi-instance name */
+
+/** generates item multi-instance name without mnemonics */
 gchar *dt_history_item_get_name(const struct dt_iop_module_t *module);
 gchar *dt_history_item_get_name_html(const struct dt_iop_module_t *module);
+
+/** generate item multi-instance name with mnemonics, for Gtk labels */
+gchar *dt_history_item_get_label(const struct dt_iop_module_t *module);
+
 
 /*
  * distort functions
