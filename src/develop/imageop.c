@@ -2820,7 +2820,7 @@ void dt_bauhaus_update_module(dt_iop_module_t *self)
 {
   dt_gui_module_t *m = DT_GUI_MODULE(self);
 
-  for(GList *w = m->widget_list_bh; w; w = g_list_next(w))
+  for(GList *w = g_list_first(m->widget_list_bh); w; w = g_list_next(w))
   {
     GtkWidget *widget = (GtkWidget *)w->data;
     struct dt_bauhaus_widget_t *bhw = DT_BAUHAUS_WIDGET(widget);
