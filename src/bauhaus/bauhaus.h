@@ -388,6 +388,14 @@ static inline void set_color(cairo_t *cr, GdkRGBA color)
   cairo_set_source_rgba(cr, color.red, color.green, color.blue, color.alpha);
 }
 
+/**
+ * @brief Tell the widget to use the globally-defined default callback in the bauhaus structure
+ * This callback needs to be defined first, of course.
+ *
+ * @param widget
+ */
+void dt_bauhaus_set_use_default_callback(GtkWidget *widget);
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

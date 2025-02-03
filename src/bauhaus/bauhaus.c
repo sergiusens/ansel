@@ -1553,11 +1553,13 @@ static gint _delayed_combobox_commit(gpointer data)
   }
   else
   {
-    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
     if(w->module)
       fprintf(stderr, "WARNING: %s - %s has an IOP module but doesn't use default callback\n", w->module->name,
             w->label);
   }
+
+  // We need te emit this signal inconditionnaly
+  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
 
   return G_SOURCE_REMOVE;
 }
@@ -2704,12 +2706,13 @@ static gboolean _delayed_slider_commit(gpointer data)
   }
   else
   {
-    g_signal_emit_by_name(G_OBJECT(w), "value-changed");
-
     if(w->module)
       fprintf(stderr, "WARNING: %s - %s has an IOP module but doesn't use default callback\n", w->module->name,
             w->label);
   }
+
+  // We need te emit this signal inconditionnaly
+  g_signal_emit_by_name(G_OBJECT(w), "value-changed");
 
   return G_SOURCE_REMOVE;
 }
@@ -3004,6 +3007,12 @@ void dt_bauhaus_disable_accels(GtkWidget *widget)
 {
   struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
   w->no_accels = TRUE;
+}
+
+void dt_bauhaus_set_use_default_callback(GtkWidget *widget)
+{
+  struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
+  w->use_default_callback = TRUE;
 }
 
 // clang-format off
