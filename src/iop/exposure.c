@@ -1043,6 +1043,7 @@ void gui_init(struct dt_iop_module_t *self)
   g->deflicker_computed_exposure = NAN;
   dt_iop_gui_leave_critical_section(self);
 
+  self->widget = main_widget;
 
   dt_gui_new_collapsible_section
     (&g->cs,
@@ -1107,8 +1108,6 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(g->cs.container), GTK_WIDGET(hhbox), FALSE, FALSE, 0);
 
   g_signal_connect(G_OBJECT(self->widget), "draw", G_CALLBACK(_draw), self);
-
-  self->widget = main_widget;
 
   /* register hooks with current dev so that  histogram
      can interact with this module.
