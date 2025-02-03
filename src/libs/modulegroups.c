@@ -389,6 +389,21 @@ static GList *_find_previous_visible_widget(GList *widgets)
   return NULL;
 }
 
+static void _focus_widget(GtkWidget *widget)
+{
+  GType type = G_OBJECT_TYPE(widget);
+
+  if(type == DT_BAUHAUS_WIDGET_TYPE)
+  {
+    bauhaus_request_focus(DT_BAUHAUS_WIDGET(widget));
+  }
+  else if(gtk_widget_get_can_focus(widget))
+  {
+    gtk_widget_grab_focus(widget);
+    darktable.gui->has_scroll_focus = widget;
+  }
+}
+
 
 static gboolean _focus_next_control()
 {
@@ -402,7 +417,7 @@ static gboolean _focus_next_control()
   if(!current_widget && first_item)
   {
     // No active widget, start by the first
-    bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
+    _focus_widget(GTK_WIDGET(first_item->data));
   }
   else
   {
@@ -411,10 +426,10 @@ static gboolean _focus_next_control()
 
     // Select the next visible item, if any
     if(next_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(next_item->data));
+      _focus_widget(GTK_WIDGET(next_item->data));
     // Cycle back to the beginning
     else if(first_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(first_item->data));
+      _focus_widget(GTK_WIDGET(first_item->data));
   }
 
   return TRUE;
@@ -432,7 +447,7 @@ static gboolean _focus_previous_control()
   if(!current_widget && last_item)
   {
     // No active widget, start by the last
-    bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
+    _focus_widget(GTK_WIDGET(last_item->data));
   }
   else
   {
@@ -441,10 +456,10 @@ static gboolean _focus_previous_control()
 
     // Select the previous item, if any
     if(previous_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(previous_item->data));
+      _focus_widget(GTK_WIDGET(previous_item->data));
     // Cycle back to the end
     else if(last_item)
-      bauhaus_request_focus(DT_BAUHAUS_WIDGET(last_item->data));
+      _focus_widget(GTK_WIDGET(last_item->data));
   }
 
   return TRUE;
