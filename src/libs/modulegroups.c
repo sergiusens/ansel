@@ -263,65 +263,71 @@ static void _focus_module(dt_iop_module_t *module)
   }
 }
 
-static gboolean _focus_next_module()
+static dt_iop_module_t *_module_from_active_group(dt_iop_module_t *mod, uint32_t current_group)
 {
-  dt_iop_module_t *focused = darktable.develop->gui_module;
-  if(focused == NULL)
-  {
-    // No focused module : give focus to the first visible module of the stack
-    GList *modules = darktable.develop->iop;
-    if(modules)
-    {
-      modules = g_list_last(modules);
-      dt_iop_module_t *module = NULL;
-      do
-      {
-        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
-        if(mod && dt_iop_gui_module_is_visible(mod))
-        {
-          module = mod;
-          break;
-        }
-      } while((modules = g_list_previous(modules)) != NULL);
-      _focus_module(module);
-    }
-  }
-  else
-  {
-    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
-    _focus_module(dt_iop_gui_get_previous_visible_module(focused));
-  }
+  if(!mod) return NULL; // that should never happen
 
-  return TRUE;
+  if(dt_is_module_in_group(mod, current_group))
+    return mod;
+  else
+    return NULL;
 }
 
+/* WARNING: first/last refer to pipeline nodes order, which is reversed compared to GUI order. */
+static dt_iop_module_t *_find_first_visible_module()
+{
+  uint32_t current_group = dt_dev_modulegroups_get(darktable.develop);
+
+  for(GList *module = g_list_first(darktable.develop->iop); module; module = g_list_next(module))
+  {
+    dt_iop_module_t *mod = (dt_iop_module_t *)module->data;
+    if(_module_from_active_group(mod, current_group)) return mod;
+  }
+  return NULL;
+}
+
+static dt_iop_module_t *_find_last_visible_module()
+{
+  uint32_t current_group = dt_dev_modulegroups_get(darktable.develop);
+
+  for(GList *module = g_list_last(darktable.develop->iop); module; module = g_list_previous(module))
+  {
+    dt_iop_module_t *mod = (dt_iop_module_t *)module->data;
+    if(_module_from_active_group(mod, current_group)) return mod;
+  }
+  return NULL;
+}
+
+/* WARNING: next/previous refer to GUI order, which is reversed pipeline order
+* in a "layer over" logic: first pipeline node is at the GUI bottom.
+*/
 static gboolean _focus_previous_module()
 {
   dt_iop_module_t *focused = darktable.develop->gui_module;
   if(focused == NULL)
   {
-    // No focused module : give focus to the last visible module of the stack
-    GList *modules = darktable.develop->iop;
-    if(modules)
-    {
-      modules = g_list_first(modules);
-      dt_iop_module_t *module = NULL;
-      do
-      {
-        dt_iop_module_t *mod = (dt_iop_module_t *)modules->data;
-        if(mod && dt_iop_gui_module_is_visible(mod))
-        {
-          module = mod;
-          break;
-        }
-      } while((modules = g_list_next(modules)) != NULL);
-      _focus_module(module);
-    }
+    _focus_module(_find_first_visible_module());
   }
   else
   {
     dt_iop_gui_set_expanded(focused, FALSE, TRUE);
     _focus_module(dt_iop_gui_get_next_visible_module(focused));
+  }
+
+  return TRUE;
+}
+
+static gboolean _focus_next_module()
+{
+  dt_iop_module_t *focused = darktable.develop->gui_module;
+  if(focused == NULL)
+  {
+    _focus_module(_find_last_visible_module());
+  }
+  else
+  {
+    dt_iop_gui_set_expanded(focused, FALSE, TRUE);
+    _focus_module(dt_iop_gui_get_previous_visible_module(focused));
   }
 
   return TRUE;
