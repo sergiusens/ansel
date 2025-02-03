@@ -1915,37 +1915,37 @@ static void _gui_set_single_expanded(dt_iop_module_t *module, gboolean expanded)
   dt_conf_set_bool(var, expanded);
 }
 
+/** Dim all modules except the one referenced, if any reference, or undim all */
+void _iop_dim_all_but(dt_iop_module_t *module, gboolean dim)
+{
+  for(GList *iop = g_list_first(darktable.develop->iop); iop; iop = g_list_next(iop))
+  {
+    dt_iop_module_t *m = (dt_iop_module_t *)iop->data;
+
+    // Handle invisible modules
+    if(!m || !m->expander) continue;
+
+    if(dim && m != module)
+      dt_gui_add_class(gtk_widget_get_parent(dt_iop_gui_get_pluginui(m)), "module-dimmed");
+    else
+      dt_gui_remove_class(gtk_widget_get_parent(dt_iop_gui_get_pluginui(m)), "module-dimmed");
+  }
+}
+
 void dt_iop_gui_set_expanded(dt_iop_module_t *module, gboolean expanded, gboolean collapse_others)
 {
   if(!module || !module->expander) return;
-  /* handle shiftclick on expander, hide all except this */
   if(collapse_others)
   {
-    const int current_group = dt_dev_modulegroups_get(darktable.develop);
-
-    GList *iop = darktable.develop->iop;
-    gboolean all_other_closed = TRUE;
-    while(iop)
+    for(GList *iop = g_list_first(darktable.develop->iop); iop; iop = g_list_next(iop))
     {
       dt_iop_module_t *m = (dt_iop_module_t *)iop->data;
-      if(m != module && (dt_is_module_in_group(m, current_group) || dt_is_module_group_global(current_group)))
-      {
-        all_other_closed = all_other_closed && !m->expanded;
-        _gui_set_single_expanded(m, FALSE);
-      }
-
-      iop = g_list_next(iop);
+      if(m != module) _gui_set_single_expanded(m, FALSE);
     }
-    if(all_other_closed)
-      _gui_set_single_expanded(module, expanded);
-    else
-      _gui_set_single_expanded(module, TRUE);
   }
-  else
-  {
-    /* else just toggle */
-    _gui_set_single_expanded(module, expanded);
-  }
+
+  _gui_set_single_expanded(module, expanded);
+  _iop_dim_all_but((expanded) ? module : NULL, expanded);
 }
 
 void dt_iop_gui_update_expanded(dt_iop_module_t *module)
@@ -2020,14 +2020,12 @@ static gboolean _iop_plugin_header_button_press(GtkWidget *w, GdkEventButton *e,
     }
     else
     {
+      dt_iop_request_focus(module);
+
       // make gtk scroll to the module once it updated its allocation size
       darktable.gui->scroll_to[1] = module->expander;
-
       gboolean collapse_others = dt_modifier_is(e->state, GDK_SHIFT_MASK) ? FALSE : TRUE;
       dt_iop_gui_set_expanded(module, !module->expanded, collapse_others);
-
-      //used to take focus away from module search text input box when module selected
-      gtk_widget_grab_focus(module->expander);
 
       return TRUE;
     }

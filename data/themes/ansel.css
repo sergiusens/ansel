@@ -1716,6 +1716,10 @@ menuitem:hover > arrow
   font-weight: 800;
 }
 
+.module-dimmed {
+  opacity: 0.5;
+}
+
 .dt_history_switch_off:hover  /* set specific hover effect for disabled modules in history stack */
 {
   color: shade(@fg_color, 0.8);
