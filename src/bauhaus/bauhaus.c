@@ -798,7 +798,6 @@ static void _widget_finalize(GObject *widget)
     g_ptr_array_free(d->entries, TRUE);
     free(d->text);
   }
-  g_free(w->section);
   gtk_border_free(w->margin);
   gtk_border_free(w->padding);
 
@@ -984,7 +983,6 @@ static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, 
   w->module = self;
   w->field = NULL;
 
-  w->section = NULL;
   w->no_accels = FALSE;
   w->bauhaus = bauhaus;
   w->use_default_callback = FALSE;
@@ -1123,7 +1121,7 @@ float dt_bauhaus_slider_get_default(GtkWidget *widget)
 }
 
 
-void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const char *label)
+void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
   memset(w->label, 0, sizeof(w->label)); // keep valgrind happy
@@ -1132,8 +1130,6 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *section, const c
     g_strlcpy(w->label, _(label), sizeof(w->label));
     dt_capitalize_label(w->label);
   }
-
-  if(section) w->section = g_strdup(_(section));
 
   if(w->module)
   {
@@ -1314,11 +1310,11 @@ GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_gui_module_t *self)
   return GTK_WIDGET(w);
 }
 
-GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_gui_module_t *self, const char *section, const char *label, const char *tip,
+GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_gui_module_t *self, const char *label, const char *tip,
                                         int pos, GtkCallback callback, gpointer data, const char **texts)
 {
   GtkWidget *combo = dt_bauhaus_combobox_new(bh, self);
-  dt_bauhaus_widget_set_label(combo, section, label);
+  dt_bauhaus_widget_set_label(combo, label);
   dt_bauhaus_combobox_add_list(combo, texts);
   dt_bauhaus_combobox_set(combo, pos);
   gtk_widget_set_tooltip_text(combo, tip ? tip : _(label));
@@ -1946,10 +1942,7 @@ static void dt_bauhaus_widget_accept(struct dt_bauhaus_widget_t *w, gboolean tim
 
 static gchar *_build_label(const struct dt_bauhaus_widget_t *w)
 {
-  if(w->show_extended_label && w->section)
-    return g_strdup_printf("%s - %s", w->section, w->label);
-  else
-    return g_strdup(w->label);
+  return g_strdup(w->label);
 }
 
 static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer user_data)

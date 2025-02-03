@@ -148,9 +148,6 @@ typedef struct dt_bauhaus_widget_t
   // label text, short
   char label[256];
   gboolean show_label;
-  // section, short
-  gchar *section;
-  gboolean show_extended_label;
   // callback function to draw the quad icon
   dt_bauhaus_quad_paint_f quad_paint;
   // minimal modifiers for paint function.
@@ -161,8 +158,6 @@ typedef struct dt_bauhaus_widget_t
   int quad_toggle;
   // show quad icon or space
   gboolean show_quad;
-  // if a section label
-  gboolean is_section;
 
   // margin and padding structure, defined in css, retrieve on each draw
   GtkBorder *margin, *padding;
@@ -264,13 +259,9 @@ void dt_bauhaus_cleanup(dt_bauhaus_t *bauhaus);
 // load theme colors, fonts, etc
 void dt_bauhaus_load_theme(dt_bauhaus_t *bauhaus);
 
-// set the bauhaus widget as a module section and in this case the font used will be the one
-// from the CSS section_label.
-void dt_bauhaus_widget_set_section(GtkWidget *w, const gboolean is_section);
-
 // common functions:
 // set the label text:
-void dt_bauhaus_widget_set_label(GtkWidget *w, const char *section, const char *label);
+void dt_bauhaus_widget_set_label(GtkWidget *w, const char *label);
 const char* dt_bauhaus_widget_get_label(GtkWidget *w);
 // attach a custom painted quad to the space at the right side (overwriting the default icon if any):
 void dt_bauhaus_widget_set_quad_paint(GtkWidget *w, dt_bauhaus_quad_paint_f f, int paint_flags, void *paint_data);
@@ -336,14 +327,14 @@ float dt_bauhaus_slider_get_default(GtkWidget *widget);
 // combobox:
 void dt_bauhaus_combobox_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t* widget,dt_gui_module_t *self);
 GtkWidget *dt_bauhaus_combobox_new(dt_bauhaus_t *bh, dt_gui_module_t *self);
-GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_gui_module_t *self, const char *section,
+GtkWidget *dt_bauhaus_combobox_new_full(dt_bauhaus_t *bh, dt_gui_module_t *self,
                                         const char *label, const char *tip, int pos, GtkCallback callback,
                                         gpointer data, const char **texts);
 
-#define DT_BAUHAUS_COMBOBOX_NEW_FULL(bauhaus, widget, action, section, label, tip, pos, callback, data, ...)          \
+#define DT_BAUHAUS_COMBOBOX_NEW_FULL(bauhaus, widget, action,  label, tip, pos, callback, data, ...)         \
 {                                                                                                            \
   static const gchar *texts[] = { __VA_ARGS__, NULL };                                                       \
-  widget = dt_bauhaus_combobox_new_full(bauhaus, action, section, label, tip, pos, callback, data, texts); \
+  widget = dt_bauhaus_combobox_new_full(bauhaus, action, label, tip, pos, callback, data, texts);            \
 }
 
 void dt_bauhaus_combobox_add(GtkWidget *widget, const char *text);

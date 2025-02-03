@@ -1338,14 +1338,14 @@ void gui_init(dt_view_t *self)
     /** let's fill the encapsulating widgets */
     GtkWidget *brightness = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 100, 5, 50, 0);
     dt_bauhaus_slider_set(brightness, (int)dt_conf_get_int("display/brightness"));
-    dt_bauhaus_widget_set_label(brightness, NULL, N_("Background brightness"));
+    dt_bauhaus_widget_set_label(brightness, N_("Background brightness"));
     dt_bauhaus_slider_set_format(brightness, "%");
     g_signal_connect(G_OBJECT(brightness), "value-changed", G_CALLBACK(display_brightness_callback), dev);
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(brightness), TRUE, TRUE, 0);
 
     GtkWidget *borders = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 250, 5, 10, 0);
     dt_bauhaus_slider_set(borders, dt_conf_get_int("plugins/darkroom/ui/border_size"));
-    dt_bauhaus_widget_set_label(borders, NULL, N_("Picture margins"));
+    dt_bauhaus_widget_set_label(borders, N_("Picture margins"));
     dt_bauhaus_slider_set_format(borders, "px");
     g_signal_connect(G_OBJECT(borders), "value-changed", G_CALLBACK(display_borders_callback), dev);
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(borders), TRUE, TRUE, 0);
@@ -1373,7 +1373,7 @@ void gui_init(dt_view_t *self)
 
     /** let's fill the encapsulating widgets */
     /* mode of operation */
-    DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, mode, NULL, N_("raw overexposed"), N_("mode"),
+    DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, mode, NULL, N_("mode"),
                                  _("select how to mark the clipped pixels"),
                                  dev->rawoverexposed.mode, rawoverexposed_mode_callback, dev,
                                  N_("mark with CFA color"), N_("mark with solid color"), N_("false color"));
@@ -1382,7 +1382,7 @@ void gui_init(dt_view_t *self)
     /* color scheme */
     // FIXME can't use DT_BAUHAUS_COMBOBOX_NEW_FULL because of (unnecessary?) translation context
     colorscheme = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-    dt_bauhaus_widget_set_label(colorscheme, N_("raw overexposed"), N_("color scheme"));
+    dt_bauhaus_widget_set_label(colorscheme, N_("color scheme"));
     dt_bauhaus_combobox_add(colorscheme, C_("solidcolor", "red"));
     dt_bauhaus_combobox_add(colorscheme, C_("solidcolor", "green"));
     dt_bauhaus_combobox_add(colorscheme, C_("solidcolor", "blue"));
@@ -1397,7 +1397,7 @@ void gui_init(dt_view_t *self)
     /* threshold */
     GtkWidget *threshold = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0.0, 2.0, 0.01, 1.0, 3);
     dt_bauhaus_slider_set(threshold, dev->rawoverexposed.threshold);
-    dt_bauhaus_widget_set_label(threshold, N_("raw overexposed"), N_("clipping threshold"));
+    dt_bauhaus_widget_set_label(threshold, N_("clipping threshold"));
     gtk_widget_set_tooltip_text(
         threshold, _("threshold of what shall be considered overexposed\n1.0 - white level\n0.0 - black level"));
     g_signal_connect(G_OBJECT(threshold), "value-changed", G_CALLBACK(rawoverexposed_threshold_callback), dev);
@@ -1426,14 +1426,14 @@ void gui_init(dt_view_t *self)
 
     /** let's fill the encapsulating widgets */
     /* preview mode */
-    DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, mode, NULL, N_("overexposed"), N_("clipping preview mode"),
+    DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, mode, NULL, N_("clipping preview mode"),
                                  _("select the metric you want to preview\nfull gamut is the combination of all other modes"),
                                  dev->overexposed.mode, mode_callback, dev,
                                  N_("full gamut"), N_("any RGB channel"), N_("luminance only"), N_("saturation only"));
     gtk_box_pack_start(GTK_BOX(vbox), GTK_WIDGET(mode), TRUE, TRUE, 0);
 
     /* color scheme */
-    DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, colorscheme, NULL, N_("overexposed"), N_("color scheme"),
+    DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, colorscheme, NULL, N_("color scheme"),
                                  _("select colors to indicate clipping"),
                                  dev->overexposed.colorscheme, colorscheme_callback, dev,
                                  N_("black & white"), N_("red & blue"), N_("purple & green"));
@@ -1443,7 +1443,7 @@ void gui_init(dt_view_t *self)
     GtkWidget *lower = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), -32., -4., 1., -12.69, 2);
     dt_bauhaus_slider_set(lower, dev->overexposed.lower);
     dt_bauhaus_slider_set_format(lower, _(" EV"));
-    dt_bauhaus_widget_set_label(lower, N_("overexposed"), N_("lower threshold"));
+    dt_bauhaus_widget_set_label(lower, N_("lower threshold"));
     gtk_widget_set_tooltip_text(lower, _("clipping threshold for the black point,\n"
                                          "in EV, relatively to white (0 EV).\n"
                                          "8 bits sRGB clips blacks at -12.69 EV,\n"
@@ -1460,7 +1460,7 @@ void gui_init(dt_view_t *self)
     GtkWidget *upper = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0.0, 100.0, 0.1, 99.99, 2);
     dt_bauhaus_slider_set(upper, dev->overexposed.upper);
     dt_bauhaus_slider_set_format(upper, "%");
-    dt_bauhaus_widget_set_label(upper, N_("overexposed"), N_("upper threshold"));
+    dt_bauhaus_widget_set_label(upper, N_("upper threshold"));
     /* xgettext:no-c-format */
     gtk_widget_set_tooltip_text(upper, _("clipping threshold for the white point.\n"
                                          "100% is peak medium luminance."));
@@ -1505,7 +1505,7 @@ void gui_init(dt_view_t *self)
     dt_loc_get_datadir(datadir, sizeof(datadir));
 
     GtkWidget *softproof_profile = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-    dt_bauhaus_widget_set_label(softproof_profile, N_("profiles"), N_("softproof profile"));
+    dt_bauhaus_widget_set_label(softproof_profile, N_("softproof profile"));
     dt_bauhaus_combobox_set_entries_ellipsis(softproof_profile, PANGO_ELLIPSIZE_MIDDLE);
     gtk_box_pack_start(GTK_BOX(vbox), softproof_profile, TRUE, TRUE, 0);
 

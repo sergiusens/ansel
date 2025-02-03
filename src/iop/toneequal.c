@@ -3128,15 +3128,15 @@ void gui_init(struct dt_iop_module_t *self)
   g->speculars = dt_bauhaus_slider_from_params(self, "speculars");
   dt_bauhaus_slider_set_format(g->speculars, _(" EV"));
 
-  dt_bauhaus_widget_set_label(g->noise, N_("simple"), N_("-8 EV"));
-  dt_bauhaus_widget_set_label(g->ultra_deep_blacks, N_("simple"), N_("-7 EV"));
-  dt_bauhaus_widget_set_label(g->deep_blacks, N_("simple"), N_("-6 EV"));
-  dt_bauhaus_widget_set_label(g->blacks, N_("simple"), N_("-5 EV"));
-  dt_bauhaus_widget_set_label(g->shadows, N_("simple"), N_("-4 EV"));
-  dt_bauhaus_widget_set_label(g->midtones, N_("simple"), N_("-3 EV"));
-  dt_bauhaus_widget_set_label(g->highlights, N_("simple"), N_("-2 EV"));
-  dt_bauhaus_widget_set_label(g->whites, N_("simple"), N_("-1 EV"));
-  dt_bauhaus_widget_set_label(g->speculars, N_("simple"), N_("+0 EV"));
+  dt_bauhaus_widget_set_label(g->noise, N_("-8 EV"));
+  dt_bauhaus_widget_set_label(g->ultra_deep_blacks, N_("-7 EV"));
+  dt_bauhaus_widget_set_label(g->deep_blacks, N_("-6 EV"));
+  dt_bauhaus_widget_set_label(g->blacks, N_("-5 EV"));
+  dt_bauhaus_widget_set_label(g->shadows, N_("-4 EV"));
+  dt_bauhaus_widget_set_label(g->midtones, N_("-3 EV"));
+  dt_bauhaus_widget_set_label(g->highlights, N_("-2 EV"));
+  dt_bauhaus_widget_set_label(g->whites, N_("-1 EV"));
+  dt_bauhaus_widget_set_label(g->speculars, N_("+0 EV"));
 
   // Advanced view
 
@@ -3162,7 +3162,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->smoothing = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), -2.33f, +1.67f, 0, 0.0f, 2);
   dt_bauhaus_slider_set_soft_range(g->smoothing, -1.0f, 1.0f);
-  dt_bauhaus_widget_set_label(g->smoothing, NULL, N_("curve smoothing"));
+  dt_bauhaus_widget_set_label(g->smoothing, N_("curve smoothing"));
   gtk_widget_set_tooltip_text(g->smoothing, _("positive values will produce more progressive tone transitions\n"
                                               "but the curve might become oscillatory in some settings.\n"
                                               "negative values will avoid oscillations and behave more robustly\n"
@@ -3180,7 +3180,7 @@ void gui_init(struct dt_iop_module_t *self)
                                            "higher contrast between areas to dodge and areas to burn"));
 
   g->details = dt_bauhaus_combobox_from_params(self, N_("details"));
-  dt_bauhaus_widget_set_label(g->details, NULL, N_("preserve details"));
+  dt_bauhaus_widget_set_label(g->details, N_("preserve details"));
   gtk_widget_set_tooltip_text(g->details, _("'no' affects global and local contrast (safe if you only add contrast)\n"
                                             "'guided filter' only affects global contrast and tries to preserve local contrast\n"
                                             "'averaged guided filter' is a geometric mean of 'no' and 'guided filter' methods\n"

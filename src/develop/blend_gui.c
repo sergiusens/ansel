@@ -2313,7 +2313,7 @@ void dt_iop_gui_init_blendif(GtkBox *blendw, dt_iop_module_t *module)
     bd->channel_boost_factor_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), 0.0f, 18.0f, 0, 0.0f, 3);
     dt_bauhaus_set_use_default_callback(bd->channel_boost_factor_slider);
     dt_bauhaus_slider_set_format(bd->channel_boost_factor_slider, _(" EV"));
-    dt_bauhaus_widget_set_label(bd->channel_boost_factor_slider, N_("blend"), N_("boost factor"));
+    dt_bauhaus_widget_set_label(bd->channel_boost_factor_slider, N_("boost factor"));
     dt_bauhaus_slider_set_soft_range(bd->channel_boost_factor_slider, 0.0, 3.0);
     gtk_widget_set_tooltip_text(bd->channel_boost_factor_slider, _("adjust the boost factor of the channel mask"));
     gtk_widget_set_sensitive(bd->channel_boost_factor_slider, FALSE);
@@ -2409,7 +2409,7 @@ void dt_iop_gui_init_masks(GtkBox *blendw, dt_iop_module_t *module)
 
     bd->masks_combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
     dt_bauhaus_set_use_default_callback(bd->masks_combo);
-    dt_bauhaus_widget_set_label(bd->masks_combo, N_("blend"), N_("drawn mask"));
+    dt_bauhaus_widget_set_label(bd->masks_combo, N_("drawn mask"));
 
     dt_bauhaus_combobox_add(bd->masks_combo, _("no mask used"));
     g_signal_connect(G_OBJECT(bd->masks_combo), "value-changed",
@@ -2592,7 +2592,7 @@ void dt_iop_gui_init_raster(GtkBox *blendw, dt_iop_module_t *module)
 
     bd->raster_combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
     dt_bauhaus_set_use_default_callback(bd->raster_combo);
-    dt_bauhaus_widget_set_label(bd->raster_combo, N_("blend"), N_("raster mask"));
+    dt_bauhaus_widget_set_label(bd->raster_combo, N_("raster mask"));
     dt_bauhaus_combobox_add(bd->raster_combo, _("no mask used"));
     g_signal_connect(G_OBJECT(bd->raster_combo), "value-changed",
                      G_CALLBACK(_raster_value_changed_callback), module);
@@ -2655,7 +2655,7 @@ static GtkWidget *_combobox_new_from_list(dt_iop_module_t *module, const gchar *
 
   if(field)
     dt_bauhaus_widget_set_field(combo, field, DT_INTROSPECTION_TYPE_ENUM);
-  dt_bauhaus_widget_set_label(combo, N_("blend"), label);
+  dt_bauhaus_widget_set_label(combo, label);
   gtk_widget_set_tooltip_text(combo, tooltip);
   for(; *list->name; list++)
     dt_bauhaus_combobox_add_full(combo, _(list->name), DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT,
@@ -3060,7 +3060,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     bd->blend_modes_combo = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(module));
     dt_bauhaus_set_use_default_callback(bd->blend_modes_combo);
     dt_bauhaus_disable_accels(bd->blend_modes_combo);
-    dt_bauhaus_widget_set_label(bd->blend_modes_combo, N_("blend"), N_("blend mode"));
+    dt_bauhaus_widget_set_label(bd->blend_modes_combo, N_("blend mode"));
     gtk_widget_set_tooltip_text(bd->blend_modes_combo, _("choose blending mode"));
 
     g_signal_connect(G_OBJECT(bd->blend_modes_combo), "value-changed",
@@ -3079,7 +3079,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     dt_bauhaus_set_use_default_callback(bd->blend_mode_parameter_slider);
     dt_bauhaus_disable_accels(bd->blend_mode_parameter_slider);
     dt_bauhaus_widget_set_field(bd->blend_mode_parameter_slider, &module->blend_params->blend_parameter, DT_INTROSPECTION_TYPE_FLOAT);
-    dt_bauhaus_widget_set_label(bd->blend_mode_parameter_slider, N_("blend"), N_("blend fulcrum"));
+    dt_bauhaus_widget_set_label(bd->blend_mode_parameter_slider, N_("blend fulcrum"));
     dt_bauhaus_slider_set_format(bd->blend_mode_parameter_slider, _(" EV"));
     dt_bauhaus_slider_set_soft_range(bd->blend_mode_parameter_slider, -3.0, 3.0);
     gtk_widget_set_tooltip_text(bd->blend_mode_parameter_slider, _("adjust the fulcrum used by some blending"
@@ -3090,7 +3090,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     dt_bauhaus_set_use_default_callback(bd->opacity_slider);
     dt_bauhaus_disable_accels(bd->opacity_slider);
     dt_bauhaus_widget_set_field(bd->opacity_slider, &module->blend_params->opacity, DT_INTROSPECTION_TYPE_FLOAT);
-    dt_bauhaus_widget_set_label(bd->opacity_slider, N_("blend"), N_("opacity"));
+    dt_bauhaus_widget_set_label(bd->opacity_slider, N_("opacity"));
     dt_bauhaus_slider_set_format(bd->opacity_slider, "%");
     module->fusion_slider = bd->opacity_slider;
     gtk_widget_set_tooltip_text(bd->opacity_slider, _("set the opacity of the blending"));
@@ -3109,7 +3109,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     bd->details_slider = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(module), -1.0f, 1.0f, 0, 0.0f, 2);
     dt_bauhaus_set_use_default_callback(bd->details_slider);
     dt_bauhaus_disable_accels(bd->details_slider);
-    dt_bauhaus_widget_set_label(bd->details_slider, N_("blend"), N_("details threshold"));
+    dt_bauhaus_widget_set_label(bd->details_slider, N_("details threshold"));
     dt_bauhaus_slider_set_format(bd->details_slider, "%");
     gtk_widget_set_tooltip_text(bd->details_slider, _("adjust the threshold for the details mask (using raw data), "
                                                       "\npositive values selects areas with strong details, "
@@ -3125,7 +3125,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     dt_bauhaus_set_use_default_callback(bd->feathering_radius_slider);
     dt_bauhaus_disable_accels(bd->feathering_radius_slider);
     dt_bauhaus_widget_set_field(bd->feathering_radius_slider, &module->blend_params->feathering_radius, DT_INTROSPECTION_TYPE_FLOAT);
-    dt_bauhaus_widget_set_label(bd->feathering_radius_slider, N_("blend"), N_("feathering radius"));
+    dt_bauhaus_widget_set_label(bd->feathering_radius_slider, N_("feathering radius"));
     dt_bauhaus_slider_set_format(bd->feathering_radius_slider, " px");
     gtk_widget_set_tooltip_text(bd->feathering_radius_slider, _("spatial radius of feathering"));
 
@@ -3133,7 +3133,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     dt_bauhaus_set_use_default_callback(bd->blur_radius_slider);
     dt_bauhaus_disable_accels(bd->blur_radius_slider);
     dt_bauhaus_widget_set_field(bd->blur_radius_slider, &module->blend_params->blur_radius, DT_INTROSPECTION_TYPE_FLOAT);
-    dt_bauhaus_widget_set_label(bd->blur_radius_slider, N_("blend"), N_("blurring radius"));
+    dt_bauhaus_widget_set_label(bd->blur_radius_slider, N_("blurring radius"));
     dt_bauhaus_slider_set_format(bd->blur_radius_slider, " px");
     gtk_widget_set_tooltip_text(bd->blur_radius_slider, _("radius for gaussian blur of blend mask"));
 
@@ -3141,7 +3141,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     dt_bauhaus_set_use_default_callback(bd->brightness_slider);
     dt_bauhaus_disable_accels(bd->brightness_slider);
     dt_bauhaus_widget_set_field(bd->brightness_slider, &module->blend_params->brightness, DT_INTROSPECTION_TYPE_FLOAT);
-    dt_bauhaus_widget_set_label(bd->brightness_slider, N_("blend"), N_("mask opacity"));
+    dt_bauhaus_widget_set_label(bd->brightness_slider, N_("mask opacity"));
     dt_bauhaus_slider_set_format(bd->brightness_slider, "%");
     gtk_widget_set_tooltip_text(bd->brightness_slider, _("shifts and tilts the tone curve of the blend mask to adjust its "
                                                          "brightness without affecting fully transparent/fully opaque "
@@ -3151,7 +3151,7 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
     dt_bauhaus_set_use_default_callback(bd->contrast_slider);
     dt_bauhaus_disable_accels(bd->contrast_slider);
     dt_bauhaus_widget_set_field(bd->contrast_slider, &module->blend_params->contrast, DT_INTROSPECTION_TYPE_FLOAT);
-    dt_bauhaus_widget_set_label(bd->contrast_slider, N_("blend"), N_("mask contrast"));
+    dt_bauhaus_widget_set_label(bd->contrast_slider, N_("mask contrast"));
     dt_bauhaus_slider_set_format(bd->contrast_slider, "%");
     gtk_widget_set_tooltip_text(bd->contrast_slider, _("gives the tone curve of the blend mask an s-like shape to "
                                                        "adjust its contrast"));

@@ -1030,7 +1030,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->aspect = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->aspect, 1);
-  dt_bauhaus_widget_set_label(g->aspect, NULL, N_("aspect"));
+  dt_bauhaus_widget_set_label(g->aspect, N_("aspect"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->aspect, TRUE, TRUE, 0);
   gui_init_aspect(self);
   g_signal_connect(G_OBJECT(g->aspect), "value-changed", G_CALLBACK(aspect_changed), self);
@@ -1046,7 +1046,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->pos_h = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->pos_h, 1);
-  dt_bauhaus_widget_set_label(g->pos_h, NULL, N_("horizontal position"));
+  dt_bauhaus_widget_set_label(g->pos_h, N_("horizontal position"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->pos_h, TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(g->pos_h), "value-changed", G_CALLBACK(position_h_changed), self);
   gtk_widget_set_tooltip_text(g->pos_h, _("select the horizontal position ratio relative to top "
@@ -1056,7 +1056,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->pos_v = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->pos_v, 1);
-  dt_bauhaus_widget_set_label(g->pos_v, NULL, N_("vertical position"));
+  dt_bauhaus_widget_set_label(g->pos_v, N_("vertical position"));
   gtk_box_pack_start(GTK_BOX(self->widget), g->pos_v, TRUE, TRUE, 0);
   g_signal_connect(G_OBJECT(g->pos_v), "value-changed", G_CALLBACK(position_v_changed), self);
   gtk_widget_set_tooltip_text(g->pos_v, _("select the vertical position ratio relative to left "

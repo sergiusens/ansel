@@ -4765,21 +4765,21 @@ void gui_changed(dt_iop_module_t *self, GtkWidget *w, void *previous)
   {
     if(p->version == DT_FILMIC_COLORSCIENCE_V1 || p->version == DT_FILMIC_COLORSCIENCE_V4)
     {
-      dt_bauhaus_widget_set_label(g->saturation, NULL, N_("extreme luminance saturation"));
+      dt_bauhaus_widget_set_label(g->saturation, N_("extreme luminance saturation"));
       gtk_widget_set_tooltip_text(g->saturation, _("desaturates the output of the module\n"
                                                    "specifically at extreme luminances.\n"
                                                    "increase if shadows and/or highlights are under-saturated."));
     }
     else if(p->version == DT_FILMIC_COLORSCIENCE_V2 || p->version == DT_FILMIC_COLORSCIENCE_V3)
     {
-      dt_bauhaus_widget_set_label(g->saturation, NULL, N_("mid-tones saturation"));
+      dt_bauhaus_widget_set_label(g->saturation, N_("mid-tones saturation"));
       gtk_widget_set_tooltip_text(g->saturation, _("desaturates the output of the module\n"
                                                    "specifically at medium luminances.\n"
                                                    "increase if midtones are under-saturated."));
     }
     else if(p->version == DT_FILMIC_COLORSCIENCE_V5)
     {
-      dt_bauhaus_widget_set_label(g->saturation, NULL, N_("highlights saturation mix"));
+      dt_bauhaus_widget_set_label(g->saturation, N_("highlights saturation mix"));
       gtk_widget_set_tooltip_text(g->saturation, _("Positive values ensure saturation is kept unchanged over the whole range.\n"
                                                    "Negative values bleache highlights at constant hue and luminance.\n"
                                                    "Zero is an equal mix of both strategies."));

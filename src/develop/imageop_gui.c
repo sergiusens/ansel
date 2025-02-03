@@ -132,14 +132,14 @@ GtkWidget *dt_bauhaus_slider_from_params(dt_iop_module_t *self, const char *para
       if (*f->header.description)
       {
         // we do not want to support a context as it break all translations see #5498
-        // dt_bauhaus_widget_set_label(slider, NULL, g_dpgettext2(NULL, "introspection description", f->header.description));
-        dt_bauhaus_widget_set_label(slider, NULL, f->header.description);
+        // dt_bauhaus_widget_set_label(slider, g_dpgettext2(NULL, "introspection description", f->header.description));
+        dt_bauhaus_widget_set_label(slider, f->header.description);
       }
       else
       {
         gchar *str = dt_util_str_replace(f->header.field_name, "_", " ");
 
-        dt_bauhaus_widget_set_label(slider,  NULL, str);
+        dt_bauhaus_widget_set_label(slider, str);
 
         g_free(str);
       }
@@ -150,7 +150,7 @@ GtkWidget *dt_bauhaus_slider_from_params(dt_iop_module_t *self, const char *para
     gchar *str = g_strdup_printf("'%s' is not a float/int/unsigned short/slider parameter", param_name);
 
     slider = dt_bauhaus_slider_new(darktable.bauhaus, DT_GUI_MODULE(self));
-    dt_bauhaus_widget_set_label(slider, NULL, str);
+    dt_bauhaus_widget_set_label(slider, str);
 
     g_free(str);
   }
@@ -184,14 +184,14 @@ GtkWidget *dt_bauhaus_combobox_from_params(dt_iop_module_t *self, const char *pa
     if (*f->header.description)
     {
       // we do not want to support a context as it break all translations see #5498
-      // dt_bauhaus_widget_set_label(combobox, NULL, g_dpgettext2(NULL, "introspection description", f->header.description));
-      dt_bauhaus_widget_set_label(combobox, NULL, f->header.description);
+      // dt_bauhaus_widget_set_label(combobox, g_dpgettext2(NULL, "introspection description", f->header.description));
+      dt_bauhaus_widget_set_label(combobox, f->header.description);
     }
     else
     {
       str = dt_util_str_replace(f->header.field_name, "_", " ");
 
-      dt_bauhaus_widget_set_label(combobox,  NULL, str);
+      dt_bauhaus_widget_set_label(combobox, str);
 
       g_free(str);
     }
@@ -216,7 +216,7 @@ GtkWidget *dt_bauhaus_combobox_from_params(dt_iop_module_t *self, const char *pa
   {
     str = g_strdup_printf("'%s' is not an enum/int/bool/combobox parameter", param);
 
-    dt_bauhaus_widget_set_label(combobox, NULL, str);
+    dt_bauhaus_widget_set_label(combobox, str);
 
     g_free(str);
   }

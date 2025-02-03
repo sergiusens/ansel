@@ -1738,13 +1738,13 @@ static void gui_sliders_update(struct dt_iop_module_t *self)
 
   if(FILTERS_ARE_CYGM(img->buf_dsc.filters))
   {
-    dt_bauhaus_widget_set_label(g->scale_r, NULL, N_("green"));
+    dt_bauhaus_widget_set_label(g->scale_r, N_("green"));
     gtk_widget_set_tooltip_text(g->scale_r, _("green channel coefficient"));
-    dt_bauhaus_widget_set_label(g->scale_g, NULL, N_("magenta"));
+    dt_bauhaus_widget_set_label(g->scale_g, N_("magenta"));
     gtk_widget_set_tooltip_text(g->scale_g, _("magenta channel coefficient"));
-    dt_bauhaus_widget_set_label(g->scale_b, NULL, N_("cyan"));
+    dt_bauhaus_widget_set_label(g->scale_b, N_("cyan"));
     gtk_widget_set_tooltip_text(g->scale_b, _("cyan channel coefficient"));
-    dt_bauhaus_widget_set_label(g->scale_g2, NULL, N_("yellow"));
+    dt_bauhaus_widget_set_label(g->scale_g2, N_("yellow"));
     gtk_widget_set_tooltip_text(g->scale_g2, _("yellow channel coefficient"));
 
     gtk_box_reorder_child(GTK_BOX(g->cs.container), g->scale_b, 0);
@@ -1754,13 +1754,13 @@ static void gui_sliders_update(struct dt_iop_module_t *self)
   }
   else
   {
-    dt_bauhaus_widget_set_label(g->scale_r, NULL, N_("red"));
+    dt_bauhaus_widget_set_label(g->scale_r, N_("red"));
     gtk_widget_set_tooltip_text(g->scale_r, _("red channel coefficient"));
-    dt_bauhaus_widget_set_label(g->scale_g, NULL, N_("green"));
+    dt_bauhaus_widget_set_label(g->scale_g, N_("green"));
     gtk_widget_set_tooltip_text(g->scale_g, _("green channel coefficient"));
-    dt_bauhaus_widget_set_label(g->scale_b, NULL, N_("blue"));
+    dt_bauhaus_widget_set_label(g->scale_b, N_("blue"));
     gtk_widget_set_tooltip_text(g->scale_b, _("blue channel coefficient"));
-    dt_bauhaus_widget_set_label(g->scale_g2, NULL, N_("emerald"));
+    dt_bauhaus_widget_set_label(g->scale_g2, N_("emerald"));
     gtk_widget_set_tooltip_text(g->scale_g2, _("emerald channel coefficient"));
 
     gtk_box_reorder_child(GTK_BOX(g->cs.container), g->scale_r, 0);
@@ -1869,12 +1869,12 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_box_pack_start(box_enabled, g->buttonbar, TRUE, TRUE, 0);
 
   g->presets = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
-  dt_bauhaus_widget_set_label(g->presets, N_("settings"), N_("settings")); // relabel to settings to remove confusion between module presets and white balance settings
+  dt_bauhaus_widget_set_label(g->presets, N_("settings")); // relabel to settings to remove confusion between module presets and white balance settings
   gtk_widget_set_tooltip_text(g->presets, _("choose white balance setting"));
   gtk_box_pack_start(box_enabled, g->presets, TRUE, TRUE, 0);
 
   g->finetune = dt_bauhaus_slider_new_with_range_and_feedback(darktable.bauhaus, DT_GUI_MODULE(self), -9.0, 9.0, 0, 0.0, 0, feedback);
-  dt_bauhaus_widget_set_label(g->finetune, NULL, N_("finetune"));
+  dt_bauhaus_widget_set_label(g->finetune, N_("finetune"));
   dt_bauhaus_slider_set_format(g->finetune, " mired");
   gtk_widget_set_tooltip_text(g->finetune, _("fine tune camera's white balance setting"));
   gtk_box_pack_start(box_enabled, g->finetune, TRUE, TRUE, 0);
@@ -1899,13 +1899,13 @@ void gui_init(struct dt_iop_module_t *self)
   g->scale_k = dt_bauhaus_slider_new_with_range_and_feedback(darktable.bauhaus, DT_GUI_MODULE(self), DT_IOP_LOWEST_TEMPERATURE, DT_IOP_HIGHEST_TEMPERATURE,
                                                              0, 5000.0, 0, feedback);
   dt_bauhaus_slider_set_format(g->scale_k, " K");
-  dt_bauhaus_widget_set_label(g->scale_k, NULL, N_("temperature"));
+  dt_bauhaus_widget_set_label(g->scale_k, N_("temperature"));
   gtk_widget_set_tooltip_text(g->scale_k, _("color temperature (in Kelvin)"));
   gtk_box_pack_start(box_enabled, g->scale_k, TRUE, TRUE, 0);
 
   g->scale_tint = dt_bauhaus_slider_new_with_range_and_feedback(darktable.bauhaus, DT_GUI_MODULE(self), DT_IOP_LOWEST_TINT, DT_IOP_HIGHEST_TINT,
                                                                 0, 1.0, 3, feedback);
-  dt_bauhaus_widget_set_label(g->scale_tint, NULL, N_("tint"));
+  dt_bauhaus_widget_set_label(g->scale_tint, N_("tint"));
   gtk_widget_set_tooltip_text(g->scale_tint, _("color tint of the image, from magenta (value < 1) to green (value > 1)"));
   gtk_box_pack_start(box_enabled, g->scale_tint, TRUE, TRUE, 0);
 

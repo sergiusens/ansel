@@ -1050,7 +1050,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, TRUE, 0);
 
   d->storage = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->storage, NULL, N_("Target storage"));
+  dt_bauhaus_widget_set_label(d->storage, N_("Target storage"));
   gtk_box_pack_start(GTK_BOX(self->widget), d->storage, FALSE, TRUE, 0);
 
   // add all storage widgets to the stack widget
@@ -1076,7 +1076,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, TRUE, 0);
 
   d->format = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->format, NULL, N_("file format"));
+  dt_bauhaus_widget_set_label(d->format, N_("file format"));
   gtk_box_pack_start(GTK_BOX(self->widget), d->format, FALSE, TRUE, 0);
   g_signal_connect(G_OBJECT(d->format), "value-changed", G_CALLBACK(_format_changed), (gpointer)d);
 
@@ -1097,7 +1097,7 @@ void gui_init(dt_lib_module_t *self)
   label = dt_ui_section_label_new(_("global options"));
   gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, TRUE, 0);
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->dimensions_type, NULL, NULL, N_("set size (bounding box)"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->dimensions_type, NULL, N_("set size (bounding box)"),
                                _("Choose a method for setting the output size.\n"
                                  "The width and height specified define the bounding box\n"
                                  "in which the image will be proportionnaly fitted.\n"),
@@ -1192,7 +1192,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->size_in_px), FALSE, FALSE, 0);
 
   d->export_masks = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->export_masks, NULL, N_("store masks"));
+  dt_bauhaus_widget_set_label(d->export_masks, N_("store masks"));
   dt_bauhaus_combobox_add(d->export_masks, _("no"));
   dt_bauhaus_combobox_add(d->export_masks, _("yes"));
   gtk_widget_set_tooltip_text(d->export_masks, _("store masks as layers in exported images. only works for some formats."));
@@ -1206,7 +1206,7 @@ void gui_init(dt_lib_module_t *self)
   dt_loc_get_datadir(datadir, sizeof(datadir));
 
   d->profile = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->profile, NULL, N_("Color space"));
+  dt_bauhaus_widget_set_label(d->profile, N_("Color space"));
   gtk_box_pack_start(GTK_BOX(self->widget), d->profile, FALSE, TRUE, 0);
   dt_bauhaus_combobox_add(d->profile, _("same as original"));
   for(GList *l = darktable.color_profiles->profiles; l; l = g_list_next(l))
@@ -1235,7 +1235,7 @@ void gui_init(dt_lib_module_t *self)
   //  Add intent combo
 
   d->intent = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->intent, NULL, N_("intent"));
+  dt_bauhaus_widget_set_label(d->intent, N_("intent"));
   dt_bauhaus_combobox_add(d->intent, _("same as original"));
   dt_bauhaus_combobox_add(d->intent, _("perceptual"));
   dt_bauhaus_combobox_add(d->intent, _("relative colorimetric"));
@@ -1272,7 +1272,7 @@ void gui_init(dt_lib_module_t *self)
   //  Add style combo
 
   d->style = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->style, NULL, N_("style"));
+  dt_bauhaus_widget_set_label(d->style, N_("style"));
   _lib_export_styles_changed_callback(NULL, self);
   gtk_box_pack_start(GTK_BOX(self->widget), d->style, FALSE, TRUE, 0);
   gtk_widget_set_tooltip_text(d->style, _("temporary style to use while exporting"));
@@ -1280,7 +1280,7 @@ void gui_init(dt_lib_module_t *self)
   //  Add check to control whether the style is to replace or append the current module
 
   d->style_mode = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->style_mode, NULL, N_("mode"));
+  dt_bauhaus_widget_set_label(d->style_mode, N_("mode"));
 
   gtk_box_pack_start(GTK_BOX(self->widget), d->style_mode, FALSE, TRUE, 0);
 

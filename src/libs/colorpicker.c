@@ -570,18 +570,18 @@ void gui_init(dt_lib_module_t *self)
   GtkWidget *picker_row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
 
   data->statistic_selector = dt_bauhaus_combobox_new_full(
-      darktable.bauhaus, NULL, NULL, N_("statistic"), _("select which statistic to show"), data->statistic,
+      darktable.bauhaus, NULL, NULL, _("select which statistic to show"), data->statistic,
       (GtkCallback)_statistic_changed, self, dt_lib_colorpicker_statistic_names);
   dt_bauhaus_combobox_set_entries_ellipsis(data->statistic_selector, PANGO_ELLIPSIZE_NONE);
-  dt_bauhaus_widget_set_label(data->statistic_selector, NULL, NULL);
+  dt_bauhaus_widget_set_label(data->statistic_selector, NULL);
   gtk_widget_set_valign(data->statistic_selector, GTK_ALIGN_CENTER);
   gtk_box_pack_start(GTK_BOX(picker_row), data->statistic_selector, TRUE, TRUE, 0);
 
   data->color_mode_selector = dt_bauhaus_combobox_new_full(
-      darktable.bauhaus, NULL, NULL, N_("color mode"), _("select which color mode to use"), data->model,
+      darktable.bauhaus, NULL, NULL, _("select which color mode to use"), data->model,
       (GtkCallback)_color_mode_changed, self, dt_lib_colorpicker_model_names);
   dt_bauhaus_combobox_set_entries_ellipsis(data->color_mode_selector, PANGO_ELLIPSIZE_NONE);
-  dt_bauhaus_widget_set_label(data->color_mode_selector, NULL, NULL);
+  dt_bauhaus_widget_set_label(data->color_mode_selector, NULL);
   gtk_widget_set_valign(data->color_mode_selector, GTK_ALIGN_CENTER);
   gtk_box_pack_start(GTK_BOX(picker_row), data->color_mode_selector, TRUE, TRUE, 0);
 

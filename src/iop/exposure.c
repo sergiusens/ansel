@@ -1051,7 +1051,7 @@ void gui_init(struct dt_iop_module_t *self)
      _("spot exposure mapping"),
      GTK_BOX(self->widget));
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, g->spot_mode, DT_GUI_MODULE(self), NULL, N_("spot mode"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, g->spot_mode, DT_GUI_MODULE(self), N_("spot mode"),
                                 _("\"correction\" automatically adjust exposure\n"
                                   "such that the input lightness is mapped to the target.\n"
                                   "\"measure\" simply shows how an input color is mapped by the exposure compensation\n"
@@ -1097,7 +1097,7 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_box_pack_start(GTK_BOX(vvbox), g->target_spot, TRUE, TRUE, 0);
 
   g->lightness_spot = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), 0., 100., 0, 0, 1);
-  dt_bauhaus_widget_set_label(g->lightness_spot, NULL, N_("lightness"));
+  dt_bauhaus_widget_set_label(g->lightness_spot, N_("lightness"));
   dt_bauhaus_slider_set_format(g->lightness_spot, "%");
   dt_bauhaus_slider_set_default(g->lightness_spot, 50.f);
   gtk_box_pack_start(GTK_BOX(vvbox), GTK_WIDGET(g->lightness_spot), TRUE, TRUE, 0);

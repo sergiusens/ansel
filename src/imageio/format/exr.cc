@@ -470,7 +470,7 @@ void gui_init(dt_imageio_module_format_t *self)
   const int bpp_last = dt_conf_get_int("plugins/imageio/format/exr/bpp");
 
   gui->bpp = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(gui->bpp, NULL, N_("bit depth"));
+  dt_bauhaus_widget_set_label(gui->bpp, N_("bit depth"));
 
   dt_bauhaus_combobox_add(gui->bpp, _("16 bit"));
   dt_bauhaus_combobox_add(gui->bpp, _("32 bit"));
@@ -482,7 +482,7 @@ void gui_init(dt_imageio_module_format_t *self)
   const int compression_last = dt_conf_get_int("plugins/imageio/format/exr/compression");
 
   gui->compression = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(gui->compression, NULL, N_("compression"));
+  dt_bauhaus_widget_set_label(gui->compression, N_("compression"));
 
   dt_bauhaus_combobox_add(gui->compression, _("uncompressed"));
   dt_bauhaus_combobox_add(gui->compression, _("RLE"));

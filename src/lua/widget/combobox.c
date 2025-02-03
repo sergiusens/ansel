@@ -83,7 +83,7 @@ static int label_member(lua_State *L)
   if(lua_gettop(L) > 2) {
     char tmp[256];
     luaA_to(L,char_256,&tmp,3);
-    dt_bauhaus_widget_set_label(combobox->widget,NULL,tmp);
+    dt_bauhaus_widget_set_label(combobox->widget,tmp);
     return 0;
   }
   lua_pushstring(L,dt_bauhaus_widget_get_label(combobox->widget));

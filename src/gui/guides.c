@@ -214,7 +214,7 @@ static GtkWidget *_guides_gui_grid(dt_iop_module_t *self, void *user_data)
 
   GtkWidget *grid_horizontal = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 12, 1, 3, 0);
   dt_bauhaus_slider_set_hard_max(grid_horizontal, 36);
-  dt_bauhaus_widget_set_label(grid_horizontal, NULL, N_("horizontal lines"));
+  dt_bauhaus_widget_set_label(grid_horizontal, N_("horizontal lines"));
   gtk_widget_set_tooltip_text(grid_horizontal, _("number of horizontal guide lines"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(grid_horizontal), TRUE, TRUE, 0);
   gchar *key = _conf_get_path("global", "grid_nbh", NULL);
@@ -224,7 +224,7 @@ static GtkWidget *_guides_gui_grid(dt_iop_module_t *self, void *user_data)
 
   GtkWidget *grid_vertical = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 12, 1, 3, 0);
   dt_bauhaus_slider_set_hard_max(grid_vertical, 36);
-  dt_bauhaus_widget_set_label(grid_vertical, NULL, N_("vertical lines"));
+  dt_bauhaus_widget_set_label(grid_vertical, N_("vertical lines"));
   gtk_widget_set_tooltip_text(grid_vertical, _("number of vertical guide lines"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(grid_vertical), TRUE, TRUE, 0);
   key = _conf_get_path("global", "grid_nbv", NULL);
@@ -234,7 +234,7 @@ static GtkWidget *_guides_gui_grid(dt_iop_module_t *self, void *user_data)
 
   GtkWidget *grid_subdiv = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 10, 1, 3, 0);
   dt_bauhaus_slider_set_hard_max(grid_subdiv, 30);
-  dt_bauhaus_widget_set_label(grid_subdiv, NULL, N_("subdivisions"));
+  dt_bauhaus_widget_set_label(grid_subdiv, N_("subdivisions"));
   gtk_widget_set_tooltip_text(grid_subdiv, _("number of subdivisions per grid rectangle"));
   gtk_box_pack_start(GTK_BOX(box), GTK_WIDGET(grid_subdiv), TRUE, TRUE, 0);
   key = _conf_get_path("global", "grid_subdiv", NULL);
@@ -706,7 +706,7 @@ GtkWidget *dt_guides_popover(dt_view_t *self, GtkWidget *button)
   gtk_box_pack_start(GTK_BOX(vbox), gw->g_widgets, TRUE, TRUE, 0);
   gtk_widget_set_no_show_all(gw->g_widgets, TRUE);
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, gw->g_flip, NULL, N_("guide lines"), N_("flip"), _("flip guides"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, gw->g_flip, NULL, N_("flip"), _("flip guides"),
                                0, (GtkCallback)_settings_flip_changed, gw,
                                N_("none"),
                                N_("horizontally"),
@@ -716,14 +716,14 @@ GtkWidget *dt_guides_popover(dt_view_t *self, GtkWidget *button)
   gtk_widget_set_no_show_all(gw->g_flip, TRUE);
 
   darktable.view_manager->guides = dt_bauhaus_combobox_new_full(
-      darktable.bauhaus, NULL, N_("guide lines"), N_("type"), _("setup guide lines"), 0,
+      darktable.bauhaus, NULL, N_("type"), _("setup guide lines"), 0,
       (GtkCallback)_settings_guides_changed, gw, _guide_names);
   gtk_box_pack_start(GTK_BOX(vbox), darktable.view_manager->guides, TRUE, TRUE, 0);
 
   // color section
   gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), TRUE, TRUE, 0);
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, darktable.view_manager->guides_colors, NULL, N_("guide lines"), N_("overlay color"), _("set overlay color"),
+  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, darktable.view_manager->guides_colors, NULL, N_("overlay color"), _("set overlay color"),
                                dt_conf_get_int("darkroom/ui/overlay_color"), (GtkCallback)_settings_colors_changed, gw,
                                N_("gray"),
                                N_("red"),
@@ -736,7 +736,7 @@ GtkWidget *dt_guides_popover(dt_view_t *self, GtkWidget *button)
   gtk_box_pack_start(GTK_BOX(vbox), darktable.view_manager->guides_colors, TRUE, TRUE, 0);
 
   GtkWidget *contrast = darktable.view_manager->guides_contrast = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(NULL), 0, 1, 0.005, 0.5, 3);
-  dt_bauhaus_widget_set_label(contrast, N_("guide lines"), N_("contrast"));
+  dt_bauhaus_widget_set_label(contrast, N_("contrast"));
   gtk_widget_set_tooltip_text(contrast, N_("set the contrast between the lightest and darkest part of the guide overlays"));
   dt_bauhaus_slider_set(contrast, dt_conf_get_float("darkroom/ui/overlay_contrast"));
   gtk_box_pack_start(GTK_BOX(vbox), contrast, TRUE, TRUE, 0);

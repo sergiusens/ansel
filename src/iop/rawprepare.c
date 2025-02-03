@@ -837,7 +837,7 @@ void gui_init(dt_iop_module_t *self)
     gchar *par = g_strdup_printf("raw_black_level_separate[%i]", i);
 
     g->black_level_separate[i] = dt_bauhaus_slider_from_params(self, par);
-    dt_bauhaus_widget_set_label(g->black_level_separate[i], NULL, black_label[i]);
+    dt_bauhaus_widget_set_label(g->black_level_separate[i], black_label[i]);
     gtk_widget_set_tooltip_text(g->black_level_separate[i], _(black_label[i]));
     dt_bauhaus_slider_set_soft_max(g->black_level_separate[i], 16384);
 

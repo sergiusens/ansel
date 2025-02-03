@@ -379,7 +379,7 @@ void gui_init(dt_imageio_module_format_t *self)
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
 
   gui->compression = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(gui->compression, NULL, N_("compression type"));
+  dt_bauhaus_widget_set_label(gui->compression, N_("compression type"));
   dt_bauhaus_combobox_add(gui->compression, _("lossy"));
   dt_bauhaus_combobox_add(gui->compression, _("lossless"));
   dt_bauhaus_combobox_set(gui->compression, comp_type);
@@ -391,7 +391,7 @@ void gui_init(dt_imageio_module_format_t *self)
                                                   1,
                                                   dt_confgen_get_int("plugins/imageio/format/webp/quality", DT_DEFAULT),
                                                   0);
-  dt_bauhaus_widget_set_label(gui->quality, NULL, N_("quality"));
+  dt_bauhaus_widget_set_label(gui->quality, N_("quality"));
   dt_bauhaus_slider_set_default(gui->quality, dt_confgen_get_int("plugins/imageio/format/webp/quality", DT_DEFAULT));
   dt_bauhaus_slider_set_format(gui->quality, "%");
   gtk_widget_set_tooltip_text(gui->quality, _("applies only to lossy setting"));
@@ -405,7 +405,7 @@ void gui_init(dt_imageio_module_format_t *self)
     gtk_widget_set_sensitive(gui->quality, FALSE);
 
   gui->hint = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(gui->hint, NULL, N_("image hint"));
+  dt_bauhaus_widget_set_label(gui->hint, N_("image hint"));
   gtk_widget_set_tooltip_text(gui->hint,
                _("image characteristics hint for the underlying encoder.\n"
                "picture : digital picture, like portrait, inner shot\n"

@@ -469,7 +469,7 @@ static inline void gui_init_section(struct dt_iop_module_t *self, char *section,
 
   gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
 
-  dt_bauhaus_widget_set_label(hue, section, N_("hue"));
+  dt_bauhaus_widget_set_label(hue, N_("hue"));
   dt_bauhaus_slider_set_feedback(hue, 0);
   dt_bauhaus_slider_set_stop(hue, 0.0f  , 1.0f, 0.0f, 0.0f);
   dt_bauhaus_slider_set_stop(hue, 0.166f, 1.0f, 1.0f, 0.0f);
@@ -481,7 +481,7 @@ static inline void gui_init_section(struct dt_iop_module_t *self, char *section,
   gtk_widget_set_tooltip_text(hue, _("select the hue tone"));
   dt_color_picker_new(self, DT_COLOR_PICKER_POINT, hue);
 
-  dt_bauhaus_widget_set_label(saturation, section, N_("saturation"));
+  dt_bauhaus_widget_set_label(saturation, N_("saturation"));
   dt_bauhaus_slider_set_stop(saturation, 0.0f, 0.2f, 0.2f, 0.2f);
   dt_bauhaus_slider_set_stop(saturation, 1.0f, 1.0f, 1.0f, 1.0f);
   gtk_widget_set_tooltip_text(saturation, _("select the saturation tone"));

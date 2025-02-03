@@ -1160,7 +1160,7 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->aspect_presets = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(self));
   dt_bauhaus_combobox_set_editable(g->aspect_presets, 1);
-  dt_bauhaus_widget_set_label(g->aspect_presets, NULL, N_("aspect"));
+  dt_bauhaus_widget_set_label(g->aspect_presets, N_("aspect"));
 
   for(GList *iter = g->aspect_list; iter; iter = g_list_next(iter))
   {

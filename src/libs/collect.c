@@ -2302,7 +2302,7 @@ static void _depopulate_combo(GtkWidget *combo)
   // De-populate the combobox and restrict to folder/filmroll options
   dt_bauhaus_combobox_clear(combo);
   dt_bauhaus_combobox_remove_at(combo, 0); // remove section title
-  dt_bauhaus_widget_set_label(combo, NULL, _("View"));
+  dt_bauhaus_widget_set_label(combo, _("View"));
   dt_bauhaus_combobox_set_selected_text_align(combo, DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT);
   dt_bauhaus_combobox_add_full(combo, _("List"), DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT,
                                 GUINT_TO_POINTER(DT_COLLECTION_PROP_FILMROLL + 1), NULL, TRUE);
@@ -2314,7 +2314,7 @@ static void _repopulate_combo(GtkWidget *combo)
 {
   // Re-populate the comboboxes with the full set of options
   dt_bauhaus_combobox_clear(combo);
-  dt_bauhaus_widget_set_label(combo, NULL, NULL);
+  dt_bauhaus_widget_set_label(combo, NULL);
   dt_bauhaus_combobox_set_selected_text_align(combo, DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT);
   _populate_collect_combo(combo);
 }
@@ -2367,7 +2367,7 @@ static void _update_collect_modes(dt_lib_collect_t *d, int variant)
       // Depopulate combo
       dt_bauhaus_combobox_clear(d->rule[0].combo);
       dt_bauhaus_combobox_remove_at(d->rule[0].combo, 0); // remove section title
-      dt_bauhaus_widget_set_label(d->rule[0].combo, NULL, _("View"));
+      dt_bauhaus_widget_set_label(d->rule[0].combo, _("View"));
       dt_bauhaus_combobox_set_selected_text_align(d->rule[0].combo, DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT);
       dt_bauhaus_combobox_add_full(d->rule[0].combo, _("Collections"), DT_BAUHAUS_COMBOBOX_ALIGN_RIGHT,
                                   GUINT_TO_POINTER(DT_COLLECTION_PROP_TAG + 1), NULL, TRUE);

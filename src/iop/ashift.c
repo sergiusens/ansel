@@ -5339,8 +5339,8 @@ void reload_defaults(dt_iop_module_t *module)
     snprintf(string_v, sizeof(string_v), _("lens shift (%s)"), isflipped ? _("horizontal") : _("vertical"));
     snprintf(string_h, sizeof(string_h), _("lens shift (%s)"), isflipped ? _("vertical") : _("horizontal"));
 
-    dt_bauhaus_widget_set_label(g->lensshift_v, NULL, string_v);
-    dt_bauhaus_widget_set_label(g->lensshift_h, NULL, string_h);
+    dt_bauhaus_widget_set_label(g->lensshift_v, string_v);
+    dt_bauhaus_widget_set_label(g->lensshift_h, string_h);
 
     dt_bauhaus_slider_set_default(g->f_length, f_length);
     dt_bauhaus_slider_set_default(g->crop_factor, crop_factor);
@@ -5442,8 +5442,8 @@ static gboolean _event_draw(GtkWidget *widget, cairo_t *cr, dt_iop_module_t *sel
   snprintf(string_h, sizeof(string_h), _("lens shift (%s)"), isflipped ? _("vertical") : _("horizontal"));
 
   ++darktable.gui->reset;
-  dt_bauhaus_widget_set_label(g->lensshift_v, NULL, string_v);
-  dt_bauhaus_widget_set_label(g->lensshift_h, NULL, string_h);
+  dt_bauhaus_widget_set_label(g->lensshift_v, string_v);
+  dt_bauhaus_widget_set_label(g->lensshift_h, string_h);
   --darktable.gui->reset;
 
   return FALSE;
@@ -5604,7 +5604,7 @@ void gui_init(struct dt_iop_module_t *self)
                                    _("rotation only"),
                                    _("lens shift only"), NULL };
   g->fitting_option
-      = dt_bauhaus_combobox_new_full(darktable.bauhaus, DT_GUI_MODULE(self), NULL, _("Fit for"), NULL, ASHIFT_FITTING_ALL,
+      = dt_bauhaus_combobox_new_full(darktable.bauhaus, DT_GUI_MODULE(self), _("Fit for"), NULL, ASHIFT_FITTING_ALL,
                                      (GtkCallback)fitting_option_changed, self, option_labels);
   gtk_box_pack_start(GTK_BOX(self->widget), g->fitting_option, TRUE, TRUE, 0);
 

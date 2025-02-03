@@ -2060,35 +2060,35 @@ void gui_init(dt_iop_module_t *self)
 
   g->checker_size = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), 2., 32., 0, 8., 0);
   dt_bauhaus_slider_set_format(g->checker_size, " px");
-  dt_bauhaus_widget_set_label(g->checker_size,  NULL, _("checkerboard size"));
+  dt_bauhaus_widget_set_label(g->checker_size, _("checkerboard size"));
   g_signal_connect(G_OBJECT(g->checker_size), "value-changed", G_CALLBACK(checker_size_callback), self);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->checker_size), FALSE, FALSE, 0);
 
-  dt_bauhaus_widget_set_label(g->shadows_H, N_("lift"), N_("hue"));
-  dt_bauhaus_widget_set_label(g->midtones_H, N_("power"), N_("hue"));
-  dt_bauhaus_widget_set_label(g->highlights_H, N_("gain"), N_("hue"));
-  dt_bauhaus_widget_set_label(g->global_H, N_("offset"), N_("hue"));
-  dt_bauhaus_widget_set_label(g->shadows_C, N_("lift"), N_("chroma"));
-  dt_bauhaus_widget_set_label(g->midtones_C, N_("power"), N_("chroma"));
-  dt_bauhaus_widget_set_label(g->highlights_C, N_("gain"), N_("chroma"));
-  dt_bauhaus_widget_set_label(g->global_C, N_("offset"), N_("chroma"));
-  dt_bauhaus_widget_set_label(g->shadows_Y, N_("lift"), N_("luminance"));
-  dt_bauhaus_widget_set_label(g->midtones_Y, N_("power"), N_("luminance"));
-  dt_bauhaus_widget_set_label(g->highlights_Y, N_("gain"), N_("luminance"));
-  dt_bauhaus_widget_set_label(g->global_Y, N_("offset"), N_("luminance"));
+  dt_bauhaus_widget_set_label(g->shadows_H, N_("hue"));
+  dt_bauhaus_widget_set_label(g->midtones_H, N_("hue"));
+  dt_bauhaus_widget_set_label(g->highlights_H, N_("hue"));
+  dt_bauhaus_widget_set_label(g->global_H, N_("hue"));
+  dt_bauhaus_widget_set_label(g->shadows_C, N_("chroma"));
+  dt_bauhaus_widget_set_label(g->midtones_C, N_("chroma"));
+  dt_bauhaus_widget_set_label(g->highlights_C, N_("chroma"));
+  dt_bauhaus_widget_set_label(g->global_C, N_("chroma"));
+  dt_bauhaus_widget_set_label(g->shadows_Y, N_("luminance"));
+  dt_bauhaus_widget_set_label(g->midtones_Y, N_("luminance"));
+  dt_bauhaus_widget_set_label(g->highlights_Y, N_("luminance"));
+  dt_bauhaus_widget_set_label(g->global_Y, N_("luminance"));
 
-  dt_bauhaus_widget_set_label(g->chroma_global, NULL, N_("global chroma"));
-  dt_bauhaus_widget_set_label(g->chroma_highlights, N_("chroma"), N_("highlights"));
-  dt_bauhaus_widget_set_label(g->chroma_midtones, N_("chroma"), N_("mid-tones"));
-  dt_bauhaus_widget_set_label(g->chroma_shadows, N_("chroma"), N_("shadows"));
-  dt_bauhaus_widget_set_label(g->saturation_global, NULL, N_("global saturation"));
-  dt_bauhaus_widget_set_label(g->saturation_highlights, N_("saturation"), N_("highlights"));
-  dt_bauhaus_widget_set_label(g->saturation_midtones, N_("saturation"), N_("mid-tones"));
-  dt_bauhaus_widget_set_label(g->saturation_shadows, N_("saturation"), N_("shadows"));
-  dt_bauhaus_widget_set_label(g->brilliance_global, NULL, N_("global brilliance"));
-  dt_bauhaus_widget_set_label(g->brilliance_highlights, N_("brilliance"), N_("highlights"));
-  dt_bauhaus_widget_set_label(g->brilliance_midtones, N_("brilliance"), N_("mid-tones"));
-  dt_bauhaus_widget_set_label(g->brilliance_shadows, N_("brilliance"), N_("shadows"));
+  dt_bauhaus_widget_set_label(g->chroma_global, N_("global chroma"));
+  dt_bauhaus_widget_set_label(g->chroma_highlights, N_("highlights"));
+  dt_bauhaus_widget_set_label(g->chroma_midtones, N_("mid-tones"));
+  dt_bauhaus_widget_set_label(g->chroma_shadows, N_("shadows"));
+  dt_bauhaus_widget_set_label(g->saturation_global, N_("global saturation"));
+  dt_bauhaus_widget_set_label(g->saturation_highlights, N_("highlights"));
+  dt_bauhaus_widget_set_label(g->saturation_midtones, N_("mid-tones"));
+  dt_bauhaus_widget_set_label(g->saturation_shadows, N_("shadows"));
+  dt_bauhaus_widget_set_label(g->brilliance_global, N_("global brilliance"));
+  dt_bauhaus_widget_set_label(g->brilliance_highlights, N_("highlights"));
+  dt_bauhaus_widget_set_label(g->brilliance_midtones, N_("mid-tones"));
+  dt_bauhaus_widget_set_label(g->brilliance_shadows, N_("shadows"));
 
   // Init the conf keys if they don't exist
   if(!dt_conf_key_exists("plugins/darkroom/colorbalancergb/checker1/red"))

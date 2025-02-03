@@ -2410,7 +2410,7 @@ void gui_init(dt_iop_module_t *self)
 
   // mask opacity
   g->sl_mask_opacity = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), 0.0, 1.0, 0, 1., 3);
-  dt_bauhaus_widget_set_label(g->sl_mask_opacity, NULL, N_("mask opacity"));
+  dt_bauhaus_widget_set_label(g->sl_mask_opacity, N_("mask opacity"));
   dt_bauhaus_slider_set_format(g->sl_mask_opacity, "%");
   gtk_widget_set_tooltip_text(g->sl_mask_opacity, _("set the opacity on the selected shape"));
   g_signal_connect(G_OBJECT(g->sl_mask_opacity), "value-changed", G_CALLBACK(rt_mask_opacity_callback), self);
