@@ -1710,7 +1710,11 @@ menuitem:hover > arrow
   color: shade(@fg_color, 1.2);
 }
 
-.dt_bauhaus:focus
+.dt_bauhaus:focus,
+button:focus label,
+button:active label,
+checkbutton:focus label,
+checkbutton:active label
 {
   color: shade(@fg_color, 1.6);
   font-weight: 800;

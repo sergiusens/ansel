@@ -61,6 +61,17 @@ static void _iop_toggle_callback(GtkWidget *togglebutton, dt_module_param_t *dat
   }
 }
 
+// Add to the module internal list of widgets for incremental browsing
+// Note: Bauhaus widgets do it internally upon setting label
+static void _add_widget_to_module_list(dt_iop_module_t *self, GtkWidget *widget)
+{
+  if(self && widget)
+  {
+    dt_gui_module_t *mod = (dt_gui_module_t *)self;
+    mod->widget_list = g_list_append(mod->widget_list, widget);
+  }
+}
+
 GtkWidget *dt_bauhaus_slider_from_params(dt_iop_module_t *self, const char *param)
 {
   dt_iop_params_t *p = (dt_iop_params_t *)self->params;
@@ -262,6 +273,8 @@ GtkWidget *dt_bauhaus_toggle_from_params(dt_iop_module_t *self, const char *para
     button = gtk_check_button_new_with_label(str);
   }
 
+  _add_widget_to_module_list(self, button);
+
   g_free(str);
   if(!self->widget) self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
   gtk_box_pack_start(GTK_BOX(self->widget), button, FALSE, FALSE, 0);
@@ -285,6 +298,8 @@ GtkWidget *dt_iop_togglebutton_new(dt_iop_module_t *self, const char *section, c
     g_free(tooltip);
   }
 
+  _add_widget_to_module_list(self, w);
+
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), FALSE);
   if(GTK_IS_BOX(box)) gtk_box_pack_end(GTK_BOX(box), w, FALSE, FALSE, 0);
 
@@ -307,6 +322,7 @@ GtkWidget *dt_iop_button_new(dt_iop_module_t *self, const gchar *label,
     button = gtk_button_new_with_label(_(label));
     gtk_label_set_ellipsize(GTK_LABEL(gtk_bin_get_child(GTK_BIN(button))), PANGO_ELLIPSIZE_END);
   }
+  _add_widget_to_module_list(self, button);
 
   g_signal_connect(G_OBJECT(button), "clicked", callback, (gpointer)self);
 
