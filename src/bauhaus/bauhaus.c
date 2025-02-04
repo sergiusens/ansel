@@ -1156,16 +1156,16 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
   {
     // Widgets auto-set by params introspection need to be added to the list of stuff to auto-update
     dt_gui_module_t *m = w->module;
-    if(m && w->field)
+    if(m)
       m->widget_list = g_list_append(m->widget_list, w);
 
-    if(w->field && m->widget_list && ((gpointer)m->widget_list->data) == (gpointer)widget)
+    if(m && w->field)
       m->widget_list_bh = g_list_append(m->widget_list_bh, w);
 
     // Wire the focusing action
     // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.
     // No need to wire all possible events/interactions.
-    if(!w->no_accels && !w->module->deprecated)
+    if(m && !w->no_accels && !w->module->deprecated)
     {
       gchar *plugin_name = g_strdup_printf("%s/%s/%s", m->name, (w->type == DT_BAUHAUS_SLIDER) ? _("Slider") : _("Combobox"), label);
       gchar *scope = g_strdup_printf("%s/Plugins", m->view);

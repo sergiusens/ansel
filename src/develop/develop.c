@@ -1145,12 +1145,10 @@ void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt)
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
   // update all gui modules
-  GList *modules = dev->iop;
-  while(modules)
+  for(GList *module = g_list_first(dev->iop); module; module = g_list_next(module))
   {
-    dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
-    dt_iop_gui_update(module);
-    modules = g_list_next(modules);
+    dt_iop_module_t *mod = (dt_iop_module_t *)(module->data);
+    dt_iop_gui_update(mod);
   }
   --darktable.gui->reset;
 
