@@ -386,7 +386,6 @@ void *legacy_params(dt_imageio_module_format_t *self, const void *const old_para
     n->global.width = o->width;
     n->global.height = o->height;
     g_strlcpy(n->global.style, o->style, sizeof(o->style));
-    n->global.style_append = FALSE;
     n->bpp = o->bpp;
     n->compression = Z_BEST_COMPRESSION;
     n->f = o->f;
@@ -417,7 +416,6 @@ void *legacy_params(dt_imageio_module_format_t *self, const void *const old_para
     n->global.width = o->width;
     n->global.height = o->height;
     g_strlcpy(n->global.style, o->style, sizeof(o->style));
-    n->global.style_append = o->style_append;
     n->bpp = o->bpp;
     n->compression = Z_BEST_COMPRESSION;
     n->f = o->f;

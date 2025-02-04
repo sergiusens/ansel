@@ -558,36 +558,13 @@ void dt_styles_apply_to_list(const char *name, const GList *list, gboolean dupli
   const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
   if(cv->view(cv) == DT_VIEW_DARKROOM) dt_dev_write_history(darktable.develop);
 
-  const int mode = dt_conf_get_int("plugins/lighttable/style/applymode");
-  const gboolean is_overwrite = (mode == DT_STYLE_HISTORY_OVERWRITE);
-
   /* for each selected image apply style */
   dt_undo_start_group(darktable.undo, DT_UNDO_LT_HISTORY);
-
-  dt_undo_lt_history_t *hist = NULL;
 
   for(const GList *l = list; l; l = g_list_next(l))
   {
     const int32_t imgid = GPOINTER_TO_INT(l->data);
-    if(is_overwrite)
-    {
-      hist = dt_history_snapshot_item_init();
-      hist->imgid = imgid;
-      dt_history_snapshot_undo_create(hist->imgid, &hist->before, &hist->before_history_end);
-
-      dt_undo_disable_next(darktable.undo);
-      if(!duplicate) dt_history_delete_on_image_ext(imgid, FALSE);
-    }
-
-    dt_styles_apply_to_image(name, duplicate, is_overwrite, imgid);
-
-    if(is_overwrite)
-    {
-      dt_history_snapshot_undo_create(hist->imgid, &hist->after, &hist->after_history_end);
-      dt_undo_record(darktable.undo, NULL, DT_UNDO_LT_HISTORY, (dt_undo_data_t)hist,
-                     dt_history_snapshot_undo_pop, dt_history_snapshot_undo_lt_history_data_free);
-    }
-
+    dt_styles_apply_to_image(name, duplicate, imgid);
     selected = TRUE;
   }
 
@@ -629,20 +606,14 @@ void dt_multiple_styles_apply_to_list(GList *styles, const GList *list, gboolean
     return;
   }
 
-  const int mode = dt_conf_get_int("plugins/lighttable/style/applymode");
-  const gboolean is_overwrite = (mode == DT_STYLE_HISTORY_OVERWRITE);
-
   /* for each selected image apply style */
   dt_undo_start_group(darktable.undo, DT_UNDO_LT_HISTORY);
   for(const GList *l = list; l; l = g_list_next(l))
   {
     const int32_t imgid = GPOINTER_TO_INT(l->data);
-    if(is_overwrite && !duplicate)
-      dt_history_delete_on_image_ext(imgid, FALSE);
-
     for (GList *style = styles; style; style = g_list_next(style))
     {
-      dt_styles_apply_to_image((char*)style->data, duplicate, is_overwrite, imgid);
+      dt_styles_apply_to_image((char*)style->data, duplicate, imgid);
     }
   }
   dt_undo_end_group(darktable.undo);
@@ -667,7 +638,7 @@ void dt_styles_create_from_list(const GList *list)
   if(!selected) dt_control_log(_("no image selected!"));
 }
 
-void dt_styles_apply_style_item(dt_develop_t *dev, dt_style_item_t *style_item, GList **modules_used, const gboolean append)
+void dt_styles_apply_style_item(dt_develop_t *dev, dt_style_item_t *style_item, GList **modules_used)
 {
   dt_pthread_mutex_lock(&dev->history_mutex);
 
@@ -758,7 +729,7 @@ void dt_styles_apply_style_item(dt_develop_t *dev, dt_style_item_t *style_item, 
       }
 
       if(do_merge)
-        dt_history_merge_module_into_history(dev, NULL, module, modules_used, append);
+        dt_history_merge_module_into_history(dev, NULL, module, modules_used);
     }
 
     if(module)
@@ -770,7 +741,7 @@ void dt_styles_apply_style_item(dt_develop_t *dev, dt_style_item_t *style_item, 
   dt_pthread_mutex_unlock(&dev->history_mutex);
 }
 
-void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const gboolean overwrite, const int32_t imgid)
+void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const int32_t imgid)
 {
   int id = 0;
   sqlite3_stmt *stmt;
@@ -783,12 +754,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     {
       newimgid = dt_image_duplicate(imgid);
       if(newimgid != -1)
-      {
-        if(overwrite)
-          dt_history_delete_on_image_ext(newimgid, FALSE);
-        else
-          dt_history_copy_and_paste_on_image(imgid, newimgid, FALSE, NULL, TRUE, TRUE);
-      }
+        dt_history_copy_and_paste_on_image(imgid, newimgid, NULL, TRUE, TRUE);
     }
     else
       newimgid = imgid;
@@ -875,7 +841,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     for(GList *l = si_list; l; l = g_list_next(l))
     {
       dt_style_item_t *style_item = (dt_style_item_t *)l->data;
-      dt_styles_apply_style_item(dev_dest, style_item, &modules_used, FALSE);
+      dt_styles_apply_style_item(dev_dest, style_item, &modules_used);
     }
 
     g_list_free_full(si_list, dt_style_item_free);

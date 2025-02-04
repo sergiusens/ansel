@@ -58,7 +58,7 @@ typedef struct dt_lib_export_t
   GtkWidget *storage, *format;
   int format_lut[128];
   uint32_t max_allowed_width , max_allowed_height;
-  GtkWidget *profile, *intent, *style, *style_mode;
+  GtkWidget *profile, *intent, *style;
   GtkButton *export_button;
   GtkWidget *storage_extra_container, *format_extra_container;
   GtkWidget *export_masks;
@@ -321,7 +321,6 @@ static void _export_button_clicked(GtkWidget *widget, dt_lib_export_t *d)
   uint32_t max_height = dt_conf_get_int(CONFIG_PREFIX "height");
 
   const gboolean export_masks = dt_conf_get_bool(CONFIG_PREFIX "export_masks");
-  const gboolean style_append = dt_conf_get_bool(CONFIG_PREFIX "style_append");
   const char *tmp = dt_conf_get_string_const(CONFIG_PREFIX "style");
   if(tmp)
   {
@@ -334,7 +333,7 @@ static void _export_button_clicked(GtkWidget *widget, dt_lib_export_t *d)
 
   GList *list = dt_act_on_get_images(TRUE, TRUE, TRUE);
   dt_control_export(list, max_width, max_height, format_index, storage_index, TRUE, export_masks,
-                    style, style_append, icc_type, icc_filename, icc_intent, d->metadata_export);
+                    style, icc_type, icc_filename, icc_intent, d->metadata_export);
 
   g_free(icc_filename);
 
@@ -553,11 +552,6 @@ void gui_reset(dt_lib_module_t *self)
   }
   else
     dt_bauhaus_combobox_set(d->style, 0);
-
-  // style mode to overwrite as it was the initial behavior
-  dt_bauhaus_combobox_set(d->style_mode, dt_confgen_get_bool(CONFIG_PREFIX "style_append", DT_DEFAULT));
-
-  gtk_widget_set_sensitive(GTK_WIDGET(d->style_mode), dt_bauhaus_combobox_get(d->style)==0?FALSE:TRUE);
 
   // export metadata presets
   g_free(d->metadata_export);
@@ -946,13 +940,11 @@ static void _style_changed(GtkWidget *widget, dt_lib_export_t *d)
   if(dt_bauhaus_combobox_get(d->style) == 0)
   {
     dt_conf_set_string(CONFIG_PREFIX "style", "");
-    gtk_widget_set_sensitive(GTK_WIDGET(d->style_mode), FALSE);
   }
   else
   {
     const gchar *style = dt_bauhaus_combobox_get_text(d->style);
     dt_conf_set_string(CONFIG_PREFIX "style", style);
-    gtk_widget_set_sensitive(GTK_WIDGET(d->style_mode), TRUE);
   }
 }
 
@@ -1277,29 +1269,12 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), d->style, FALSE, TRUE, 0);
   gtk_widget_set_tooltip_text(d->style, _("temporary style to use while exporting"));
 
-  //  Add check to control whether the style is to replace or append the current module
-
-  d->style_mode = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->style_mode, N_("mode"));
-
-  gtk_box_pack_start(GTK_BOX(self->widget), d->style_mode, FALSE, TRUE, 0);
-
-  dt_bauhaus_combobox_add(d->style_mode, _("replace history"));
-  dt_bauhaus_combobox_add(d->style_mode, _("append history"));
-
-  dt_bauhaus_combobox_set(d->style_mode, 0);
-
-  gtk_widget_set_tooltip_text(d->style_mode,
-                              _("whether the style items are appended to the history or replacing the history"));
-
   //  Set callback signals
   g_signal_connect(G_OBJECT(d->export_masks), "value-changed", G_CALLBACK(_callback_bool),
                    (gpointer)CONFIG_PREFIX "export_masks");
   g_signal_connect(G_OBJECT(d->intent), "value-changed", G_CALLBACK(_intent_changed), (gpointer)d);
   g_signal_connect(G_OBJECT(d->profile), "value-changed", G_CALLBACK(_profile_changed), (gpointer)d);
   g_signal_connect(G_OBJECT(d->style), "value-changed", G_CALLBACK(_style_changed), (gpointer)d);
-  g_signal_connect(G_OBJECT(d->style_mode), "value-changed", G_CALLBACK(_callback_bool),
-                   (gpointer)CONFIG_PREFIX "style_append");
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_STYLE_CHANGED,
                             G_CALLBACK(_lib_export_styles_changed_callback), self);
@@ -1388,11 +1363,6 @@ void gui_init(dt_lib_module_t *self)
   }
   else
     dt_bauhaus_combobox_set(d->style, 0);
-
-  // style mode to overwrite as it was the initial behavior
-  dt_bauhaus_combobox_set(d->style_mode, dt_conf_get_bool(CONFIG_PREFIX "style_append"));
-
-  gtk_widget_set_sensitive(GTK_WIDGET(d->style_mode), dt_bauhaus_combobox_get(d->style)==0?FALSE:TRUE);
 
   // export metadata presets
   d->metadata_export = dt_lib_export_metadata_get_conf();
@@ -1836,13 +1806,11 @@ void *get_params(dt_lib_module_t *self, int *size)
   const int32_t export_masks = dt_conf_get_bool(CONFIG_PREFIX "export_masks") ? 1 : 0;
   gchar *iccfilename = dt_conf_get_string(CONFIG_PREFIX "iccprofile");
   gchar *style = dt_conf_get_string(CONFIG_PREFIX "style");
-  const gboolean style_append = dt_conf_get_bool(CONFIG_PREFIX "style_append");
   const char *metadata_export = d->metadata_export;
 
   if(fdata)
   {
     g_strlcpy(fdata->style, style, sizeof(fdata->style));
-    fdata->style_append = style_append;
   }
 
   if(icctype != DT_COLORSPACE_FILE)
@@ -1994,8 +1962,6 @@ int set_params(dt_lib_module_t *self, const void *params, int size)
     dt_bauhaus_combobox_set(d->style, 0);
   else
     dt_bauhaus_combobox_set_from_text(d->style, fdata->style);
-
-  dt_bauhaus_combobox_set(d->style_mode, fdata->style_append ? 1 : 0);
 
   buf += fsize;
   const void *sdata = buf;

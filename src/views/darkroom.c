@@ -771,7 +771,7 @@ static void _darkroom_ui_apply_style_activate_callback(gchar *name)
   dt_dev_undo_start_record(darktable.develop);
 
   /* apply style on image and reload*/
-  dt_styles_apply_to_image(name, FALSE, FALSE, darktable.develop->image_storage.id);
+  dt_styles_apply_to_image(name, FALSE, darktable.develop->image_storage.id);
 
   /* record current history state : after change (needed for undo) */
   dt_dev_undo_end_record(darktable.develop);

@@ -70,7 +70,6 @@ static void usage(const char *progname)
   fprintf(stderr, "   --bpp <bpp>, unsupported\n");
   fprintf(stderr, "   --export_masks <0|1|false|true>, default: false\n");
   fprintf(stderr, "   --style <style name>\n");
-  fprintf(stderr, "   --style-overwrite\n");
   fprintf(stderr, "   --apply-custom-presets <0|1|false|true>, default: true\n");
   fprintf(stderr, "                          disable for multiple instances\n");
   fprintf(stderr, "   --out-ext <extension>, default from output destination or '.jpg'\n");
@@ -196,8 +195,7 @@ int main(int argc, char *arg[])
   char *style = NULL;
   int file_counter = 0;
   int width = 0, height = 0, bpp = 0;
-  gboolean verbose = FALSE,
-           style_overwrite = FALSE, custom_presets = TRUE, export_masks = FALSE,
+  gboolean verbose = FALSE, custom_presets = TRUE, export_masks = FALSE,
            output_to_dir = FALSE;
 
   GList* inputs = NULL;
@@ -264,10 +262,6 @@ int main(int argc, char *arg[])
       {
         k++;
         style = arg[k];
-      }
-      else if(!strcmp(arg[k], "--style-overwrite"))
-      {
-        style_overwrite = TRUE;
       }
       else if(!strcmp(arg[k], "--apply-custom-presets") && argc > k + 1)
       {
@@ -688,14 +682,11 @@ int main(int argc, char *arg[])
   fdata->max_width = (w != 0 && fdata->max_width > w) ? w : fdata->max_width;
   fdata->max_height = (h != 0 && fdata->max_height > h) ? h : fdata->max_height;
   fdata->style[0] = '\0';
-  fdata->style_append = 1; // make append the default and override with --style-overwrite
 
   if(style)
   {
     g_strlcpy((char *)fdata->style, style, DT_MAX_STYLE_NAME_LENGTH);
     fdata->style[127] = '\0';
-    if(style_overwrite)
-      fdata->style_append = 0;
   }
 
   if(storage->initialize_store)

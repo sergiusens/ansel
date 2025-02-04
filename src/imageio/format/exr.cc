@@ -317,7 +317,6 @@ void *legacy_params(dt_imageio_module_format_t *self, const void *const old_para
     n->global.width = o->width;
     n->global.height = o->height;
     g_strlcpy(n->global.style, o->style, sizeof(o->style));
-    n->global.style_append = FALSE;
     n->compression = PIZ_COMPRESSION;
     n->pixel_type = EXR_PT_FLOAT;
     *new_size = self->params_size(self);
@@ -343,7 +342,6 @@ void *legacy_params(dt_imageio_module_format_t *self, const void *const old_para
     n->global.width = o->width;
     n->global.height = o->height;
     g_strlcpy(n->global.style, o->style, sizeof(o->style));
-    n->global.style_append = FALSE;
     n->compression = o->compression;
     n->pixel_type = o->pixel_type >= EXR_PT_HALF ? o->pixel_type : EXR_PT_FLOAT;
     *new_size = self->params_size(self);
@@ -367,7 +365,6 @@ void *legacy_params(dt_imageio_module_format_t *self, const void *const old_para
     n->global.width = o->width;
     n->global.height = o->height;
     g_strlcpy(n->global.style, o->style, sizeof(o->style));
-    n->global.style_append = FALSE;
     n->compression = o->compression;
     n->pixel_type = EXR_PT_FLOAT;
     *new_size = self->params_size(self);
@@ -389,7 +386,6 @@ void *legacy_params(dt_imageio_module_format_t *self, const void *const old_para
     n->global.width = o->global.width;
     n->global.height = o->global.height;
     g_strlcpy(n->global.style, o->global.style, sizeof(o->global.style));
-    n->global.style_append = o->global.style_append;
     n->compression = o->compression;
     n->pixel_type = EXR_PT_FLOAT;
     *new_size = self->params_size(self);

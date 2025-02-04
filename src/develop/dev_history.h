@@ -99,8 +99,8 @@ gboolean dt_history_module_skip_copy(const int flags);
 
 
 /** adds to dev_dest module mod_src */
-int dt_history_merge_module_into_history(struct dt_develop_t *dev_dest, struct dt_develop_t *dev_src, struct dt_iop_module_t *mod_src, GList **_modules_used, const int append);
+int dt_history_merge_module_into_history(struct dt_develop_t *dev_dest, struct dt_develop_t *dev_src, struct dt_iop_module_t *mod_src, GList **_modules_used);
 
 
 /** copy history from imgid and pasts on dest_imgid, merge or overwrite... */
-int dt_history_copy_and_paste_on_image(int32_t imgid, int32_t dest_imgid, gboolean merge, GList *ops, gboolean copy_iop_order, const gboolean copy_full);
+int dt_history_copy_and_paste_on_image(int32_t imgid, int32_t dest_imgid, GList *ops, gboolean copy_iop_order, const gboolean copy_full);

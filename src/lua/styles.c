@@ -259,7 +259,7 @@ int dt_lua_style_apply(lua_State *L)
     luaA_to(L, dt_style_t, &style, 1);
     luaA_to(L, dt_lua_image_t, &imgid, 2);
   }
-  dt_styles_apply_to_image(style.name, FALSE, FALSE, imgid);
+  dt_styles_apply_to_image(style.name, FALSE, imgid);
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
   return 1;
 }
@@ -363,4 +363,3 @@ int dt_lua_init_styles(lua_State *L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

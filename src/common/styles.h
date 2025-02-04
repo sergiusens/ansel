@@ -83,10 +83,10 @@ void dt_styles_apply_to_list(const char *name, const GList *list, gboolean dupli
 void dt_multiple_styles_apply_to_list(GList *styles, const GList *list, gboolean duplicate);
 
 /** applies the item style to dev->history */
-void dt_styles_apply_style_item(dt_develop_t *dev, dt_style_item_t *style_item, GList **modules_used, const gboolean append);
+void dt_styles_apply_style_item(dt_develop_t *dev, dt_style_item_t *style_item, GList **modules_used);
 
 /** applies the style to image by imgid, takes care of overwrite and duplicate modes */
-void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const gboolean overwrite, const int32_t imgid);
+void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const int32_t imgid);
 
 /** delete a style by name */
 void dt_styles_delete_by_name_adv(const char *name, const gboolean raise);
@@ -132,4 +132,3 @@ void dt_init_styles_actions();
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

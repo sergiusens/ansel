@@ -84,7 +84,6 @@ typedef struct dt_control_export_t
   // is dispatched, but we have to keep that information
   gboolean export_masks;
   char style[128];
-  gboolean style_append;
   dt_colorspaces_color_profile_type_t icc_type;
   gchar *icc_filename;
   dt_iop_color_intent_t icc_intent;
@@ -592,7 +591,7 @@ static int32_t dt_control_duplicate_images_job_run(dt_job_t *job)
       if(GPOINTER_TO_INT(params->data))
         dt_history_delete_on_image(newimgid);
       else
-        dt_history_copy_and_paste_on_image(imgid, newimgid, FALSE, NULL, TRUE, TRUE);
+        dt_history_copy_and_paste_on_image(imgid, newimgid, NULL, TRUE, TRUE);
 
       // a duplicate should keep the change time stamp of the original
       dt_image_cache_set_change_timestamp_from_image(darktable.image_cache, newimgid, imgid);
@@ -1369,7 +1368,6 @@ static int32_t dt_control_export_job_run(dt_job_t *job)
   fdata->max_width = (settings->max_width != 0 && w != 0) ? MIN(w, settings->max_width) : MAX(w, settings->max_width);
   fdata->max_height = (settings->max_height != 0 && h != 0) ? MIN(h, settings->max_height) : MAX(h, settings->max_height);
   g_strlcpy(fdata->style, settings->style, sizeof(fdata->style));
-  fdata->style_append = settings->style_append;
   // Invariant: the tagid for 'darktable|changed' will not change while this function runs. Is this a
   // sensible assumption?
   guint tagid = 0, etagid = 0;
@@ -1849,7 +1847,7 @@ static void dt_control_export_cleanup(void *p)
 }
 
 void dt_control_export(GList *imgid_list, int max_width, int max_height, int format_index, int storage_index,
-                       gboolean high_quality, gboolean export_masks, char *style, gboolean style_append,
+                       gboolean high_quality, gboolean export_masks, char *style,
                        dt_colorspaces_color_profile_type_t icc_type, const gchar *icc_filename,
                        dt_iop_color_intent_t icc_intent, const gchar *metadata_export)
 {
@@ -1884,7 +1882,6 @@ void dt_control_export(GList *imgid_list, int max_width, int max_height, int for
   data->sdata = sdata;
   data->export_masks = export_masks;
   g_strlcpy(data->style, style, sizeof(data->style));
-  data->style_append = style_append;
   data->icc_type = icc_type;
   data->icc_filename = g_strdup(icc_filename);
   data->icc_intent = icc_intent;

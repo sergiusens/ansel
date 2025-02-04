@@ -673,7 +673,7 @@ int dt_imageio_export(const int32_t imgid, const char *filename, dt_imageio_modu
   }
 }
 
-gboolean _apply_style_before_export(dt_develop_t *dev, dt_imageio_module_data_t *format_params, const uint32_t imgid, const gboolean appending)
+gboolean _apply_style_before_export(dt_develop_t *dev, dt_imageio_module_data_t *format_params, const uint32_t imgid)
 {
   GList *style_items = dt_styles_get_item_list(format_params->style, TRUE, -1);
   if(!style_items)
@@ -685,13 +685,13 @@ gboolean _apply_style_before_export(dt_develop_t *dev, dt_imageio_module_data_t 
   GList *modules_used = NULL;
 
   dt_ioppr_check_iop_order(dev, imgid, "dt_imageio_export_with_flags");
-  dt_dev_pop_history_items_ext(dev, appending ? dt_dev_get_history_end(dev) : 0);
-  dt_ioppr_update_for_style_items(dev, style_items, appending);
+  dt_dev_pop_history_items_ext(dev, dt_dev_get_history_end(dev));
+  dt_ioppr_update_for_style_items(dev, style_items, TRUE);
 
   for(GList *st_items = style_items; st_items; st_items = g_list_next(st_items))
   {
     dt_style_item_t *st_item = (dt_style_item_t *)st_items->data;
-    dt_styles_apply_style_item(dev, st_item, &modules_used, appending);
+    dt_styles_apply_style_item(dev, st_item, &modules_used);
   }
 
   g_list_free(modules_used);
@@ -700,15 +700,14 @@ gboolean _apply_style_before_export(dt_develop_t *dev, dt_imageio_module_data_t 
   return FALSE;
 }
 
-void _print_export_debug(dt_dev_pixelpipe_t *pipe, dt_imageio_module_data_t *format_params, const gboolean appending, const gboolean use_style)
+void _print_export_debug(dt_dev_pixelpipe_t *pipe, dt_imageio_module_data_t *format_params, const gboolean use_style)
 {
   if(darktable.unmuted & DT_DEBUG_IMAGEIO)
   {
     fprintf(stderr,"[dt_imageio_export_with_flags] ");
     if(use_style)
     {
-      if(appending) fprintf(stderr,"appending style `%s'\n", format_params->style);
-      else          fprintf(stderr,"overwrite style `%s'\n", format_params->style);
+      fprintf(stderr,"appending style `%s'\n", format_params->style);
     }
     else fprintf(stderr,"\n");
     int cnt = 0;
@@ -1027,9 +1026,8 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   }
 
   const gboolean use_style = !thumbnail_export && format_params->style[0] != '\0';
-  const gboolean appending = format_params->style_append != FALSE;
   //  If a style is to be applied during export, add the iop params into the history
-  if(use_style && _apply_style_before_export(&dev, format_params, imgid, appending))
+  if(use_style && _apply_style_before_export(&dev, format_params, imgid))
     goto error;
 
   dt_ioppr_resync_modules_order(&dev);
@@ -1042,7 +1040,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   dt_dev_pixelpipe_synch_all(&pipe, &dev);
 
   // Write debug info to stdout
-  _print_export_debug(&pipe, format_params, appending, use_style);
+  _print_export_debug(&pipe, format_params, use_style);
 
   // Remove modules past or prior a certain one.
   // Useful for partial exports, for technical purposes (HDR merge)

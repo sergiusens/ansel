@@ -84,7 +84,7 @@ static const gchar *_unit_names[] = { N_("mm"), N_("cm"), N_("inch"), NULL };
 
 typedef struct dt_lib_print_settings_t
 {
-  GtkWidget *profile, *intent, *style, *style_mode, *papers, *media;
+  GtkWidget *profile, *intent, *style, *papers, *media;
   GtkWidget *printers, *orientation, *pprofile, *pintent;
   GtkWidget *width, *height, *black_point_compensation;
   GtkWidget *info;
@@ -106,7 +106,7 @@ typedef struct dt_lib_print_settings_t
   int v_intent, v_pintent;
   int v_icctype, v_picctype;
   char *v_iccprofile, *v_piccprofile, *v_style;
-  gboolean v_style_append, v_black_point_compensation;
+  gboolean v_black_point_compensation;
   gboolean busy;
 
   // for adding new area
@@ -125,7 +125,7 @@ typedef struct dt_lib_print_job_t
   gchar *job_title;
   dt_print_info_t prt;
   gchar* style;
-  gboolean style_append, black_point_compensation;
+  gboolean black_point_compensation;
   dt_colorspaces_color_profile_type_t buf_icc_type, p_icc_type;
   gchar *buf_icc_profile, *p_icc_profile;
   dt_iop_color_intent_t buf_icc_intent, p_icc_intent;
@@ -325,7 +325,6 @@ static int _export_image(dt_job_t *job, dt_image_box *img)
   dat.head.max_width = img->max_width;
   dat.head.max_height = img->max_height;
   dat.head.style[0] = '\0';
-  dat.head.style_append = params->style_append;
   dat.bpp = *params->p_icc_profile ? 16 : 8; // set to 16bit when a profile is to be applied
   dat.params = params;
 
@@ -714,7 +713,6 @@ static void _print_button_clicked(GtkWidget *widget, gpointer user_data)
 
   // FIXME: getting this from conf as w/prior code, but switch to getting from ps
   params->style = dt_conf_get_string("plugins/print/print/style");
-  params->style_append = ps->v_style_append;
 
   // FIXME: getting these from conf as w/prior code, but switch to getting them from ps
   params->buf_icc_type = dt_conf_get_int("plugins/print/print/icctype");
@@ -1108,30 +1106,15 @@ _style_callback(GtkWidget *widget, dt_lib_module_t *self)
   if(dt_bauhaus_combobox_get(ps->style) == 0)
   {
     dt_conf_set_string("plugins/print/print/style", "");
-    gtk_widget_set_sensitive(GTK_WIDGET(ps->style_mode), FALSE);
   }
   else
   {
     const gchar *style = dt_bauhaus_combobox_get_text(ps->style);
     dt_conf_set_string("plugins/print/print/style", style);
-    gtk_widget_set_sensitive(GTK_WIDGET(ps->style_mode), TRUE);
   }
 
   g_free(ps->v_style);
   ps->v_style = dt_conf_get_string("plugins/print/print/style");
-}
-
-static void
-_style_mode_changed(GtkWidget *widget, dt_lib_module_t *self)
-{
-  dt_lib_print_settings_t *ps = (dt_lib_print_settings_t *)self->data;
-
-  if(dt_bauhaus_combobox_get(ps->style_mode) == 0)
-    ps->v_style_append = FALSE;
-  else
-    ps->v_style_append = TRUE;
-
-  dt_conf_set_bool("plugins/print/print/style_append", ps->v_style_append);
 }
 
 static void
@@ -2696,25 +2679,6 @@ void gui_init(dt_lib_module_t *self)
                     G_CALLBACK (_style_callback),
                     (gpointer)self);
 
-  //  Whether to add/replace style items
-
-  d->style_mode = dt_bauhaus_combobox_new(darktable.bauhaus, DT_GUI_MODULE(NULL));
-  dt_bauhaus_widget_set_label(d->style_mode, N_("mode"));
-
-  dt_bauhaus_combobox_add(d->style_mode, _("replace history"));
-  dt_bauhaus_combobox_add(d->style_mode, _("append history"));
-
-  d->v_style_append = dt_conf_get_bool("plugins/print/print/style_append");
-  dt_bauhaus_combobox_set(d->style_mode, d->v_style_append?1:0);
-
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->style_mode), TRUE, TRUE, 0);
-  gtk_widget_set_tooltip_text(d->style_mode,
-                              _("whether the style items are appended to the history or replacing the history"));
-
-  gtk_widget_set_sensitive(GTK_WIDGET(d->style_mode), combo_idx==0?FALSE:TRUE);
-
-  g_signal_connect(G_OBJECT(d->style_mode), "value-changed", G_CALLBACK(_style_mode_changed), (gpointer)self);
-
   // Print button
 
   GtkWidget *button = dt_action_button_new(self, N_("print"), _print_button_clicked, self,
@@ -2970,7 +2934,7 @@ int set_params(dt_lib_module_t *self, const void *params, int size)
   const int32_t style_len = strlen(style) + 1;
   buf += style_len;
 
-  const int32_t style_mode = *(int32_t *)buf;
+  //const int32_t style_mode = *(int32_t *)buf;
   buf += sizeof(int32_t);
 
   const double b_top = *(double *)buf;
@@ -3053,7 +3017,6 @@ int set_params(dt_lib_module_t *self, const void *params, int size)
 
   if(style[0] != '\0')
     dt_bauhaus_combobox_set_from_text(ps->style, style);
-  dt_bauhaus_combobox_set (ps->style_mode, style_mode);
 
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(ps->b_top), b_top * units[ps->unit]);
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(ps->b_bottom), b_bottom * units[ps->unit]);
@@ -3079,7 +3042,7 @@ void *get_params(dt_lib_module_t *self, int *size)
   const int32_t profile_pos = dt_bauhaus_combobox_get(ps->profile);
   const int32_t intent =  dt_bauhaus_combobox_get(ps->intent);
   const char *style = dt_bauhaus_combobox_get_text(ps->style);
-  const int32_t style_mode = dt_bauhaus_combobox_get(ps->style_mode);
+  const int32_t style_mode = 0; // deprecated, kept for compatibility
   const int32_t pprofile_pos = dt_bauhaus_combobox_get(ps->pprofile);
   const int32_t pintent =  dt_bauhaus_combobox_get(ps->pintent);
   const int32_t landscape = dt_bauhaus_combobox_get(ps->orientation);
@@ -3230,7 +3193,6 @@ void gui_reset(dt_lib_module_t *self)
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(ps->black_point_compensation), TRUE);
   gtk_widget_set_sensitive(GTK_WIDGET(ps->pintent), TRUE);
   gtk_widget_set_sensitive(GTK_WIDGET(ps->black_point_compensation), FALSE);
-  gtk_widget_set_sensitive(GTK_WIDGET(ps->style_mode), FALSE);
 
   // reset page orientation to fit the picture if a single one is displayed
 

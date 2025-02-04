@@ -113,27 +113,6 @@ static void delete_history_callback()
 }
 
 
-static gboolean paste_mode_append_checked_callback()
-{
-  return dt_conf_get_bool("plugins/lighttable/copy_history/pastemode") == 1;
-}
-
-static gboolean paste_mode_overwrite_checked_callback()
-{
-  return dt_conf_get_bool("plugins/lighttable/copy_history/pastemode") == 0;
-}
-
-static void paste_mode_append_callback()
-{
-  dt_conf_set_bool("plugins/lighttable/copy_history/pastemode", 1);
-}
-
-static void paste_mode_overwrite_callback()
-{
-  dt_conf_set_bool("plugins/lighttable/copy_history/pastemode", 0);
-}
-
-
 static gboolean copy_sensitive_callback()
 {
   return dt_collection_get_selected_count(darktable.collection) == 1
@@ -314,14 +293,6 @@ void append_edit(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_menu_separator(menus[index]);
 
-  add_top_submenu_entry(menus, lists, _("History paste mode"), index);
-  GtkWidget *parent = get_last_widget(lists);
-
-  add_sub_sub_menu_entry(menus, parent, lists, _("Overwrite"), index, NULL,
-                         paste_mode_overwrite_callback, paste_mode_overwrite_checked_callback, NULL, NULL, 0, 0);
-  add_sub_sub_menu_entry(menus, parent, lists, _("Append"), index, NULL,
-                         paste_mode_append_callback, paste_mode_append_checked_callback, NULL, NULL, 0, 0);
-
   add_sub_menu_entry(menus, lists, _("Copy history (all)"), index, NULL, copy_callback, NULL, NULL, copy_sensitive_callback, GDK_KEY_c, GDK_CONTROL_MASK);
 
   add_sub_menu_entry(menus, lists, _("Copy history (parts)..."), index, NULL, copy_parts_callback, NULL, NULL, copy_sensitive_callback, GDK_KEY_c, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
@@ -343,7 +314,7 @@ void append_edit(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_menu_entry(menus, lists, _("Duplicate existing history"), index, NULL,
                      duplicate_callback, NULL, NULL, compress_history_sensitive_callback, GDK_KEY_d, GDK_CONTROL_MASK);
 
-  add_sub_menu_entry(menus, lists, _("Compress history history"), index, NULL,
+  add_sub_menu_entry(menus, lists, _("Compress history"), index, NULL,
                      compress_history_callback, NULL, NULL, compress_history_sensitive_callback, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Delete history"), index, NULL,
