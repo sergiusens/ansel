@@ -25,7 +25,8 @@
 
 
 kernel void blur_2D_Bspline_vertical(read_only image2d_t in, write_only image2d_t out,
-                                     const int width, const int height, const int mult)
+                                     const int width, const int height, const int mult,
+                                     const int clip_negative)
 {
   // À-trous B-spline interpolation/blur shifted by mult
   // Convolve B-spline filter over lines
@@ -48,12 +49,16 @@ kernel void blur_2D_Bspline_vertical(read_only image2d_t in, write_only image2d_
     accumulator += filter[jj] * read_imagef(in, samplerA, (int2)(x, clamp(yy, 0, height - 1)));
   }
 
-  write_imagef(out, (int2)(x, y), fmax(accumulator, 0.f));
+  if(clip_negative)
+    write_imagef(out, (int2)(x, y), fmax(accumulator, 0.f));
+  else
+    write_imagef(out, (int2)(x, y), accumulator);
 }
 
 
 kernel void blur_2D_Bspline_horizontal(read_only image2d_t in, write_only image2d_t out,
-                                       const int width, const int height, const int mult)
+                                       const int width, const int height, const int mult,
+                                       const int clip_negative)
 {
   // À-trous B-spline interpolation/blur shifted by mult
   // Convolve B-spline filter over columns
@@ -76,7 +81,10 @@ kernel void blur_2D_Bspline_horizontal(read_only image2d_t in, write_only image2
     accumulator += filter[ii] * read_imagef(in, samplerA, (int2)(clamp(xx, 0, width - 1), y));
   }
 
-  write_imagef(out, (int2)(x, y), fmax(accumulator, 0.f));
+  if(clip_negative)
+    write_imagef(out, (int2)(x, y), fmax(accumulator, 0.f));
+  else
+    write_imagef(out, (int2)(x, y), accumulator);
 }
 
 
