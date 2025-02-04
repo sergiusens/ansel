@@ -4,6 +4,7 @@
 #include "common/selection.h"
 #include "common/collection.h"
 #include "common/image_cache.h"
+#include "develop/dev_history.h"
 
 static void preferences_callback(GtkWidget *widget)
 {
@@ -143,7 +144,11 @@ static void copy_callback()
 {
   // Allow copy only when exactly one file is selected
   if(copy_sensitive_callback())
+  {
+    // TODO: only when needed
+    dt_dev_write_history(darktable.develop);
     dt_history_copy(dt_selection_get_first_id(darktable.selection));
+  }
   else
     dt_control_log(_("Copy is allowed only with exactly one image selected"));
 }
@@ -152,7 +157,11 @@ static void copy_callback()
 static void copy_parts_callback()
 {
   if(copy_sensitive_callback())
+  {
+    // TODO: only when needed
+    dt_dev_write_history(darktable.develop);
     dt_history_copy_parts(dt_selection_get_first_id(darktable.selection));
+  }
   else
     dt_control_log(_("Copy is allowed only with exactly one image selected"));
 }
@@ -172,6 +181,10 @@ static void paste_all_callback()
     dt_history_paste_on_list(imgs, TRUE);
     g_list_free(imgs);
     dt_dev_undo_end_record(darktable.develop);
+
+    // TODO: only when needed, check imgid
+    dt_dev_reload_history_items(darktable.develop);
+
     dt_control_queue_redraw_center();
   }
   else
@@ -189,6 +202,9 @@ static void paste_parts_callback()
     g_list_free(imgs);
     dt_dev_undo_end_record(darktable.develop);
     dt_control_queue_redraw_center();
+
+    // TODO: only when needed, check imgid
+    dt_dev_reload_history_items(darktable.develop);
   }
   else
     dt_control_log(_("Paste needs selected images to work"));
@@ -255,6 +271,9 @@ static void load_xmp_callback()
 #endif
       gtk_dialog_run(GTK_DIALOG(dialog));
       gtk_widget_destroy(dialog);
+
+      // TODO: only when needed, check imgid
+      dt_dev_reload_history_items(darktable.develop);
     }
     else
     {

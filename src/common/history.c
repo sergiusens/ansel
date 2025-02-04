@@ -110,9 +110,6 @@ void dt_history_delete_on_image_ext(int32_t imgid, gboolean undo)
 
   _remove_preset_flag(imgid);
 
-  /* if current image in develop reload history */
-  if(dt_dev_is_current_image(darktable.develop, imgid)) dt_dev_reload_history_items(darktable.develop);
-
   /* make sure mipmaps are recomputed */
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
 
@@ -167,9 +164,6 @@ int dt_history_load_and_apply(const int imgid, gchar *filename, int history_only
     dt_undo_record(darktable.undo, NULL, DT_UNDO_LT_HISTORY, (dt_undo_data_t)hist,
                    dt_history_snapshot_undo_pop, dt_history_snapshot_undo_lt_history_data_free);
     dt_undo_end_group(darktable.undo);
-
-    /* if current image in develop reload history */
-    if(dt_dev_is_current_image(darktable.develop, imgid)) dt_dev_reload_history_items(darktable.develop);
 
     dt_image_cache_write_release(darktable.image_cache, img,
     // ugly but if not history_only => called from crawler - do not write the xmp
@@ -1642,10 +1636,6 @@ gboolean dt_history_copy(int imgid)
   darktable.view_manager->copy_paste.copied_imageid = imgid;
   darktable.view_manager->copy_paste.full_copy = TRUE;
 
-  // check if images is currently loaded in darkroom
-  // is that really necessary ?
-  if(dt_dev_is_current_image(darktable.develop, imgid)) dt_dev_write_history(darktable.develop);
-
   return TRUE;
 }
 
@@ -1684,18 +1674,8 @@ gboolean dt_history_paste_on_list(const GList *list, gboolean undo)
                                        darktable.view_manager->copy_paste.copy_iop_order,
                                        darktable.view_manager->copy_paste.full_copy);
   }
+  
   if(undo) dt_undo_end_group(darktable.undo);
-
-  // In darkroom and if there is a copy of the iop-order we need to rebuild the pipe
-  // to take into account the possible new order of modules.
-
-  const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-
-  if(cv->view(cv) == DT_VIEW_DARKROOM
-     && darktable.view_manager->copy_paste.copy_iop_order)
-  {
-    dt_dev_pixelpipe_rebuild(darktable.develop);
-  }
 
   return TRUE;
 }
@@ -1736,17 +1716,6 @@ gboolean dt_history_paste_parts_on_list(const GList *list, gboolean undo)
   if(undo) dt_undo_end_group(darktable.undo);
 
   g_list_free(l_copy);
-
-  // In darkroom and if there is a copy of the iop-order we need to rebuild the pipe
-  // to take into account the possible new order of modules.
-
-  const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-
-  if(cv->view(cv) == DT_VIEW_DARKROOM
-     && darktable.view_manager->copy_paste.copy_iop_order)
-  {
-    dt_dev_pixelpipe_rebuild(darktable.develop);
-  }
 
   return TRUE;
 }
