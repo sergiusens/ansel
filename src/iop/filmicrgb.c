@@ -202,7 +202,7 @@ typedef struct dt_iop_filmicrgb_params_t
   dt_iop_filmicrgb_colorscience_type_t version; // $DEFAULT: DT_FILMIC_COLORSCIENCE_V5 $DESCRIPTION: "color science"
   gboolean auto_hardness;                       // $DEFAULT: TRUE $DESCRIPTION: "auto adjust hardness"
   gboolean custom_grey;                         // $DEFAULT: FALSE $DESCRIPTION: "use custom middle-gray values"
-  int high_quality_reconstruction;       // $MIN: 0 $MAX: 10 $DEFAULT: 1 $DESCRIPTION: "iterations of high-quality reconstruction"
+  int high_quality_reconstruction;       // $MIN: 0 $MAX: 10 $DEFAULT: 1 $DESCRIPTION: "iterations of color inpainting"
   dt_iop_filmic_noise_distribution_t noise_distribution; // $DEFAULT: DT_NOISE_POISSONIAN $DESCRIPTION: "type of noise"
   dt_iop_filmicrgb_curve_type_t shadows; // $DEFAULT: DT_FILMIC_CURVE_RATIONAL $DESCRIPTION: "contrast in shadows"
   dt_iop_filmicrgb_curve_type_t highlights; // $DEFAULT: DT_FILMIC_CURVE_RATIONAL $DESCRIPTION: "contrast in highlights"
@@ -4519,10 +4519,19 @@ void gui_init(dt_iop_module_t *self)
                                                 "ensure you understand its assumptions before using it."));
   gtk_box_pack_start(GTK_BOX(self->widget), hbox, FALSE, FALSE, 0);
 
+  GtkWidget *label = dt_ui_section_label_new(_("advanced"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
+
+  g->custom_grey = dt_bauhaus_toggle_from_params(self, "custom_grey");
+  gtk_widget_set_tooltip_text(g->custom_grey, _("enable to input custom middle-gray values.\n"
+                                                "this is not recommended in general.\n"
+                                                "fix the global exposure in the exposure module instead.\n"
+                                                "disable to use standard 18.45 %% middle gray."));
+
   // Page RECONSTRUCT
   self->widget = dt_ui_notebook_page(g->notebook, N_("reconstruct"), NULL);
 
-  GtkWidget *label = dt_ui_section_label_new(_("highlights clipping"));
+  label = dt_ui_section_label_new(_("highlights clipping"));
   gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
 
   g->reconstruct_threshold = dt_bauhaus_slider_from_params(self, "reconstruct_threshold");
@@ -4589,8 +4598,34 @@ void gui_init(dt_iop_module_t *self)
                                 "increase if you want more color.\n"
                                 "decrease if you see magenta or out-of-gamut highlights."));
 
+  label = dt_ui_section_label_new(_("advanced"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
+
+  // Color inpainting
+  g->high_quality_reconstruction = dt_bauhaus_slider_from_params(self, "high_quality_reconstruction");
+  gtk_widget_set_tooltip_text(g->high_quality_reconstruction,
+                              _("run extra passes of chromaticity reconstruction.\n"
+                                "more iterations means more color propagation from neighbourhood.\n"
+                                "this will be slower but will yield more neutral highlights.\n"
+                                "it also helps with difficult cases of magenta highlights."));
+
+  // Highlight noise
+  g->noise_level = dt_bauhaus_slider_from_params(self, "noise_level");
+  gtk_widget_set_tooltip_text(g->noise_level, _("add statistical noise in reconstructed highlights.\n"
+                                                "this avoids highlights to look too smooth\n"
+                                                "when the picture is noisy overall,\n"
+                                                "so they blend with the rest of the picture."));
+
+  // Noise distribution
+  g->noise_distribution = dt_bauhaus_combobox_from_params(self, "noise_distribution");
+  gtk_widget_set_tooltip_text(g->noise_distribution, _("choose the statistical distribution of noise.\n"
+                                                       "this is useful to match natural sensor noise pattern.\n"));
+
   // Page LOOK
   self->widget = dt_ui_notebook_page(g->notebook, N_("look"), NULL);
+
+  label = dt_ui_section_label_new(_("tone mapping"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
 
   g->contrast = dt_bauhaus_slider_from_params(self, N_("contrast"));
   dt_bauhaus_slider_set_soft_range(g->contrast, 0.5, 3.0);
@@ -4620,12 +4655,47 @@ void gui_init(dt_iop_module_t *self)
                                             "use it if you need to protect the details\n"
                                             "at one extremity of the histogram."));
 
+  // Curve type
+  g->highlights = dt_bauhaus_combobox_from_params(self, "highlights");
+  gtk_widget_set_tooltip_text(g->highlights, _("choose the desired curvature of the filmic spline in highlights.\n"
+                                               "hard uses a high curvature resulting in more tonal compression.\n"
+                                               "soft uses a low curvature resulting in less tonal compression."));
+
+  g->shadows = dt_bauhaus_combobox_from_params(self, "shadows");
+  gtk_widget_set_tooltip_text(g->shadows, _("choose the desired curvature of the filmic spline in shadows.\n"
+                                            "hard uses a high curvature resulting in more tonal compression.\n"
+                                            "soft uses a low curvature resulting in less tonal compression."));
+
+  label = dt_ui_section_label_new(_("color mapping"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
+
   g->saturation = dt_bauhaus_slider_from_params(self, "saturation");
   dt_bauhaus_slider_set_soft_range(g->saturation, -50.0, 50.0);
   dt_bauhaus_slider_set_format(g->saturation, "%");
   gtk_widget_set_tooltip_text(g->saturation, _("desaturates the output of the module\n"
                                                "specifically at extreme luminances.\n"
                                                "increase if shadows and/or highlights are under-saturated."));
+
+  g->preserve_color = dt_bauhaus_combobox_from_params(self, "preserve_color");
+  gtk_widget_set_tooltip_text(g->preserve_color, _("ensure the original color are preserved.\n"
+                                                   "may reinforce chromatic aberrations and chroma noise,\n"
+                                                   "so ensure they are properly corrected elsewhere.\n"));
+
+  label = dt_ui_section_label_new(_("advanced"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
+
+  // Color science
+  g->version = dt_bauhaus_combobox_from_params(self, "version");
+  gtk_widget_set_tooltip_text(g->version,
+                              _("v3 is darktable 3.0 desaturation method, same as color balance.\n"
+                                "v4 is a newer desaturation method, based on spectral purity of light."));
+
+
+  g->auto_hardness = dt_bauhaus_toggle_from_params(self, "auto_hardness");
+  gtk_widget_set_tooltip_text(
+      g->auto_hardness, _("enable to auto-set the look hardness depending on the scene white and black points.\n"
+                          "this keeps the middle gray on the identity line and improves fast tuning.\n"
+                          "disable if you want a manual control."));
 
   // Page DISPLAY
   self->widget = dt_ui_notebook_page(g->notebook, N_("display"), NULL);
@@ -4650,62 +4720,6 @@ void gui_init(dt_iop_module_t *self)
   dt_bauhaus_slider_set_format(g->white_point_target, "%");
   gtk_widget_set_tooltip_text(g->white_point_target, _("luminance of output pure white, "
                                                        "this should be 100%\nexcept if you want a faded look"));
-
-  // Page OPTIONS
-  self->widget = dt_ui_notebook_page(g->notebook, N_("options"), NULL);
-
-  // Color science
-  g->version = dt_bauhaus_combobox_from_params(self, "version");
-  gtk_widget_set_tooltip_text(g->version,
-                              _("v3 is darktable 3.0 desaturation method, same as color balance.\n"
-                                "v4 is a newer desaturation method, based on spectral purity of light."));
-
-  g->preserve_color = dt_bauhaus_combobox_from_params(self, "preserve_color");
-  gtk_widget_set_tooltip_text(g->preserve_color, _("ensure the original color are preserved.\n"
-                                                   "may reinforce chromatic aberrations and chroma noise,\n"
-                                                   "so ensure they are properly corrected elsewhere.\n"));
-
-  // Curve type
-  g->highlights = dt_bauhaus_combobox_from_params(self, "highlights");
-  gtk_widget_set_tooltip_text(g->highlights, _("choose the desired curvature of the filmic spline in highlights.\n"
-                                               "hard uses a high curvature resulting in more tonal compression.\n"
-                                               "soft uses a low curvature resulting in less tonal compression."));
-
-  g->shadows = dt_bauhaus_combobox_from_params(self, "shadows");
-  gtk_widget_set_tooltip_text(g->shadows, _("choose the desired curvature of the filmic spline in shadows.\n"
-                                            "hard uses a high curvature resulting in more tonal compression.\n"
-                                            "soft uses a low curvature resulting in less tonal compression."));
-
-  g->custom_grey = dt_bauhaus_toggle_from_params(self, "custom_grey");
-  gtk_widget_set_tooltip_text(g->custom_grey, _("enable to input custom middle-gray values.\n"
-                                                "this is not recommended in general.\n"
-                                                "fix the global exposure in the exposure module instead.\n"
-                                                "disable to use standard 18.45 %% middle gray."));
-
-  g->auto_hardness = dt_bauhaus_toggle_from_params(self, "auto_hardness");
-  gtk_widget_set_tooltip_text(
-      g->auto_hardness, _("enable to auto-set the look hardness depending on the scene white and black points.\n"
-                          "this keeps the middle gray on the identity line and improves fast tuning.\n"
-                          "disable if you want a manual control."));
-
-  g->high_quality_reconstruction = dt_bauhaus_slider_from_params(self, "high_quality_reconstruction");
-  gtk_widget_set_tooltip_text(g->high_quality_reconstruction,
-                              _("run extra passes of chromaticity reconstruction.\n"
-                                "more iterations means more color propagation from neighbourhood.\n"
-                                "this will be slower but will yield more neutral highlights.\n"
-                                "it also helps with difficult cases of magenta highlights."));
-
-  // Highlight noise
-  g->noise_level = dt_bauhaus_slider_from_params(self, "noise_level");
-  gtk_widget_set_tooltip_text(g->noise_level, _("add statistical noise in reconstructed highlights.\n"
-                                                "this avoids highlights to look too smooth\n"
-                                                "when the picture is noisy overall,\n"
-                                                "so they blend with the rest of the picture."));
-
-  // Noise distribution
-  g->noise_distribution = dt_bauhaus_combobox_from_params(self, "noise_distribution");
-  gtk_widget_set_tooltip_text(g->noise_distribution, _("choose the statistical distribution of noise.\n"
-                                                       "this is useful to match natural sensor noise pattern.\n"));
 
   // start building top level widget
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
