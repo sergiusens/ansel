@@ -232,7 +232,7 @@ typedef struct dt_iop_toneequalizer_gui_data_t
 
   // GTK garbage, nobody cares, no SIMD here
   GtkWidget *noise, *ultra_deep_blacks, *deep_blacks, *blacks, *shadows, *midtones, *highlights, *whites, *speculars;
-  GtkDrawingArea *area, *bar;
+  GtkDrawingArea *area;
   GtkWidget *blending, *smoothing, *quantization;
   GtkWidget *method;
   GtkWidget *details, *feathering, *contrast_boost, *iterations, *exposure_boost;
@@ -2761,72 +2761,6 @@ static gboolean area_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   return TRUE;
 }
 
-static gboolean dt_iop_toneequalizer_bar_draw(GtkWidget *widget, cairo_t *crf, gpointer user_data)
-{
-  // Draw the widget equalizer view
-  dt_iop_module_t *self = (dt_iop_module_t *)user_data;
-  dt_iop_toneequalizer_gui_data_t *g = (dt_iop_toneequalizer_gui_data_t *)self->gui_data;
-
-  update_histogram(self);
-
-  GtkAllocation allocation;
-  gtk_widget_get_allocation(widget, &allocation);
-  cairo_surface_t *cst = dt_cairo_image_surface_create(CAIRO_FORMAT_ARGB32, allocation.width, allocation.height);
-  cairo_t *cr = cairo_create(cst);
-
-  // draw background
-  set_color(cr, darktable.bauhaus->graph_bg);
-  cairo_rectangle(cr, 0, 0, allocation.width, allocation.height);
-  cairo_fill_preserve(cr);
-  cairo_clip(cr);
-
-  dt_iop_gui_enter_critical_section(self);
-
-  if(g->histogram_valid)
-  {
-    // draw histogram span
-    const float left = (g->histogram_first_decile + 8.0f) / 8.0f;
-    const float right = (g->histogram_last_decile + 8.0f) / 8.0f;
-    const float width = (right - left);
-    set_color(cr, darktable.bauhaus->inset_histogram);
-    cairo_rectangle(cr, left * allocation.width, 0, width * allocation.width, allocation.height);
-    cairo_fill(cr);
-
-    // draw average bar
-    set_color(cr, darktable.bauhaus->graph_fg);
-    cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(3));
-    const float average = (g->histogram_average + 8.0f) / 8.0f;
-    cairo_move_to(cr, average * allocation.width, 0.0);
-    cairo_line_to(cr, average * allocation.width, allocation.height);
-    cairo_stroke(cr);
-
-    // draw clipping bars
-    cairo_set_source_rgb(cr, 0.75, 0.50, 0);
-    cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(6));
-    if(g->histogram_first_decile < -7.9f)
-    {
-      cairo_move_to(cr, DT_PIXEL_APPLY_DPI(3), 0.0);
-      cairo_line_to(cr, DT_PIXEL_APPLY_DPI(3), allocation.height);
-      cairo_stroke(cr);
-    }
-    if(g->histogram_last_decile > - 0.1f)
-    {
-      cairo_move_to(cr, allocation.width - DT_PIXEL_APPLY_DPI(3), 0.0);
-      cairo_line_to(cr, allocation.width - DT_PIXEL_APPLY_DPI(3), allocation.height);
-      cairo_stroke(cr);
-    }
-  }
-
-  dt_iop_gui_leave_critical_section(self);
-
-  cairo_set_source_surface(crf, cst, 0, 0);
-  cairo_paint(crf);
-  cairo_destroy(cr);
-  cairo_surface_destroy(cst);
-  return TRUE;
-}
-
-
 static gboolean area_enter_notify(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
   dt_iop_module_t *self = (dt_iop_module_t *)user_data;
@@ -3062,7 +2996,6 @@ static void _develop_preview_pipe_finished_callback(gpointer instance, gpointer 
   if(g == NULL) return;
   switch_cursors(self);
   gtk_widget_queue_draw(GTK_WIDGET(g->area));
-  gtk_widget_queue_draw(GTK_WIDGET(g->bar));
 }
 
 
@@ -3097,9 +3030,59 @@ void gui_init(struct dt_iop_module_t *self)
 
   g->notebook = dt_ui_notebook_new();
 
+  // Advanced view
+
+  self->widget = dt_ui_notebook_page(g->notebook, N_("graph"), NULL);
+
+  g->area = GTK_DRAWING_AREA(dtgtk_drawing_area_new_with_aspect_ratio(1.));
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->area), TRUE, TRUE, 0);
+  gtk_widget_add_events(GTK_WIDGET(g->area), GDK_POINTER_MOTION_MASK | darktable.gui->scroll_mask
+                                           | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
+                                           | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
+  gtk_widget_set_can_focus(GTK_WIDGET(g->area), TRUE);
+  g_signal_connect(G_OBJECT(g->area), "draw", G_CALLBACK(area_draw), self);
+  g_signal_connect(G_OBJECT(g->area), "button-press-event", G_CALLBACK(area_button_press), self);
+  g_signal_connect(G_OBJECT(g->area), "button-release-event", G_CALLBACK(area_button_release), self);
+  g_signal_connect(G_OBJECT(g->area), "leave-notify-event", G_CALLBACK(area_leave_notify), self);
+  g_signal_connect(G_OBJECT(g->area), "enter-notify-event", G_CALLBACK(area_enter_notify), self);
+  g_signal_connect(G_OBJECT(g->area), "motion-notify-event", G_CALLBACK(area_motion_notify), self);
+  gtk_widget_set_tooltip_text(GTK_WIDGET(g->area), _("double-click to reset the curve"));
+
+  g->smoothing = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), -2.33f, +1.67f, 0, 0.0f, 2);
+  dt_bauhaus_slider_set_soft_range(g->smoothing, -1.0f, 1.0f);
+  dt_bauhaus_widget_set_label(g->smoothing, N_("curve smoothing"));
+  gtk_widget_set_tooltip_text(g->smoothing, _("positive values will produce more progressive tone transitions\n"
+                                              "but the curve might become oscillatory in some settings.\n"
+                                              "negative values will avoid oscillations and behave more robustly\n"
+                                              "but may produce brutal tone transitions and damage local contrast."));
+  gtk_box_pack_start(GTK_BOX(self->widget), g->smoothing, FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(g->smoothing), "value-changed", G_CALLBACK(smoothing_callback), self);
+
+  g->exposure_boost = dt_bauhaus_slider_from_params(self, "exposure_boost");
+  dt_bauhaus_slider_set_soft_range(g->exposure_boost, -4.0, 4.0);
+  dt_bauhaus_slider_set_format(g->exposure_boost, _(" EV"));
+  gtk_widget_set_tooltip_text(g->exposure_boost, _("use this to slide the mask average exposure along channels\n"
+                                                   "for a better control of the exposure correction with the available nodes.\n"
+                                                   "the magic wand will auto-adjust the average exposure"));
+  dt_bauhaus_widget_set_quad_paint(g->exposure_boost, dtgtk_cairo_paint_wand, 0, NULL);
+  dt_bauhaus_widget_set_quad_toggle(g->exposure_boost, FALSE);
+  g_signal_connect(G_OBJECT(g->exposure_boost), "quad-pressed", G_CALLBACK(auto_adjust_exposure_boost), self);
+
+  g->contrast_boost = dt_bauhaus_slider_from_params(self, "contrast_boost");
+  dt_bauhaus_slider_set_soft_range(g->contrast_boost, -2.0, 2.0);
+  dt_bauhaus_slider_set_format(g->contrast_boost, _(" EV"));
+  gtk_widget_set_tooltip_text(g->contrast_boost, _("use this to counter the averaging effect of the guided filter\n"
+                                                   "and dilate the mask contrast around -4EV\n"
+                                                   "this allows to spread the exposure histogram over more channels\n"
+                                                   "for a better control of the exposure correction.\n"
+                                                   "the magic wand will auto-adjust the contrast"));
+  dt_bauhaus_widget_set_quad_paint(g->contrast_boost, dtgtk_cairo_paint_wand, 0, NULL);
+  dt_bauhaus_widget_set_quad_toggle(g->contrast_boost, FALSE);
+  g_signal_connect(G_OBJECT(g->contrast_boost), "quad-pressed", G_CALLBACK(auto_adjust_contrast_boost), self);
+
   // Simple view
 
-  self->widget = dt_ui_notebook_page(g->notebook, N_("simple"), NULL);
+  self->widget = dt_ui_notebook_page(g->notebook, N_("sliders"), NULL);
 
   g->noise = dt_bauhaus_slider_from_params(self, "noise");
   dt_bauhaus_slider_set_format(g->noise, _(" EV"));
@@ -3138,38 +3121,6 @@ void gui_init(struct dt_iop_module_t *self)
   dt_bauhaus_widget_set_label(g->whites, N_("-1 EV"));
   dt_bauhaus_widget_set_label(g->speculars, N_("+0 EV"));
 
-  // Advanced view
-
-  self->widget = dt_ui_notebook_page(g->notebook, N_("advanced"), NULL);
-
-  g->area = GTK_DRAWING_AREA(gtk_drawing_area_new());
-  GtkWidget *wrapper = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0); // for CSS size
-  gtk_box_pack_start(GTK_BOX(wrapper), GTK_WIDGET(g->area), TRUE, TRUE, 0);
-  g_object_set_data(G_OBJECT(wrapper), "iop-instance", self);
-  gtk_widget_set_name(GTK_WIDGET(wrapper), "toneeqgraph");
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(wrapper), TRUE, TRUE, 0);
-  gtk_widget_add_events(GTK_WIDGET(g->area), GDK_POINTER_MOTION_MASK | darktable.gui->scroll_mask
-                                           | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
-                                           | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
-  gtk_widget_set_can_focus(GTK_WIDGET(g->area), TRUE);
-  g_signal_connect(G_OBJECT(g->area), "draw", G_CALLBACK(area_draw), self);
-  g_signal_connect(G_OBJECT(g->area), "button-press-event", G_CALLBACK(area_button_press), self);
-  g_signal_connect(G_OBJECT(g->area), "button-release-event", G_CALLBACK(area_button_release), self);
-  g_signal_connect(G_OBJECT(g->area), "leave-notify-event", G_CALLBACK(area_leave_notify), self);
-  g_signal_connect(G_OBJECT(g->area), "enter-notify-event", G_CALLBACK(area_enter_notify), self);
-  g_signal_connect(G_OBJECT(g->area), "motion-notify-event", G_CALLBACK(area_motion_notify), self);
-  gtk_widget_set_tooltip_text(GTK_WIDGET(g->area), _("double-click to reset the curve"));
-
-  g->smoothing = dt_bauhaus_slider_new_with_range(darktable.bauhaus, DT_GUI_MODULE(self), -2.33f, +1.67f, 0, 0.0f, 2);
-  dt_bauhaus_slider_set_soft_range(g->smoothing, -1.0f, 1.0f);
-  dt_bauhaus_widget_set_label(g->smoothing, N_("curve smoothing"));
-  gtk_widget_set_tooltip_text(g->smoothing, _("positive values will produce more progressive tone transitions\n"
-                                              "but the curve might become oscillatory in some settings.\n"
-                                              "negative values will avoid oscillations and behave more robustly\n"
-                                              "but may produce brutal tone transitions and damage local contrast."));
-  gtk_box_pack_start(GTK_BOX(self->widget), g->smoothing, FALSE, FALSE, 0);
-  g_signal_connect(G_OBJECT(g->smoothing), "value-changed", G_CALLBACK(smoothing_callback), self);
-
   // Masking options
 
   self->widget = dt_ui_notebook_page(g->notebook, N_("masking"), NULL);
@@ -3207,44 +3158,11 @@ void gui_init(struct dt_iop_module_t *self)
                                                "lower values give smoother gradients and better smoothing\n"
                                                "but may lead to inaccurate edges taping and halos"));
 
-  gtk_box_pack_start(GTK_BOX(self->widget), dt_ui_section_label_new(_("mask post-processing")), FALSE, FALSE, 0);
-
-  g->bar = GTK_DRAWING_AREA(gtk_drawing_area_new());
-  gtk_widget_set_size_request(GTK_WIDGET(g->bar), -1, 4);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(g->bar), TRUE, TRUE, 0);
-  gtk_widget_set_can_focus(GTK_WIDGET(g->bar), TRUE);
-  g_signal_connect(G_OBJECT(g->bar), "draw", G_CALLBACK(dt_iop_toneequalizer_bar_draw), self);
-  gtk_widget_set_tooltip_text(GTK_WIDGET(g->bar), _("mask histogram span between the first and last deciles.\n"
-                                                    "the central line shows the average. orange bars appear at extrema if clipping occurs."));
-
-
   g->quantization = dt_bauhaus_slider_from_params(self, "quantization");
   dt_bauhaus_slider_set_format(g->quantization, _(" EV"));
   gtk_widget_set_tooltip_text(g->quantization, _("0 disables the quantization.\n"
                                                  "higher values posterize the luminance mask to help the guiding\n"
                                                  "produce piece-wise smooth areas when using high feathering values"));
-
-  g->exposure_boost = dt_bauhaus_slider_from_params(self, "exposure_boost");
-  dt_bauhaus_slider_set_soft_range(g->exposure_boost, -4.0, 4.0);
-  dt_bauhaus_slider_set_format(g->exposure_boost, _(" EV"));
-  gtk_widget_set_tooltip_text(g->exposure_boost, _("use this to slide the mask average exposure along channels\n"
-                                                   "for a better control of the exposure correction with the available nodes.\n"
-                                                   "the magic wand will auto-adjust the average exposure"));
-  dt_bauhaus_widget_set_quad_paint(g->exposure_boost, dtgtk_cairo_paint_wand, 0, NULL);
-  dt_bauhaus_widget_set_quad_toggle(g->exposure_boost, FALSE);
-  g_signal_connect(G_OBJECT(g->exposure_boost), "quad-pressed", G_CALLBACK(auto_adjust_exposure_boost), self);
-
-  g->contrast_boost = dt_bauhaus_slider_from_params(self, "contrast_boost");
-  dt_bauhaus_slider_set_soft_range(g->contrast_boost, -2.0, 2.0);
-  dt_bauhaus_slider_set_format(g->contrast_boost, _(" EV"));
-  gtk_widget_set_tooltip_text(g->contrast_boost, _("use this to counter the averaging effect of the guided filter\n"
-                                                   "and dilate the mask contrast around -4EV\n"
-                                                   "this allows to spread the exposure histogram over more channels\n"
-                                                   "for a better control of the exposure correction.\n"
-                                                   "the magic wand will auto-adjust the contrast"));
-  dt_bauhaus_widget_set_quad_paint(g->contrast_boost, dtgtk_cairo_paint_wand, 0, NULL);
-  dt_bauhaus_widget_set_quad_toggle(g->contrast_boost, FALSE);
-  g_signal_connect(G_OBJECT(g->contrast_boost), "quad-pressed", G_CALLBACK(auto_adjust_contrast_boost), self);
 
   // start building top level widget
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
