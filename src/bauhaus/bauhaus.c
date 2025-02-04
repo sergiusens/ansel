@@ -332,20 +332,14 @@ gboolean dt_bauhaus_focus_in_callback(GtkWidget *widget, GdkEventFocus event, gp
 
 gboolean dt_bauhaus_focus_out_callback(GtkWidget *widget, GdkEventFocus event, gpointer user_data)
 {
-  // Scroll focus needs to be managed separately from Gtk focus
-  // because of Gtk notebooks (tabs): Gtk gives focus automatically to the first
-  // notebook child, which is not what we want for scroll event capture.
   gtk_widget_set_state_flags(widget, GTK_STATE_FLAG_NORMAL, TRUE);
   gtk_widget_queue_draw(widget);
-  fprintf(stdout, "focus_out\n");
   return TRUE;
 }
 
 
 gboolean dt_bauhaus_focus_callback(GtkWidget *widget, GtkDirectionType direction, gpointer data)
 {
-  fprintf(stdout, "focus\n");
-
   // Let user focus on the next/previous widget on arrow up/down
   if(direction == GTK_DIR_UP || direction == GTK_DIR_DOWN) return FALSE;
 
