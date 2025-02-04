@@ -29,24 +29,9 @@
 #include "common/image.h"
 #include "control/settings.h"
 #include "develop/imageop.h"
+#include "develop/dev_history.h"
 
 struct dt_iop_module_t;
-
-typedef struct dt_dev_history_item_t
-{
-  struct dt_iop_module_t *module; // pointer to image operation module
-  gboolean enabled;               // switched respective module on/off
-  dt_iop_params_t *params;        // parameters for this operation
-  struct dt_develop_blend_params_t *blend_params;
-  char op_name[20];
-  int iop_order;
-  int multi_priority;
-  char multi_name[128];
-  GList *forms; // snapshot of dt_develop_t->forms
-  int num; // num of history on database
-
-  uint64_t hash; // module params hash.
-} dt_dev_history_item_t;
 
 typedef enum dt_dev_overexposed_colorscheme_t
 {
@@ -354,44 +339,6 @@ int dt_dev_load_image(dt_develop_t *dev, const uint32_t imgid);
 /** checks if provided imgid is the image currently in develop */
 int dt_dev_is_current_image(dt_develop_t *dev, uint32_t imgid);
 
-/* WARNING: non-thread-safe. Should be called in function locking the dev->history_mutex lock */
-const dt_dev_history_item_t *dt_dev_get_history_item(dt_develop_t *dev, struct dt_iop_module_t *module);
-/* Return TRUE if the pipeline topology may need to be updated, aka new module node inserted */
-gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *module, gboolean enable, gboolean force_new_item,
-                                     gboolean no_image, gboolean include_masks);
-void dt_dev_add_history_item_real(dt_develop_t *dev, struct dt_iop_module_t *module, gboolean enable);
-#define dt_dev_add_history_item(dev, module, enable) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_DEV, dt_dev_add_history_item_real, (dev), (module), (enable))
-
-void dt_dev_reload_history_items(dt_develop_t *dev);
-void dt_dev_pop_history_items_ext(dt_develop_t *dev, int32_t cnt);
-void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt);
-void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int imgid);
-void dt_dev_write_history_end_ext(const int history_end, const int imgid);
-void dt_dev_write_history(dt_develop_t *dev);
-void dt_dev_read_history_ext(dt_develop_t *dev, const int imgid, gboolean no_image);
-void dt_dev_read_history(dt_develop_t *dev);
-void dt_dev_free_history_item(gpointer data);
-void dt_dev_invalidate_history_module(GList *list, struct dt_iop_module_t *module);
-
-// We allow pipelines to run partial histories, up to a certain index
-// stored privately in dev->history_end. Use these getter/setters
-// that will check validity, instead of directly reading/writing the private data.
-
-// Get the index of the last active history element from a GUI perspective.
-// It means that dev->history_end is shifted by a +1 offset, so index 0 is the raw image,
-// therefore outside of the actual dev->history list, then dev->history_end = 1 is
-// actually the first element of history, and dev->history_end = length(dev->history) is the last.
-// Note: the value is sanitized with the actual history size.
-// It needs to run after dev->history is fully populated
-int32_t dt_dev_get_history_end(dt_develop_t *dev);
-
-// Set the index of the last active history element from a GUI perspective.
-// It means that dev->history_end is shifted by a +1 offset, so index 0 is the raw image,
-// therefore outside of the actual dev->history list, then dev->history_end = 1 is
-// actually the first element of history, and dev->history_end = length(dev->history) is the last.
-// Note: the value is sanitized with the actual history size.
-// It needs to run after dev->history is fully populated
-void dt_dev_set_history_end(dt_develop_t *dev, const uint32_t index);
 
 // Force a full rebuild of the pipe, needed when module order is changed.
 // Resync the full history, which may be expensive.
@@ -428,7 +375,6 @@ void dt_dev_pixelpipe_resync_main(dt_develop_t *dev);
 
 void dt_dev_set_histogram(dt_develop_t *dev);
 void dt_dev_set_histogram_pre(dt_develop_t *dev);
-void dt_dev_get_history_item_label(dt_dev_history_item_t *hist, char *label, const int cnt);
 
 // Flush caches of dev pipes and force a full recompute
 void dt_dev_reprocess_all(dt_develop_t *dev);

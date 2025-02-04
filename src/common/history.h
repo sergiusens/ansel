@@ -21,10 +21,6 @@
 #include <gtk/gtk.h>
 #include <inttypes.h>
 #include <sqlite3.h>
-#include "develop/imageop.h"
-
-struct dt_develop_t;
-struct dt_iop_module_t;
 
 // history hash is designed to detect any change made on the image
 // if current = basic the image has only the mandatory modules with their original settings
@@ -61,12 +57,6 @@ typedef struct dt_history_copy_item_t
 /** helper function to free a GList of dt_history_item_t */
 void dt_history_item_free(gpointer data);
 
-/** adds to dev_dest module mod_src */
-int dt_history_merge_module_into_history(struct dt_develop_t *dev_dest, struct dt_develop_t *dev_src, struct dt_iop_module_t *mod_src, GList **_modules_used, const int append);
-
-/** copy history from imgid and pasts on dest_imgid, merge or overwrite... */
-int dt_history_copy_and_paste_on_image(int32_t imgid, int32_t dest_imgid, gboolean merge, GList *ops, gboolean copy_iop_order, const gboolean copy_full);
-
 /** delete all history for the given image */
 void dt_history_delete_on_image(int32_t imgid);
 
@@ -78,11 +68,6 @@ gboolean dt_history_copy(int imgid);
 gboolean dt_history_copy_parts(int imgid);
 gboolean dt_history_paste_on_list(const GList *list, gboolean undo);
 gboolean dt_history_paste_parts_on_list(const GList *list, gboolean undo);
-
-static inline gboolean dt_history_module_skip_copy(const int flags)
-{
-  return flags & (IOP_FLAGS_DEPRECATED | IOP_FLAGS_UNSAFE_COPY | IOP_FLAGS_HIDDEN);
-}
 
 /** load a dt file and applies to selected images */
 int dt_history_load_and_apply_on_list(gchar *filename, const GList *list);
@@ -151,4 +136,3 @@ void dt_history_hash_read(const int32_t imgid, dt_history_hash_values_t *hash);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

@@ -103,6 +103,7 @@ FILE(GLOB SOURCE_FILES
   "control/progress.c"
   "control/signal.c"
   "develop/develop.c"
+  "develop/dev_history.c"
   "develop/imageop.c"
   "develop/imageop_math.c"
   "develop/imageop_gui.c"
@@ -595,16 +596,17 @@ if(NOT CUSTOM_CFLAGS)
   #endif()
 
   #-g MUST be set for ALL builds, or there will be no support for them when bugs happen
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MARCH} ${DT_REQ_INSTRUCTIONS} -g -Wfatal-errors")
+  # warnings we need to enable (and then fix the warning): -Werror=sign-compare -Wpedantic
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} ${MARCH} ${DT_REQ_INSTRUCTIONS} -g -Wfatal-errors -std=c11")
   set(CMAKE_C_FLAGS_RELWITHDEBINFO "${CMAKE_C_FLAGS_RELWITHDEBINFO} -O2 -ftree-vectorize")
   set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -O3 -ffast-math -fno-finite-math-only")
-  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Werror -Wuninitialized")
+  set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -Werror -Wuninitialized")
   if(CMAKE_COMPILER_IS_GNUCC)
     if(BUILD_SSE2_CODEPATHS)
       set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -mfpmath=sse")
     endif()
 
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -g3 -ggdb3 -Wmaybe-uninitialized")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0 -g3 -ggdb3 -Wall -Wmaybe-uninitialized -Wno-undef -Wimplicit-function-declaration -Wnull-dereference -Wimplicit -Winfinite-recursion")
     set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fexpensive-optimizations")
   else()
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -O0")
