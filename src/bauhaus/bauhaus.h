@@ -366,7 +366,6 @@ void dt_bauhaus_combobox_add_list(GtkWidget *widget, const char **texts);
 void dt_bauhaus_combobox_entry_set_sensitive(GtkWidget *widget, int pos, gboolean sensitive);
 void dt_bauhaus_combobox_set_entries_ellipsis(GtkWidget *widget, PangoEllipsizeMode ellipis);
 PangoEllipsizeMode dt_bauhaus_combobox_get_entries_ellipsis(GtkWidget *widget);
-void bauhaus_request_focus(struct dt_bauhaus_widget_t *w);
 
 /* Disable accels for this widget.
 * WARNING: accels are inited when setting the widget label. This function should be called before.

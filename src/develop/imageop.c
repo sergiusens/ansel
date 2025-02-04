@@ -1947,6 +1947,7 @@ void dt_iop_gui_set_expanded(dt_iop_module_t *module, gboolean expanded, gboolea
 
   _gui_set_single_expanded(module, expanded);
   _iop_dim_all_but((expanded) ? module : NULL, expanded);
+  gtk_widget_queue_draw(module->widget);
 }
 
 void dt_iop_gui_update_expanded(dt_iop_module_t *module)

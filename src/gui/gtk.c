@@ -499,7 +499,6 @@ static gboolean _button_pressed(GtkWidget *w, GdkEventButton *event, gpointer us
   if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
 
   /* Reset Gtk focus */
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
   darktable.gui->has_scroll_focus = NULL;
   gtk_widget_grab_focus(w);
 

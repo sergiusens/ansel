@@ -361,7 +361,7 @@ static gboolean _is_valid_widget(GtkWidget *widget)
     if(visible_child != parent) visible_parent = FALSE;
   }
 
-  return gtk_widget_is_visible(widget) && gtk_widget_is_sensitive(widget) && gtk_widget_get_realized(widget)
+  return gtk_widget_is_visible(widget) && gtk_widget_is_sensitive(widget)
          && visible_parent;
 }
 
@@ -391,17 +391,8 @@ static GList *_find_previous_visible_widget(GList *widgets)
 
 static void _focus_widget(GtkWidget *widget)
 {
-  GType type = G_OBJECT_TYPE(widget);
-
-  if(type == DT_BAUHAUS_WIDGET_TYPE)
-  {
-    bauhaus_request_focus(DT_BAUHAUS_WIDGET(widget));
-  }
-  else if(gtk_widget_get_can_focus(widget))
-  {
-    gtk_widget_grab_focus(widget);
-    darktable.gui->has_scroll_focus = widget;
-  }
+  gtk_widget_grab_focus(widget);
+  darktable.gui->has_scroll_focus = widget;
 }
 
 

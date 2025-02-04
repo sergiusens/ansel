@@ -319,27 +319,50 @@ static _bh_active_region_t _popup_coordinates(dt_bauhaus_t *bh, const double x_r
   return _bh_get_active_region(GTK_WIDGET(bh->current), event_x, event_y, NULL, bh->popup_window);
 }
 
-void bauhaus_request_focus(struct dt_bauhaus_widget_t *w)
+gboolean dt_bauhaus_focus_in_callback(GtkWidget *widget, GdkEventFocus event, gpointer user_data)
 {
-  if(w->module) w->module->focus(w->module, FALSE);
-
-  // If the widget is not visible, then Gtk will throw a critical error
-  // because it can't be realized
-  if(!gtk_widget_is_visible(GTK_WIDGET(w)) || !gtk_widget_is_sensitive(GTK_WIDGET(w))) return;
-
-  gtk_widget_grab_focus(GTK_WIDGET(w));
-  gtk_widget_set_state_flags(GTK_WIDGET(w), GTK_STATE_FLAG_FOCUSED, TRUE);
-
   // Scroll focus needs to be managed separately from Gtk focus
   // because of Gtk notebooks (tabs): Gtk gives focus automatically to the first
   // notebook child, which is not what we want for scroll event capture.
-  darktable.gui->has_scroll_focus = GTK_WIDGET(w);
+  darktable.gui->has_scroll_focus = widget;
+  gtk_widget_set_state_flags(widget, GTK_STATE_FLAG_FOCUSED, TRUE);
+  gtk_widget_queue_draw(widget);
+  return TRUE;
+}
+
+gboolean dt_bauhaus_focus_out_callback(GtkWidget *widget, GdkEventFocus event, gpointer user_data)
+{
+  // Scroll focus needs to be managed separately from Gtk focus
+  // because of Gtk notebooks (tabs): Gtk gives focus automatically to the first
+  // notebook child, which is not what we want for scroll event capture.
+  gtk_widget_set_state_flags(widget, GTK_STATE_FLAG_NORMAL, TRUE);
+  gtk_widget_queue_draw(widget);
+  fprintf(stdout, "focus_out\n");
+  return TRUE;
+}
+
+
+gboolean dt_bauhaus_focus_callback(GtkWidget *widget, GtkDirectionType direction, gpointer data)
+{
+  fprintf(stdout, "focus\n");
+
+  // Let user focus on the next/previous widget on arrow up/down
+  if(direction == GTK_DIR_UP || direction == GTK_DIR_DOWN) return FALSE;
+
+  // Any other key stroke is captured
+  return TRUE;
 }
 
 gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                               GdkModifierType modifier, gpointer data)
 {
-  bauhaus_request_focus(data);
+  dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(data);
+
+  // Make sure the parent module widget is visible, if we know it,
+  // because we can't grab focus on invisible widgets
+  if(w->module) w->module->focus(w->module, FALSE);
+
+  gtk_widget_grab_focus(GTK_WIDGET(data));
   return TRUE;
 }
 
@@ -1002,6 +1025,10 @@ static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, 
                                        | darktable.gui->scroll_mask);
 
   gtk_widget_set_can_focus(GTK_WIDGET(w), TRUE);
+  g_signal_connect(G_OBJECT(w), "focus-in-event", G_CALLBACK(dt_bauhaus_focus_in_callback), NULL);
+  g_signal_connect(G_OBJECT(w), "focus-out-event", G_CALLBACK(dt_bauhaus_focus_out_callback), NULL);
+  g_signal_connect(G_OBJECT(w), "focus", G_CALLBACK(dt_bauhaus_focus_callback), NULL);
+
   dt_gui_add_class(GTK_WIDGET(w), "dt_bauhaus");
 }
 
@@ -2417,7 +2444,7 @@ static void _slider_add_step(GtkWidget *widget, float delta, guint state)
 
 static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
-  if(darktable.gui->has_scroll_focus != widget) return FALSE;
+  if(!gtk_widget_has_focus(widget)) return FALSE;
 
   int delta_y = 0;
   if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
@@ -2478,7 +2505,7 @@ static gboolean _widget_key_press(GtkWidget *widget, GdkEventKey *event)
 static gboolean dt_bauhaus_combobox_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
   struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
-  bauhaus_request_focus(w);
+  gtk_widget_grab_focus(widget);
 
   double event_x = event->x;
   double event_y = event->y;
@@ -2887,7 +2914,7 @@ static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton
   struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
   dt_bauhaus_slider_data_t *d = &w->data.slider;
 
-  bauhaus_request_focus(w);
+  gtk_widget_grab_focus(widget);
 
   double event_x = event->x;
   double event_y = event->y;
