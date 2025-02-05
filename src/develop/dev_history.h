@@ -49,7 +49,7 @@ typedef struct dt_dev_history_item_t
 
 
 /** Free the whole GList attached to dev->history  */
-void dt_dev_history_free_history(GList *history);
+void dt_dev_history_free_history(struct dt_develop_t *dev);
 
 /* WARNING: non-thread-safe. Should be called in function locking the dev->history_mutex lock */
 const dt_dev_history_item_t *dt_dev_get_history_item(struct dt_develop_t *dev, struct dt_iop_module_t *module);
@@ -104,3 +104,13 @@ int dt_history_merge_module_into_history(struct dt_develop_t *dev_dest, struct d
 
 /** copy history from imgid and pasts on dest_imgid, merge or overwrite... */
 int dt_history_copy_and_paste_on_image(int32_t imgid, int32_t dest_imgid, GList *ops, gboolean copy_iop_order, const gboolean copy_full);
+
+
+/**
+ * @brief Compress an history from a loaded pipeline,
+ * aka simply take a snapshot of all modules parameters.
+ * This assumes the history end is properly set, which always happens
+ * after calling _pop_history_item.
+ * @param dev
+ */
+void dt_dev_history_compress(struct dt_develop_t *dev);

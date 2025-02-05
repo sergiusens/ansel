@@ -520,7 +520,6 @@ static void _remove_history_leaks(dt_develop_t *dev)
   }
 }
 
-
 gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *module, gboolean enable,
                                      gboolean force_new_item, gboolean no_image, gboolean include_masks)
 {
@@ -542,11 +541,12 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
       force_new_item = FALSE;
       enable = FALSE;
     }
+    else
+    {
+      return add_new_pipe_node;
+    }
   }
 
-  if(!module) return add_new_pipe_node;
-
-  // TODO: this is probably a redundant call
   dt_iop_compute_blendop_hash(module);
   dt_iop_compute_module_hash(module);
 
@@ -554,10 +554,9 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   _remove_history_leaks(dev);
 
   // Check if the current module to append to history is actually the same as the last one in history,
-  // and the internal parameters (aka module hash) are the same.
   GList *last = g_list_last(dev->history);
   gboolean new_is_old = FALSE;
-  if(last && last->data)
+  if(last && last->data && !force_new_item)
   {
     dt_dev_history_item_t *last_item = (dt_dev_history_item_t *)last->data;
     dt_iop_module_t *last_module = last_item->module;
@@ -577,28 +576,30 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   }
 
   dt_dev_history_item_t *hist;
-  uint32_t position = 0; // used only for debug strings
   if(force_new_item || !new_is_old)
   {
     // Create a new history entry
     hist = (dt_dev_history_item_t *)calloc(1, sizeof(dt_dev_history_item_t));
     hist->params = malloc(module->params_size);
     hist->blend_params = malloc(sizeof(dt_develop_blend_params_t));
-    hist->num = -1;
+
     dev->history = g_list_append(dev->history, hist);
-    position = g_list_index(dev->history, hist);
+
+    hist->num = g_list_index(dev->history, hist);
+
     dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] new history entry added for %s at position %i\n",
-             module->name(), position);
+            module->name(), hist->num);
   }
   else
   {
     // Reuse previous history entry
     hist = (dt_dev_history_item_t *)last->data;
+
     // Drawn masks are forced-resync later, free them now
     if(hist->forms) g_list_free_full(hist->forms, (void (*)(void *))dt_masks_free_form);
-    position = g_list_index(dev->history, hist);
+
     dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] history entry reused for %s at position %i\n",
-             module->name(), position);
+             module->name(), hist->num);
   }
 
   // Always resync history with all module internals
@@ -617,7 +618,7 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
 
   if(include_masks)
   {
-    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] committing masks for module %s at history position %i\n", module->name(), position);
+    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] committing masks for module %s at history position %i\n", module->name(), hist->num);
     // FIXME: this copies ALL drawn masks AND masks groups used by all modules to any module history using masks.
     // Kudos to the idiots who thought it would be reasonable. Expect database bloating and perf penalty.
     hist->forms = dt_masks_dup_forms_deep(dev->forms, NULL);
@@ -629,9 +630,9 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   }
 
   if(include_masks && hist->forms)
-    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] masks committed for module %s at history position %i\n", module->name(), position);
+    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] masks committed for module %s at history position %i\n", module->name(), hist->num);
   else if(include_masks)
-    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] masks NOT committed for module %s at history position %i\n", module->name(), position);
+    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] masks NOT committed for module %s at history position %i\n", module->name(), hist->num);
 
   if(enable) module->enabled = TRUE;
   hist->enabled = module->enabled;
@@ -754,6 +755,8 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
 void dt_dev_free_history_item(gpointer data)
 {
   dt_dev_history_item_t *item = (dt_dev_history_item_t *)data;
+  if(!item) return; // nothing to free
+
   g_free(item->params);
   item->params = NULL;
   g_free(item->blend_params);
@@ -764,17 +767,17 @@ void dt_dev_free_history_item(gpointer data)
   item = NULL;
 }
 
-void dt_dev_history_free_history(GList *history)
+void dt_dev_history_free_history(dt_develop_t *dev)
 {
-  if(history) g_list_free_full(history, dt_dev_free_history_item);
-  history = NULL;
+  g_list_free_full(g_steal_pointer(&dev->history), dt_dev_free_history_item);
+  dev->history = NULL;
 }
 
 void dt_dev_reload_history_items(dt_develop_t *dev)
 {
   // Recreate the whole history from scratch
   dt_pthread_mutex_lock(&dev->history_mutex);
-  dt_dev_history_free_history(dev->history);
+  dt_dev_history_free_history(dev);
   dt_dev_read_history_ext(dev, dev->image_storage.id, FALSE);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
