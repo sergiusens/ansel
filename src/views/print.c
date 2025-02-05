@@ -315,7 +315,7 @@ int try_enter(dt_view_t *self)
 
   //  now check that there is at least one selected image
 
-  const int imgid = dt_act_on_get_main_image();
+  const int imgid = dt_selection_get_first_id(darktable.selection);
 
   if(imgid < 0)
   {

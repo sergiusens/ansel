@@ -17,6 +17,7 @@
 */
 
 #include "common/collection.h"
+#include "common/selection.h"
 #include "common/colorspaces.h"
 #include "common/debug.h"
 #include "common/dtpthread.h"
@@ -416,7 +417,7 @@ void enter(dt_view_t *self)
   }
 
   // if one selected start with it, otherwise start at the current lighttable offset
-  const int imgid = dt_act_on_get_main_image();
+  const int imgid = dt_selection_get_first_id(darktable.selection);
   gint selrank = -1;
 
   if(imgid > 0)

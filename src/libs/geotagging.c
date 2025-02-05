@@ -1327,7 +1327,7 @@ static GDateTime *_get_image_datetime(dt_lib_module_t *self)
   dt_lib_geotagging_t *d = (dt_lib_geotagging_t *)self->data;
   GList *selected = dt_collection_get_selected(darktable.collection, 1);
   const int selid = selected ? GPOINTER_TO_INT(selected->data) : 0;
-  const int imgid = dt_act_on_get_main_image();
+  const int imgid = dt_control_get_mouse_over_id();
   GDateTime *datetime = NULL;
   if((selid != 0) || ((selid == 0) && (imgid != -1)))
   {

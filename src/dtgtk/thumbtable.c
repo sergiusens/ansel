@@ -627,7 +627,7 @@ static void _filemanager_zoom(dt_thumbtable_t *table, int oldzoom, int newzoom)
     if(darktable.gui->anchor_imgid)
       id = darktable.gui->anchor_imgid;
     else
-      id = dt_act_on_get_main_image();
+      id = dt_control_get_mouse_over_id();
 
     thumb = _thumbtable_get_thumb(table, id);
     if(thumb)
