@@ -205,12 +205,7 @@ void leave(dt_view_t *self)
   dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
 
   // ensure we have no active image remaining
-  if(darktable.view_manager->active_images)
-  {
-    g_slist_free(darktable.view_manager->active_images);
-    darktable.view_manager->active_images = NULL;
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
-  }
+  dt_view_active_images_reset(TRUE);
 
   // we remove the thumbtable from main view
   dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), NULL, DT_THUMBTABLE_MODE_NONE);

@@ -108,9 +108,8 @@ static void _film_strip_activated(const int imgid, void *data)
   dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
 
   // update the active images list
-  g_slist_free(darktable.view_manager->active_images);
-  darktable.view_manager->active_images = g_slist_prepend(NULL, GINT_TO_POINTER(imgid));
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
+  dt_view_active_images_reset(FALSE);
+  dt_view_active_images_add(imgid, TRUE);
 
   // force redraw
   dt_control_queue_redraw();

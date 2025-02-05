@@ -1014,9 +1014,9 @@ static void _dt_active_images_callback(gpointer instance, gpointer user_data)
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
-  if(!darktable.view_manager->active_images) return;
-  const int activeid = GPOINTER_TO_INT(darktable.view_manager->active_images->data);
-  dt_thumbtable_set_offset_image(table, activeid, TRUE);
+  const int32_t activeid = dt_view_active_images_get_first();
+  if(activeid > -1)
+    dt_thumbtable_set_offset_image(table, activeid, TRUE);
 }
 
 // this is called each time mouse_over id change
@@ -1146,10 +1146,10 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
     // in filmstrip mode, let's first ensure the offset is the right one. Otherwise we move to it
     int old_offset = -1;
+    const int tmpoff = dt_view_active_images_get_first();
     if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP
-       && darktable.view_manager->active_images)
+       && tmpoff > -1)
     {
-      const int tmpoff = GPOINTER_TO_INT(darktable.view_manager->active_images->data);
       if(tmpoff != table->offset_imgid)
       {
         old_offset = table->offset_imgid;
@@ -1239,10 +1239,10 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     // if needed, we restore back the position of the filmstrip
     if(old_offset > 0 && old_offset != table->offset)
     {
-      const int tmpoff = _thumb_get_rowid(old_offset);
-      if(tmpoff > 0)
+      const int _tmpoff = _thumb_get_rowid(old_offset);
+      if(_tmpoff > 0)
       {
-        table->offset = tmpoff;
+        table->offset = _tmpoff;
         table->offset_imgid = old_offset;
         dt_thumbtable_full_redraw(table, TRUE);
       }
@@ -1687,15 +1687,16 @@ void dt_thumbtable_full_redraw(dt_thumbtable_t *table, gboolean force)
 
     _pos_compute_area(table);
 
-    if(darktable.view_manager->active_images
+    const int lastid = dt_view_active_images_get_first();
+
+    if(lastid > -1
        && (table->mode == DT_THUMBTABLE_MODE_FILEMANAGER))
     {
       // this mean we arrive from filmstrip with some active images
       // we need to ensure they are visible and to mark them with some css effect
-      const int lastid = GPOINTER_TO_INT(g_slist_last(darktable.view_manager->active_images)->data);
       dt_thumbtable_ensure_imgid_visibility(table, lastid);
 
-      for(GSList *l = darktable.view_manager->active_images; l; l = g_slist_next(l))
+      for(GSList *l = dt_view_active_images_get_all(); l; l = g_slist_next(l))
       {
         dt_thumbnail_t *th = _thumbtable_get_thumb(table, GPOINTER_TO_INT(l->data));
         if(th)
@@ -1705,9 +1706,7 @@ void dt_thumbtable_full_redraw(dt_thumbtable_t *table, gboolean force)
           dt_thumbnail_update_infos(th);
         }
       }
-      g_slist_free(darktable.view_manager->active_images);
-      darktable.view_manager->active_images = NULL;
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
+      dt_view_active_images_reset(TRUE);
     }
 
     // if we force the redraw, we ensure selection is updated

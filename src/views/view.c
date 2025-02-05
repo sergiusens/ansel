@@ -966,6 +966,7 @@ void dt_view_active_images_reset(gboolean raise)
 
   if(raise) DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
+
 void dt_view_active_images_add(int imgid, gboolean raise)
 {
   darktable.view_manager->active_images
@@ -973,9 +974,16 @@ void dt_view_active_images_add(int imgid, gboolean raise)
   if(raise)
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
-GSList *dt_view_active_images_get()
+
+GSList *dt_view_active_images_get_all()
 {
   return darktable.view_manager->active_images;
+}
+
+int32_t dt_view_active_images_get_first()
+{
+  if(!darktable.view_manager->active_images) return -1;
+  return GPOINTER_TO_INT(darktable.view_manager->active_images->data);
 }
 
 void dt_view_manager_view_toolbox_add(dt_view_manager_t *vm, GtkWidget *tool, dt_view_type_flags_t views)

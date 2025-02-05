@@ -886,7 +886,7 @@ static void _dt_active_images_callback(gpointer instance, gpointer user_data)
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
 
   gboolean active = FALSE;
-  for(GSList *l = darktable.view_manager->active_images; l; l = g_slist_next(l))
+  for(GSList *l = dt_view_active_images_get_all(); l; l = g_slist_next(l))
   {
     int id = GPOINTER_TO_INT(l->data);
     if(id == thumb->imgid)
