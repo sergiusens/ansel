@@ -471,6 +471,55 @@ static dt_iop_module_t * _find_mask_manager(dt_develop_t *dev)
   return NULL;
 }
 
+static void _remove_history_leaks(dt_develop_t *dev)
+{
+  GList *history = g_list_nth(dev->history, dt_dev_get_history_end(dev));
+  while(history)
+  {
+    // We need to use a while because we are going to dynamically remove entries at the end
+    // of the list, so we can't know the number of iterations
+    dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
+    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] history item %s at %i is past history limit (%i)\n", hist->module->op, g_list_index(dev->history, hist), dt_dev_get_history_end(dev) - 1);
+
+    // In case user wants to insert new history items before auto-enabled or mandatory modules,
+    // we forbid it, unless we already have at least one lower history entry.
+
+    // Check if an earlier instance of mandatory module exists
+    gboolean earlier_entry = FALSE;
+    if((hist->module->hide_enable_button || hist->module->default_enabled))
+    {
+      for(GList *prior_history = g_list_previous(history); prior_history;
+          prior_history = g_list_previous(prior_history))
+      {
+        dt_dev_history_item_t *prior_hist = (dt_dev_history_item_t *)(prior_history->data);
+        if(prior_hist->module->so == hist->module->so)
+        {
+          earlier_entry = TRUE;
+          break;
+        }
+      }
+    }
+
+    // In case we delete the current link, we need to update the incrementer now
+    // to not loose the reference
+    GList *link = history;
+    history = g_list_next(history);
+
+    // Finally: attempt removing the obsoleted entry
+    if((!hist->module->hide_enable_button && !hist->module->default_enabled)
+        || earlier_entry)
+    {
+      dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] removing obsoleted history item: %s at %i\n", hist->module->op, g_list_index(dev->history, hist));
+      dt_dev_free_history_item(hist);
+      dev->history = g_list_delete_link(dev->history, link);
+    }
+    else
+    {
+      dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] obsoleted history item will be kept: %s at %i\n", hist->module->op, g_list_index(dev->history, hist));
+    }
+  }
+}
+
 
 gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *module, gboolean enable,
                                      gboolean force_new_item, gboolean no_image, gboolean include_masks)
@@ -501,39 +550,8 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   dt_iop_compute_blendop_hash(module);
   dt_iop_compute_module_hash(module);
 
-  // look for leaks on top of history in two steps
-  // first remove obsolete items above history_end
-  // but keep the always-on modules
-  for(GList *history = g_list_nth(dev->history, dt_dev_get_history_end(dev));
-      history;
-      history = g_list_next(history))
-  {
-    dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
-    dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] history item %s at %i is past history limit (%i)\n", hist->module->op, g_list_index(dev->history, hist), dt_dev_get_history_end(dev) - 1);
-
-    // Check if an earlier instance of the module exists.
-    gboolean earlier_entry = FALSE;
-    for(GList *prior_history = g_list_previous(history);
-        prior_history && earlier_entry == FALSE;
-        prior_history = g_list_previous(prior_history))
-    {
-      dt_dev_history_item_t *prior_hist = (dt_dev_history_item_t *)(prior_history->data);
-      if(prior_hist->module->so == hist->module->so)
-        earlier_entry = TRUE;
-    }
-
-    if((!hist->module->hide_enable_button && !hist->module->default_enabled)
-        || earlier_entry)
-    {
-      dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] removing obsoleted history item: %s at %i\n", hist->module->op, g_list_index(dev->history, hist));
-      dt_dev_free_history_item(hist);
-      dev->history = g_list_delete_link(dev->history, history);
-    }
-    else
-    {
-      dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] obsoleted history item will be kept: %s at %i\n", hist->module->op, g_list_index(dev->history, hist));
-    }
-  }
+  // look for leaks on top of history
+  _remove_history_leaks(dev);
 
   // Check if the current module to append to history is actually the same as the last one in history,
   // and the internal parameters (aka module hash) are the same.
