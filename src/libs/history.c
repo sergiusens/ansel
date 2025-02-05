@@ -1129,57 +1129,10 @@ static void _lib_history_change_callback(gpointer instance, gpointer user_data)
 
 static void _lib_history_truncate(gboolean compress)
 {
-  // FIXME: [CRITICAL] should lock the image history at the app level
-
-  const int32_t imgid = darktable.develop->image_storage.id;
-  if(!imgid) return;
-
   dt_dev_undo_start_record(darktable.develop);
-
-  // As dt_history_compress_on_image does *not* use the history stack data at all
-  // make sure the current stack is in the database
-  dt_dev_write_history(darktable.develop);
-
-  if(compress)
-    dt_history_compress_on_image(imgid);
-  else
-    dt_history_truncate_on_image(imgid, dt_dev_get_history_end(darktable.develop));
-
-  sqlite3_stmt *stmt;
-
-  // load new history and write it back to ensure that all history are properly numbered without a gap
-  dt_dev_reload_history_items(darktable.develop);
-  dt_dev_write_history(darktable.develop);
-  dt_control_save_xmp(imgid);
-
-  // then we can get the item to select in the new clean-up history retrieve the position of the module
-  // corresponding to the history end.
-  // clang-format off
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT IFNULL(MAX(num)+1, 0)"
-                              " FROM main.history"
-                              " WHERE imgid=?1", -1, &stmt, NULL);
-  // clang-format on
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
-
-  if (sqlite3_step(stmt) == SQLITE_ROW)
-    dt_dev_set_history_end(darktable.develop, sqlite3_column_int(stmt, 0));
-  sqlite3_finalize(stmt);
-
-  // select the new history end corresponding to the one before the history compression
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "UPDATE main.images SET history_end=?2 WHERE id=?1",
-                              -1, &stmt, NULL);
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, dt_dev_get_history_end(darktable.develop));
-  sqlite3_step(stmt);
-  sqlite3_finalize(stmt);
-
+  dt_dev_history_compress(darktable.develop);
   darktable.develop->proxy.chroma_adaptation = NULL;
-  dt_dev_reload_history_items(darktable.develop);
   dt_dev_undo_end_record(darktable.develop);
-
-  dt_dev_modulegroups_set(darktable.develop, dt_dev_modulegroups_get(darktable.develop));
 }
 
 

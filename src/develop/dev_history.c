@@ -1801,3 +1801,34 @@ gboolean dt_history_module_skip_copy(const int flags)
 {
   return flags & (IOP_FLAGS_DEPRECATED | IOP_FLAGS_UNSAFE_COPY | IOP_FLAGS_HIDDEN);
 }
+
+gboolean _module_leaves_no_history(dt_iop_module_t *module)
+{
+  return (module->flags() & IOP_FLAGS_NO_HISTORY_STACK);
+}
+
+void dt_dev_history_compress(dt_develop_t *dev)
+{
+  if(!dev->iop) return;
+
+  dt_pthread_mutex_lock(&dev->history_mutex);
+
+  // Cleanup old history
+  dt_dev_history_free_history(dev);
+
+  // Rebuild an history from current pipeline
+  for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
+  {
+    dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
+    if(module->enabled && !_module_leaves_no_history(module))
+      dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
+  }
+
+  dt_pthread_mutex_unlock(&dev->history_mutex);
+
+  // Commit to DB
+  dt_dev_write_history(dev);
+
+  // Reload to sanitize mandatory/incompatible modules
+  dt_dev_reload_history_items(dev);
+}
