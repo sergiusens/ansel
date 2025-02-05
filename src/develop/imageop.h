@@ -95,19 +95,18 @@ typedef enum dt_iop_flags_t
   IOP_FLAGS_INCLUDE_IN_STYLES = 1 << 0,
   IOP_FLAGS_SUPPORTS_BLENDING = 1 << 1, // Does provide blending modes
   IOP_FLAGS_DEPRECATED = 1 << 2,
-  IOP_FLAGS_ALLOW_TILING = 1 << 4, // Does allow tile-wise processing (valid for CPU and GPU processing)
-  IOP_FLAGS_HIDDEN = 1 << 5,       // Hide the iop from userinterface
+  IOP_FLAGS_ALLOW_TILING = 1 << 3, // Does allow tile-wise processing (valid for CPU and GPU processing)
+  IOP_FLAGS_HIDDEN = 1 << 4,       // Hide the iop from userinterface
   IOP_FLAGS_TILING_FULL_ROI
-  = 1 << 6, // Tiling code has to expect arbitrary roi's for this module (incl. flipping, mirroring etc.)
-  IOP_FLAGS_ONE_INSTANCE = 1 << 7,       // The module doesn't support multiple instances
-  IOP_FLAGS_PREVIEW_NON_OPENCL = 1 << 8, // Preview pixelpipe of this module must not run on GPU but always on CPU
-  IOP_FLAGS_NO_HISTORY_STACK = 1 << 9,   // This iop will never show up in the history stack
-  IOP_FLAGS_NO_MASKS = 1 << 10,          // The module doesn't support masks (used with SUPPORT_BLENDING)
-  IOP_FLAGS_FENCE = 1 << 11,             // No module can be moved pass this one
-  IOP_FLAGS_ALLOW_FAST_PIPE = 1 << 12,   // Module can work with a fast pipe
-  IOP_FLAGS_UNSAFE_COPY = 1 << 13,       // Unsafe to copy as part of history
-  IOP_FLAGS_GUIDES_SPECIAL_DRAW = 1 << 14, // handle the grid drawing directly
-  IOP_FLAGS_INTERNAL_MASKS = 1 << 15     // Module uses masks internally, outside of blendops. This advertises the need to commit them to history unconditionnaly.
+  = 1 << 5, // Tiling code has to expect arbitrary roi's for this module (incl. flipping, mirroring etc.)
+  IOP_FLAGS_ONE_INSTANCE = 1 << 6,       // The module doesn't support multiple instances
+  IOP_FLAGS_PREVIEW_NON_OPENCL = 1 << 7, // Preview pixelpipe of this module must not run on GPU but always on CPU
+  IOP_FLAGS_NO_HISTORY_STACK = 1 << 8,   // This iop will never show up in the history stack
+  IOP_FLAGS_NO_MASKS = 1 << 9,          // The module doesn't support masks (used with SUPPORT_BLENDING)
+  IOP_FLAGS_FENCE = 1 << 10,             // No module can be moved pass this one
+  IOP_FLAGS_UNSAFE_COPY = 1 << 11,       // Unsafe to copy as part of history
+  IOP_FLAGS_GUIDES_SPECIAL_DRAW = 1 << 12, // handle the grid drawing directly
+  IOP_FLAGS_INTERNAL_MASKS = 1 << 13     // Module uses masks internally, outside of blendops. This advertises the need to commit them to history unconditionnaly.
 } dt_iop_flags_t;
 
 typedef struct dt_iop_gui_data_t
