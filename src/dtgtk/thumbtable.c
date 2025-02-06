@@ -836,30 +836,7 @@ static gboolean _event_enter_notify(GtkWidget *widget, GdkEventCrossing *event, 
 
 static gboolean _event_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-  const int id = dt_control_get_mouse_over_id();
-  dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-
   gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
-
-  if(id > -1 && event->button == 1 && event->type == GDK_2BUTTON_PRESS)
-  {
-    if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
-    {
-      dt_view_manager_switch(darktable.view_manager, "darkroom");
-    }
-    else
-    {
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, id);
-    }
-  }
-
-  if(id < 0)
-  {
-    // we click in an empty area, let's deselect all images
-    dt_selection_clear(darktable.selection);
-    return TRUE;
-  }
-
   return FALSE;
 }
 
