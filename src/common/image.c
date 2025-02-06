@@ -902,6 +902,8 @@ void dt_image_flip(const int32_t imgid, const int32_t cw)
   dt_history_snapshot_undo_create(hist->imgid, &hist->after, &hist->after_history_end);
   dt_undo_record(darktable.undo, NULL, DT_UNDO_LT_HISTORY, (dt_undo_data_t)hist,
                  dt_history_snapshot_undo_pop, dt_history_snapshot_undo_lt_history_data_free);
+
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
 }
 
 /* About the image size ratio
