@@ -806,7 +806,7 @@ static gboolean _event_audio_release(GtkWidget *widget, GdkEventButton *event, g
   if(event->button == 1 && !thumb->moved)
   {
     dt_selection_select_single(darktable.selection, thumb->imgid);
-    
+
     gboolean start_audio = TRUE;
     if(darktable.view_manager->audio.audio_player_id != -1)
     {
@@ -860,6 +860,7 @@ void dt_thumbnail_update_selection(dt_thumbnail_t *thumb)
 {
   if(!thumb) return;
   if(!gtk_widget_is_visible(thumb->w_main)) return;
+  thumb->selected = dt_selection_is_id_selected(darktable.selection, thumb->imgid);
   _thumb_update_icons(thumb);
   gtk_widget_queue_draw(thumb->w_main);
 }

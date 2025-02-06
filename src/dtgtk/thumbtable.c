@@ -992,10 +992,6 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
   for(const GList *l = table->list; l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
-    gboolean selected = !(selection == NULL); // default to FALSE if no selection
-    if(selection) selected = g_list_find(selection, GINT_TO_POINTER(thumb->imgid)) != NULL;
-
-    thumb->selected = selected;
     dt_thumbnail_update_selection(thumb);
   }
 
