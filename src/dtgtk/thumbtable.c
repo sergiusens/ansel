@@ -1308,7 +1308,7 @@ static void _event_dnd_begin(GtkWidget *widget, GdkDragContext *context, gpointe
 
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
-  table->drag_list = dt_act_on_get_images(FALSE, TRUE, TRUE);
+  table->drag_list = dt_act_on_get_images();
 
 #ifdef HAVE_MAP
   dt_view_manager_t *vm = darktable.view_manager;
