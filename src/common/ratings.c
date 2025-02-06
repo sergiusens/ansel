@@ -64,9 +64,9 @@ static void _ratings_apply_to_image(const int imgid, const int rating)
   {
     // apply or remove rejection
     if(new_rating == DT_RATINGS_REJECT)
-      image->flags = (image->flags | DT_IMAGE_REJECTED);
+      image->flags |= DT_IMAGE_REJECTED;
     else if(new_rating == DT_RATINGS_UNREJECT)
-      image->flags = (image->flags & ~DT_IMAGE_REJECTED);
+      image->flags &= ~DT_IMAGE_REJECTED;
     else
     {
       image->flags = (image->flags & ~(DT_IMAGE_REJECTED | DT_VIEW_RATINGS_MASK))
@@ -102,7 +102,7 @@ static void _ratings_undo_data_free(gpointer data)
 }
 
 // wrapper that does some precalculation to deal with toggle effects and rating increase/decrease
-static void _ratings_apply(const GList *imgs, const int rating, GList **undo, const gboolean undo_on)
+static void _ratings_apply(GList *imgs, const int rating, GList **undo, const gboolean undo_on)
 {
   // REJECTION and SINGLE_STAR rating can have a toggle effect
   // but we only toggle off if ALL images have that rating
@@ -112,7 +112,7 @@ static void _ratings_apply(const GList *imgs, const int rating, GList **undo, co
   if(rating == DT_VIEW_REJECT)
   {
     toggle = TRUE;
-    for(const GList *images = imgs; images; images = g_list_next(images))
+    for(const GList *images = g_list_first(imgs); images; images = g_list_next(images))
     {
       if(dt_ratings_get(GPOINTER_TO_INT(images->data)) != DT_VIEW_REJECT)
       {
@@ -122,7 +122,7 @@ static void _ratings_apply(const GList *imgs, const int rating, GList **undo, co
     }
   }
 
-  for(const GList *images = imgs; images; images = g_list_next(images))
+  for(const GList *images = g_list_first(imgs); images; images = g_list_next(images))
   {
     const int image_id = GPOINTER_TO_INT(images->data);
     const int old_rating = dt_ratings_get(image_id);
@@ -154,7 +154,7 @@ static void _ratings_apply(const GList *imgs, const int rating, GList **undo, co
   }
 }
 
-void dt_ratings_apply_on_list(const GList *img, const int rating, const gboolean undo_on)
+void dt_ratings_apply_on_list(GList *img, const int rating, const gboolean undo_on)
 {
   if(img)
   {

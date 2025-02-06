@@ -59,6 +59,9 @@ int dt_colorlabels_get_labels(const int imgid)
 
 static void _pop_undo_execute(const int imgid, const uint8_t before, const uint8_t after)
 {
+
+  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
+
   for(int color=0; color<5; color++)
   {
     if(after & (1<<color))
@@ -69,6 +72,8 @@ static void _pop_undo_execute(const int imgid, const uint8_t before, const uint8
     else if (before & (1<<color))
       dt_colorlabels_remove_label(imgid, color);
   }
+
+  dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
 }
 
 static void _pop_undo(gpointer user_data, dt_undo_type_t type, dt_undo_data_t data, dt_undo_action_t action, GList **imgs)
@@ -141,12 +146,12 @@ typedef enum dt_colorlabels_actions_t
 } dt_colorlabels_actions_t;
 
 
-static void _colorlabels_execute(const GList *imgs, const int labels, GList **undo, const gboolean undo_on, int action)
+static void _colorlabels_execute(GList *imgs, const int labels, GList **undo, const gboolean undo_on, int action)
 {
   if(action == DT_CA_TOGGLE)
   {
     // if we are supposed to toggle color labels, first check if all images have that label
-    for(const GList *image = imgs; image; image = g_list_next((GList *)image))
+    for(const GList *image = g_list_first(imgs); image; image = g_list_next((GList *)image))
     {
       const int image_id = GPOINTER_TO_INT(image->data);
       const uint8_t before = dt_colorlabels_get_labels(image_id);
@@ -161,7 +166,7 @@ static void _colorlabels_execute(const GList *imgs, const int labels, GList **un
     }
   }
 
-  for(const GList *image = imgs; image; image = g_list_next((GList *)image))
+  for(GList *image = g_list_first(imgs); image; image = g_list_next((GList *)image))
   {
     const int image_id = GPOINTER_TO_INT(image->data);
     const uint8_t before = dt_colorlabels_get_labels(image_id);
@@ -195,7 +200,7 @@ static void _colorlabels_execute(const GList *imgs, const int labels, GList **un
   }
 }
 
-void dt_colorlabels_set_labels(const GList *img, const int labels, const gboolean clear_on,
+void dt_colorlabels_set_labels(GList *img, const int labels, const gboolean clear_on,
                                const gboolean undo_on)
 {
   if(img)
@@ -215,7 +220,7 @@ void dt_colorlabels_set_labels(const GList *img, const int labels, const gboolea
   }
 }
 
-void dt_colorlabels_toggle_label_on_list(const GList *list, const int color, const gboolean undo_on)
+void dt_colorlabels_toggle_label_on_list(GList *list, const int color, const gboolean undo_on)
 {
   const int label = 1<<color;
   GList *undo = NULL;
@@ -228,13 +233,6 @@ void dt_colorlabels_toggle_label_on_list(const GList *list, const int color, con
   else
   {
     _colorlabels_execute(list, label, &undo, undo_on, DT_CA_TOGGLE);
-  }
-
-  // synchronise xmp files
-  // TODO: call a background job here
-  for(GList *l = (GList *)list; l; l = g_list_next(l))
-  {
-    dt_image_synch_xmp(GPOINTER_TO_INT(l->data));
   }
 
   if(undo_on)

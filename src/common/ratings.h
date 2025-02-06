@@ -32,7 +32,7 @@ void dt_ratings_apply_on_image(const int imgid, const int rating, const gboolean
                                const gboolean undo_on, const gboolean group_on);
 
 /** apply rating to all images in the list */
-void dt_ratings_apply_on_list(const GList *list, const int rating, const gboolean undo_on);
+void dt_ratings_apply_on_list(GList *list, const int rating, const gboolean undo_on);
 
 
 // clang-format off
