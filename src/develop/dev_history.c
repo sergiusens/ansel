@@ -1448,6 +1448,35 @@ static inline void _dt_dev_load_pipeline_defaults(dt_develop_t *dev)
 }
 
 
+/**
+ * TODO: this is a big pile of bullshit
+ *
+ * We insert modules into a temporary history SQL table in memory.history
+ * Then perform all kinds of silly SQL operations.
+ * Then merge into where we keep the real histories, aka main.history in dev_merge_history function.
+ *
+ * First of all, that merge_history function needs to re-index all entries sequentially through C
+ * because SQLite doesn't do it.
+ *
+ * Then, when loading large numbers of small files (PNG, JPEG) for the first time in lighttable,
+ * sooner or later, we get the error:
+ * `function dt_database_start_transaction_debug(), query "BEGIN": cannot start a transaction within a transaction`,
+ * coming from _merge_history. When using a DEBUG build, which checks asserts, that makes the app crash.
+ * Otherwise, the app doesn't crash and there is no telling what's going on in histories.
+ *
+ * But then, I couldn't find where we nest transactions here.
+ *
+ * Or perhaps, due to DEBUG builds being slow due to -O0 optimization, the race condition shows, and doesn't otherwise.
+ *
+ * So, anyway… history init should be done in C, so modules are inserted with defaults params inited
+ * and sanitized directly with a pipe order. Then, we save to history or keep building the pipeline,
+ * because anyway, read_history_ext() init defaults only if it's the first time we open the image,
+ * and then reloads everything from main.history table from database.
+ *
+ * None of that is thread-safe.
+ *
+ **/
+
 static void _init_default_history(dt_develop_t *dev, const int imgid, gboolean *first_run, gboolean *auto_apply_modules)
 {
   // cleanup DB
