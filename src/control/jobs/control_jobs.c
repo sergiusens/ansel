@@ -2371,8 +2371,7 @@ gboolean _import_image(const GList *img, dt_control_import_t *data, const int in
 void _refresh_progress_counter(dt_job_t *job, const int elements, const int index)
 {
   gchar message[32] = { 0 };
-  double fraction = 0.0f;
-  fraction += 1.0f / (double) elements;
+  double fraction = (double)index / (double)elements;
   snprintf(message, sizeof(message), ngettext("importing %i/%i image", "importing %i/%i images", index), index, elements);
   dt_control_job_set_progress_message(job, message);
   dt_control_job_set_progress(job, fraction);
