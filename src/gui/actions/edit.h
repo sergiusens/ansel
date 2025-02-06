@@ -83,7 +83,7 @@ static gboolean compress_history_sensitive_callback()
 
 static void compress_history_callback()
 {
-  GList *imgs = dt_selection_get_list(darktable.selection, TRUE, TRUE);
+  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
   if(!imgs) return;
 
   // As dt_history_compress_on_image does *not* use the history stack data at all
@@ -102,7 +102,7 @@ static void compress_history_callback()
 
 static void delete_history_callback()
 {
-  GList *imgs = dt_selection_get_list(darktable.selection, TRUE, TRUE);
+  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
   if(!imgs) return;
 
   // We do not ask for confirmation because it can be undone by Ctrl + Z
@@ -156,7 +156,7 @@ static void paste_all_callback()
   if(paste_sensitive_callback())
   {
     dt_dev_undo_start_record(darktable.develop);
-    GList *imgs = dt_selection_get_list(darktable.selection, TRUE, TRUE);
+    GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
     dt_history_paste_on_list(imgs, TRUE);
     g_list_free(imgs);
     dt_dev_undo_end_record(darktable.develop);
@@ -176,7 +176,7 @@ static void paste_parts_callback()
   if(paste_sensitive_callback())
   {
     dt_dev_undo_start_record(darktable.develop);
-    GList *imgs = dt_selection_get_list(darktable.selection, TRUE, TRUE);
+    GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
     dt_history_paste_parts_on_list(imgs, TRUE);
     g_list_free(imgs);
     dt_dev_undo_end_record(darktable.develop);
@@ -191,7 +191,7 @@ static void paste_parts_callback()
 
 static void load_xmp_callback()
 {
-  GList *imgs = dt_selection_get_list(darktable.selection, TRUE, TRUE);
+  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
   if(!imgs) return;
   const int act_on_one = g_list_is_singleton(imgs); // list length == 1?
   GtkWidget *win = dt_ui_main_window(darktable.gui->ui);

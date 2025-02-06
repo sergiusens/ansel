@@ -91,6 +91,7 @@ void dt_view_manager_init(dt_view_manager_t *vm)
 
   vm->current_view = NULL;
   vm->audio.audio_player_id = -1;
+  vm->active_images = NULL;
 }
 
 void dt_view_manager_gui_init(dt_view_manager_t *vm)
@@ -104,6 +105,7 @@ void dt_view_manager_gui_init(dt_view_manager_t *vm)
 
 void dt_view_manager_cleanup(dt_view_manager_t *vm)
 {
+  g_list_free(vm->active_images);
   for(GList *iter = vm->views; iter; iter = g_list_next(iter)) dt_view_unload_module((dt_view_t *)iter->data);
   g_list_free_full(vm->views, free);
   vm->views = NULL;
@@ -961,7 +963,7 @@ void dt_view_filter_reset(const dt_view_manager_t *vm, gboolean smart_filter)
 void dt_view_active_images_reset(gboolean raise)
 {
   if(!darktable.view_manager->active_images) return;
-  g_slist_free(darktable.view_manager->active_images);
+  g_list_free(darktable.view_manager->active_images);
   darktable.view_manager->active_images = NULL;
 
   if(raise) DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
@@ -970,12 +972,24 @@ void dt_view_active_images_reset(gboolean raise)
 void dt_view_active_images_add(int imgid, gboolean raise)
 {
   darktable.view_manager->active_images
-      = g_slist_append(darktable.view_manager->active_images, GINT_TO_POINTER(imgid));
+      = g_list_append(darktable.view_manager->active_images, GINT_TO_POINTER(imgid));
   if(raise)
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
 
-GSList *dt_view_active_images_get_all()
+void dt_view_active_images_remove(int imgid, gboolean raise)
+{
+  GList *link = g_list_find(darktable.view_manager->active_images, GINT_TO_POINTER(imgid));
+  if(link)
+  {
+    darktable.view_manager->active_images = g_list_delete_link(darktable.view_manager->active_images, link);
+
+    if(raise)
+      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
+  }
+}
+
+GList *dt_view_active_images_get_all()
 {
   return darktable.view_manager->active_images;
 }
@@ -984,6 +998,14 @@ int32_t dt_view_active_images_get_first()
 {
   if(!darktable.view_manager->active_images) return -1;
   return GPOINTER_TO_INT(darktable.view_manager->active_images->data);
+}
+
+void dt_view_active_images_set(GList *images, gboolean raise)
+{
+  darktable.view_manager->active_images = images;
+
+  if(raise)
+    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
 
 void dt_view_manager_view_toolbox_add(dt_view_manager_t *vm, GtkWidget *tool, dt_view_type_flags_t views)

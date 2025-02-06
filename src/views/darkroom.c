@@ -672,7 +672,6 @@ int try_enter(dt_view_t *self)
 static void _dev_change_image(int32_t imgid)
 {
   dt_control_set_mouse_over_id(imgid);
-  dt_selection_select(darktable.selection, imgid);
 
   // Lazy trick to cleanup, reset, reinit, reload everything without
   // having to duplicate most of (but not all) the code in leave(),
@@ -681,7 +680,6 @@ static void _dev_change_image(int32_t imgid)
   // It's more robust, although slightly slower than re-initing only what is needed.
   dt_view_manager_switch(darktable.view_manager, "lighttable");
   dt_view_manager_switch(darktable.view_manager, "darkroom");
-  dt_dev_refresh_ui_images(darktable.develop);
 }
 
 static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int32_t imgid, gpointer user_data)
@@ -1985,6 +1983,7 @@ void enter(dt_view_t *self)
   // change active image
   dt_view_active_images_reset(FALSE);
   dt_view_active_images_add(dev->image_storage.id, TRUE);
+  dt_selection_clear(darktable.selection);
   dt_ui_thumbtable(darktable.gui->ui)->mouse_inside = FALSE; // consider mouse outside filmstrip by default
 
   dt_control_set_dev_zoom(DT_ZOOM_FIT);

@@ -608,15 +608,8 @@ uint32_t dt_tag_get_attached(const gint imgid, GList **result, const gboolean ig
   else
   {
     // we get the query used to retrieve the list of select images
-    images = dt_selection_get_list_query(darktable.selection, FALSE, FALSE);
-    // and we retrieve the number of image in the selection
-    gchar *query = g_strdup_printf("SELECT COUNT(*)"
-                                   " FROM (%s)",
-                                   images);
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
-    if(sqlite3_step(stmt) == SQLITE_ROW) nb_selected = sqlite3_column_int(stmt, 0);
-    sqlite3_finalize(stmt);
-    g_free(query);
+    images = dt_selection_ids_to_string(darktable.selection);
+    nb_selected = dt_selection_get_length(darktable.selection);
   }
   uint32_t count = 0;
   if(images)
@@ -826,7 +819,7 @@ static GList *_tag_get_tags(const gint imgid, const dt_tag_type_t type)
   else
   {
     // we get the query used to retrieve the list of select images
-    images = dt_selection_get_list_query(darktable.selection, FALSE, FALSE);
+    images = dt_selection_ids_to_string(darktable.selection);
   }
 
   sqlite3_stmt *stmt;

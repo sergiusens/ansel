@@ -181,7 +181,7 @@ static void _update(dt_lib_module_t *self)
 
   // using dt_metadata_get() is not possible here. we want to do all this in a single pass, everything else
   // takes ages.
-  gchar *images = dt_selection_get_list_query(darktable.selection, FALSE, FALSE);
+  gchar *images = dt_selection_ids_to_string(darktable.selection);
   const uint32_t imgs_count = g_list_length((GList *)imgs);
 
   if(images)
@@ -264,19 +264,7 @@ static void _write_metadata(GtkTextView *textview, dt_lib_module_t *self)
       _metadata_set_list(i, &key_value, d);
   }
 
-  GList *imgs = dt_act_on_get_images(FALSE, TRUE, FALSE);
-  // workaround: if hovered image instead of selected, aborts
-  if(imgs && !imgs->next)
-  {
-    GList *sels = dt_selection_get_list(darktable.selection, FALSE, FALSE);
-    if(sels && (sels->next || (!sels->next && GPOINTER_TO_INT(sels->data) != GPOINTER_TO_INT(imgs->data))))
-    {
-      g_list_free(sels);
-      g_list_free(imgs);
-      return;
-    }
-    g_list_free(sels);
-  }
+  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
 
   dt_metadata_set_list(imgs, key_value, TRUE);
 

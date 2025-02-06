@@ -1333,20 +1333,7 @@ static void _new_button_clicked(GtkButton *button, dt_lib_module_t *self)
   const gchar *tag = gtk_entry_get_text(d->entry);
   if(!tag || tag[0] == '\0') return;
 
-  GList *imgs = dt_act_on_get_images(FALSE, TRUE, FALSE);
-  // workaround: if hovered image instead of selected, aborts
-  if(imgs && !imgs->next)
-  {
-    GList *sels = dt_selection_get_list(darktable.selection, FALSE, FALSE);
-    if(sels && (sels->next || (!sels->next && GPOINTER_TO_INT(sels->data) != GPOINTER_TO_INT(imgs->data))))
-    {
-      g_list_free(sels);
-      g_list_free(imgs);
-      return;
-    }
-    g_list_free(sels);
-  }
-
+  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
   const gboolean res = dt_tag_attach_string_list(tag, imgs, TRUE);
   if(res) dt_image_synch_xmps(imgs);
   g_list_free(imgs);

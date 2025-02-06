@@ -665,7 +665,6 @@ static void _thumb_update_icons(dt_thumbnail_t *thumb)
   for(int i = 0; i < MAX_STARS; i++) gtk_widget_show(thumb->w_stars[i]);
 
   _set_flag(thumb->w_main, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
-  _set_flag(thumb->w_main, GTK_STATE_FLAG_ACTIVE, thumb->active);
 
   _set_flag(thumb->w_reject, GTK_STATE_FLAG_ACTIVE, (thumb->rating == DT_VIEW_REJECT));
   for(int i = 0; i < MAX_STARS; i++)
@@ -733,6 +732,8 @@ static gboolean _event_rating_release(GtkWidget *widget, GdkEventButton *event, 
 
   if(event->button == 1 && !thumb->moved)
   {
+    dt_selection_select_single(darktable.selection, thumb->imgid);
+
     dt_view_image_over_t rating = DT_VIEW_DESERT;
     if(widget == thumb->w_reject)
       rating = DT_VIEW_REJECT;
@@ -765,6 +766,8 @@ static gboolean _event_grouping_release(GtkWidget *widget, GdkEventButton *event
 
   if(event->button == 1 && !thumb->moved)
   {
+    dt_selection_select_single(darktable.selection, thumb->imgid);
+
     //TODO: will succeed if either or *both* of Shift and Control are pressed.  Do we want this?
     if(dt_modifier_is(event->state, GDK_SHIFT_MASK) | dt_modifier_is(event->state, GDK_CONTROL_MASK))
     {
@@ -802,6 +805,8 @@ static gboolean _event_audio_release(GtkWidget *widget, GdkEventButton *event, g
 
   if(event->button == 1 && !thumb->moved)
   {
+    dt_selection_select_single(darktable.selection, thumb->imgid);
+    
     gboolean start_audio = TRUE;
     if(darktable.view_manager->audio.audio_player_id != -1)
     {
@@ -855,57 +860,8 @@ void dt_thumbnail_update_selection(dt_thumbnail_t *thumb)
 {
   if(!thumb) return;
   if(!gtk_widget_is_visible(thumb->w_main)) return;
-
-  gboolean selected = FALSE;
-  /* clear and reset statements */
-  DT_DEBUG_SQLITE3_CLEAR_BINDINGS(darktable.view_manager->statements.is_selected);
-  DT_DEBUG_SQLITE3_RESET(darktable.view_manager->statements.is_selected);
-  /* bind imgid to prepared statements */
-  DT_DEBUG_SQLITE3_BIND_INT(darktable.view_manager->statements.is_selected, 1, thumb->imgid);
-  /* lets check if imgid is selected */
-  if(sqlite3_step(darktable.view_manager->statements.is_selected) == SQLITE_ROW) selected = TRUE;
-
-  // if there's a change, update the thumb
-  if(selected != thumb->selected)
-  {
-    thumb->selected = selected;
-    _thumb_update_icons(thumb);
-    gtk_widget_queue_draw(thumb->w_main);
-  }
-}
-
-static void _dt_selection_changed_callback(gpointer instance, gpointer user_data)
-{
-  if(!user_data) return;
-  dt_thumbnail_update_selection((dt_thumbnail_t *)user_data);
-}
-
-static void _dt_active_images_callback(gpointer instance, gpointer user_data)
-{
-  if(!user_data) return;
-  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
-
-  gboolean active = FALSE;
-  for(GSList *l = dt_view_active_images_get_all(); l; l = g_slist_next(l))
-  {
-    int id = GPOINTER_TO_INT(l->data);
-    if(id == thumb->imgid)
-    {
-      active = TRUE;
-      break;
-    }
-  }
-
-  // if there's a change, update the thumb
-  if(active != thumb->active)
-  {
-    thumb->active = active;
-    if(gtk_widget_is_visible(thumb->w_main))
-    {
-      _thumb_update_icons(thumb);
-      gtk_widget_queue_draw(thumb->w_main);
-    }
-  }
+  _thumb_update_icons(thumb);
+  gtk_widget_queue_draw(thumb->w_main);
 }
 
 static void _dt_preview_updated_callback(gpointer instance, gpointer user_data)
@@ -1069,10 +1025,6 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
     g_signal_connect(G_OBJECT(thumb->w_main), "button-release-event", G_CALLBACK(_event_main_release), thumb);
 
     g_object_set_data(G_OBJECT(thumb->w_main), "thumb", thumb);
-    DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE,
-                              G_CALLBACK(_dt_active_images_callback), thumb);
-    DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_SELECTION_CHANGED,
-                              G_CALLBACK(_dt_selection_changed_callback), thumb);
     DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
                               G_CALLBACK(_dt_mipmaps_updated_callback), thumb);
     DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED,
@@ -1307,8 +1259,7 @@ dt_thumbnail_t *dt_thumbnail_new(int width, int height, float zoom_ratio, int im
   dt_thumbnail_create_widget(thumb, zoom_ratio);
 
   // let's see if the images are selected or active or mouse_overed
-  _dt_active_images_callback(NULL, thumb);
-  _dt_selection_changed_callback(NULL, thumb);
+  dt_thumbnail_update_selection(thumb);
   if(dt_control_get_mouse_over_id() == thumb->imgid) dt_thumbnail_set_mouseover(thumb, TRUE);
 
   // set tooltip for altered icon if needed
@@ -1337,8 +1288,6 @@ dt_thumbnail_t *dt_thumbnail_new(int width, int height, float zoom_ratio, int im
 void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
 {
   if(thumb->expose_again_timeout_id != 0) g_source_remove(thumb->expose_again_timeout_id);
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_selection_changed_callback), thumb);
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_active_images_callback), thumb);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_mipmaps_updated_callback), thumb);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_preview_updated_callback), thumb);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_image_info_changed_callback), thumb);

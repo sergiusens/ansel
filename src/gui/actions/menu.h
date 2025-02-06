@@ -2,12 +2,15 @@
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/collection.h"
+#include "common/selection.h"
 #include "control/conf.h"
 #include "develop/develop.h"
 #include "gui/gtk.h"
 #ifdef GDK_WINDOWING_QUARTZ
 #include "osx/osx.h"
 #endif
+
+#include <glib.h>
 
 #pragma once
 

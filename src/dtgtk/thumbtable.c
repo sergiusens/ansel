@@ -839,25 +839,21 @@ static gboolean _event_button_press(GtkWidget *widget, GdkEventButton *event, gp
   const int id = dt_control_get_mouse_over_id();
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
-  if(id > 0 && event->button == 1 && event->type == GDK_2BUTTON_PRESS)
+  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+
+  if(id > -1 && event->button == 1 && event->type == GDK_2BUTTON_PRESS)
   {
     if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+    {
       dt_view_manager_switch(darktable.view_manager, "darkroom");
-    else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, id);
+    }
     else
-      ; // shit happened, we should never reach that branch
+    {
+      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, id);
+    }
   }
 
-  if(event->button == 1 && event->type == GDK_BUTTON_PRESS)
-  {
-    // make sure any edition field loses the focus
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
-  }
-
-  if(id < 1
-     && event->button == 1
-     && event->type == GDK_BUTTON_PRESS)
+  if(id < 0)
   {
     // we click in an empty area, let's deselect all images
     dt_selection_clear(darktable.selection);
@@ -879,26 +875,6 @@ static gboolean _event_motion_notify(GtkWidget *widget, GdkEventMotion *event, g
 
 static gboolean _event_button_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-  dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-
-  if(table->dragging == FALSE)
-  {
-    // on map view consider click release instead of press
-    dt_view_manager_t *vm = darktable.view_manager;
-    dt_view_t *view = vm->current_view;
-    const int id = dt_control_get_mouse_over_id();
-    if(id > 0
-       && event->button == 1
-       && table->mode == DT_THUMBTABLE_MODE_FILMSTRIP
-       && event->type == GDK_BUTTON_RELEASE
-       && !strcmp(view->module_name, "map")
-       && dt_modifier_is(event->state, 0))
-    {
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, id);
-      return TRUE;
-    }
-  }
-
   return FALSE;
 }
 
@@ -1006,17 +982,24 @@ static void _dt_profile_change_callback(gpointer instance, int type, gpointer us
   }
 }
 
-// this is called each time the list of active images change
-static void _dt_active_images_callback(gpointer instance, gpointer user_data)
+static void _dt_selection_changed_callback(gpointer instance, gpointer user_data)
 {
-  // we only ensure here that the active image is the offset one
-  // everything else (css, etc...) is handled in dt_thumbnail_t
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
-  const int32_t activeid = dt_view_active_images_get_first();
-  if(activeid > -1)
-    dt_thumbtable_set_offset_image(table, activeid, TRUE);
+  GList *selection = g_list_copy(dt_selection_get_list(darktable.selection));
+
+  for(const GList *l = table->list; l; l = g_list_next(l))
+  {
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    gboolean selected = !(selection == NULL); // default to FALSE if no selection
+    if(selection) selected = g_list_find(selection, GINT_TO_POINTER(thumb->imgid)) != NULL;
+
+    thumb->selected = selected;
+    dt_thumbnail_update_selection(thumb);
+  }
+
+  g_list_free(selection);
 }
 
 // this is called each time mouse_over id change
@@ -1146,7 +1129,7 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
     // in filmstrip mode, let's first ensure the offset is the right one. Otherwise we move to it
     int old_offset = -1;
-    const int tmpoff = dt_view_active_images_get_first();
+    const int tmpoff = dt_selection_get_first_id(darktable.selection);
     if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP
        && tmpoff > -1)
     {
@@ -1526,8 +1509,8 @@ dt_thumbtable_t *dt_thumbtable_new()
                             G_CALLBACK(_dt_collection_changed_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE,
                             G_CALLBACK(_dt_mouse_over_image_callback), table);
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE,
-                            G_CALLBACK(_dt_active_images_callback), table);
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_SELECTION_CHANGED,
+                            G_CALLBACK(_dt_selection_changed_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_CONTROL_PROFILE_USER_CHANGED,
                             G_CALLBACK(_dt_profile_change_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_PREFERENCES_CHANGE,
@@ -1687,7 +1670,7 @@ void dt_thumbtable_full_redraw(dt_thumbtable_t *table, gboolean force)
 
     _pos_compute_area(table);
 
-    const int lastid = dt_view_active_images_get_first();
+    const int lastid = dt_selection_get_first_id(darktable.selection);
 
     if(lastid > -1
        && (table->mode == DT_THUMBTABLE_MODE_FILEMANAGER))
@@ -1695,18 +1678,15 @@ void dt_thumbtable_full_redraw(dt_thumbtable_t *table, gboolean force)
       // this mean we arrive from filmstrip with some active images
       // we need to ensure they are visible and to mark them with some css effect
       dt_thumbtable_ensure_imgid_visibility(table, lastid);
+      GList *select = g_list_copy(dt_selection_get_list(darktable.selection));
 
-      for(GSList *l = dt_view_active_images_get_all(); l; l = g_slist_next(l))
+      for(GList *l = g_list_first(select); l; l = g_list_next(l))
       {
         dt_thumbnail_t *th = _thumbtable_get_thumb(table, GPOINTER_TO_INT(l->data));
         if(th)
-        {
-          dt_gui_add_class(th->w_main, "dt_last_active");
-          th->active = FALSE;
           dt_thumbnail_update_infos(th);
-        }
       }
-      dt_view_active_images_reset(TRUE);
+      g_list_free(select);
     }
 
     // if we force the redraw, we ensure selection is updated

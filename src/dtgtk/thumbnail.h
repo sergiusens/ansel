@@ -52,7 +52,6 @@ typedef struct
 
   gboolean mouse_over;
   gboolean selected;
-  gboolean active; // used for filmstrip to mark images worked on
 
   int rating;
   int colorlabels;

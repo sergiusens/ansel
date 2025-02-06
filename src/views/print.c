@@ -316,6 +316,7 @@ int try_enter(dt_view_t *self)
   //  now check that there is at least one selected image
 
   const int imgid = dt_selection_get_first_id(darktable.selection);
+  dt_view_active_images_reset(FALSE);
 
   if(imgid < 0)
   {
@@ -381,6 +382,7 @@ void enter(dt_view_t *self)
 void leave(dt_view_t *self)
 {
   dt_print_t *prt=(dt_print_t*)self->data;
+  dt_view_active_images_reset(FALSE);
 
   /* disconnect from mipmap updated signal */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_print_mipmaps_updated_signal_callback),

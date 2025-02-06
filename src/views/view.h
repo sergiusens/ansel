@@ -168,14 +168,10 @@ typedef struct dt_view_manager_t
   dt_view_t *current_view;
 
   // images currently active in the main view (there can be more than 1 in culling)
-  GSList *active_images;
+  GList *active_images;
 
   // copy/paste history structure
   dt_history_copy_item_t copy_paste;
-
-  // cached list of images to act on
-  dt_act_on_cache_t act_on_cache_all;
-  dt_act_on_cache_t act_on_cache_visible;
 
   /* reusable db statements
    * TODO: reconsider creating a common/database helper API
@@ -359,8 +355,10 @@ void dt_view_filter_reset(const dt_view_manager_t *vm, gboolean smart_filter);
 
 // active images functions
 void dt_view_active_images_reset(gboolean raise);
+void dt_view_active_images_set(GList *images, gboolean raise);
 void dt_view_active_images_add(int imgid, gboolean raise);
-GSList *dt_view_active_images_get_all();
+void dt_view_active_images_remove(int imgid, gboolean raise);
+GList *dt_view_active_images_get_all();
 int32_t dt_view_active_images_get_first();
 
 /** get the darkroom current layout */

@@ -157,6 +157,8 @@ void expose(dt_view_t *self, cairo_t *cr, int32_t width, int32_t height, int32_t
 
 void enter(dt_view_t *self)
 {
+  dt_view_active_images_reset(FALSE);
+
   dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), dt_ui_center_base(darktable.gui->ui),
                             DT_THUMBTABLE_MODE_FILEMANAGER);
   gtk_widget_show(dt_ui_thumbtable(darktable.gui->ui)->widget);
@@ -205,7 +207,7 @@ void leave(dt_view_t *self)
   dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
 
   // ensure we have no active image remaining
-  dt_view_active_images_reset(TRUE);
+  dt_view_active_images_reset(FALSE);
 
   // we remove the thumbtable from main view
   dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), NULL, DT_THUMBTABLE_MODE_NONE);
