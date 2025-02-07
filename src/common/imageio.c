@@ -1162,7 +1162,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   return 0; // success
 
 error:
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_pixelpipe_cleanup(&pipe);
 error_early:
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
