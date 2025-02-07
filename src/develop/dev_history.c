@@ -371,10 +371,6 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
     return 1;
   }
 
-  // be sure the current history is written before pasting some other history data
-  const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-  if(cv->view((dt_view_t *)cv) == DT_VIEW_DARKROOM) dt_dev_write_history(darktable.develop);
-
   dt_undo_lt_history_t *hist = dt_history_snapshot_item_init();
   hist->imgid = dest_imgid;
   dt_history_snapshot_undo_create(hist->imgid, &hist->before, &hist->before_history_end);

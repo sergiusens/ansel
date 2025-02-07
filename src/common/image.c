@@ -904,6 +904,8 @@ void dt_image_flip(const int32_t imgid, const int32_t cw)
                  dt_history_snapshot_undo_pop, dt_history_snapshot_undo_lt_history_data_free);
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
 }
 
 /* About the image size ratio

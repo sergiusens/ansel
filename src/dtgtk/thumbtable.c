@@ -402,7 +402,7 @@ static int _thumbs_load_needed(dt_thumbtable_t *table)
       {
         dt_thumbnail_t *thumb = dt_thumbnail_new(
             table->thumb_size, table->thumb_size, IMG_TO_FIT, sqlite3_column_int(stmt, 1),
-            sqlite3_column_int(stmt, 0), table->overlays);
+            sqlite3_column_int(stmt, 0), table->overlays, table);
 
         thumb->x = posx;
         thumb->y = posy;
@@ -452,7 +452,7 @@ static int _thumbs_load_needed(dt_thumbtable_t *table)
       {
         dt_thumbnail_t *thumb = dt_thumbnail_new
           (table->thumb_size, table->thumb_size, IMG_TO_FIT, sqlite3_column_int(stmt, 1),
-           sqlite3_column_int(stmt, 0), table->overlays);
+           sqlite3_column_int(stmt, 0), table->overlays, table);
 
         thumb->x = posx;
         thumb->y = posy;
@@ -1543,7 +1543,7 @@ void dt_thumbtable_full_redraw(dt_thumbtable_t *table, gboolean force)
       {
         // we create a completely new thumb
         dt_thumbnail_t *thumb
-            = dt_thumbnail_new(table->thumb_size, table->thumb_size, IMG_TO_FIT, nid, nrow, table->overlays);
+            = dt_thumbnail_new(table->thumb_size, table->thumb_size, IMG_TO_FIT, nid, nrow, table->overlays, table);
         thumb->x = posx;
         thumb->y = posy;
         newlist = g_list_prepend(newlist, thumb);
