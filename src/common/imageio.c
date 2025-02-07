@@ -1165,6 +1165,7 @@ error:
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_pixelpipe_cleanup(&pipe);
 error_early:
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_cleanup(&dev);
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   return 1;
