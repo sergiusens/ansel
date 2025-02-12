@@ -648,9 +648,13 @@ static gboolean view_onButtonPressed(GtkWidget *treeview, GdkEventButton *event,
     return FALSE;
   }
 
+  GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
+
   if(item_is_folder_collection(d->view_rule) &&
       event->type == GDK_BUTTON_PRESS &&
-      event->button == 3)
+      event->button == 3 &&
+      gtk_tree_selection_path_is_selected(selection, path) &&
+      FALSE)
   {
     // Single right-click on filmroll/folder: open contextual menu
     view_popup_menu(treeview, event, d);
@@ -660,7 +664,6 @@ static gboolean view_onButtonPressed(GtkWidget *treeview, GdkEventButton *event,
   else if(event->button == 1 && event->type == GDK_BUTTON_PRESS)
   {
     // Single left-click
-    GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(treeview));
 
     if(dt_modifier_is(event->state, GDK_SHIFT_MASK) && item_is_numeric_collection(d->view_rule))
     {
@@ -673,22 +676,25 @@ static gboolean view_onButtonPressed(GtkWidget *treeview, GdkEventButton *event,
       GtkTreePath *last_path = (GtkTreePath *)g_list_last(selected)->data;
       gtk_tree_selection_select_range(selection, first_path, last_path);
       g_list_free_full(selected, (GDestroyNotify)gtk_tree_path_free);
+      row_activated_with_event(GTK_TREE_VIEW(treeview), path, NULL, event, d);
     }
-    else
+    else if(!dt_modifier_is(event->state, GDK_SHIFT_MASK))
     {
-      // Single click alone : single selection
-      gtk_tree_selection_unselect_all(selection);
-      gtk_tree_selection_select_path(selection, path);
-
       // Toggle expand/collapse state except on Shift because it excludes sub-folders
-      if(!dt_modifier_is(event->state, GDK_SHIFT_MASK))
-      {
-        if(gtk_tree_view_row_expanded(GTK_TREE_VIEW(treeview), path))
-          gtk_tree_view_collapse_row(GTK_TREE_VIEW(treeview), path);
-        else
-          gtk_tree_view_expand_row(GTK_TREE_VIEW(treeview), path, FALSE);
-      }
+      if(gtk_tree_view_row_expanded(GTK_TREE_VIEW(treeview), path))
+        gtk_tree_view_collapse_row(GTK_TREE_VIEW(treeview), path);
+      else
+        gtk_tree_view_expand_row(GTK_TREE_VIEW(treeview), path, FALSE);
     }
+
+    gtk_tree_path_free(path);
+    return TRUE;
+  }
+  else if(event->type == GDK_2BUTTON_PRESS)
+  {
+    // Double click alone : single selection
+    gtk_tree_selection_unselect_all(selection);
+    gtk_tree_selection_select_path(selection, path);
 
     row_activated_with_event(GTK_TREE_VIEW(treeview), path, NULL, event, d);
     gtk_tree_path_free(path);
