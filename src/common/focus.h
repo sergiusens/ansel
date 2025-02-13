@@ -298,7 +298,7 @@ static void dt_focus_draw_clusters(cairo_t *cr, int width, int height, int imgid
     if(ht * scale <= height) fy = 0;
   }
 
-  cairo_translate(cr, -wd / 2.0f + fx / scale * darktable.gui->ppd_thb, -ht / 2.0f + fy / scale * darktable.gui->ppd_thb);
+  cairo_translate(cr, -wd / 2.0f + fx / scale * darktable.gui->ppd, -ht / 2.0f + fy / scale * darktable.gui->ppd);
 
   cairo_rectangle(cr, 0, 0, wd, ht);
   cairo_clip(cr);

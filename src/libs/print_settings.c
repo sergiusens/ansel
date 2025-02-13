@@ -1770,7 +1770,7 @@ void gui_post_expose(struct dt_lib_module_t *self, cairo_t *cr, int32_t width, i
   cairo_set_source_rgba(cr, 1, .2, .2, 0.6);
   cairo_set_dash(cr, NULL, 0, 0);
 
-  const float scaler = 1.0f / darktable.gui->ppd_thb;
+  const float scaler = 1.0f / darktable.gui->ppd;
 
   for(int k=0; k<ps->imgs.count; k++)
   {
