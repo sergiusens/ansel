@@ -637,8 +637,19 @@ void dt_control_jobs_init(dt_control_t *control)
 
 void dt_control_jobs_cleanup(dt_control_t *control)
 {
+  // Cancel all non-user-export jobs remaining
+  for(int i = 0; i < DT_JOB_QUEUE_MAX; i++)
+  {
+    if(control->queues[i] == NULL) continue;
+    if(control->export_scheduled && i == DT_JOB_QUEUE_USER_EXPORT) continue;
+    _dt_job_t *job = (_dt_job_t *)control->queues[i]->data;
+    dt_control_job_cancel(job);
+  }
+
   free(control->job);
+  control->job = NULL;
   free(control->thread);
+  control->thread = NULL;
 }
 
 // clang-format off
