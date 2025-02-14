@@ -748,11 +748,8 @@ void dt_mipmap_cache_get_with_caller(
     struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
     buf->cache_entry = entry;
 
-    int mipmap_generated = 0;
     if(dsc->flags & DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE)
     {
-      mipmap_generated = 1;
-
       __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_fetches), 1);
       // fprintf(stderr, "[mipmap cache get] now initializing buffer for img %u mip %d!\n", imgid, mip);
       // we're write locked here, as requested by the alloc callback.
@@ -859,12 +856,6 @@ void dt_mipmap_cache_get_with_caller(
     }
 #endif
 
-    if(mipmap_generated)
-    {
-      /* raise signal that mipmaps has been flushed to cache */
-      g_idle_add(_raise_signal_mipmap_updated, GINT_TO_POINTER(imgid));
-    }
-
     buf->width = dsc->width;
     buf->height = dsc->height;
     buf->iscale = dsc->iscale;
@@ -937,6 +928,12 @@ void dt_mipmap_cache_get_with_caller(
     buf->width = buf->height = 0;
     buf->iscale = 0.0f;
     buf->color_space = DT_COLORSPACE_NONE;
+  }
+
+  if(buf->buf && buf->width > 0 && buf->height > 0 && buf->size < DT_MIPMAP_NONE)
+  {
+    /* raise signal that mipmaps has been flushed to cache */
+    g_idle_add(_raise_signal_mipmap_updated, GINT_TO_POINTER(imgid));
   }
 }
 
