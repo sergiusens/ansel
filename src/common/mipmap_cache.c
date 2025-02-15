@@ -1284,7 +1284,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
       *width = dat.head.width;
       *height = dat.head.height;
       *iscale = 1.0f;
-      *color_space = dt_mipmap_cache_get_colorspace();
+      *color_space = DT_COLORSPACE_ADOBERGB;
     }
   }
 
@@ -1305,13 +1305,6 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
   // TODO: also init all smaller mips!
   // TODO: use mipf, but:
   // TODO: if output is cropped, don't use mipf!
-}
-
-dt_colorspaces_color_profile_type_t dt_mipmap_cache_get_colorspace()
-{
-  if(dt_conf_get_bool("cache_color_managed"))
-    return DT_COLORSPACE_ADOBERGB;
-  return DT_COLORSPACE_DISPLAY;
 }
 
 void dt_mipmap_cache_copy_thumbnails(const dt_mipmap_cache_t *cache, const uint32_t dst_imgid, const uint32_t src_imgid)
