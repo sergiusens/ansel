@@ -648,7 +648,7 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   g_list_free(collection);
 }
 
-static void _dt_collection_get_hash(dt_thumbtable_t *table)
+static int _dt_collection_get_hash(dt_thumbtable_t *table)
 {
   // Hash the collection query string
   const char *const query = dt_collection_get_query(darktable.collection);
@@ -667,7 +667,9 @@ static void _dt_collection_get_hash(dt_thumbtable_t *table)
     table->collection_inited = TRUE;
     table->thumbs_inited = FALSE;
     _dt_collection_lut(table);
+    return 1;
   }
+  return 0;
 }
 
 static int _grab_focus(dt_thumbtable_t *table)
@@ -692,10 +694,10 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
   // See if the collection changed
-  _dt_collection_get_hash(table);
+  int changed = _dt_collection_get_hash(table);
 
   dt_thumbtable_configure(table);
-  g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
+  if(changed) g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
   dt_thumbtable_update(table);
   g_idle_add((GSourceFunc) _grab_focus, table);
 }
