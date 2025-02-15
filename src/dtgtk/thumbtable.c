@@ -133,6 +133,22 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
   g_free(cl1);
 }
 
+// We can't trust the mouse enter/leave events on thumnbails to properly
+// update active thumbnail styling, so we need to catch the signal here and update the whole list.
+void _mouse_over_image_callback(gpointer instance, gpointer user_data)
+{
+  if(!user_data) return;
+  dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
+
+  dt_pthread_mutex_lock(&table->lock);
+  for(GList *l = table->list; l; l = g_list_next(l))
+  {
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    dt_thumbnail_set_mouseover(thumb, thumb->imgid == dt_control_get_mouse_over_id());
+  }
+  dt_pthread_mutex_unlock(&table->lock);
+}
+
 
 static void _rowid_to_position(dt_thumbtable_t *table, int index, int *x, int *y)
 {
@@ -201,6 +217,7 @@ static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int imgid)
 static int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table)
 {
   int id = dt_selection_get_first_id(darktable.selection);
+  if(id < 0) id = dt_control_get_keyboard_over_id();
   if(id < 0) id = dt_control_get_mouse_over_id();
   dt_thumbtable_scroll_to_imgid(table, id);
   return 0;
@@ -674,10 +691,6 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
-  // In case we don't have a selection, try to anchor the scrolling height of the current image anyway
-  if(dt_control_get_mouse_over_id() > -1 && dt_selection_get_length(darktable.selection) == 0)
-    dt_selection_select(darktable.selection, dt_control_get_mouse_over_id());
-
   // See if the collection changed
   _dt_collection_get_hash(table);
 
@@ -956,6 +969,7 @@ void _move_in_grid(dt_thumbtable_t *table, dt_thumbtable_direction_t direction, 
   dt_pthread_mutex_unlock(&table->lock);
 
   dt_control_set_mouse_over_id(new_imgid);
+  dt_control_set_keyboard_over_id(new_imgid);
 
   if(!_is_rowid_visible(table, new_rowid))
   {
@@ -977,7 +991,15 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
   // Find out the current image
-  int imgid = dt_control_get_mouse_over_id();
+  // NOTE: when moving into the grid from key arrow events,
+  // if the cursor is still overlaying the grid when scrolling, it can collide
+  // with key event and set the mouse_over focus elsewhere.
+  // For this reason, we use our own private keyboard_over event,
+  // and use the mouse_over as a fall-back only.
+  // Key events are "knobby", therefore more reliale than "hover",
+  // so they always take precedence.
+  int imgid = dt_control_get_keyboard_over_id();
+  if(imgid < 0) imgid = dt_control_get_mouse_over_id();
   if(imgid < 0) imgid = dt_selection_get_first_id(darktable.selection);
   if(imgid < 0) return FALSE;
 
@@ -1168,6 +1190,9 @@ dt_thumbtable_t *dt_thumbtable_new()
                             G_CALLBACK(_dt_mipmaps_updated_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED,
                             G_CALLBACK(_dt_image_info_changed_callback), table);
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE,
+                            G_CALLBACK(_mouse_over_image_callback), table);
+
 
   table->overlay_center = gtk_overlay_new();
   table->overlay_filmstrip = gtk_overlay_new();

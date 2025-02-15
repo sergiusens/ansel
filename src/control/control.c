@@ -73,6 +73,7 @@ void dt_control_init(dt_control_t *s)
   s->button_down = 0;
   s->button_down_which = 0;
   s->mouse_over_id = -1;
+  s->keyboard_over_id = -1;
   s->dev_closeup = 0;
   s->dev_zoom_x = 0;
   s->dev_zoom_y = 0;
@@ -593,11 +594,31 @@ void dt_control_set_mouse_over_id(int32_t value)
   if(darktable.control->mouse_over_id != value)
   {
     darktable.control->mouse_over_id = value;
+
+    // If we reset mouse_over_id to -1, aka "none" signal,
+    // reset also the keyboard_over_id, in a "loose focus" way,
+    // to keep only the selection for common/act_on.h
+    if(value < 0) darktable.control->keyboard_over_id = value;
     dt_pthread_mutex_unlock(&(darktable.control->global_mutex));
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE);
   }
   else
     dt_pthread_mutex_unlock(&(darktable.control->global_mutex));
+}
+
+int32_t dt_control_get_keyboard_over_id()
+{
+  dt_pthread_mutex_lock(&(darktable.control->global_mutex));
+  const int32_t result = darktable.control->keyboard_over_id;
+  dt_pthread_mutex_unlock(&(darktable.control->global_mutex));
+  return result;
+}
+
+void dt_control_set_keyboard_over_id(int32_t value)
+{
+  dt_pthread_mutex_lock(&(darktable.control->global_mutex));
+  darktable.control->keyboard_over_id = value;
+  dt_pthread_mutex_unlock(&(darktable.control->global_mutex));
 }
 
 float dt_control_get_dev_zoom_x()

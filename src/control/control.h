@@ -133,6 +133,7 @@ typedef struct dt_control_t
   double button_x, button_y;
   int history_start;
   int32_t mouse_over_id;
+  int32_t keyboard_over_id;
   gboolean lock_cursor_shape;
 
   // TODO: move these to some darkroom struct
@@ -233,6 +234,9 @@ int dt_control_running();
 // is the locking really needed?
 int32_t dt_control_get_mouse_over_id();
 void dt_control_set_mouse_over_id(int32_t value);
+
+int32_t dt_control_get_keyboard_over_id();
+void dt_control_set_keyboard_over_id(int32_t value);
 
 float dt_control_get_dev_zoom_x();
 void dt_control_set_dev_zoom_x(float value);

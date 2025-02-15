@@ -19,6 +19,7 @@
 #include "common/act_on.h"
 #include "common/collection.h"
 #include "common/selection.h"
+#include "control/control.h"
 #include "views/view.h"
 
 
@@ -40,6 +41,9 @@ GList *dt_act_on_get_images()
   else if(dt_view_active_images_get_first() > -1)
     return g_list_copy(dt_view_active_images_get_all());
 
+  else if(dt_control_get_keyboard_over_id() > -1)
+    return g_list_append(NULL, GINT_TO_POINTER(dt_control_get_keyboard_over_id()));
+
   return NULL;
 }
 
@@ -51,6 +55,9 @@ int dt_act_on_get_images_nb(const gboolean only_visible, const gboolean force)
 
   else if(dt_view_active_images_get_first() > -1)
     return g_list_length(dt_view_active_images_get_all());
+
+  else if(dt_control_get_keyboard_over_id() > -1)
+    return 1;
 
   return 0;
 }

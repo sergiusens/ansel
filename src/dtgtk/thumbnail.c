@@ -652,6 +652,7 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 {
   if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  dt_control_set_mouse_over_id(-1);
   dt_thumbnail_set_mouseover(thumb, FALSE);
   return FALSE;
 }
@@ -890,8 +891,8 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
 {
   if(!thumb) return;
   _image_get_infos(thumb);
-  _thumb_write_extension(thumb);
   _thumb_update_icons(thumb);
+  gtk_widget_queue_draw(thumb->widget);
 }
 
 static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
