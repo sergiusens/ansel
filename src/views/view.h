@@ -153,11 +153,6 @@ dt_view_surface_value_t dt_view_image_get_surface(int imgid, int width, int heig
                                                   const gboolean quality);
 
 
-/** Set the selection bit to a given value for the specified image */
-void dt_view_set_selection(int imgid, int value);
-/** toggle selection of given image. */
-void dt_view_toggle_selection(int imgid);
-
 /**
  * holds all relevant data needed to manage the view
  * modules.

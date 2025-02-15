@@ -180,6 +180,7 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
   }
 
   // colorlabels
+  // TODO: colors should be grapped from image cache, like ratings
   thumb->colorlabels = 0;
   DT_DEBUG_SQLITE3_CLEAR_BINDINGS(darktable.view_manager->statements.get_color);
   DT_DEBUG_SQLITE3_RESET(darktable.view_manager->statements.get_color);
