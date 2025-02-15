@@ -1120,6 +1120,12 @@ void dt_thumbtable_reset_collection(dt_thumbtable_t *table)
   table->reset_collection = TRUE;
 }
 
+gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
+{
+  if(!user_data) return TRUE;
+  dt_control_set_mouse_over_id(-1);
+}
+
 dt_thumbtable_t *dt_thumbtable_new()
 {
   dt_thumbtable_t *table = (dt_thumbtable_t *)calloc(1, sizeof(dt_thumbtable_t));
@@ -1140,6 +1146,8 @@ dt_thumbtable_t *dt_thumbtable_new()
   gtk_container_add(GTK_CONTAINER(table->scroll_window), table->grid);
   gtk_widget_set_can_focus(table->grid, TRUE);
   gtk_widget_set_focus_on_click(table->grid, TRUE);
+  gtk_widget_add_events(table->grid, GDK_LEAVE_NOTIFY_MASK);
+  g_signal_connect(G_OBJECT(table->grid), "leave-notify-event", G_CALLBACK(_event_main_leave), table);
 
   // drag and drop : used for reordering, interactions with maps, exporting uri to external apps, importing images
   // in filmroll...
