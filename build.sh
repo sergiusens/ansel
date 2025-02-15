@@ -25,6 +25,8 @@ BUILD_PACKAGE=0
 GIT_UPDATE=0
 MAKE_TASKS=-1
 ADDRESS_SANITIZER=0
+CC_COMPILER="gcc"
+CXX_COMPILER="g++"
 DO_CLEAN_BUILD=0
 DO_CLEAN_INSTALL=0
 MANIFEST_FILE="$BUILD_DIR/install_manifest.txt"
@@ -90,6 +92,14 @@ parse_args()
 			;;
 		--build-generator)
 			BUILD_GENERATOR="$2"
+			shift
+			;;
+		--cccompiler)
+			CC_COMPILER="$2"
+			shift
+			;;
+		--cxxcompiler)
+			CXX_COMPILER="$2"
 			shift
 			;;
 		-j|--jobs)
@@ -166,6 +176,12 @@ Build:
 
    --asan                     Enable address sanitizer options
                               (default: disabled)
+
+	 --cccompiler               C Compiler (default: gcc)
+	                            (alternative: clang)
+
+	 --cxxcompiler              C++ Compiler (default: g++)
+	                            (alternative: clang++)
 
 Actual actions:
    --skip-build               Configure but exit before building the binaries
@@ -383,6 +399,7 @@ Build type:          $BUILD_TYPE
 Build generator:     $BUILD_GENERATOR
 Build tasks:         $MAKE_TASKS
 CPU Architecture:    $CPU_ARCHITECTURE
+Compiler:            $CC_COMPILER $CXX_COMPILER
 
 EOF
 
@@ -424,7 +441,7 @@ if [ $ADDRESS_SANITIZER -ne 0 ] ; then
 fi
 
 
-cmd_config="${ASAN_FLAGS}cmake -G \"$BUILD_GENERATOR\" -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${CMAKE_MORE_OPTIONS} \"$DT_SRC_DIR\""
+cmd_config="CXX=${CXX_COMPILER} CC=${CC_COMPILER} ${ASAN_FLAGS}cmake -G \"$BUILD_GENERATOR\" -DCMAKE_INSTALL_PREFIX=${INSTALL_PREFIX} -DCMAKE_BUILD_TYPE=${BUILD_TYPE} ${CMAKE_MORE_OPTIONS} \"$DT_SRC_DIR\""
 cmd_build="cmake --build "$BUILD_DIR" -- -j$MAKE_TASKS"
 cmd_install="${SUDO}cmake --build \"$BUILD_DIR\" --target install -- -j$MAKE_TASKS"
 
