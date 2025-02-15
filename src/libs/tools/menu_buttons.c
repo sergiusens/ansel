@@ -59,7 +59,7 @@ int expandable(dt_lib_module_t *self)
 
 int position()
 {
-  return 1;
+  return 0;
 }
 
 void _switch_to_lighttable(GtkWidget *w, gpointer data)
