@@ -303,7 +303,7 @@ void gui_post_expose(dt_lib_module_t *self, cairo_t *cri, int32_t width, int32_t
     cairo_rectangle(cri, 0, 0, wd, ht);
     cairo_clip_preserve(cri);
 
-    const float scaler = 1.0f / darktable.gui->ppd_thb;
+    const float scaler = 1.0f / darktable.gui->ppd;
     cairo_scale(cri, scaler, scaler);
 
 
@@ -399,16 +399,19 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
     GtkWidget *hb = gtk_grid_new();
     const int imgid = sqlite3_column_int(stmt, 1);
     dt_gui_add_class(hb, "dt_overlays_always");
-    dt_thumbnail_t *thumb = dt_thumbnail_new(100, 100, IMG_TO_FIT, imgid, -1, DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL, NULL);
+    dt_thumbnail_t *thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, 0, DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL, NULL);
+
     thumb->disable_mouseover = TRUE;
     thumb->disable_actions = TRUE;
+    dt_thumbnail_resize(thumb, DT_PIXEL_APPLY_DPI(92), DT_PIXEL_APPLY_DPI(92), TRUE, IMG_TO_FIT);
     dt_thumbnail_set_mouseover(thumb, imgid == dev->image_storage.id);
+    dt_thumbnail_update_selection(thumb, imgid == dev->image_storage.id);
 
     if (imgid != dev->image_storage.id)
     {
-      g_signal_connect(G_OBJECT(thumb->w_main), "button-press-event",
+      g_signal_connect(G_OBJECT(thumb->widget), "button-press-event",
                        G_CALLBACK(_lib_duplicate_thumb_press_callback), self);
-      g_signal_connect(G_OBJECT(thumb->w_main), "button-release-event",
+      g_signal_connect(G_OBJECT(thumb->widget), "button-release-event",
                        G_CALLBACK(_lib_duplicate_thumb_release_callback), self);
     }
 
@@ -431,7 +434,7 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
     g_object_set_data(G_OBJECT(bt), "imgid", GINT_TO_POINTER(imgid));
     g_signal_connect(G_OBJECT(bt), "clicked", G_CALLBACK(_lib_duplicate_delete), self);
 
-    gtk_grid_attach(GTK_GRID(hb), thumb->w_main, 0, 0, 1, 2);
+    gtk_grid_attach(GTK_GRID(hb), thumb->widget, 0, 0, 1, 2);
     gtk_grid_attach(GTK_GRID(hb), bt, 2, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(hb), lb, 1, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(hb), tb, 1, 1, 2, 1);

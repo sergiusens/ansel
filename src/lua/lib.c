@@ -160,13 +160,9 @@ int dt_lua_init_early_lib(lua_State *L)
   luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW);
   luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW);
   luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW);
-  luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_CENTER_TOP_LEFT);
-  luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_CENTER_TOP_CENTER);
-  luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_CENTER_TOP_RIGHT);
   luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT);
   luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER);
   luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT);
-  luaA_enum_value(L, dt_ui_container_t, DT_UI_CONTAINER_PANEL_BOTTOM);
 
   dt_lua_init_type(L, dt_lua_lib_t);
   lua_pushcfunction(L, lib_reset);

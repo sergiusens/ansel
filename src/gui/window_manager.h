@@ -52,7 +52,6 @@ typedef enum dt_ui_container_t
   DT_UI_CONTAINER_PANEL_RIGHT_CENTER = 4,
   DT_UI_CONTAINER_PANEL_RIGHT_BOTTOM = 5,
 
-
   /* the top header bar, left slot where darktable name is placed */
   DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW = 6,
   /* center which is expanded as wide it can */
@@ -60,17 +59,9 @@ typedef enum dt_ui_container_t
   /* right side were the different views are accessed */
   DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW = 8,
 
-  DT_UI_CONTAINER_PANEL_CENTER_TOP_LEFT = 9,
-  DT_UI_CONTAINER_PANEL_CENTER_TOP_CENTER = 10,
-  DT_UI_CONTAINER_PANEL_CENTER_TOP_RIGHT = 11,
-
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT = 12,
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER = 13,
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT = 14,
-
-  /* this panel is placed at bottom of ui
-     only used by the filmstrip if shown */
-  DT_UI_CONTAINER_PANEL_BOTTOM = 15,
+  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT = 9,
+  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER = 10,
+  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT = 11,
 
   /* Count of containers */
   DT_UI_CONTAINER_SIZE
@@ -126,10 +117,10 @@ GtkWidget *dt_ui_log_msg(struct dt_ui_t *ui);
 GtkWidget *dt_ui_toast_msg(struct dt_ui_t *ui);
 GtkWidget *dt_ui_main_window(dt_ui_t *ui);
 
-void init_main_table(GtkWidget *container, struct dt_ui_t *ui);
+void dt_ui_init_main_table(GtkWidget *container, struct dt_ui_t *ui);
+void dt_ui_cleanup_main_table(dt_ui_t *ui);
+
 GtkBox *dt_ui_get_container(struct dt_ui_t *ui, const dt_ui_container_t c);
 void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidget *w);
 
 void dt_ui_restore_panels(dt_ui_t *ui);
-void dt_ui_update_scrollbars(dt_ui_t *ui);
-void dt_ui_scrollbars_show(dt_ui_t *ui, gboolean show);

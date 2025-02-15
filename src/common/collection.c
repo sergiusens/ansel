@@ -2224,10 +2224,6 @@ static void _update_recentcollections()
   char buf[4096];
   dt_collection_serialize(buf, sizeof(buf));
 
-  // Store position in lighttable of the current collection
-  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
-  const int position = table->offset;
-
   int n = -1;
   gboolean found_duplicate = FALSE;
 
@@ -2273,7 +2269,6 @@ static void _update_recentcollections()
 
   // Prepend current collection on top of history
   dt_conf_set_string("plugins/lighttable/recentcollect/line0", buf);
-  dt_conf_set_int("plugins/lighttable/recentcollect/pos0", position);
 
   // Increment items if we didn't find a duplicate
   num_items += found_duplicate ? 0 : 1;
@@ -2637,7 +2632,6 @@ static void _dt_collection_filmroll_imported_callback(gpointer instance, const i
 
     dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
     dt_view_filter_reset(darktable.view_manager, TRUE);
-    dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), last_image, TRUE);
 
     dt_control_set_mouse_over_id(last_image);
     dt_selection_select_single(darktable.selection, last_image);

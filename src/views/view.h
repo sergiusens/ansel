@@ -237,12 +237,6 @@ typedef struct dt_view_manager_t
       void (*update)(struct dt_lib_module_t *);
     } module_collect;
 
-    /* filmstrip proxy object */
-    struct
-    {
-      struct dt_lib_module_t *module;
-    } filmstrip;
-
     /* darkroom view proxy object */
     struct
     {
@@ -324,10 +318,6 @@ void dt_view_manager_view_toolbox_add(dt_view_manager_t *vm, GtkWidget *tool, dt
 
 /** add widget to the current module toolbox */
 void dt_view_manager_module_toolbox_add(dt_view_manager_t *vm, GtkWidget *tool, dt_view_type_flags_t view);
-
-/** set scrollbar positions, gui method. */
-void dt_view_set_scrollbar(dt_view_t *view, float hpos, float hscroll_lower, float hsize, float hwinsize,
-                           float vpos, float vscroll_lower, float vsize, float vwinsize);
 
 /** add mouse action record to list of mouse actions */
 GSList *dt_mouse_action_create_simple(GSList *actions, dt_mouse_action_type_t type, GdkModifierType accel,

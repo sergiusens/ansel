@@ -44,15 +44,6 @@ typedef struct dt_gui_widgets_t
   int panel_handle_x, panel_handle_y;
 } dt_gui_widgets_t;
 
-typedef struct dt_gui_scrollbars_t
-{
-    GtkWidget *vscrollbar;
-    GtkWidget *hscrollbar;
-
-    gboolean visible;
-    gboolean dragging;
-} dt_gui_scrollbars_t;
-
 typedef enum dt_gui_color_t
 {
   DT_GUI_COLOR_BG = 0,
@@ -96,8 +87,6 @@ typedef struct dt_gui_gtk_t
 
   dt_gui_widgets_t widgets;
 
-  dt_gui_scrollbars_t scrollbars;
-
   cairo_surface_t *surface;
   GtkMenu *presets_popup_menu;
   char *last_preset;
@@ -131,7 +120,7 @@ typedef struct dt_gui_gtk_t
   gboolean show_focus_peaking;
   double overlay_red, overlay_blue, overlay_green, overlay_contrast;
 
-  double dpi, dpi_factor, ppd, ppd_thb;
+  double dpi, dpi_factor, ppd;
 
   int icon_size; // size of top panel icons
 
@@ -261,10 +250,6 @@ void dt_ui_container_foreach(struct dt_ui_t *ui, const dt_ui_container_t c, GtkC
 void dt_ui_container_destroy_children(struct dt_ui_t *ui, const dt_ui_container_t c);
 /** \brief shows/hide a panel */
 void dt_ui_panel_show(struct dt_ui_t *ui, const dt_ui_panel_t, gboolean show, gboolean write);
-/** \brief update scrollbars for current view */
-void dt_ui_update_scrollbars(struct dt_ui_t *ui);
-/** show or hide scrollbars */
-void dt_ui_scrollbars_show(struct dt_ui_t *ui, gboolean show);
 /** \brief toggle view of panels eg. collapse/expands to previous view state */
 void dt_ui_toggle_panels_visibility(struct dt_ui_t *ui);
 /** \brief draw user's attention */

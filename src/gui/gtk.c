@@ -290,31 +290,6 @@ static gboolean _scrolled(GtkWidget *widget, GdkEventScroll *event, gpointer use
   return FALSE;
 }
 
-static gboolean _scrollbar_changed(GtkWidget *widget, gpointer user_data)
-{
-  GtkAdjustment *adjustment_x = gtk_range_get_adjustment(GTK_RANGE(darktable.gui->scrollbars.hscrollbar));
-  GtkAdjustment *adjustment_y = gtk_range_get_adjustment(GTK_RANGE(darktable.gui->scrollbars.vscrollbar));
-
-  const gdouble value_x = gtk_adjustment_get_value (adjustment_x);
-  const gdouble value_y = gtk_adjustment_get_value (adjustment_y);
-
-  dt_view_manager_scrollbar_changed(darktable.view_manager, value_x, value_y);
-
-  return TRUE;
-}
-
-static gboolean _scrollbar_press_event(GtkWidget *widget, gpointer user_data)
-{
-  darktable.gui->scrollbars.dragging = TRUE;
-  return FALSE;
-}
-
-static gboolean _scrollbar_release_event(GtkWidget *widget, gpointer user_data)
-{
-  darktable.gui->scrollbars.dragging = FALSE;
-  return FALSE;
-}
-
 int dt_gui_gtk_load_config()
 {
   // Warning : needs to be called within a dt_pthread_mutex_lock(&darktable.gui->mutex) section
@@ -666,19 +641,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   g_signal_connect(G_OBJECT(widget), "button-release-event", G_CALLBACK(_button_released), NULL);
   g_signal_connect(G_OBJECT(widget), "scroll-event", G_CALLBACK(_scrolled), NULL);
 
-  // TODO: left, right, top, bottom:
-  // leave-notify-event
-
-  widget = darktable.gui->scrollbars.vscrollbar;
-  g_signal_connect(G_OBJECT(widget), "value-changed", G_CALLBACK(_scrollbar_changed), NULL);
-  g_signal_connect(G_OBJECT(widget), "button-press-event", G_CALLBACK(_scrollbar_press_event), NULL);
-  g_signal_connect(G_OBJECT(widget), "button-release-event", G_CALLBACK(_scrollbar_release_event), NULL);
-
-  widget = darktable.gui->scrollbars.hscrollbar;
-  g_signal_connect(G_OBJECT(widget), "value-changed", G_CALLBACK(_scrollbar_changed), NULL);
-  g_signal_connect(G_OBJECT(widget), "button-press-event", G_CALLBACK(_scrollbar_press_event), NULL);
-  g_signal_connect(G_OBJECT(widget), "button-release-event", G_CALLBACK(_scrollbar_release_event), NULL);
-
   dt_gui_presets_init();
 
   widget = dt_ui_center(darktable.gui->ui);
@@ -806,7 +768,7 @@ void dt_configure_ppd_dpi(dt_gui_gtk_t *gui)
 {
   GtkWidget *widget = gui->ui->main_window;
 
-  gui->ppd = gui->ppd_thb = dt_get_system_gui_ppd(widget);
+  gui->ppd = dt_get_system_gui_ppd(widget);
   gui->filter_image = CAIRO_FILTER_GOOD;
 
   // get the screen resolution
@@ -892,7 +854,7 @@ static void _init_widgets(dt_gui_gtk_t *gui)
   container = widget;
 
   // Initializing the main table
-  init_main_table(container, darktable.gui->ui);
+  dt_ui_init_main_table(container, darktable.gui->ui);
 
   /* the log message */
   GtkWidget *eb = gtk_event_box_new();
@@ -902,9 +864,10 @@ static void _init_widgets(dt_gui_gtk_t *gui)
   gtk_label_set_ellipsize(GTK_LABEL(darktable.gui->ui->log_msg), PANGO_ELLIPSIZE_MIDDLE);
   dt_gui_add_class(darktable.gui->ui->log_msg, "dt_messages");
   gtk_container_add(GTK_CONTAINER(eb), darktable.gui->ui->log_msg);
-  gtk_widget_set_valign(eb, GTK_ALIGN_END);
+  gtk_widget_set_valign(eb, GTK_ALIGN_CENTER);
   gtk_widget_set_halign(eb, GTK_ALIGN_CENTER);
   gtk_overlay_add_overlay(GTK_OVERLAY(darktable.gui->ui->center_base), eb);
+  //gtk_overlay_reorder_overlay(GTK_OVERLAY(darktable.gui->ui->center_base), eb, -1);
 
   /* the toast message */
   eb = gtk_event_box_new();
@@ -926,6 +889,7 @@ static void _init_widgets(dt_gui_gtk_t *gui)
   gtk_widget_set_valign(eb, GTK_ALIGN_START);
   gtk_widget_set_halign(eb, GTK_ALIGN_CENTER);
   gtk_overlay_add_overlay(GTK_OVERLAY(darktable.gui->ui->center_base), eb);
+  //gtk_overlay_reorder_overlay(GTK_OVERLAY(darktable.gui->ui->center_base), eb, -1);
 
   /* update log message label */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_CONTROL_LOG_REDRAW, G_CALLBACK(_ui_log_redraw_callback),
@@ -941,9 +905,6 @@ static void _init_widgets(dt_gui_gtk_t *gui)
 
   gtk_widget_set_visible(dt_ui_log_msg(gui->ui), FALSE);
   gtk_widget_set_visible(dt_ui_toast_msg(gui->ui), FALSE);
-  gtk_widget_set_visible(gui->scrollbars.hscrollbar, FALSE);
-  gtk_widget_set_visible(gui->scrollbars.vscrollbar, FALSE);
-
 }
 
 void dt_ui_container_focus_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidget *w)
@@ -996,16 +957,11 @@ static void _ui_log_redraw_callback(gpointer instance, GtkWidget *widget)
   {
     if(strcmp(darktable.control->log_message[darktable.control->log_ack], gtk_label_get_text(GTK_LABEL(widget))))
       gtk_label_set_markup(GTK_LABEL(widget), darktable.control->log_message[darktable.control->log_ack]);
-    if(!gtk_widget_get_visible(widget))
-    {
-      const int h = gtk_widget_get_allocated_height(dt_ui_center_base(darktable.gui->ui));
-      gtk_widget_set_margin_bottom(gtk_widget_get_parent(widget), 0.15 * h - DT_PIXEL_APPLY_DPI(10));
-      gtk_widget_show(widget);
-    }
+    gtk_widget_show(widget);
   }
   else
   {
-    if(gtk_widget_get_visible(widget)) gtk_widget_hide(widget);
+    gtk_widget_hide(widget);
   }
   dt_pthread_mutex_unlock(&darktable.control->log_mutex);
 }

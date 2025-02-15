@@ -282,6 +282,7 @@ int dt_view_manager_switch_by_view(dt_view_manager_t *vm, const dt_view_t *nv)
     }
 
     /* remove all widgets in all containers */
+    dt_ui_cleanup_main_table(darktable.gui->ui);
     for(int l = 0; l < DT_UI_CONTAINER_SIZE; l++)
       dt_ui_container_destroy_children(darktable.gui->ui, l);
     vm->current_view = NULL;
@@ -396,9 +397,6 @@ int dt_view_manager_switch_by_view(dt_view_manager_t *vm, const dt_view_t *nv)
   /* enter view. crucially, do this before initing the plugins below,
       as e.g. modulegroups requires the dr stuff to be inited. */
   if(new_view->enter) new_view->enter(new_view);
-
-  /* update the scrollbars */
-  dt_ui_update_scrollbars(darktable.gui->ui);
 
   /* raise view changed signal */
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED, old_view, new_view);
@@ -630,32 +628,6 @@ void dt_view_manager_scrollbar_changed(dt_view_manager_t *vm, double x, double y
     vm->current_view->scrollbar_changed(vm->current_view, x, y);
 }
 
-void dt_view_set_scrollbar(dt_view_t *view, float hpos, float hlower, float hsize, float hwinsize, float vpos,
-                           float vlower, float vsize, float vwinsize)
-{
-  if (view->vscroll_pos == vpos
-      && view->vscroll_lower == vlower
-      && view->vscroll_size == vsize
-      && view->vscroll_viewport_size == vwinsize
-      && view->hscroll_pos == hpos
-      && view->hscroll_lower == hlower
-      && view->hscroll_size == hsize
-      && view->hscroll_viewport_size == hwinsize)
-    return;
-
-  view->vscroll_pos = vpos;
-  view->vscroll_lower = vlower;
-  view->vscroll_size = vsize;
-  view->vscroll_viewport_size = vwinsize;
-  view->hscroll_pos = hpos;
-  view->hscroll_lower = hlower;
-  view->hscroll_size = hsize;
-  view->hscroll_viewport_size = hwinsize;
-
-  if (!darktable.gui->scrollbars.dragging)
-    dt_ui_update_scrollbars(darktable.gui->ui);
-}
-
 dt_view_surface_value_t dt_view_image_get_surface(int imgid, int width, int height, cairo_surface_t **surface,
                                                   const gboolean quality)
 {
@@ -687,7 +659,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int imgid, int width, int heig
   }
 
   // so we create a new image surface to return
-  float scale = fminf(width / (float)buf_wd, height / (float)buf_ht) * darktable.gui->ppd_thb;
+  float scale = fminf(width / (float)buf_wd, height / (float)buf_ht) * darktable.gui->ppd;
   const int img_width = roundf(buf_wd * scale);
   const int img_height = roundf(buf_ht * scale);
   // due to the forced rounding above, we need to recompute scaling
@@ -819,9 +791,9 @@ dt_view_surface_value_t dt_view_image_get_surface(int imgid, int width, int heig
              "[dt_view_image_get_surface]  id %i, dots %ix%i, mip %ix%i, surf %ix%i created in %0.04f sec\n",
              imgid, width, height, buf_wd, buf_ht, img_width, img_height, dt_get_wtime() - tt);
   }
-  else if(darktable.unmuted & DT_DEBUG_LIGHTTABLE)
+  else if(darktable.unmuted & DT_DEBUG_IMAGEIO)
   {
-    dt_print(DT_DEBUG_LIGHTTABLE, "[dt_view_image_get_surface]  id %i, dots %ix%i, mip %ix%i, surf %ix%i\n", imgid,
+    dt_print(DT_DEBUG_IMAGEIO, "[dt_view_image_get_surface]  id %i, dots %ix%i, mip %ix%i, surf %ix%i\n", imgid,
              width, height, buf_wd, buf_ht, img_width, img_height);
   }
 

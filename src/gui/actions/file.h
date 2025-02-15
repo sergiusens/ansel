@@ -69,14 +69,9 @@ void update_collection_callback(GtkWidget *widget)
   const char *collection = dt_conf_get_string_const(confname);
 
   snprintf(confname, sizeof(confname), "plugins/lighttable/recentcollect/pos%1d", index);
-  const int position = dt_conf_get_int(confname);
 
   // Update the collection to the value defined in config line
   dt_collection_deserialize(collection);
-
-  // Restore position in collection
-  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
-  dt_thumbtable_set_offset(table, position, TRUE);
 }
 
 

@@ -686,7 +686,6 @@ static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int32_
   if(imgid > -1)
   {
     // switch images in darkroom mode:
-    dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
     _dev_change_image(imgid);
   }
 }
@@ -1983,7 +1982,8 @@ void enter(dt_view_t *self)
   dt_view_active_images_reset(FALSE);
   dt_view_active_images_add(dev->image_storage.id, TRUE);
   dt_selection_clear(darktable.selection);
-  dt_ui_thumbtable(darktable.gui->ui)->mouse_inside = FALSE; // consider mouse outside filmstrip by default
+
+  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILMSTRIP);
 
   dt_control_set_dev_zoom(DT_ZOOM_FIT);
   dt_control_set_dev_zoom_x(0);
@@ -2037,9 +2037,6 @@ void enter(dt_view_t *self)
   // locks history mutex internally
   dt_dev_pop_history_items(dev, dt_dev_get_history_end(dev));
 
-  /* ensure that filmstrip shows current image */
-  dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), dev->image_storage.id, TRUE);
-
   // get last active plugin:
   const char *active_plugin = dt_conf_get_string_const("plugins/darkroom/active");
   if(active_plugin)
@@ -2092,6 +2089,8 @@ void enter(dt_view_t *self)
 
 void leave(dt_view_t *self)
 {
+  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_NONE);
+
   // Detach the default callback for bauhaus widgets
   dt_accels_detach_scroll_handler(darktable.gui->accels);
 

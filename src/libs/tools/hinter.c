@@ -44,13 +44,13 @@ const char *name(struct dt_lib_module_t *self)
 
 const char **views(dt_lib_module_t *self)
 {
-  static const char *v[] = {"lighttable", "darkroom", "map", "tethering", NULL};
+  static const char *v[] = {"lighttable", "map", "tethering", NULL};
   return v;
 }
 
 uint32_t container(dt_lib_module_t *self)
 {
-  return DT_UI_CONTAINER_PANEL_CENTER_TOP_CENTER;
+  return DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW;
 }
 
 int expandable(dt_lib_module_t *self)
@@ -60,7 +60,7 @@ int expandable(dt_lib_module_t *self)
 
 int position()
 {
-  return 1;
+  return 2;
 }
 
 

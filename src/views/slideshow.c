@@ -433,7 +433,7 @@ void enter(dt_view_t *self)
     sqlite3_finalize(stmt);
   }
 
-  d->buf[S_CURRENT].rank = selrank == -1 ? dt_thumbtable_get_offset(dt_ui_thumbtable(darktable.gui->ui)) : selrank;
+  d->buf[S_CURRENT].rank = selrank;
   d->buf[S_LEFT].rank = d->buf[S_CURRENT].rank - 1;
   d->buf[S_RIGHT].rank = d->buf[S_CURRENT].rank + 1;
 
@@ -463,8 +463,6 @@ void leave(dt_view_t *self)
   // exporting could be in action, just wait for the last to finish
   // otherwise we will crash releasing lock and memory.
   while(d->exporting > 0) sleep(1);
-
-  dt_thumbtable_set_offset(dt_ui_thumbtable(darktable.gui->ui), d->buf[S_CURRENT].rank, FALSE);
 
   dt_pthread_mutex_lock(&d->lock);
 

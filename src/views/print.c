@@ -105,8 +105,6 @@ static void _film_strip_activated(const int imgid, void *data)
 
   prt->imgs->box[0].imgid = imgid;
 
-  dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
-
   // update the active images list
   dt_view_active_images_reset(FALSE);
   dt_view_active_images_add(imgid, TRUE);
@@ -355,7 +353,6 @@ void enter(dt_view_t *self)
   if(prt->imgs->imgid_to_load >= 0)
   {
     // change active image
-    dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), prt->imgs->box[0].imgid, TRUE);
     dt_view_active_images_reset(FALSE);
     dt_view_active_images_add(prt->imgs->imgid_to_load, TRUE);
   }

@@ -69,16 +69,13 @@ typedef struct
   int groupid;
 
   // all widget components
-  GtkWidget *w_main;               // GtkOverlay -- contains all others widgets
-  GtkWidget *w_back;               // GtkEventBox -- thumbnail background
+  GtkWidget *widget;               // GtkEventbox -- parent of all others
+  GtkWidget *w_main;               // GtkOverlay --
   GtkWidget *w_ext;                // GtkLabel -- thumbnail extension
 
-  GtkWidget *w_image_box;
   GtkWidget *w_image;        // GtkDrawingArea -- thumbnail image
   GtkBorder *img_margin;     // in percentage of the main widget size
   cairo_surface_t *img_surf; // cached surface at exact dimensions to speed up redraw
-  gboolean img_surf_preview; // if TRUE, the image is originated from preview pipe
-  gboolean img_surf_dirty;   // if TRUE, we need to recreate the surface on next drawing code
 
   GtkWidget *w_cursor;    // GtkDrawingArea -- triangle to show current image(s) in filmstrip
   GtkWidget *w_bottom_eb; // GtkEventBox -- background of the bottom infos area (contains w_bottom)
@@ -104,8 +101,6 @@ typedef struct
 
   dt_thumbnail_overlay_t over;  // type of overlays
 
-  int expose_again_timeout_id;  // source id of the expose_again timeout
-
   // difference between the global zoom values and the value to apply to this specific thumbnail
   float zoom;     // zoom value. 1.0 is "image to fit" (the initial value)
   double zoomx;   // zoom panning of the image
@@ -117,10 +112,17 @@ typedef struct
 
   struct dt_thumbtable_t *table; // convenience reference to the parent
 
+  float zoom_ratio;
+
+  // Set FALSE when the thumbnail size changed, set TRUE when we have a Cairo image surface for that size
+  gboolean image_inited;
+
   gboolean busy; // should we show the busy message ?
+
+
 } dt_thumbnail_t;
 
-dt_thumbnail_t *dt_thumbnail_new(int width, int height, float zoom_ratio, int imgid, int rowid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
+dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int imgid, int rowid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
 void dt_thumbnail_destroy(dt_thumbnail_t *thumb);
 GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio);
 void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio);
@@ -135,13 +137,10 @@ void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop);
 void dt_thumbnail_update_infos(dt_thumbnail_t *thumb);
 
 // check if the image is selected and set its state and background
-void dt_thumbnail_update_selection(dt_thumbnail_t *thumb);
+void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected);
 
 // force image recomputing
 void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb);
-
-// do we need to display simple overlays or extended ?
-void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t over);
 
 // force reloading image infos
 void dt_thumbnail_reload_infos(dt_thumbnail_t *thumb);

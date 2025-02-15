@@ -132,9 +132,12 @@ void gui_cleanup(dt_lib_module_t *self)
 
 static void _set_zoom(dt_lib_module_t *self, int zoom)
 {
-  dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  dt_conf_set_int("plugins/lighttable/images_in_row", zoom);
-  dt_thumbtable_zoom_changed(dt_ui_thumbtable(darktable.gui->ui), d->current_zoom, zoom);
+  if(zoom != dt_conf_get_int("plugins/lighttable/images_in_row"))
+  {
+    dt_conf_set_int("plugins/lighttable/images_in_row", zoom);
+    dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+    gtk_widget_queue_draw(table->grid);
+  }
 }
 
 static void _lib_lighttable_zoom_slider_changed(GtkRange *range, gpointer user_data)

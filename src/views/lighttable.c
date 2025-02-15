@@ -134,27 +134,6 @@ void cleanup(dt_view_t *self)
   free(self->data);
 }
 
-void expose(dt_view_t *self, cairo_t *cr, int32_t width, int32_t height, int32_t pointerx, int32_t pointery)
-{
-  const double start = dt_get_wtime();
-  if(!darktable.collection || darktable.collection->count <= 0)
-  {
-    // thumbtable displays an help message
-  }
-  else // we do pass on expose to manager
-  {
-    if(!gtk_widget_get_visible(dt_ui_thumbtable(darktable.gui->ui)->widget))
-      gtk_widget_hide(dt_ui_thumbtable(darktable.gui->ui)->widget);
-
-    // No filmstrip in file manager
-    dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, FALSE, FALSE);
-  }
-
-  const double end = dt_get_wtime();
-  if(darktable.unmuted & DT_DEBUG_PERF)
-    dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] expose took %0.04f sec\n", end - start);
-}
-
 
 static void _view_lighttable_activate_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
@@ -169,24 +148,24 @@ void enter(dt_view_t *self)
 {
   dt_view_active_images_reset(FALSE);
 
-  /* connect signal for thumbnail image activate */
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
-                            G_CALLBACK(_view_lighttable_activate_callback), self);
-
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), dt_ui_center_base(darktable.gui->ui),
-                            DT_THUMBTABLE_MODE_FILEMANAGER);
-  gtk_widget_show(dt_ui_thumbtable(darktable.gui->ui)->widget);
   dt_undo_clear(darktable.undo, DT_UNDO_LIGHTTABLE);
   gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
   dt_collection_hint_message(darktable.collection);
-  dt_lib_set_visible(darktable.view_manager->proxy.filmstrip.module, FALSE); // not available in this layouts
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_RIGHT, FALSE, TRUE);
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, FALSE, TRUE);
+  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_TOP, FALSE, TRUE);
+  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_BOTTOM, FALSE, TRUE);
   dt_ui_restore_panels(darktable.gui->ui);
 
   // Attach shortcuts
   dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_window(darktable.gui->accels, "lighttable");
+
+  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILEMANAGER);
+
+  /* connect signal for thumbnail image activate */
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
+                            G_CALLBACK(_view_lighttable_activate_callback), self);
 }
 
 void init(dt_view_t *self)
@@ -224,8 +203,7 @@ void leave(dt_view_t *self)
   dt_view_active_images_reset(FALSE);
 
   // we remove the thumbtable from main view
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), NULL, DT_THUMBTABLE_MODE_NONE);
-  dt_ui_scrollbars_show(darktable.gui->ui, FALSE);
+  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_NONE);
 
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_lighttable_activate_callback),
@@ -237,10 +215,6 @@ void reset(dt_view_t *self)
   dt_control_set_mouse_over_id(-1);
 }
 
-void scrollbar_changed(dt_view_t *self, double x, double y)
-{
-  dt_thumbtable_scrollbar_changed(dt_ui_thumbtable(darktable.gui->ui), x, y);
-}
 
 #if 0
 static void zoom_in_callback(dt_action_t *action)
@@ -294,11 +268,6 @@ static void _accel_open_single(dt_action_t *action)
 
 void gui_init(dt_view_t *self)
 {
-  gtk_overlay_reorder_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)),
-                              gtk_widget_get_parent(dt_ui_log_msg(darktable.gui->ui)), -1);
-  gtk_overlay_reorder_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)),
-                              gtk_widget_get_parent(dt_ui_toast_msg(darktable.gui->ui)), -1);
-
 #if 0
   dt_action_register(self, N_("reset first image offset"), _accel_reset_first_offset, 0, 0);
   dt_action_register(self, N_("select toggle image"), _accel_select_toggle, GDK_KEY_space, 0);

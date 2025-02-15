@@ -172,9 +172,6 @@ static gboolean _view_map_drag_motion_callback(GtkWidget *widget, GdkDragContext
                                                gint x, gint y, guint time, dt_view_t *self);
 static gboolean _view_map_dnd_failed_callback(GtkWidget *widget, GdkDragContext *drag_context,
                                               GtkDragResult result, dt_view_t *self);
-static void _view_map_dnd_remove_callback(GtkWidget *widget, GdkDragContext *context, gint x, gint y,
-                                          GtkSelectionData *selection_data, guint target_type, guint time,
-                                          gpointer data);
 // find the images clusters on the map
 static void _dbscan(dt_geo_position_t *points, unsigned int num_points, double epsilon,
                     unsigned int minpts);
@@ -1466,15 +1463,6 @@ static void _view_map_changed_callback(OsmGpsMap *map, dt_view_t *self)
     g_timeout_add(100, _view_map_changed_callback_wait, self);
   }
   lib->time_out = 2;
-
-  // activate this callback late in the process as we need the filmstrip proxy to be setup. This is not the
-  // case in the initialization phase.
-  if(!lib->drop_filmstrip_activated)
-  {
-    g_signal_connect(dt_ui_thumbtable(darktable.gui->ui)->widget, "drag-data-received",
-                     G_CALLBACK(_view_map_dnd_remove_callback), self);
-    lib->drop_filmstrip_activated = TRUE;
-  }
 }
 
 static dt_map_image_t *_view_map_get_entry_at_pos(dt_view_t *self, const double x,
@@ -2025,13 +2013,7 @@ void enter(dt_view_t *self)
   _view_map_set_map_source_g_object(self, lib->map_source);
 
   /* add map to center widget */
-  gtk_overlay_add_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)), GTK_WIDGET(lib->map));
-
-  // ensure the log msg widget stay on top
-  gtk_overlay_reorder_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)),
-                              gtk_widget_get_parent(dt_ui_log_msg(darktable.gui->ui)), -1);
-  gtk_overlay_reorder_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)),
-                              gtk_widget_get_parent(dt_ui_toast_msg(darktable.gui->ui)), -1);
+  //gtk_overlay_add_overlay(GTK_OVERLAY(dt_ui_center_base(darktable.gui->ui)), GTK_WIDGET(lib->map));
 
   gtk_widget_show_all(GTK_WIDGET(lib->map));
 
@@ -2065,8 +2047,6 @@ void leave(dt_view_t *self)
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_map_filmstrip_activate_callback),
                                (gpointer)self);
-  g_signal_handlers_disconnect_by_func(dt_ui_thumbtable(darktable.gui->ui)->widget,
-                                       G_CALLBACK(_view_map_dnd_remove_callback), self);
   dt_map_t *lib = (dt_map_t *)self->data;
   lib->drop_filmstrip_activated = FALSE;
 
@@ -2719,37 +2699,6 @@ static void _view_map_dnd_get_callback(GtkWidget *widget, GdkDragContext *contex
       break;
     }
   }
-}
-
-static void _view_map_dnd_remove_callback(GtkWidget *widget, GdkDragContext *context, gint x, gint y,
-                                          GtkSelectionData *selection_data, guint target_type, guint time,
-                                          gpointer data)
-{
-  dt_view_t *self = (dt_view_t *)data;
-  dt_map_t *lib = (dt_map_t *)self->data;
-
-  gboolean success = FALSE;
-
-  if(selection_data != NULL && target_type == DND_TARGET_IMGID)
-  {
-    const int imgs_nb = gtk_selection_data_get_length(selection_data) / sizeof(uint32_t);
-    if(imgs_nb)
-    {
-      uint32_t *imgt = (uint32_t *)gtk_selection_data_get_data(selection_data);
-      GList *imgs = NULL;
-      for(int i = 0; i < imgs_nb; i++)
-      {
-        imgs = g_list_prepend(imgs, GINT_TO_POINTER(imgt[i]));
-      }
-      //  image(s) dropped into the filmstrip, let's remove it (them) in this case
-      const dt_image_geoloc_t geoloc = { NAN, NAN, NAN };
-      dt_image_set_locations(imgs, &geoloc, TRUE);
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_GEOTAG_CHANGED, imgs, 0);
-      success = TRUE;
-    }
-  }
-  gtk_drag_finish(context, success, FALSE, time);
-  if(success) g_signal_emit_by_name(lib->map, "changed");
 }
 
 static gboolean _view_map_dnd_failed_callback(GtkWidget *widget, GdkDragContext *drag_context,

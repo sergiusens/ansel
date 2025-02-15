@@ -213,12 +213,6 @@ void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidge
     *  but flexboxes don't seem to work here as advertised (everything either goes to new line or same line, no wrapping),
     *  maybe because they will get added to boxes at the end, and Gtk heuristics to decide final width are weird.
     */
-    case DT_UI_CONTAINER_PANEL_CENTER_TOP_LEFT:
-    case DT_UI_CONTAINER_PANEL_CENTER_TOP_CENTER:
-    case DT_UI_CONTAINER_PANEL_CENTER_TOP_RIGHT:
-      gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, FALSE, FALSE, 0);
-      break;
-
     /* if box is right lets pack at end for nicer alignment */
     case DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT:
       gtk_box_pack_end(GTK_BOX(ui->containers[c]), w, FALSE, FALSE, 0);
@@ -229,15 +223,12 @@ void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidge
     case DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW:
     case DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW:
     case DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER:
-    case DT_UI_CONTAINER_PANEL_BOTTOM:
       gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, TRUE, TRUE, 0);
       break;
 
     default:
-    {
       gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, FALSE, FALSE, 0);
-    }
-    break;
+      break;
   }
   gtk_widget_show_all(w);
 }
@@ -252,7 +243,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_RIGHT, "_size");
     s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 150, darktable.gui->ui->manager.window.width / 2);
+      s = CLAMP(dt_conf_get_int(key), 120, darktable.gui->ui->manager.window.width / 3);
     if(key) gtk_widget_set_size_request(widget, s, -1);
   }
   else if(strcmp(gtk_widget_get_name(widget), "left") == 0)
@@ -260,7 +251,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_LEFT, "_size");
     s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 150, darktable.gui->ui->manager.window.width / 2);
+      s = CLAMP(dt_conf_get_int(key), 120, darktable.gui->ui->manager.window.width / 3);
     if(key) gtk_widget_set_size_request(widget, s, -1);
   }
   else if(strcmp(gtk_widget_get_name(widget), "bottom") == 0)
@@ -268,7 +259,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
     s = DT_UI_PANEL_BOTTOM_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 64, darktable.gui->ui->manager.window.height / 2);
+      s = CLAMP(dt_conf_get_int(key), 64, darktable.gui->ui->manager.window.height / 3);
     if(key) gtk_widget_set_size_request(widget, -1, s);
   }
 
@@ -312,46 +303,6 @@ void dt_ui_restore_panels(dt_ui_t *ui)
 
   update_manager_sizes(ui);
 }
-
-void dt_ui_update_scrollbars(dt_ui_t *ui)
-{
-  if (!darktable.gui->scrollbars.visible) return;
-
-  /* update scrollbars for current view */
-  const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-
-  if(cv->vscroll_size > cv->vscroll_viewport_size){
-    gtk_adjustment_configure(gtk_range_get_adjustment(GTK_RANGE(darktable.gui->scrollbars.vscrollbar)),
-                             cv->vscroll_pos, cv->vscroll_lower, cv->vscroll_size, 0, cv->vscroll_viewport_size,
-                             cv->vscroll_viewport_size);
-  }
-
-  if(cv->hscroll_size > cv->hscroll_viewport_size){
-    gtk_adjustment_configure(gtk_range_get_adjustment(GTK_RANGE(darktable.gui->scrollbars.hscrollbar)),
-                             cv->hscroll_pos, cv->hscroll_lower, cv->hscroll_size, 0, cv->hscroll_viewport_size,
-                             cv->hscroll_viewport_size);
-  }
-
-  gtk_widget_set_visible(darktable.gui->scrollbars.vscrollbar, cv->vscroll_size > cv->vscroll_viewport_size);
-  gtk_widget_set_visible(darktable.gui->scrollbars.hscrollbar, cv->hscroll_size > cv->hscroll_viewport_size);
-}
-
-void dt_ui_scrollbars_show(dt_ui_t *ui, gboolean show)
-{
-  darktable.gui->scrollbars.visible = show;
-
-  if (show)
-  {
-    dt_ui_update_scrollbars(ui);
-  }
-  else
-  {
-    gtk_widget_hide(darktable.gui->scrollbars.vscrollbar);
-    gtk_widget_hide(darktable.gui->scrollbars.hscrollbar);
-  }
-}
-
-
 
 static gboolean _panel_handle_button_callback(GtkWidget *w, GdkEventButton *e, gpointer user_data)
 {
@@ -637,11 +588,6 @@ static void _ui_init_panel_center_top(dt_ui_t *ui, GtkWidget *container)
   gtk_widget_set_name(widget, "header-toolbar");
   dt_gui_add_class(widget, "dt_big_btn_canvas");
   gtk_box_pack_start(GTK_BOX(container), widget, FALSE, FALSE, 0);
-
-  /* inner containers are kept for compatiblity but not used. top toolbar uses a single one */
-  ui->containers[DT_UI_CONTAINER_PANEL_CENTER_TOP_LEFT] = widget;
-  ui->containers[DT_UI_CONTAINER_PANEL_CENTER_TOP_CENTER] = widget;
-  ui->containers[DT_UI_CONTAINER_PANEL_CENTER_TOP_RIGHT] = widget;
 }
 
 /* initialize the center bottom panel */
@@ -674,17 +620,14 @@ static void _ui_init_panel_center_bottom(dt_ui_t *ui, GtkWidget *container)
 /* initialize the bottom panel */
 static void _ui_init_panel_bottom(dt_ui_t *ui, GtkWidget *container)
 {
-  GtkWidget *widget;
-
   /* create the panel box */
-  ui->panels[DT_UI_PANEL_BOTTOM] = widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  // gtk_widget_set_hexpand(GTK_WIDGET(widget), TRUE);
-  // gtk_widget_set_vexpand(GTK_WIDGET(widget), TRUE);
-  gtk_widget_set_name(widget, "bottom");
-  _ui_init_panel_size(widget);
-
   GtkWidget *over = gtk_overlay_new();
-  gtk_container_add(GTK_CONTAINER(over), widget);
+  gtk_container_add(GTK_CONTAINER(over), ui->thumbtable->overlay_filmstrip);
+  ui->panels[DT_UI_PANEL_BOTTOM] = ui->thumbtable->overlay_filmstrip;
+  gtk_widget_set_name(ui->thumbtable->overlay_filmstrip, "bottom");
+  _ui_init_panel_size(ui->thumbtable->overlay_filmstrip);
+  gtk_grid_attach(GTK_GRID(container), over, 1, 2, 3, 1);
+
   // we add a transparent overlay over the modules margins to resize the panel
   GtkWidget *handle = gtk_drawing_area_new();
   gtk_widget_set_halign(handle, GTK_ALIGN_FILL);
@@ -696,17 +639,10 @@ static void _ui_init_panel_bottom(dt_ui_t *ui, GtkWidget *container)
   gtk_widget_set_name(GTK_WIDGET(handle), "panel-handle-bottom");
   g_signal_connect(G_OBJECT(handle), "button-press-event", G_CALLBACK(_panel_handle_button_callback), handle);
   g_signal_connect(G_OBJECT(handle), "button-release-event", G_CALLBACK(_panel_handle_button_callback), handle);
-  g_signal_connect(G_OBJECT(handle), "motion-notify-event", G_CALLBACK(_panel_handle_motion_callback), widget);
+  g_signal_connect(G_OBJECT(handle), "motion-notify-event", G_CALLBACK(_panel_handle_motion_callback), over);
   g_signal_connect(G_OBJECT(handle), "leave-notify-event", G_CALLBACK(_panel_handle_cursor_callback), handle);
   g_signal_connect(G_OBJECT(handle), "enter-notify-event", G_CALLBACK(_panel_handle_cursor_callback), handle);
   gtk_widget_show(handle);
-
-  gtk_grid_attach(GTK_GRID(container), over, 1, 2, 3, 1);
-
-  /* add the container */
-  ui->containers[DT_UI_CONTAINER_PANEL_BOTTOM] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_BOTTOM], TRUE, TRUE,
-                     DT_UI_PANEL_MODULE_SPACING);
 }
 
 /* this is called as a signal handler, the signal raising logic asserts the gdk lock. */
@@ -715,16 +651,14 @@ static void _ui_widget_redraw_callback(gpointer instance, GtkWidget *widget)
    gtk_widget_queue_draw(widget);
 }
 
-void init_main_table(GtkWidget *container, dt_ui_t *ui)
+void dt_ui_init_main_table(GtkWidget *parent, dt_ui_t *ui)
 {
   GtkWidget *widget;
 
   // Creating the table
-  widget = gtk_grid_new();
-  gtk_box_pack_start(GTK_BOX(container), widget, TRUE, TRUE, 0);
-  gtk_widget_show(widget);
-
-  container = widget;
+  GtkWidget *container = gtk_grid_new();
+  gtk_box_pack_start(GTK_BOX(parent), container, TRUE, TRUE, 0);
+  gtk_widget_show(container);
 
   /* initialize the top container */
   _ui_init_panel_top(ui, container);
@@ -738,13 +672,15 @@ void init_main_table(GtkWidget *container, dt_ui_t *ui)
   /* initialize the center top panel */
   _ui_init_panel_center_top(ui, widget);
 
-  GtkWidget *centergrid = gtk_grid_new();
-  gtk_box_pack_start(GTK_BOX(widget), centergrid, TRUE, TRUE, 0);
+  /* initialize the thumb panel */
+  ui->thumbtable = dt_thumbtable_new();
 
   /* setup center drawing area */
   GtkWidget *ocda = gtk_overlay_new();
+  gtk_widget_set_size_request(ocda, DT_PIXEL_APPLY_DPI(200), DT_PIXEL_APPLY_DPI(200));
+  gtk_widget_show(ocda);
+
   GtkWidget *cda = gtk_drawing_area_new();
-  gtk_widget_set_size_request(cda, DT_PIXEL_APPLY_DPI(200), DT_PIXEL_APPLY_DPI(200));
   gtk_widget_set_hexpand(ocda, TRUE);
   gtk_widget_set_vexpand(ocda, TRUE);
   gtk_widget_set_app_paintable(cda, TRUE);
@@ -755,30 +691,30 @@ void init_main_table(GtkWidget *container, dt_ui_t *ui)
   gtk_widget_set_visible(cda, TRUE);
   gtk_overlay_add_overlay(GTK_OVERLAY(ocda), cda);
 
-  gtk_grid_attach(GTK_GRID(centergrid), ocda, 0, 0, 1, 1);
+  // Add the reserved overlay for the thumbtable in central position
+  // Then we insert into container, instead of dynamically adding/removing a new overlay
+  // because log and toast messages need to go on top too.
+  gtk_overlay_add_overlay(GTK_OVERLAY(ocda), ui->thumbtable->overlay_center);
+
+  gtk_box_pack_start(GTK_BOX(widget), ocda, TRUE, TRUE, 0);
+
   ui->center = cda;
   ui->center_base = ocda;
-
-  /* initialize the thumb panel */
-  ui->thumbtable = dt_thumbtable_new();
 
   /* center should redraw when signal redraw center is raised*/
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_CONTROL_REDRAW_CENTER,
                             G_CALLBACK(_ui_widget_redraw_callback), ui->center);
-
-  // Adding the scrollbars
-  GtkWidget *vscrollBar = gtk_scrollbar_new(GTK_ORIENTATION_VERTICAL, NULL);
-  GtkWidget *hscrollBar = gtk_scrollbar_new(GTK_ORIENTATION_HORIZONTAL, NULL);
-
-  gtk_grid_attach_next_to(GTK_GRID(centergrid), vscrollBar, ocda, GTK_POS_RIGHT, 1, 1);
-  gtk_grid_attach_next_to(GTK_GRID(centergrid), hscrollBar, ocda, GTK_POS_BOTTOM, 1, 1);
-
-  darktable.gui->scrollbars.vscrollbar = vscrollBar;
-  darktable.gui->scrollbars.hscrollbar = hscrollBar;
 
   /* initialize panels */
   _ui_init_panel_center_bottom(ui, widget);
   _ui_init_panel_bottom(ui, container);
   _ui_init_panel_left(ui, container);
   _ui_init_panel_right(ui, container);
+
+  gtk_widget_show_all(container);
+}
+
+void dt_ui_cleanup_main_table(dt_ui_t *ui)
+{
+  dt_thumbtable_cleanup(ui->thumbtable);
 }

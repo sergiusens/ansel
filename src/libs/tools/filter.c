@@ -366,7 +366,7 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
     d->zoom_level = dt_view_lighttable_get_zoom(darktable.view_manager);
 
     // Adjust lighttable zoom level
-    const uint32_t selected_pictures = MAX(dt_collection_get_selected_count(darktable.collection), 1);
+    const uint32_t selected_pictures = MAX(dt_selection_get_length(darktable.selection), 1);
     int zoom_level;
     if(selected_pictures < 7)
       zoom_level = selected_pictures;
@@ -376,12 +376,16 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
       zoom_level = 6;
 
     dt_view_lighttable_set_zoom(darktable.view_manager, zoom_level);
+    dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
+    dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
   }
   else
   {
     darktable.gui->culling_mode = FALSE;
     dt_culling_mode_to_selection();
     dt_view_lighttable_set_zoom(darktable.view_manager, d->zoom_level);
+    dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
+    dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
   }
 
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
