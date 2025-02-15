@@ -169,9 +169,18 @@ static gboolean panel_left_checked_callback(GtkWidget *widget)
   return dt_ui_panel_visible(darktable.gui->ui, DT_UI_PANEL_LEFT);
 }
 
+static gboolean available_in_lighttable_callback()
+{
+  // Filmstrip is not visible in lighttable
+  const dt_view_t *view = dt_view_manager_get_current_view(darktable.view_manager);
+  return (view && strcmp(view->module_name, "lighttable"));
+}
+
+
 void panel_right_callback()
 {
-  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_RIGHT, !_panel_is_visible(DT_UI_PANEL_RIGHT), TRUE);
+  if(available_in_lighttable_callback())
+    dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_RIGHT, !_panel_is_visible(DT_UI_PANEL_RIGHT), TRUE);
 }
 
 static gboolean panel_right_checked_callback(GtkWidget *widget)
@@ -181,7 +190,8 @@ static gboolean panel_right_checked_callback(GtkWidget *widget)
 
 void panel_top_callback()
 {
-  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_TOP, !_panel_is_visible(DT_UI_PANEL_CENTER_TOP), TRUE);
+  if(available_in_lighttable_callback())
+    dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_TOP, !_panel_is_visible(DT_UI_PANEL_CENTER_TOP), TRUE);
 }
 
 static gboolean panel_top_checked_callback(GtkWidget *widget)
@@ -191,7 +201,8 @@ static gboolean panel_top_checked_callback(GtkWidget *widget)
 
 void panel_bottom_callback()
 {
-  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_BOTTOM, !_panel_is_visible(DT_UI_PANEL_CENTER_BOTTOM), TRUE);
+  if(available_in_lighttable_callback())
+    dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_BOTTOM, !_panel_is_visible(DT_UI_PANEL_CENTER_BOTTOM), TRUE);
 }
 
 static gboolean panel_bottom_checked_callback(GtkWidget *widget)
@@ -201,19 +212,13 @@ static gboolean panel_bottom_checked_callback(GtkWidget *widget)
 
 static void filmstrip_callback()
 {
-  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, !_panel_is_visible(DT_UI_PANEL_BOTTOM), TRUE);
+  if(available_in_lighttable_callback())
+    dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, !_panel_is_visible(DT_UI_PANEL_BOTTOM), TRUE);
 }
 
 static gboolean filmstrip_checked_callback(GtkWidget *widget)
 {
   return dt_ui_panel_visible(darktable.gui->ui, DT_UI_PANEL_BOTTOM);
-}
-
-static gboolean filmstrip_sensitive_callback(GtkWidget *widget)
-{
-  // Filmstrip is not visible in lighttable
-  const dt_view_t *view = dt_view_manager_get_current_view(darktable.view_manager);
-  return (view && strcmp(view->module_name, "lighttable"));
 }
 
 static gboolean profile_checked_callback(GtkWidget *widget)
@@ -395,16 +400,16 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
                          panel_left_callback, panel_left_checked_callback, NULL, NULL, GDK_KEY_l, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Right"), index, NULL,
-                         panel_right_callback, panel_right_checked_callback, NULL, NULL, GDK_KEY_r, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+                         panel_right_callback, panel_right_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_r, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Top"), index, NULL,
-                         panel_top_callback, panel_top_checked_callback, NULL, NULL, GDK_KEY_t, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+                         panel_top_callback, panel_top_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_t, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Bottom"), index, NULL,
-                         panel_bottom_callback, panel_bottom_checked_callback, NULL, NULL, GDK_KEY_b, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+                         panel_bottom_callback, panel_bottom_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_b, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Filmstrip"), index, NULL,
-                         filmstrip_callback, filmstrip_checked_callback, NULL, filmstrip_sensitive_callback, GDK_KEY_f, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+                         filmstrip_callback, filmstrip_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_f, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
