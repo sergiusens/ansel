@@ -1003,7 +1003,12 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
   int imgid = dt_control_get_keyboard_over_id();
   if(imgid < 0) imgid = dt_control_get_mouse_over_id();
   if(imgid < 0) imgid = dt_selection_get_first_id(darktable.selection);
-  if(imgid < 0) return FALSE;
+  if(imgid < 0 && table->lut)
+  {
+    dt_pthread_mutex_lock(&table->lock);
+    imgid = table->lut[0].imgid;
+    dt_pthread_mutex_unlock(&table->lock);
+  }
 
   //fprintf(stdout, "%s\n", gtk_accelerator_name(event->keyval, event->state));
 
@@ -1124,6 +1129,7 @@ gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer 
 {
   if(!user_data) return TRUE;
   dt_control_set_mouse_over_id(-1);
+  return FALSE;
 }
 
 dt_thumbtable_t *dt_thumbtable_new()
