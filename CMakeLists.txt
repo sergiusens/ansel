@@ -87,8 +87,6 @@ else()
 endif()
 
 if(USE_OPENMP)
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fopenmp")
-
   if(CMAKE_CXX_COMPILER_ID STREQUAL "Clang" OR
       CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
 
