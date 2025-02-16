@@ -403,8 +403,9 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
     dt_thumbnail_update_infos(thumb);
     dt_thumbnail_set_mouseover(thumb, imgid == dev->image_storage.id);
     dt_thumbnail_update_selection(thumb, imgid == dev->image_storage.id);
+    gtk_widget_queue_draw(thumb->widget);
 
-    if (imgid != dev->image_storage.id)
+    if(imgid != dev->image_storage.id)
     {
       g_signal_connect(G_OBJECT(thumb->widget), "button-press-event",
                        G_CALLBACK(_lib_duplicate_thumb_press_callback), self);

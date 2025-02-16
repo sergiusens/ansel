@@ -127,6 +127,7 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
     dt_thumbnail_set_overlay(thumb, table->overlays);
     dt_thumbnail_resize(thumb, thumb->width, thumb->height, TRUE, IMG_TO_FIT);
     dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
+    gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
 
@@ -147,6 +148,7 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     dt_thumbnail_set_mouseover(thumb, thumb->imgid == dt_control_get_mouse_over_id());
+    gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
@@ -480,6 +482,8 @@ void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
 
     // Update visual states and flags. Mouse over is not connected to a signal and cheap to update
     dt_thumbnail_set_mouseover(thumb, (dt_control_get_mouse_over_id() == thumb->imgid));
+
+    gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
@@ -501,6 +505,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
       _set_thumb_position(table, thumb);
       gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
+      gtk_widget_queue_draw(thumb->widget);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -561,6 +566,7 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
+    gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
@@ -599,6 +605,7 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
       if(thumb->imgid == imgid_to_update)
       {
         dt_thumbnail_update_infos(thumb);
+        gtk_widget_queue_draw(thumb->widget);
         break;
       }
     }
@@ -1382,7 +1389,6 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
       // Restore selection when existing filmstrip
       dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
     }
-
   }
   dt_pthread_mutex_unlock(&table->lock);
 

@@ -597,7 +597,6 @@ void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected)
   {
     thumb->selected = selected;
     _thumb_update_icons(thumb);
-    gtk_widget_queue_draw(thumb->widget);
   }
 }
 
@@ -694,6 +693,7 @@ static gboolean _event_main_motion(GtkWidget *widget, GdkEventMotion *event, gpo
     // places in the soft listen to them and refresh stuff from DB, so it's expensive.
     dt_control_set_mouse_over_id(thumb->imgid);
     dt_thumbnail_set_mouseover(thumb, TRUE);
+    gtk_widget_queue_draw(thumb->widget);
   }
   return FALSE;
 }
@@ -704,6 +704,7 @@ static gboolean _event_main_enter(GtkWidget *widget, GdkEventCrossing *event, gp
   thumb_return_if_fails(thumb, TRUE);
   dt_control_set_mouse_over_id(thumb->imgid);
   dt_thumbnail_set_mouseover(thumb, TRUE);
+  gtk_widget_queue_draw(thumb->widget);
   return FALSE;
 }
 
@@ -712,6 +713,7 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
   dt_thumbnail_set_mouseover(thumb, FALSE);
+  gtk_widget_queue_draw(thumb->widget);
   return FALSE;
 }
 
@@ -1010,7 +1012,6 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
   _image_get_infos(thumb);
   _thumb_update_icons(thumb);
   _create_alternative_view(thumb);
-  gtk_widget_queue_draw(thumb->widget);
 }
 
 void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode)
@@ -1020,7 +1021,6 @@ void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode
   {
     thumb->over = mode;
     _thumb_update_icons(thumb);
-    gtk_widget_queue_draw(thumb->widget);
   }
 }
 
@@ -1163,8 +1163,6 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
 
   // we change the size and margins according to the size change. This will be refined after
   _thumb_set_image_area(thumb, thumb->zoom_ratio);
-
-  gtk_widget_queue_draw(thumb->widget);
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
@@ -1204,8 +1202,6 @@ void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over)
   _set_flag(thumb->w_main, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
 
   _thumb_update_icons(thumb);
-
-  gtk_widget_queue_draw(thumb->widget);
 }
 
 // set if the thumbnail should react (mouse_over) to drag and drop
