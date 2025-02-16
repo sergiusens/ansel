@@ -457,7 +457,12 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
 
   // Technically, this is already set on mouse_enter, but we never know
   if(!thumb->mouse_over) dt_control_set_mouse_over_id(thumb->imgid);
-  gtk_widget_grab_focus(thumb->widget);
+
+  // To handle keyboard move on filmstrip, we need to give focus to the picture on click.
+  // But if we do so on file manager, the grid looses focus which causes the scrolled window
+  // to scroll back to the top, and that's annoying.
+  if((thumb->table && thumb->table->mode == DT_THUMBTABLE_MODE_FILMSTRIP) || !thumb->table)
+    gtk_widget_grab_focus(thumb->widget);
 
   // select on single or double click, whatever happens next
   if(event->button == 1 && event->type == GDK_BUTTON_PRESS)
@@ -766,6 +771,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   gtk_drag_dest_set(thumb->widget, GTK_DEST_DEFAULT_MOTION, target_list_all, n_targets_all, GDK_ACTION_MOVE);
   g_object_set_data(G_OBJECT(thumb->widget), "thumb", thumb);
   gtk_widget_set_can_focus(thumb->widget, TRUE);
+  gtk_widget_set_focus_on_click(thumb->widget, TRUE);
   gtk_widget_show(thumb->widget);
 
   g_signal_connect(G_OBJECT(thumb->widget), "button-press-event", G_CALLBACK(_event_main_press), thumb);

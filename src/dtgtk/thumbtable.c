@@ -1016,6 +1016,8 @@ void _alternative_mode(dt_thumbtable_t *table, gboolean enable)
 
 gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
+
   if(!user_data) return FALSE;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
@@ -1139,6 +1141,8 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
 
 gboolean dt_thumbtable_key_released_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
 {
+  if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
+
   if(!user_data) return FALSE;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
@@ -1343,6 +1347,9 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   }
 
   table->mode = mode;
+
+  // Reset the keyboard_over imgid
+  dt_control_set_keyboard_over_id(dt_control_get_mouse_over_id());
 
   // Ensure the default drawing area for views is hidden for lighttable and shown otherwise
   GtkWidget *drawing_area = dt_ui_center(darktable.gui->ui);
