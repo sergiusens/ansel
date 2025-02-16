@@ -457,8 +457,7 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
 
   // Technically, this is already set on mouse_enter, but we never know
   if(!thumb->mouse_over) dt_control_set_mouse_over_id(thumb->imgid);
-
-  if(thumb->table) gtk_widget_grab_focus(thumb->table->grid);
+  gtk_widget_grab_focus(thumb->widget);
 
   // select on single or double click, whatever happens next
   if(event->button == 1 && event->type == GDK_BUTTON_PRESS)
@@ -733,6 +732,22 @@ static gboolean _altered_enter(GtkWidget *widget, GdkEventCrossing *event, gpoin
   return FALSE;
 }
 
+// Pass-through key events to the thumbtable for navigation
+gboolean _key_pressed_thumb(GtkWidget *self, GdkEventKey *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+  if(!thumb->table) return FALSE;
+  return dt_thumbtable_key_pressed_grid(thumb->table->grid, event, thumb->table);
+}
+
+gboolean _key_released_thumb(GtkWidget *self, GdkEventKey *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+  if(!thumb->table) return FALSE;
+  return dt_thumbtable_key_released_grid(thumb->table->grid, event, thumb->table);
+}
 
 GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
 {
@@ -742,12 +757,13 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   thumb->widget = gtk_event_box_new();
   dt_gui_add_class(thumb->widget, "thumb-main");
   gtk_event_box_set_above_child(GTK_EVENT_BOX(thumb->widget), TRUE);
-  gtk_widget_set_events(thumb->widget, GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
+  gtk_widget_set_events(thumb->widget, GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
 
   // this is only here to ensure that mouse-over value is updated correctly
   // all dragging actions take place inside thumbatble.c
   gtk_drag_dest_set(thumb->widget, GTK_DEST_DEFAULT_MOTION, target_list_all, n_targets_all, GDK_ACTION_MOVE);
   g_object_set_data(G_OBJECT(thumb->widget), "thumb", thumb);
+  gtk_widget_set_can_focus(thumb->widget, TRUE);
   gtk_widget_show(thumb->widget);
 
   g_signal_connect(G_OBJECT(thumb->widget), "button-press-event", G_CALLBACK(_event_main_press), thumb);
@@ -755,6 +771,8 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   g_signal_connect(G_OBJECT(thumb->widget), "leave-notify-event", G_CALLBACK(_event_main_leave), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "motion-notify-event", G_CALLBACK(_event_main_motion), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "draw", G_CALLBACK(_event_expose), thumb);
+  g_signal_connect(G_OBJECT(thumb->widget), "key-press-event", G_CALLBACK(_key_pressed_thumb), thumb);
+  g_signal_connect(G_OBJECT(thumb->widget), "key-release-event", G_CALLBACK(_key_released_thumb), thumb);
 
   // Main widget
   thumb->w_main = gtk_overlay_new();

@@ -628,7 +628,6 @@ int try_enter(dt_view_t *self)
 {
   int32_t imgid = dt_control_get_mouse_over_id();
   dt_view_active_images_reset(FALSE);
-  fprintf(stdout, "opening imgid %i\n", imgid);
 
   if(imgid < 0)
   {
@@ -665,7 +664,6 @@ static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int32_
   {
     // switch images in darkroom mode:
     _dev_change_image(user_data, imgid);
-    fprintf(stdout, "changing for imgid %i\n", imgid);
   }
 }
 

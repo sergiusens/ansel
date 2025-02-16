@@ -1007,7 +1007,7 @@ void _alternative_mode(dt_thumbtable_t *table, gboolean enable)
 }
 
 
-gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
+gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
 {
   if(!user_data) return FALSE;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
@@ -1042,10 +1042,7 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
         _move_in_grid(table, DT_TT_MOVE_UP, imgid);
         return TRUE;
       }
-      else
-      {
-        return FALSE;
-      }
+      break;
     }
     case GDK_KEY_Down:
     case GDK_KEY_KP_Down:
@@ -1055,10 +1052,7 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
         _move_in_grid(table, DT_TT_MOVE_DOWN, imgid);
         return TRUE;
       }
-      else
-      {
-        return FALSE;
-      }
+      break;
     }
     case GDK_KEY_Left:
     case GDK_KEY_KP_Left:
@@ -1098,19 +1092,27 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
     }
     case GDK_KEY_space:
     {
-      if(dt_modifier_is(event->state, GDK_SHIFT_MASK))
-        dt_selection_select_range(darktable.selection, imgid);
-      else if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
-        dt_selection_toggle(darktable.selection, imgid);
-      else
-        dt_selection_select_single(darktable.selection, imgid);
-      return TRUE;
+      if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+      {
+        if(dt_modifier_is(event->state, GDK_SHIFT_MASK))
+          dt_selection_select_range(darktable.selection, imgid);
+        else if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
+          dt_selection_toggle(darktable.selection, imgid);
+        else
+          dt_selection_select_single(darktable.selection, imgid);
+        return TRUE;
+      }
+      break;
     }
     case GDK_KEY_nobreakspace:
     {
       // Shift + space is decoded as nobreakspace on BÉPO keyboards
-      dt_selection_select_range(darktable.selection, imgid);
-      return TRUE;
+      if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+      {
+        dt_selection_select_range(darktable.selection, imgid);
+        return TRUE;
+      }
+      break;
     }
     case GDK_KEY_Return:
     case GDK_KEY_KP_Enter:
@@ -1128,7 +1130,7 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
   return FALSE;
 }
 
-gboolean _key_released_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
+gboolean dt_thumbtable_key_released_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
 {
   if(!user_data) return FALSE;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
@@ -1211,8 +1213,8 @@ dt_thumbtable_t *dt_thumbtable_new()
 
   gtk_widget_add_events(table->grid, GDK_STRUCTURE_MASK | GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
   g_signal_connect(table->grid, "draw", G_CALLBACK(_draw_callback), table);
-  g_signal_connect(table->grid, "key-press-event", G_CALLBACK(_key_pressed_grid), table);
-  g_signal_connect(table->grid, "key-release-event", G_CALLBACK(_key_released_grid), table);
+  g_signal_connect(table->grid, "key-press-event", G_CALLBACK(dt_thumbtable_key_pressed_grid), table);
+  g_signal_connect(table->grid, "key-release-event", G_CALLBACK(dt_thumbtable_key_released_grid), table);
   gtk_widget_show(table->grid);
 
   table->thumb_nb = 0;
@@ -1330,7 +1332,6 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     // Re-init everything
     g_object_ref(table->scroll_window);
     gtk_container_remove(GTK_CONTAINER(parent), table->scroll_window);
-    table->mode = DT_THUMBTABLE_MODE_NONE;
     _update_grid_area(table);
   }
 
