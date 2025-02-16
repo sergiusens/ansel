@@ -23,6 +23,7 @@
 
 #include "bauhaus/bauhaus.h"
 #include "common/collection.h"
+#include "common/datetime.h"
 #include "common/debug.h"
 #include "common/focus.h"
 #include "common/focus_peaking.h"
@@ -168,6 +169,16 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
     thumb->filename = g_strdup(img->filename);
     thumb->has_audio = (img->flags & DT_IMAGE_HAS_WAV);
     thumb->has_localcopy = (img->flags & DT_IMAGE_LOCAL_COPY);
+
+    thumb->iso = img->exif_iso;
+    thumb->aperture = img->exif_aperture;
+    thumb->speed = img->exif_exposure;
+    thumb->exposure_bias = img->exif_exposure_bias;
+    thumb->focal = img->exif_focal_length;
+    thumb->focus_distance = img->exif_focus_distance;
+    dt_datetime_img_to_local(thumb->datetime, sizeof(thumb->datetime), img, FALSE);
+    memcpy(&thumb->camera, &img->camera_makermodel, 128 * sizeof(char));
+    memcpy(&thumb->lens, &img->exif_lens, 128 * sizeof(char));
 
     thumb->groupid = img->group_id;
 
@@ -577,6 +588,36 @@ void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected)
 }
 
 
+// All the text info that we don't have room to display around the image
+void _create_alternative_view(dt_thumbnail_t *thumb)
+{
+  gtk_label_set_text(GTK_LABEL(thumb->w_filename), thumb->filename);
+  gtk_label_set_text(GTK_LABEL(thumb->w_datetime), thumb->datetime);
+
+  const gchar *exposure_field = g_strdup_printf("%.0f ISO - f/%.1f - %s", thumb->iso, thumb->aperture,
+                                                dt_util_format_exposure(thumb->speed));
+
+  gtk_label_set_text(GTK_LABEL(thumb->w_exposure_bias), g_strdup_printf("%+.1f EV", thumb->exposure_bias));
+  gtk_label_set_text(GTK_LABEL(thumb->w_exposure), exposure_field);
+  gtk_label_set_text(GTK_LABEL(thumb->w_camera), thumb->camera);
+  gtk_label_set_text(GTK_LABEL(thumb->w_lens), thumb->lens);
+  gtk_label_set_text(GTK_LABEL(thumb->w_focal), g_strdup_printf("%0.f mm @ %.2f m", thumb->focal, thumb->focus_distance));
+}
+
+
+void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean enable)
+{
+  thumb->alternative_mode = enable;
+
+  if(enable)
+    gtk_widget_show_all(thumb->w_alternative);
+  else
+    gtk_widget_hide(thumb->w_alternative);
+
+  gtk_widget_queue_draw(thumb->widget);
+}
+
+
 static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
@@ -598,6 +639,7 @@ static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gp
   }
   return TRUE;
 }
+
 
 static gboolean _event_star_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
@@ -829,6 +871,44 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   gtk_container_add(GTK_CONTAINER(thumb->w_zoom_eb), thumb->w_zoom);
   gtk_overlay_add_overlay(GTK_OVERLAY(thumb->w_main), thumb->w_zoom_eb);
 
+  thumb->w_alternative = gtk_overlay_new();
+  gtk_overlay_add_overlay(GTK_OVERLAY(thumb->w_main), thumb->w_alternative);
+  gtk_widget_set_halign(thumb->w_alternative, GTK_ALIGN_FILL);
+  gtk_widget_set_valign(thumb->w_alternative, GTK_ALIGN_FILL);
+  gtk_widget_hide(thumb->w_alternative);
+
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_container_add(GTK_CONTAINER(thumb->w_alternative), box);
+  dt_gui_add_class(box, "thumb-alternative");
+
+  GtkWidget *bbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_widget_set_valign(bbox, GTK_ALIGN_START);
+  gtk_box_pack_start(GTK_BOX(box), bbox, TRUE, TRUE, 0);
+  thumb->w_filename = gtk_label_new("");
+  gtk_label_set_ellipsize(GTK_LABEL(thumb->w_filename), PANGO_ELLIPSIZE_MIDDLE);
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_filename, FALSE, FALSE, 0);
+  thumb->w_datetime = gtk_label_new("");
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_datetime, FALSE, FALSE, 0);
+
+  bbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_widget_set_valign(bbox, GTK_ALIGN_CENTER);
+  gtk_box_pack_start(GTK_BOX(box), bbox, TRUE, TRUE, 0);
+  thumb->w_exposure = gtk_label_new("");
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_exposure, FALSE, FALSE, 0);
+  thumb->w_exposure_bias = gtk_label_new("");
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_exposure_bias, FALSE, FALSE, 0);
+
+  bbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_widget_set_valign(bbox, GTK_ALIGN_END);
+  gtk_box_pack_start(GTK_BOX(box), bbox, TRUE, TRUE, 0);
+  thumb->w_camera = gtk_label_new("");
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_camera, FALSE, FALSE, 0);
+  thumb->w_lens = gtk_label_new("");
+  gtk_label_set_ellipsize(GTK_LABEL(thumb->w_lens), PANGO_ELLIPSIZE_MIDDLE);
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_lens, FALSE, FALSE, 0);
+  thumb->w_focal = gtk_label_new("");
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_focal, FALSE, FALSE, 0);
+
   return thumb->widget;
 }
 
@@ -891,6 +971,7 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
   if(!thumb) return;
   _image_get_infos(thumb);
   _thumb_update_icons(thumb);
+  _create_alternative_view(thumb);
   gtk_widget_queue_draw(thumb->widget);
 }
 

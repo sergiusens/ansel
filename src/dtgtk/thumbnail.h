@@ -92,6 +92,8 @@ typedef struct
   GtkWidget *w_zoom_eb; // GtkEventBox -- container for the zoom level widget
   GtkWidget *w_zoom;    // GtkLabel -- show the zoom level (if zoomable and hover_block overlay)
 
+  GtkWidget *w_alternative; // alternative overlay
+
   gboolean moved; // indicate if the thumb is currently moved (zoomable thumbtable case)
 
   dt_thumbnail_border_t group_borders; // which group borders should be drawn
@@ -116,6 +118,25 @@ typedef struct
 
   // Set FALSE when the thumbnail size changed, set TRUE when we have a Cairo image surface for that size
   gboolean image_inited;
+
+  gboolean alternative_mode;
+  float iso;
+  float aperture;
+  float speed;
+  float exposure_bias;
+  float focal;
+  float focus_distance;
+  char datetime[200];
+  char camera[128];
+  char lens[128];
+
+  GtkWidget *w_exposure;
+  GtkWidget *w_exposure_bias;
+  GtkWidget *w_camera;
+  GtkWidget *w_filename;
+  GtkWidget *w_datetime;
+  GtkWidget *w_lens;
+  GtkWidget *w_focal;
 
   gboolean busy; // should we show the busy message ?
 
@@ -151,6 +172,8 @@ void dt_thumbnail_image_refresh_position(dt_thumbnail_t *thumb);
 float dt_thumbnail_get_zoom100(dt_thumbnail_t *thumb);
 // get the zoom ratio from 0 ("image to fit") to 1 ("max zoom value")
 float dt_thumbnail_get_zoom_ratio(dt_thumbnail_t *thumb);
+
+void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean nable);
 
 static inline dt_thumbnail_overlay_t sanitize_overlays(dt_thumbnail_overlay_t overlays)
 {

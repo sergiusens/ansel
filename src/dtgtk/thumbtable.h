@@ -105,6 +105,9 @@ typedef struct dt_thumbtable_t
   // signal that the current collection needs to be entirely flushed unconditionnaly
   gboolean reset_collection;
 
+  // show extended overlays while holding alt key
+  gboolean alternate_mode;
+
 } dt_thumbtable_t;
 
 

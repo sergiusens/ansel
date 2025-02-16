@@ -986,6 +986,20 @@ void _move_in_grid(dt_thumbtable_t *table, dt_thumbtable_direction_t direction, 
   }
 }
 
+void _alternative_mode(dt_thumbtable_t *table, gboolean enable)
+{
+  if(table->alternate_mode == enable) return;
+  table->alternate_mode = enable;
+
+  dt_pthread_mutex_lock(&table->lock);
+  for(GList *l = table->list; l; l = g_list_next(l))
+  {
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    dt_thumbnail_alternative_mode(thumb, enable);
+  }
+  dt_pthread_mutex_unlock(&table->lock);
+}
+
 
 gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
 {
@@ -1098,6 +1112,31 @@ gboolean _key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_da
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, imgid);
       return TRUE;
     }
+    case GDK_KEY_Alt_L:
+    case GDK_KEY_Alt_R:
+    {
+      _alternative_mode(table, TRUE);
+      return TRUE;
+    }
+  }
+  return FALSE;
+}
+
+gboolean _key_released_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
+{
+  if(!user_data) return FALSE;
+  dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
+
+  //fprintf(stdout, "%s\n", gtk_accelerator_name(event->keyval, event->state));
+
+  switch(event->keyval)
+  {
+    case GDK_KEY_Alt_L:
+    case GDK_KEY_Alt_R:
+    {
+      _alternative_mode(table, FALSE);
+      return TRUE;
+    }
   }
   return FALSE;
 }
@@ -1164,9 +1203,10 @@ dt_thumbtable_t *dt_thumbtable_new()
   g_signal_connect(table->grid, "drag-data-get", G_CALLBACK(_event_dnd_get), table);
   g_signal_connect(table->grid, "drag-data-received", G_CALLBACK(dt_thumbtable_event_dnd_received), table);
 
-  gtk_widget_add_events(table->grid, GDK_STRUCTURE_MASK | GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK);
+  gtk_widget_add_events(table->grid, GDK_STRUCTURE_MASK | GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
   g_signal_connect(table->grid, "draw", G_CALLBACK(_draw_callback), table);
   g_signal_connect(table->grid, "key-press-event", G_CALLBACK(_key_pressed_grid), table);
+  g_signal_connect(table->grid, "key-release-event", G_CALLBACK(_key_released_grid), table);
   gtk_widget_show(table->grid);
 
   table->thumb_nb = 0;
@@ -1183,6 +1223,7 @@ dt_thumbtable_t *dt_thumbtable_new()
   table->reset_collection = FALSE;
   table->x_position = 0.;
   table->y_position = 0.;
+  table->alternate_mode = FALSE;
 
   dt_pthread_mutex_init(&table->lock, NULL);
 

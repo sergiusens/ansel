@@ -2037,6 +2037,26 @@ Details :
   padding : 12.5px; /* percent of the full size */
 }
 
+.thumb-alternative
+{
+  background-color: rgba(255, 255, 255, 0.7);
+  border: 1px solid #666;
+  padding: 0.5em;
+}
+
+.thumb-alternative *
+{
+  color: black;
+  font-size: 100%;
+  font-weight: 700;
+}
+
+.thumb-alternative separator
+{
+  color: #666;
+  min-height: 1px;
+}
+
 /* Reset color icons to be hidden in following modes, including culling/preview overlays hover block*/
 .dt_overlays_none .dt_thumb_btn,
 .dt_overlays_none .thumb-main:hover .dt_thumb_btn,
