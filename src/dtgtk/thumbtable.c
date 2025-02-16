@@ -124,6 +124,7 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     // and we resize the bottom area
+    dt_thumbnail_set_overlay(thumb, table->overlays);
     dt_thumbnail_resize(thumb, thumb->width, thumb->height, TRUE, IMG_TO_FIT);
     dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
   }
@@ -466,6 +467,7 @@ void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
     gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
     if(new_item || size_changed)
     {
+      dt_thumbnail_set_overlay(thumb, table->overlays);
       dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
       _set_thumb_position(table, thumb);
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
@@ -494,6 +496,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
 
     if(!already_processed && size_changed)
     {
+      dt_thumbnail_set_overlay(thumb, table->overlays);
       dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
       _set_thumb_position(table, thumb);
       gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);

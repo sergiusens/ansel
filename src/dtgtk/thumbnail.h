@@ -149,6 +149,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio);
 void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio);
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border);
 void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over);
+void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode);
 
 // set if the thumbnail should react (mouse_over) to drag and drop
 // note that it's just cosmetic as dropping occurs in thumbtable in any case

@@ -425,16 +425,18 @@ static void _thumb_update_icons(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
 
-  gtk_widget_set_visible(thumb->w_local_copy, thumb->has_localcopy && !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_altered, thumb->is_altered && !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_group, thumb->is_grouped && !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_audio, thumb->has_audio && !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_color, thumb->colorlabels != 0 && !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_bottom_eb, !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_reject, !thumb->disable_mouseover);
-  gtk_widget_set_visible(thumb->w_ext, !thumb->disable_mouseover);
+  gboolean show_nowhere = (thumb->over == DT_THUMBNAIL_OVERLAYS_NONE) || thumb->disable_mouseover;
+
+  gtk_widget_set_visible(thumb->w_local_copy, thumb->has_localcopy && !show_nowhere);
+  gtk_widget_set_visible(thumb->w_altered, thumb->is_altered && !show_nowhere);
+  gtk_widget_set_visible(thumb->w_group, thumb->is_grouped && !show_nowhere);
+  gtk_widget_set_visible(thumb->w_audio, thumb->has_audio && !show_nowhere);
+  gtk_widget_set_visible(thumb->w_color, thumb->colorlabels != 0 && !show_nowhere);
+  gtk_widget_set_visible(thumb->w_bottom_eb, !show_nowhere);
+  gtk_widget_set_visible(thumb->w_reject, !show_nowhere);
+  gtk_widget_set_visible(thumb->w_ext, !show_nowhere);
   gtk_widget_show(thumb->w_cursor);
-  for(int i = 0; i < MAX_STARS; i++) gtk_widget_set_visible(thumb->w_stars[i], !thumb->disable_mouseover);
+  for(int i = 0; i < MAX_STARS; i++) gtk_widget_set_visible(thumb->w_stars[i], !show_nowhere);
 
   _set_flag(thumb->w_main, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
   _set_flag(thumb->widget, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
@@ -993,6 +995,17 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
   gtk_widget_queue_draw(thumb->widget);
 }
 
+void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode)
+{
+  thumb_return_if_fails(thumb);
+  if(mode == thumb->over)
+  {
+    thumb->over = mode;
+    _thumb_update_icons(thumb);
+    gtk_widget_queue_draw(thumb->widget);
+  }
+}
+
 static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
@@ -1132,6 +1145,8 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
 
   // we change the size and margins according to the size change. This will be refined after
   _thumb_set_image_area(thumb, thumb->zoom_ratio);
+
+  gtk_widget_queue_draw(thumb->widget);
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
@@ -1192,7 +1207,7 @@ void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
   thumb->is_altered = dt_image_altered(thumb->imgid);
-  gtk_widget_set_visible(thumb->w_altered, thumb->is_altered);
+  _thumb_update_icons(thumb);
   gtk_widget_queue_draw(thumb->w_image);
 }
 
