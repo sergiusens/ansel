@@ -120,7 +120,7 @@ static void _lib_duplicate_delete(GtkButton *button, dt_lib_module_t *self)
                              g_list_prepend(NULL, GINT_TO_POINTER(imgid)));
 }
 
-static void _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventButton *event, dt_lib_module_t *self)
+static gboolean _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventButton *event, dt_lib_module_t *self)
 {
   dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)g_object_get_data(G_OBJECT(widget), "thumb");
@@ -131,11 +131,7 @@ static void _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventButto
     if(event->type == GDK_BUTTON_PRESS)
     {
       dt_develop_t *dev = darktable.develop;
-      if(!dev) return;
-
-      dt_dev_invalidate(dev);
-      dt_control_queue_redraw_center();
-      dt_dev_refresh_ui_images(darktable.develop);
+      if(!dev) return FALSE;
 
       d->imgid = imgid;
       int fw, fh;
@@ -147,17 +143,15 @@ static void _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventButto
           = (d->cur_final_width - fw < DUPLICATE_COMPARE_SIZE && d->cur_final_width - fw > -DUPLICATE_COMPARE_SIZE
              && d->cur_final_height - fh < DUPLICATE_COMPARE_SIZE
              && d->cur_final_height - fh > -DUPLICATE_COMPARE_SIZE);
+
       dt_control_queue_redraw_center();
-    }
-    else if(event->type == GDK_2BUTTON_PRESS)
-    {
-      // let's switch to the new image
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, imgid);
+      return TRUE;
     }
   }
+  return FALSE;
 }
 
-static void _lib_duplicate_thumb_release_callback(GtkWidget *widget, GdkEventButton *event, dt_lib_module_t *self)
+static gboolean _lib_duplicate_thumb_release_callback(GtkWidget *widget, GdkEventButton *event, dt_lib_module_t *self)
 {
   dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
 
@@ -169,6 +163,8 @@ static void _lib_duplicate_thumb_release_callback(GtkWidget *widget, GdkEventBut
   }
   d->busy = FALSE;
   dt_control_queue_redraw_center();
+
+  return FALSE;
 }
 
 void view_leave(struct dt_lib_module_t *self, struct dt_view_t *old_view, struct dt_view_t *new_view)
@@ -404,6 +400,7 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
     thumb->disable_mouseover = TRUE;
     thumb->disable_actions = TRUE;
     dt_thumbnail_resize(thumb, DT_PIXEL_APPLY_DPI(92), DT_PIXEL_APPLY_DPI(92), TRUE, IMG_TO_FIT);
+    dt_thumbnail_update_infos(thumb);
     dt_thumbnail_set_mouseover(thumb, imgid == dev->image_storage.id);
     dt_thumbnail_update_selection(thumb, imgid == dev->image_storage.id);
 
@@ -439,8 +436,11 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
     gtk_grid_attach(GTK_GRID(hb), lb, 1, 0, 1, 1);
     gtk_grid_attach(GTK_GRID(hb), tb, 1, 1, 2, 1);
 
-    gtk_widget_show_all(hb);
-
+    // Can't use gtk_widget_show_all here or the buttons of the thumbnail will show too
+    gtk_widget_show(thumb->widget);
+    gtk_widget_show(hb);
+    gtk_widget_show(lb);
+    gtk_widget_show(tb);
     gtk_box_pack_start(GTK_BOX(d->duplicate_box), hb, FALSE, FALSE, 0);
     d->thumbs = g_list_append(d->thumbs, thumb);
     count++;

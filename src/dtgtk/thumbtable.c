@@ -122,9 +122,10 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
   dt_pthread_mutex_lock(&table->lock);
   for(GList *l = table->list; l; l = g_list_next(l))
   {
-    dt_thumbnail_t *th = (dt_thumbnail_t *)l->data;
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     // and we resize the bottom area
-    dt_thumbnail_resize(th, th->width, th->height, TRUE, IMG_TO_FIT);
+    dt_thumbnail_resize(thumb, thumb->width, thumb->height, TRUE, IMG_TO_FIT);
+    dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
   }
   dt_pthread_mutex_unlock(&table->lock);
 
@@ -467,6 +468,7 @@ void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
     {
       dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
       _set_thumb_position(table, thumb);
+      dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
     }
 
     if(new_item)
@@ -495,6 +497,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
       dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
       _set_thumb_position(table, thumb);
       gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
+      dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -1353,7 +1356,7 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_filmstrip), table->scroll_window);
   }
 
-  gtk_widget_show_all(table->scroll_window);
+  gtk_widget_show(table->scroll_window);
 
   dt_pthread_mutex_lock(&table->lock);
 

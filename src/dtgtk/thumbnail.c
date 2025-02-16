@@ -413,16 +413,16 @@ static gboolean _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_
 
 static void _thumb_update_icons(dt_thumbnail_t *thumb)
 {
-  gtk_widget_set_visible(thumb->w_local_copy, thumb->has_localcopy);
-  gtk_widget_set_visible(thumb->w_altered, thumb->is_altered);
-  gtk_widget_set_visible(thumb->w_group, thumb->is_grouped);
-  gtk_widget_set_visible(thumb->w_audio, thumb->has_audio);
-  gtk_widget_set_visible(thumb->w_color, thumb->colorlabels != 0);
-  gtk_widget_show(thumb->w_bottom_eb);
-  gtk_widget_show(thumb->w_reject);
-  gtk_widget_show(thumb->w_ext);
+  gtk_widget_set_visible(thumb->w_local_copy, thumb->has_localcopy && !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_altered, thumb->is_altered && !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_group, thumb->is_grouped && !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_audio, thumb->has_audio && !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_color, thumb->colorlabels != 0 && !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_bottom_eb, !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_reject, !thumb->disable_mouseover);
+  gtk_widget_set_visible(thumb->w_ext, !thumb->disable_mouseover);
   gtk_widget_show(thumb->w_cursor);
-  for(int i = 0; i < MAX_STARS; i++) gtk_widget_show(thumb->w_stars[i]);
+  for(int i = 0; i < MAX_STARS; i++) gtk_widget_set_visible(thumb->w_stars[i], !thumb->disable_mouseover);
 
   _set_flag(thumb->w_main, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
   _set_flag(thumb->widget, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
@@ -607,13 +607,12 @@ void _create_alternative_view(dt_thumbnail_t *thumb)
 
 void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean enable)
 {
+  if(!thumb || thumb->alternative_mode == enable) return;
   thumb->alternative_mode = enable;
-
   if(enable)
     gtk_widget_show_all(thumb->w_alternative);
   else
     gtk_widget_hide(thumb->w_alternative);
-
   gtk_widget_queue_draw(thumb->widget);
 }
 
@@ -644,8 +643,8 @@ static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gp
 static gboolean _event_star_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
-
   if(thumb->disable_actions) return TRUE;
+
   for(int i = 0; i < MAX_STARS; i++)
   {
     _set_flag(thumb->w_stars[i], GTK_STATE_FLAG_PRELIGHT, FALSE);
@@ -908,6 +907,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_lens, FALSE, FALSE, 0);
   thumb->w_focal = gtk_label_new("");
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_focal, FALSE, FALSE, 0);
+  //gtk_widget_set_no_show_all(thumb->w_alternative, TRUE);
 
   return thumb->widget;
 }
@@ -923,6 +923,7 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int imgid, int rowid,
   thumb->zoom = 1.0f;
   thumb->table = table;
   thumb->moved = FALSE;
+  thumb->alternative_mode = FALSE;
 
   // we create the widget
   GtkWidget *w = dt_thumbnail_create_widget(thumb, zoom_ratio);
@@ -1069,7 +1070,7 @@ static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
 // This function is called only from the thumbtable, when the grid size changed.
 void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio)
 {
-  if(!thumb || !thumb->w_main) return;
+  if(!thumb || !thumb->widget) return;
 
   int w = 0;
   int h = 0;
@@ -1077,6 +1078,9 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
 
   // first, we verify that there's something to change
   if(!force && w == width && h == height) return;
+
+  // Flush the image surface
+  thumb->image_inited = FALSE;
 
   // widget resizing
   thumb->width = width;
@@ -1110,9 +1114,6 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
 
   // we change the size and margins according to the size change. This will be refined after
   _thumb_set_image_area(thumb, thumb->zoom_ratio);
-
-  // Flush the image surface
-  thumb->image_inited = FALSE;
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
