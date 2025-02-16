@@ -49,6 +49,13 @@
  * to non-existing objects. This is why we need to ensure user_data is not NULL everywhere.
  */
 
+
+// Because thumbs are inited/used/destroyed dynamically and Gtk events may be dispatched
+// from different threads or complete at weird times, we need to check everywhere that
+// we still have a thumb objects to update. If not, no big deal, because it's only a view
+// and no critical data is held there.
+#define thumb_return_if_fails(thumb, ...) { if(!thumb || !thumb->widget) return  __VA_ARGS__; }
+
 static void _thumb_resize_overlays(dt_thumbnail_t *thumb);
 
 static void _set_flag(GtkWidget *w, GtkStateFlags flag, gboolean activate)
@@ -61,7 +68,7 @@ static void _set_flag(GtkWidget *w, GtkStateFlags flag, gboolean activate)
 
 static void _image_update_group_tooltip(dt_thumbnail_t *thumb)
 {
-  if(!thumb->w_group) return;
+  thumb_return_if_fails(thumb);
   if(!thumb->is_grouped)
   {
     gtk_widget_set_has_tooltip(thumb->w_group, FALSE);
@@ -124,8 +131,7 @@ static void _image_update_group_tooltip(dt_thumbnail_t *thumb)
 
 static void _thumb_update_rating_class(dt_thumbnail_t *thumb)
 {
-  if(!thumb->w_main) return;
-
+  thumb_return_if_fails(thumb);
   for(int i = DT_VIEW_DESERT; i <= DT_VIEW_REJECT; i++)
   {
     gchar *cn = g_strdup_printf("dt_thumbnail_rating_%d", i);
@@ -140,7 +146,8 @@ static void _thumb_update_rating_class(dt_thumbnail_t *thumb)
 static void _thumb_write_extension(dt_thumbnail_t *thumb)
 {
   // fill the file extension label
-  if(!thumb || !thumb->filename) return;
+  thumb_return_if_fails(thumb);
+  if(!thumb->filename) return;
   const char *ext = thumb->filename + strlen(thumb->filename);
   while(ext > thumb->filename && *ext != '.') ext--;
   ext++;
@@ -152,8 +159,7 @@ static void _thumb_write_extension(dt_thumbnail_t *thumb)
 
 static void _image_get_infos(dt_thumbnail_t *thumb)
 {
-  if(thumb->imgid <= 0) return;
-  if(thumb->over == DT_THUMBNAIL_OVERLAYS_NONE) return;
+  thumb_return_if_fails(thumb);
 
   // we only get here infos that might change, others(exif, ...) are cached on widget creation
   const int old_rating = thumb->rating;
@@ -235,6 +241,8 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
 
 static void _thumb_retrieve_margins(dt_thumbnail_t *thumb)
 {
+  thumb_return_if_fails(thumb);
+
   if(thumb->img_margin) gtk_border_free(thumb->img_margin);
   // we retrieve image margins from css
   GtkStateFlags state = gtk_widget_get_state_flags(thumb->w_image);
@@ -253,8 +261,8 @@ static void _thumb_retrieve_margins(dt_thumbnail_t *thumb)
 
 static gboolean _event_cursor_draw(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-  if(!user_data || !widget) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
 
   GtkStateFlags state = gtk_widget_get_state_flags(thumb->w_cursor);
   GtkStyleContext *context = gtk_widget_get_style_context(thumb->w_cursor);
@@ -287,6 +295,7 @@ static float _thumb_zoom_to_zoom_ratio(float zoom, float zoom_100)
 
 static void _thumb_set_image_area(dt_thumbnail_t *thumb, float zoom_ratio)
 {
+  thumb_return_if_fails(thumb);
   int image_w = thumb->width - thumb->img_margin->left - thumb->img_margin->right;
   int image_h = thumb->height - thumb->img_margin->top - thumb->img_margin->bottom;
   gtk_widget_set_margin_top(thumb->w_image, thumb->img_margin->top);
@@ -307,8 +316,8 @@ static void _thumb_set_image_area(dt_thumbnail_t *thumb, float zoom_ratio)
 
 static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, FALSE);
   if(thumb->image_inited) return TRUE;
 
   if(thumb->img_surf)
@@ -371,6 +380,7 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
 static gboolean _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
 
   // Will run only if !image->inited
   _get_image_buffer(widget, cr, user_data);
@@ -413,6 +423,8 @@ static gboolean _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_
 
 static void _thumb_update_icons(dt_thumbnail_t *thumb)
 {
+  thumb_return_if_fails(thumb);
+
   gtk_widget_set_visible(thumb->w_local_copy, thumb->has_localcopy && !thumb->disable_mouseover);
   gtk_widget_set_visible(thumb->w_altered, thumb->is_altered && !thumb->disable_mouseover);
   gtk_widget_set_visible(thumb->w_group, thumb->is_grouped && !thumb->disable_mouseover);
@@ -438,8 +450,8 @@ static void _thumb_update_icons(dt_thumbnail_t *thumb)
 
 static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
 
   // Technically, this is already set on mouse_enter, but we never know
   if(!thumb->mouse_over) dt_control_set_mouse_over_id(thumb->imgid);
@@ -475,8 +487,8 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
 
 static gboolean _event_rating_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
 
@@ -510,8 +522,8 @@ static gboolean _event_rating_release(GtkWidget *widget, GdkEventButton *event, 
 
 static gboolean _event_grouping_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
 
@@ -551,6 +563,7 @@ static gboolean _event_grouping_release(GtkWidget *widget, GdkEventButton *event
 static gboolean _event_audio_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
 
@@ -578,7 +591,7 @@ static gboolean _event_audio_release(GtkWidget *widget, GdkEventButton *event, g
 
 void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected)
 {
-  if(!thumb || !gtk_widget_is_visible(thumb->w_main)) return;
+  thumb_return_if_fails(thumb);
   if(selected != thumb->selected)
   {
     thumb->selected = selected;
@@ -591,6 +604,7 @@ void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected)
 // All the text info that we don't have room to display around the image
 void _create_alternative_view(dt_thumbnail_t *thumb)
 {
+  thumb_return_if_fails(thumb);
   gtk_label_set_text(GTK_LABEL(thumb->w_filename), thumb->filename);
   gtk_label_set_text(GTK_LABEL(thumb->w_datetime), thumb->datetime);
 
@@ -607,7 +621,8 @@ void _create_alternative_view(dt_thumbnail_t *thumb)
 
 void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean enable)
 {
-  if(!thumb || thumb->alternative_mode == enable) return;
+  thumb_return_if_fails(thumb);
+  if(thumb->alternative_mode == enable) return;
   thumb->alternative_mode = enable;
   if(enable)
     gtk_widget_show_all(thumb->w_alternative);
@@ -620,6 +635,7 @@ void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean enable)
 static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return TRUE;
   _set_flag(thumb->w_bottom_eb, GTK_STATE_FLAG_PRELIGHT, TRUE);
 
@@ -643,6 +659,7 @@ static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gp
 static gboolean _event_star_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return TRUE;
 
   for(int i = 0; i < MAX_STARS; i++)
@@ -659,15 +676,15 @@ static gboolean _event_star_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 
 gboolean _event_expose(GtkWidget *self, cairo_t *cr, gpointer user_data)
 {
-  if(!user_data) return TRUE;
-  //dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   return FALSE;
 }
 
 static gboolean _event_main_motion(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(!thumb->mouse_over)
   {
     // Thumbnails send leave-notify when in the thumbnail frame but over the image.
@@ -682,8 +699,8 @@ static gboolean _event_main_motion(GtkWidget *widget, GdkEventMotion *event, gpo
 
 static gboolean _event_main_enter(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   dt_control_set_mouse_over_id(thumb->imgid);
   dt_thumbnail_set_mouseover(thumb, TRUE);
   return FALSE;
@@ -691,8 +708,8 @@ static gboolean _event_main_enter(GtkWidget *widget, GdkEventCrossing *event, gp
 
 static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   dt_thumbnail_set_mouseover(thumb, FALSE);
   return FALSE;
 }
@@ -700,8 +717,8 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 // lazy-load the history tooltip only when mouse enters the button
 static gboolean _altered_enter(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
-  if(!user_data) return TRUE;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
   if(thumb->is_altered)
   {
     char *tooltip = dt_history_get_items_as_string(thumb->imgid);
@@ -946,7 +963,7 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int imgid, int rowid,
 
 void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
 {
-  if(!thumb) return;
+  thumb_return_if_fails(thumb);
 
   if(thumb->img_surf && cairo_surface_get_reference_count(thumb->img_surf) > 0)
     cairo_surface_destroy(thumb->img_surf);
@@ -969,7 +986,7 @@ void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
 
 void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
 {
-  if(!thumb) return;
+  thumb_return_if_fails(thumb);
   _image_get_infos(thumb);
   _thumb_update_icons(thumb);
   _create_alternative_view(thumb);
@@ -978,6 +995,7 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
 
 static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
 {
+  thumb_return_if_fails(thumb);
   int width = 0;
   int height = 0;
 
@@ -1070,7 +1088,7 @@ static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
 // This function is called only from the thumbtable, when the grid size changed.
 void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio)
 {
-  if(!thumb || !thumb->widget) return;
+  thumb_return_if_fails(thumb);
 
   int w = 0;
   int h = 0;
@@ -1118,6 +1136,8 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
 {
+  thumb_return_if_fails(thumb);
+
   if(border == DT_THUMBNAIL_BORDER_NONE)
   {
     dt_gui_remove_class(thumb->w_main, "dt_group_left");
@@ -1141,6 +1161,8 @@ void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t 
 
 void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over)
 {
+  thumb_return_if_fails(thumb);
+
   if(thumb->mouse_over == over) return;
   thumb->mouse_over = over;
 
@@ -1157,6 +1179,8 @@ void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over)
 // note that it's just cosmetic as dropping occurs in thumbtable in any case
 void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop)
 {
+  thumb_return_if_fails(thumb);
+
   if(accept_drop)
     gtk_drag_dest_set(thumb->w_main, GTK_DEST_DEFAULT_MOTION, target_list_all, n_targets_all, GDK_ACTION_MOVE);
   else
@@ -1166,6 +1190,7 @@ void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop)
 // Apply new mipmap on thumbnail
 void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
 {
+  thumb_return_if_fails(thumb);
   thumb->is_altered = dt_image_altered(thumb->imgid);
   gtk_widget_set_visible(thumb->w_altered, thumb->is_altered);
   gtk_widget_queue_draw(thumb->w_image);
@@ -1175,6 +1200,8 @@ void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
 // force the image to be redraw at the right position
 void dt_thumbnail_image_refresh_position(dt_thumbnail_t *thumb)
 {
+  thumb_return_if_fails(thumb);
+
   // let's sanitize and apply panning values
   // here we have to make sure to properly align according to ppd
   int iw = 0;
