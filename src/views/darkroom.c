@@ -81,34 +81,12 @@ static void _update_softproof_gamut_checking(dt_develop_t *d);
 /* signal handler for filmstrip image switching */
 static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int imgid, gpointer user_data);
 
-static void _dev_change_image(const int32_t imgid);
+static void _dev_change_image(dt_view_t *self, const int32_t imgid);
 
 const char *name(const dt_view_t *self)
 {
   return _("Darkroom");
 }
-
-#ifdef USE_LUA
-
-static int display_image_cb(lua_State *L)
-{
-  dt_develop_t *dev = darktable.develop;
-  dt_lua_image_t imgid = -1;
-  if(luaL_testudata(L, 1, "dt_lua_image_t"))
-  {
-    luaA_to(L, dt_lua_image_t, &imgid, 1);
-    _dev_change_image(imgid);
-  }
-  else
-  {
-    // ensure the image infos in db is up to date
-    dt_dev_write_history(dev);
-  }
-  luaA_push(L, dt_lua_image_t, &dev->image_storage.id);
-  return 1;
-}
-
-#endif
 
 
 void init(dt_view_t *self)
@@ -650,6 +628,7 @@ int try_enter(dt_view_t *self)
 {
   int32_t imgid = dt_control_get_mouse_over_id();
   dt_view_active_images_reset(FALSE);
+  fprintf(stdout, "opening imgid %i\n", imgid);
 
   if(imgid < 0)
   {
@@ -668,16 +647,15 @@ int try_enter(dt_view_t *self)
   return ret;
 }
 
-static void _dev_change_image(int32_t imgid)
+static void _dev_change_image(dt_view_t *self, int32_t imgid)
 {
-  dt_control_set_mouse_over_id(imgid);
-
   // Lazy trick to cleanup, reset, reinit, reload everything without
   // having to duplicate most of (but not all) the code in leave(),
   // try_enter() and enter() : simulate a roundtrip through lighttable.
   // This way, all images are loaded through the same path, handled at an higher level.
   // It's more robust, although slightly slower than re-initing only what is needed.
   dt_view_manager_switch(darktable.view_manager, "lighttable");
+  dt_control_set_mouse_over_id(imgid);
   dt_view_manager_switch(darktable.view_manager, "darkroom");
 }
 
@@ -686,7 +664,8 @@ static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int32_
   if(imgid > -1)
   {
     // switch images in darkroom mode:
-    _dev_change_image(imgid);
+    _dev_change_image(user_data, imgid);
+    fprintf(stdout, "changing for imgid %i\n", imgid);
   }
 }
 
@@ -1253,7 +1232,8 @@ void connect_button_press_release(GtkWidget *w, GtkWidget *p)
 gboolean _switch_to_next_picture(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                  GdkModifierType modifier, gpointer data)
 {
-  dt_develop_t *dev = (dt_develop_t *)data;
+  dt_view_t *view = (dt_view_t *)data;
+  dt_develop_t *dev = (dt_develop_t *)view->data;
   int32_t current_img = dev->image_storage.id;
   GList *current_collection = dt_collection_get_all(darktable.collection, -1);
   GList *current_item = g_list_find(current_collection, GINT_TO_POINTER(current_img));
@@ -1262,7 +1242,7 @@ gboolean _switch_to_next_picture(GtkAccelGroup *accel_group, GObject *accelerabl
   {
     int32_t next_img = GPOINTER_TO_INT(current_item->next->data);
     g_list_free(current_collection);
-    _dev_change_image(next_img);
+    _dev_change_image(data, next_img);
   }
   else
     g_list_free(current_collection);
@@ -1273,7 +1253,8 @@ gboolean _switch_to_next_picture(GtkAccelGroup *accel_group, GObject *accelerabl
 gboolean _switch_to_prev_picture(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                  GdkModifierType modifier, gpointer data)
 {
-  dt_develop_t *dev = (dt_develop_t *)data;
+  dt_view_t *view = (dt_view_t *)data;
+  dt_develop_t *dev = (dt_develop_t *)view->data;
   int32_t current_img = dev->image_storage.id;
   GList *current_collection = dt_collection_get_all(darktable.collection, -1);
   GList *current_item = g_list_find(current_collection, GINT_TO_POINTER(current_img));
@@ -1282,7 +1263,7 @@ gboolean _switch_to_prev_picture(GtkAccelGroup *accel_group, GObject *accelerabl
   {
     int32_t prev_img = GPOINTER_TO_INT(current_item->prev->data);
     g_list_free(current_collection);
-    _dev_change_image(prev_img);
+    _dev_change_image(data, prev_img);
   }
   else
     g_list_free(current_collection);
@@ -1295,9 +1276,9 @@ void gui_init(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
-  dt_accels_new_darkroom_action(_switch_to_next_picture, darktable.develop, N_("Darkroom/Actions"),
+  dt_accels_new_darkroom_action(_switch_to_next_picture, self, N_("Darkroom/Actions"),
                                 N_("switch to the next picture"), GDK_KEY_Right, GDK_MOD1_MASK);
-  dt_accels_new_darkroom_action(_switch_to_prev_picture, darktable.develop, N_("Darkroom/Actions"),
+  dt_accels_new_darkroom_action(_switch_to_prev_picture, self, N_("Darkroom/Actions"),
                                 N_("switch to the previous picture"), GDK_KEY_Left, GDK_MOD1_MASK);
   /*
    * Add view specific tool buttons
@@ -1978,13 +1959,6 @@ void enter(dt_view_t *self)
   dev->form_gui->formid = 0;
   dev->gui_module = NULL;
 
-  // change active image
-  dt_view_active_images_reset(FALSE);
-  dt_view_active_images_add(dev->image_storage.id, TRUE);
-  dt_selection_clear(darktable.selection);
-
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILMSTRIP);
-
   dt_control_set_dev_zoom(DT_ZOOM_FIT);
   dt_control_set_dev_zoom_x(0);
   dt_control_set_dev_zoom_y(0);
@@ -2057,10 +2031,6 @@ void enter(dt_view_t *self)
   dt_control_set_dev_zoom_x(zoom_x);
   dt_control_set_dev_zoom_y(zoom_y);
 
-  /* connect signal for filmstrip image activate */
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
-                            G_CALLBACK(_view_darkroom_filmstrip_activate_callback), self);
-
   dt_collection_hint_message(darktable.collection);
 
   _register_modules_drag_n_drop(self);
@@ -2085,6 +2055,18 @@ void enter(dt_view_t *self)
   dt_accels_connect_window(darktable.gui->accels, "darkroom");
 
   dt_accels_attach_scroll_handler(darktable.gui->accels, _scroll_on_focus, dev);
+
+  // change active image
+  dt_view_active_images_reset(FALSE);
+  dt_view_active_images_add(dev->image_storage.id, TRUE);
+  dt_selection_clear(darktable.selection);
+
+  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILMSTRIP);
+
+  /* connect signal for filmstrip image activate */
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
+                            G_CALLBACK(_view_darkroom_filmstrip_activate_callback), self);
+
 }
 
 void leave(dt_view_t *self)
@@ -2237,7 +2219,6 @@ void mouse_leave(dt_view_t *self)
 {
   // if we are not hovering over a thumbnail in the filmstrip -> show metadata of opened image.
   dt_develop_t *dev = (dt_develop_t *)self->data;
-  dt_control_set_mouse_over_id(dev->image_storage.id);
 
   // masks
   gboolean handled = FALSE;
@@ -2340,14 +2321,6 @@ void mouse_moved(dt_view_t *self, double x, double y, double pressure, int which
   dt_develop_t *dev = (dt_develop_t *)self->data;
   float offx = 0.0f, offy = 0.0f;
   _magic_schwalm_offset(dev, self, &offx, &offy);
-
-  // if we are not hovering over a thumbnail in the filmstrip -> show metadata of opened image.
-  int32_t mouse_over_id = dt_control_get_mouse_over_id();
-  if(mouse_over_id == -1)
-  {
-    mouse_over_id = dev->image_storage.id;
-    dt_control_set_mouse_over_id(mouse_over_id);
-  }
 
   dt_control_t *ctl = darktable.control;
 
