@@ -1654,7 +1654,7 @@ int dt_exif_get_thumbnail(const char *path, uint8_t **buffer, size_t *size, char
     Exiv2::PreviewPropertiesList list = loader.getPreviewProperties();
     if(list.empty())
     {
-      dt_print(DT_DEBUG_LIGHTTABLE, "[exiv2 dt_exif_get_thumbnail] couldn't find thumbnail for %s", path);
+      dt_print(DT_DEBUG_LIGHTTABLE, "[exiv2 dt_exif_get_thumbnail] couldn't find thumbnail for %s\n", path);
       return 1;
     }
 
