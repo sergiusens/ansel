@@ -237,7 +237,7 @@ void dt_colorlabels_set_labels(GList *img, const int labels, const gboolean clea
       dt_undo_end_group(darktable.undo);
     }
     dt_collection_hint_message(darktable.collection);
-    dt_toast_log(_("Color label set to %s"), dt_colorlabels_get_name(labels));
+    dt_toast_log(_("Color label set to %s for %i image(s)"), dt_colorlabels_get_name(labels), g_list_length(img));
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy(img));
   }
 }
@@ -263,7 +263,7 @@ void dt_colorlabels_toggle_label_on_list(GList *list, const int color, const gbo
     dt_undo_end_group(darktable.undo);
   }
   dt_collection_hint_message(darktable.collection);
-  dt_toast_log(_("Color label set to %s"), dt_colorlabels_get_name(color));
+  dt_toast_log(_("Color label set to %s for %i image(s)"), dt_colorlabels_get_name(color), g_list_length(list));
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy(list));
 }
 

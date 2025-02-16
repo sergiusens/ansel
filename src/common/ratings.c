@@ -176,7 +176,7 @@ static void _ratings_apply(GList *imgs, const int rating, GList **undo, const gb
     _ratings_apply_to_image(image_id, new_rating);
   }
 
-  
+
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy(imgs));
 }
 
@@ -195,7 +195,7 @@ void dt_ratings_apply_on_list(GList *img, const int rating, const gboolean undo_
       dt_undo_end_group(darktable.undo);
     }
     dt_collection_hint_message(darktable.collection);
-    dt_toast_log(_("Rating set to %s"), dt_ratings_get_name(rating));
+    dt_toast_log(_("Rating set to %s for %i image(s)"), dt_ratings_get_name(rating), g_list_length(img));
   }
 }
 
