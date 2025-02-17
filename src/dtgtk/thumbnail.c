@@ -312,7 +312,16 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, FALSE);
+
+  // If image inited, it means we already have a cached image surface at the proper
+  // size. The resizing handlers should reset this flag when size changes.
   if(thumb->image_inited) return TRUE;
+
+  // If busy, it means we already sent a request to the mipmap cache to fetch or generate
+  // the image for us. There is no need to re-ping it again until it finishes.
+  // When the image is ready, it will raise the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal,
+  // and its handler will reset thumb->busy = FALSE
+  if(thumb->busy) return FALSE;
 
   if(thumb->img_surf)
   {
@@ -330,15 +339,22 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
 
   if(thumb->img_surf && res == DT_VIEW_SURFACE_OK)
   {
+    // The image is immediately available
     thumb->img_width = cairo_image_surface_get_width(thumb->img_surf);
     thumb->img_height = cairo_image_surface_get_height(thumb->img_surf);
     thumb->busy = FALSE;
     thumb->image_inited = TRUE;
-    cairo_surface_reference(thumb->img_surf);
   }
   else
   {
+    // A new export pipeline has been queued to generate the image
+    // Nothing more we can do here but wait for it to return.
     thumb->busy = TRUE;
+    thumb->image_inited = FALSE;
+    // When the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal will be raised,
+    // once the export pipeline will be done generating our image,
+    // the corresponding thumb will be set to thumb->busy = FALSE
+    // by the signal handler.
     return FALSE;
   }
 
@@ -1216,6 +1232,7 @@ void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
   thumb_return_if_fails(thumb);
   thumb->is_altered = dt_image_altered(thumb->imgid);
   _thumb_update_icons(thumb);
+  thumb->busy = FALSE;
   gtk_widget_queue_draw(thumb->w_image);
 }
 

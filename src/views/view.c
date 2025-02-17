@@ -643,7 +643,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
   // get mipmap cache image
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
-  dt_mipmap_size_t mip = dt_mipmap_cache_get_matching_size(cache, width * darktable.gui->ppd, height * darktable.gui->ppd);
+  dt_mipmap_size_t mip = dt_mipmap_cache_get_matching_size(cache, ceilf(width * darktable.gui->ppd), ceilf(height * darktable.gui->ppd));
 
   // if needed, we load the mimap buffer
   dt_mipmap_buffer_t buf;
@@ -783,12 +783,12 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   if((darktable.unmuted & (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF)) == (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF))
   {
     dt_print(DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF,
-             "[dt_view_image_get_surface]  id %i, dots %ix%i, mip %ix%i, surf %ix%i created in %0.04f sec\n",
-             imgid, width, height, buf_wd, buf_ht, img_width, img_height, dt_get_wtime() - tt);
+             "[dt_view_image_get_surface]  id %i, mip code %i, dots %ix%i, mip %ix%i, surf %ix%i created in %0.04f sec\n",
+             imgid, mip, width, height, buf_wd, buf_ht, img_width, img_height, dt_get_wtime() - tt);
   }
   else if(darktable.unmuted & DT_DEBUG_IMAGEIO)
   {
-    dt_print(DT_DEBUG_IMAGEIO, "[dt_view_image_get_surface]  id %i, dots %ix%i, mip %ix%i, surf %ix%i\n", imgid,
+    dt_print(DT_DEBUG_IMAGEIO, "[dt_view_image_get_surface]  id %i, mip code %i, dots %ix%i, mip %ix%i, surf %ix%i\n", imgid, mip,
              width, height, buf_wd, buf_ht, img_width, img_height);
   }
 

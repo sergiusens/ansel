@@ -43,6 +43,9 @@ static int32_t dt_image_load_job_run(dt_job_t *job)
   // drop read lock, as this is only speculative async loading.
   // moved this after the if, because the if never worked because the cache was released.
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+
+  // Signal we need to reload the mipmap in thumbtable
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, params->imgid);
   return 0;
 }
 
