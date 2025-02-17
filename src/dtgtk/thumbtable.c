@@ -117,7 +117,9 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
 
   dt_gui_remove_class(table->grid, cl0);
   dt_gui_add_class(table->grid, cl1);
-    // we need to change the overlay content if we pass from normal to extended overlays
+  gtk_widget_queue_draw(table->grid);
+
+  // we need to change the overlay content if we pass from normal to extended overlays
   // this is not done on the fly with css to avoid computing extended msg for nothing and to reserve space if needed
   dt_pthread_mutex_lock(&table->lock);
   for(GList *l = table->list; l; l = g_list_next(l))
@@ -1214,7 +1216,6 @@ dt_thumbtable_t *dt_thumbtable_new()
 
   // set css name and class
   gtk_widget_set_name(table->grid, "thumbtable-filemanager");
-  if(dt_conf_get_bool("lighttable/ui/expose_statuses")) dt_gui_add_class(table->grid, "dt_show_overlays");
 
   // overlays mode
   _thumbs_update_overlays_mode(table);
