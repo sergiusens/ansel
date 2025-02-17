@@ -42,14 +42,11 @@ typedef struct dt_lib_tool_lighttable_t
 } dt_lib_tool_lighttable_t;
 
 /* set zoom proxy function */
-//static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom);
-//static gint _lib_lighttable_get_zoom(dt_lib_module_t *self);
+static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom);
+static gint _lib_lighttable_get_zoom(dt_lib_module_t *self);
 
 /* zoom slider change callback */
 static void _lib_lighttable_zoom_slider_changed(GtkRange *range, gpointer user_data);
-/* zoom entry change callback */
-static gboolean _lib_lighttable_zoom_entry_changed(GtkWidget *entry, GdkEventKey *event,
-                                                   dt_lib_module_t *self);
 
 static void _set_zoom(dt_lib_module_t *self, int zoom);
 
@@ -79,6 +76,24 @@ int position()
   return 1001;
 }
 
+gboolean _zoom_in_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                         GdkModifierType modifier, gpointer data)
+{
+  dt_lib_module_t *self = (dt_lib_module_t *)data;
+  int current_level = _lib_lighttable_get_zoom(self);
+  _lib_lighttable_set_zoom(self, CLAMP(current_level - 1, 1, 12));
+  return TRUE;
+}
+
+gboolean _zoom_out_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                          GdkModifierType modifier, gpointer data)
+{
+  dt_lib_module_t *self = (dt_lib_module_t *)data;
+  int current_level = _lib_lighttable_get_zoom(self);
+  _lib_lighttable_set_zoom(self, CLAMP(current_level + 1, 1, 12));
+  return TRUE;
+}
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -91,7 +106,7 @@ void gui_init(dt_lib_module_t *self)
   d->current_zoom = dt_conf_get_int("plugins/lighttable/images_in_row");
 
   /* Zoom */
-  GtkWidget *label = gtk_label_new(C_("quickfilter", "Zoom"));
+  GtkWidget *label = gtk_label_new(C_("quickfilter", "Columns"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 
@@ -102,19 +117,17 @@ void gui_init(dt_lib_module_t *self)
   gtk_range_set_increments(GTK_RANGE(d->zoom), 1, 1);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->zoom), FALSE, FALSE, 0);
 
-  /* manual entry of the zoom level */
-  d->zoom_entry = gtk_entry_new();
-  dt_accels_disconnect_on_text_input(d->zoom_entry);
-  dt_gui_add_class(GTK_WIDGET(d->zoom_entry), "menu-text-entry");
-  gtk_entry_set_alignment(GTK_ENTRY(d->zoom_entry), 1.0);
-  gtk_entry_set_max_length(GTK_ENTRY(d->zoom_entry), 2);
-  gtk_entry_set_width_chars(GTK_ENTRY(d->zoom_entry), 2);
-  gtk_entry_set_max_width_chars(GTK_ENTRY(d->zoom_entry), 2);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->zoom_entry), FALSE, FALSE, 0);
+  // Capturing focus collides with lighttable key navigation, and it is useless
+  // because we already have zoom in/out global shortcuts
+  gtk_widget_set_can_focus(d->zoom, FALSE);
 
   g_signal_connect(G_OBJECT(d->zoom), "value-changed", G_CALLBACK(_lib_lighttable_zoom_slider_changed), self);
-  g_signal_connect(d->zoom_entry, "key-press-event", G_CALLBACK(_lib_lighttable_zoom_entry_changed), self);
   gtk_range_set_value(GTK_RANGE(d->zoom), d->current_zoom);
+
+  dt_accels_new_lighttable_action(_zoom_in_action, self, N_("Lighttable/Actions"), N_("Zoom in the thumbtable grid"),
+                                  GDK_KEY_plus, GDK_CONTROL_MASK);
+  dt_accels_new_lighttable_action(_zoom_out_action, self, N_("Lighttable/Actions"), N_("Zoom out the thumbtable grid"),
+                                  GDK_KEY_minus, GDK_CONTROL_MASK);
 
   _lib_lighttable_zoom_slider_changed(GTK_RANGE(d->zoom), self); // the slider defaults to 1 and GTK doesn't
                                                                  // fire a value-changed signal when setting
@@ -129,11 +142,13 @@ void gui_cleanup(dt_lib_module_t *self)
 
 static void _set_zoom(dt_lib_module_t *self, int zoom)
 {
+  dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   if(zoom != dt_conf_get_int("plugins/lighttable/images_in_row"))
   {
     dt_conf_set_int("plugins/lighttable/images_in_row", zoom);
     dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
     gtk_widget_queue_draw(table->grid);
+    d->current_zoom = zoom;
   }
 }
 
@@ -141,82 +156,14 @@ static void _lib_lighttable_zoom_slider_changed(GtkRange *range, gpointer user_d
 {
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-
-  const int i = gtk_range_get_value(range);
-  gchar *i_as_str = g_strdup_printf("%d", i);
-  gtk_entry_set_text(GTK_ENTRY(d->zoom_entry), i_as_str);
-  _set_zoom(self, i);
-  d->current_zoom = i;
-  g_free(i_as_str);
+  _set_zoom(self, gtk_range_get_value(GTK_RANGE(d->zoom)));
 }
 
-static gboolean _lib_lighttable_zoom_entry_changed(GtkWidget *entry, GdkEventKey *event, dt_lib_module_t *self)
-{
-  dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  switch(event->keyval)
-  {
-    case GDK_KEY_Escape:
-    case GDK_KEY_Tab:
-    {
-      // reset
-      int i = dt_conf_get_int("plugins/lighttable/images_in_row");
-      gchar *i_as_str = g_strdup_printf("%d", i);
-      gtk_entry_set_text(GTK_ENTRY(d->zoom_entry), i_as_str);
-      g_free(i_as_str);
-      gtk_window_set_focus(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), NULL);
-      return FALSE;
-    }
-
-    case GDK_KEY_Return:
-    case GDK_KEY_KP_Enter:
-    {
-      // apply zoom level
-      const gchar *value = gtk_entry_get_text(GTK_ENTRY(d->zoom_entry));
-      int i = atoi(value);
-      gtk_range_set_value(GTK_RANGE(d->zoom), i);
-      gtk_window_set_focus(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), NULL);
-      return FALSE;
-    }
-
-    // allow 0 .. 9, left/right movement using arrow keys and del/backspace
-    case GDK_KEY_0:
-    case GDK_KEY_KP_0:
-    case GDK_KEY_1:
-    case GDK_KEY_KP_1:
-    case GDK_KEY_2:
-    case GDK_KEY_KP_2:
-    case GDK_KEY_3:
-    case GDK_KEY_KP_3:
-    case GDK_KEY_4:
-    case GDK_KEY_KP_4:
-    case GDK_KEY_5:
-    case GDK_KEY_KP_5:
-    case GDK_KEY_6:
-    case GDK_KEY_KP_6:
-    case GDK_KEY_7:
-    case GDK_KEY_KP_7:
-    case GDK_KEY_8:
-    case GDK_KEY_KP_8:
-    case GDK_KEY_9:
-    case GDK_KEY_KP_9:
-
-    case GDK_KEY_Left:
-    case GDK_KEY_Right:
-    case GDK_KEY_Delete:
-    case GDK_KEY_BackSpace:
-      return FALSE;
-
-    default: // block everything else
-      return TRUE;
-  }
-}
-
-#if 0
 static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   gtk_range_set_value(GTK_RANGE(d->zoom), zoom);
-  d->current_zoom = zoom;
+  _set_zoom(self, zoom);
 }
 
 static gint _lib_lighttable_get_zoom(dt_lib_module_t *self)
@@ -224,7 +171,6 @@ static gint _lib_lighttable_get_zoom(dt_lib_module_t *self)
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   return d->current_zoom;
 }
-#endif
 
 #ifdef USE_LUA
 
