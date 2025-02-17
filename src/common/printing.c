@@ -285,8 +285,10 @@ void dt_printing_setup_image(dt_images_box *imgs, const int idx,
 {
   dt_image_box *box = &imgs->box[idx];
 
-  if(box->imgid != imgid)
-    dt_image_get_final_size(imgid, &box->img_width, &box->img_height);
+  // FIXME: broken by design
+  // re-implement a non-shitty way of getting final size
+  //if(box->imgid != imgid)
+  //  dt_image_get_final_size(imgid, &box->img_width, &box->img_height);
 
   box->imgid      = imgid;
   box->exp_width  = width;

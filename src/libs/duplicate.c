@@ -132,19 +132,6 @@ static gboolean _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventB
     {
       dt_develop_t *dev = darktable.develop;
       if(!dev) return FALSE;
-
-      d->imgid = imgid;
-      int fw, fh;
-      fw = fh = 0;
-      dt_image_get_final_size(imgid, &fw, &fh);
-      if(d->cur_final_width <= 0)
-        dt_image_get_final_size(dev->image_storage.id, &d->cur_final_width, &d->cur_final_height);
-      d->allow_zoom
-          = (d->cur_final_width - fw < DUPLICATE_COMPARE_SIZE && d->cur_final_width - fw > -DUPLICATE_COMPARE_SIZE
-             && d->cur_final_height - fh < DUPLICATE_COMPARE_SIZE
-             && d->cur_final_height - fh > -DUPLICATE_COMPARE_SIZE);
-
-      dt_control_queue_redraw_center();
       return TRUE;
     }
   }
@@ -179,6 +166,9 @@ void view_leave(struct dt_lib_module_t *self, struct dt_view_t *old_view, struct
 }
 void gui_post_expose(dt_lib_module_t *self, cairo_t *cri, int32_t width, int32_t height, int32_t pointerx, int32_t pointery)
 {
+  return;
+  // FIXME: broken by design
+  // Re-implement a non-shitty way of getting final size
   dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
   if (d->imgid == 0) return;
   dt_develop_t *dev = darktable.develop;
@@ -194,7 +184,7 @@ void gui_post_expose(dt_lib_module_t *self, cairo_t *cri, int32_t width, int32_t
   else
   {
     int w2, h2;
-    dt_image_get_final_size(d->imgid, &w2, &h2);
+    //dt_image_get_final_size(d->imgid, &w2, &h2);
     img_wd = w2;
     img_ht = h2;
   }

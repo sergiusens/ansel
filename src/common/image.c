@@ -721,54 +721,6 @@ void dt_image_update_final_size(const int32_t imgid)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_METADATA_UPDATE);
 }
 
-gboolean dt_image_get_final_size(const int32_t imgid, int *width, int *height)
-{
-  // get the img strcut
-  dt_image_t *imgtmp = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-  dt_image_t img = *imgtmp;
-  dt_image_cache_read_release(darktable.image_cache, imgtmp);
-  // if we already have computed them
-  if(img.final_height > 0 && img.final_width > 0)
-  {
-    *width = img.final_width;
-    *height = img.final_height;
-    return 0;
-  }
-
-  // and now we can do the pipe stuff to get final image size
-  dt_develop_t dev;
-  dt_dev_init(&dev, 0);
-  dt_dev_load_image(&dev, imgid);
-
-  dt_dev_pixelpipe_t pipe;
-  int wd = dev.image_storage.width, ht = dev.image_storage.height;
-
-  int res = dt_dev_pixelpipe_init_dummy(&pipe, wd, ht);
-  if(res)
-  {
-    // set mem pointer to 0, won't be used.
-    dt_pthread_mutex_lock(&pipe.busy_mutex);
-    dt_dev_pixelpipe_set_input(&pipe, &dev, NULL, wd, ht, 1.0f);
-    dt_dev_pixelpipe_create_nodes(&pipe, &dev);
-    dt_dev_pixelpipe_synch_all(&pipe, &dev);
-    dt_dev_pixelpipe_get_roi_out(&pipe, &dev, pipe.iwidth, pipe.iheight, &pipe.processed_width,
-                                    &pipe.processed_height);
-    wd = pipe.processed_width;
-    ht = pipe.processed_height;
-    res = TRUE;
-    dt_pthread_mutex_unlock(&pipe.busy_mutex);
-    // dt_dev_cleanup also cleans up the pipe
-  }
-  dt_dev_cleanup(&dev);
-
-  imgtmp = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-  imgtmp->final_width = *width = wd;
-  imgtmp->final_height = *height = ht;
-  dt_image_cache_write_release(darktable.image_cache, imgtmp, DT_IMAGE_CACHE_RELAXED);
-
-  return res;
-}
-
 void dt_image_set_flip(const int32_t imgid, const dt_image_orientation_t orientation)
 {
   sqlite3_stmt *stmt;

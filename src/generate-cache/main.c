@@ -182,12 +182,12 @@ int main(int argc, char *arg[])
     else if((!strcmp(arg[k], "-m") || !strcmp(arg[k], "--max-mip")) && argc > k + 1)
     {
       k++;
-      max_mip = (dt_mipmap_size_t)MIN(MAX(atoi(arg[k]), DT_MIPMAP_0), DT_MIPMAP_8);
+      max_mip = (dt_mipmap_size_t)MIN(MAX(atoi(arg[k]), DT_MIPMAP_0), DT_MIPMAP_7);
     }
     else if(!strcmp(arg[k], "--min-mip") && argc > k + 1)
     {
       k++;
-      min_mip = (dt_mipmap_size_t)MIN(MAX(atoi(arg[k]), DT_MIPMAP_0), DT_MIPMAP_8);
+      min_mip = (dt_mipmap_size_t)MIN(MAX(atoi(arg[k]), DT_MIPMAP_0), DT_MIPMAP_7);
     }
     else if(!strcmp(arg[k], "--min-imgid") && argc > k + 1)
     {
@@ -227,17 +227,6 @@ int main(int argc, char *arg[])
     fprintf(stderr, _("warning: disk backend for thumbnail cache is disabled (cache_disk_backend)\nif you want "
                       "to pre-generate thumbnails and for Ansel to use them, you need to enable disk backend "
                       "for thumbnail cache\nno thumbnails to be generated, done.\n"));
-    dt_cleanup();
-    free(m_arg);
-    exit(EXIT_FAILURE);
-  }
-
-  if(max_mip == 8 && !dt_conf_get_bool("cache_disk_backend_full"))
-  {
-    fprintf(stderr,
-            _("warning: disk backend for full preview cache is disabled (cache_disk_backend_full)\nif you want "
-              "to pre-generate full previews and for Ansel to use them, you need to enable disk backend "
-              "for full preview cache\nno full previews to be generated, done.\n"));
     dt_cleanup();
     free(m_arg);
     exit(EXIT_FAILURE);

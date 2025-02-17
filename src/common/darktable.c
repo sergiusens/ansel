@@ -1616,23 +1616,6 @@ void dt_configure_runtime_performance(const int old, char *info)
     dt_print(DT_DEBUG_DEV, "[dt_configure_runtime_performance] resourcelevel=%s\n", (sufficient) ? "default" : "small");
   }
 
-  if(!dt_conf_key_not_empty("cache_disk_backend_full"))
-  {
-    char cachedir[PATH_MAX] = { 0 };
-    guint64 freecache = 0;
-    dt_loc_get_user_cache_dir(cachedir, sizeof(cachedir));
-    GFile *gfile = g_file_new_for_path(cachedir);
-    GFileInfo *gfileinfo = g_file_query_filesystem_info(gfile, G_FILE_ATTRIBUTE_FILESYSTEM_FREE, NULL, NULL);
-    if(gfileinfo != NULL)
-      freecache = g_file_info_get_attribute_uint64(gfileinfo, G_FILE_ATTRIBUTE_FILESYSTEM_FREE);
-    g_object_unref(gfile);
-    g_object_unref(gfileinfo);
-    const gboolean largedisk = freecache > (8lu << 20);
-    // enable cache_disk_backend_full when user has over 8gb free diskspace
-    dt_conf_set_bool("cache_disk_backend_full", largedisk);
-    dt_print(DT_DEBUG_DEV, "[dt_configure_runtime_performance] cache_disk_backend_full=%s\n", (largedisk) ? "TRUE" : "FALSE");
-  }
-
   // we might add some info now but only for non-fresh installs
   if(old == 0) return;
 
