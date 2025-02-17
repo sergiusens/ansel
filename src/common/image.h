@@ -320,11 +320,11 @@ GList* dt_image_find_duplicates(const char* filename);
 /** get image id by filename */
 int32_t dt_image_get_id_full_path(const gchar *filename);
 /** get image id by film_id and filename */
-int32_t dt_image_get_id(uint32_t film_id, const gchar *filename);
+int32_t dt_image_get_id(int32_t film_id, const gchar *filename);
 /** imports a new image from raw/etc file and adds it to the data base and image cache. Use from threads other than lua.*/
-uint32_t dt_image_import(int32_t film_id, const char *filename, gboolean raise_signals);
+int32_t dt_image_import(int32_t film_id, const char *filename, gboolean raise_signals);
 /** imports a new image from raw/etc file and adds it to the data base and image cache. Use from lua thread.*/
-uint32_t dt_image_import_lua(int32_t film_id, const char *filename);
+int32_t dt_image_import_lua(int32_t film_id, const char *filename);
 /** removes the given image from the database. */
 void dt_image_remove(const int32_t imgid);
 /** duplicates the given image in the database with the duplicate getting the supplied version number. if that

@@ -73,6 +73,7 @@ enum
 {
   /* internal */
   md_internal_filmroll = 0,
+  md_internal_filmroll_id,
   md_internal_imgid,
   md_internal_groupid,
   md_internal_filename,
@@ -122,6 +123,7 @@ enum
 static const char *_labels[] = {
   /* internal */
   N_("filmroll"),
+  N_("filmroll id"),
   N_("image id"),
   N_("group id"),
   N_("filename"),
@@ -473,7 +475,7 @@ static void _metadata_view_update_values(dt_lib_module_t *self)
 
   if(mouse_over_id == -1)
   {
-     const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
+    const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
     if(cv->view(cv) == DT_VIEW_DARKROOM)
     {
        mouse_over_id = darktable.develop->image_storage.id;
@@ -646,6 +648,11 @@ static void _metadata_view_update_values(dt_lib_module_t *self)
         _metadata_update_tooltip(md_internal_filmroll, tooltip_filmroll, self);
         _metadata_update_value(md_internal_filmroll, text, self);
       }
+        break;
+
+      case md_internal_filmroll_id:
+        (void)g_snprintf(text, sizeof(text), "%d", img->film_id);
+        _metadata_update_value(md_internal_filmroll_id, text, self);
         break;
 
       case md_internal_imgid:

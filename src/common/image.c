@@ -1043,7 +1043,7 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
   // clang-format on
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
 
-  int32_t film_id = 1;
+  int32_t film_id = UNKNOWN_IMAGE;
   int32_t max_version = -1;
   gchar *filename = NULL;
   if(sqlite3_step(stmt) == SQLITE_ROW)
@@ -1416,7 +1416,7 @@ static int _image_read_duplicates(const uint32_t id, const char *filename, const
   return count_xmps_processed;
 }
 
-static uint32_t _image_import_internal(const int32_t film_id, const char *filename,
+static int32_t _image_import_internal(const int32_t film_id, const char *filename,
                                        gboolean lua_locking, gboolean raise_signals)
 {
   const dt_imageio_write_xmp_t xmp_mode = dt_image_get_xmp_mode();
@@ -1453,7 +1453,7 @@ static uint32_t _image_import_internal(const int32_t film_id, const char *filena
   // select from images; if found => return
   gchar *imgfname = g_path_get_basename(normalized_filename);
   int32_t id = dt_image_get_id(film_id, imgfname);
-  if(id >= 0)
+  if(id > UNKNOWN_IMAGE)
   {
     g_free(imgfname);
     dt_image_t *img = dt_image_cache_get(darktable.image_cache, id, 'w');
@@ -1713,7 +1713,7 @@ int32_t dt_image_get_id_full_path(const gchar *filename)
   return id;
 }
 
-int32_t dt_image_get_id(uint32_t film_id, const gchar *filename)
+int32_t dt_image_get_id(int32_t film_id, const gchar *filename)
 {
   int32_t id = -1;
   sqlite3_stmt *stmt;
@@ -1727,12 +1727,12 @@ int32_t dt_image_get_id(uint32_t film_id, const gchar *filename)
   return id;
 }
 
-uint32_t dt_image_import(const int32_t film_id, const char *filename, gboolean raise_signals)
+int32_t dt_image_import(const int32_t film_id, const char *filename, gboolean raise_signals)
 {
   return _image_import_internal(film_id, filename, TRUE, raise_signals);
 }
 
-uint32_t dt_image_import_lua(const int32_t film_id, const char *filename)
+int32_t dt_image_import_lua(const int32_t film_id, const char *filename)
 {
   return _image_import_internal(film_id, filename, FALSE, TRUE);
 }
@@ -1752,10 +1752,10 @@ void dt_image_init(dt_image_t *img)
 
   img->buf_dsc.filters = 0u;
   img->buf_dsc = (dt_iop_buffer_dsc_t){.channels = 0, .datatype = TYPE_UNKNOWN };
-  img->film_id = -1;
-  img->group_id = -1;
+  img->film_id = UNKNOWN_IMAGE;
+  img->group_id = UNKNOWN_IMAGE;
   img->flags = 0;
-  img->id = -1;
+  img->id = UNKNOWN_IMAGE;
   img->version = -1;
   img->loader = LOADER_UNKNOWN;
   img->exif_inited = 0;
