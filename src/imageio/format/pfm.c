@@ -28,7 +28,7 @@ DT_MODULE(1)
 
 int write_image(dt_imageio_module_data_t *data, const char *filename, const void *ivoid,
                 dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                void *exif, int exif_len, int imgid, int num, int total, struct dt_dev_pixelpipe_t *pipe,
+                void *exif, int exif_len, int32_t imgid, int num, int total, struct dt_dev_pixelpipe_t *pipe,
                 const gboolean export_masks)
 {
   const dt_imageio_module_data_t *const pfm = data;
@@ -139,4 +139,3 @@ void gui_reset(dt_imageio_module_format_t *self)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

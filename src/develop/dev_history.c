@@ -903,7 +903,7 @@ void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt)
   dt_dev_refresh_ui_images(dev);
 }
 
-static void _cleanup_history(const int imgid)
+static void _cleanup_history(const int32_t imgid)
 {
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "DELETE FROM main.history WHERE imgid = ?1", -1,
@@ -949,7 +949,7 @@ static void _warn_about_history_overuse(GList *dev_history)
 }
 
 
-void dt_dev_write_history_end_ext(const int history_end, const int imgid)
+void dt_dev_write_history_end_ext(const int history_end, const int32_t imgid)
 {
   // update history end
   sqlite3_stmt *stmt;
@@ -963,7 +963,7 @@ void dt_dev_write_history_end_ext(const int history_end, const int imgid)
 }
 
 // helper used to synch a single history item with db
-int dt_dev_write_history_item(const int imgid, dt_dev_history_item_t *h, int32_t num)
+int dt_dev_write_history_item(const int32_t imgid, dt_dev_history_item_t *h, int32_t num)
 {
   dt_print(DT_DEBUG_HISTORY, "[dt_dev_write_history_item] writing history for module %s (%s) at pipe position %i for image %i...\n", h->op_name, h->multi_name, h->iop_order, imgid);
 
@@ -1022,7 +1022,7 @@ int dt_dev_write_history_item(const int imgid, dt_dev_history_item_t *h, int32_t
 
 
 
-void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int imgid)
+void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int32_t imgid)
 {
   _cleanup_history(imgid);
   _warn_about_history_overuse(dev_history);
@@ -1064,7 +1064,7 @@ static int _dev_get_module_nb_records()
   return cnt;
 }
 
-void _dev_insert_module(dt_develop_t *dev, dt_iop_module_t *module, const int imgid)
+void _dev_insert_module(dt_develop_t *dev, dt_iop_module_t *module, const int32_t imgid)
 {
   sqlite3_stmt *stmt;
 
@@ -1086,7 +1086,7 @@ static gboolean _dev_auto_apply_presets(dt_develop_t *dev)
 {
   // NOTE: the presets/default iops will be *prepended* into the history.
 
-  const int imgid = dev->image_storage.id;
+  const int32_t imgid = dev->image_storage.id;
 
   if(imgid <= 0) return FALSE;
 
@@ -1303,7 +1303,7 @@ static gboolean _dev_auto_apply_presets(dt_develop_t *dev)
   return TRUE;
 }
 
-static void _dev_add_default_modules(dt_develop_t *dev, const int imgid)
+static void _dev_add_default_modules(dt_develop_t *dev, const int32_t imgid)
 {
   // modules that cannot be disabled
   // or modules that can be disabled but are auto-on
@@ -1320,7 +1320,7 @@ static void _dev_add_default_modules(dt_develop_t *dev, const int imgid)
   }
 }
 
-static void _dev_merge_history(dt_develop_t *dev, const int imgid)
+static void _dev_merge_history(dt_develop_t *dev, const int32_t imgid)
 {
   sqlite3_stmt *stmt;
 
@@ -1473,7 +1473,7 @@ static inline void _dt_dev_load_pipeline_defaults(dt_develop_t *dev)
  *
  **/
 
-static void _init_default_history(dt_develop_t *dev, const int imgid, gboolean *first_run, gboolean *auto_apply_modules)
+static void _init_default_history(dt_develop_t *dev, const int32_t imgid, gboolean *first_run, gboolean *auto_apply_modules)
 {
   // cleanup DB
   DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM memory.history", NULL, NULL, NULL);
@@ -1617,7 +1617,7 @@ static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, 
   return 0;
 }
 
-static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int imgid, int *legacy_params)
+static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int32_t imgid, int *legacy_params)
 {
   // Unpack the DB blobs
   const int id = sqlite3_column_int(stmt, 0);
@@ -1708,7 +1708,7 @@ static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, cons
 }
 
 
-void dt_dev_read_history_ext(dt_develop_t *dev, const int imgid, gboolean no_image)
+void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no_image)
 {
   if(imgid <= 0) return;
   if(!dev->iop) return;

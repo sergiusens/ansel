@@ -182,7 +182,7 @@ static inline int32_t buffer_is_broken(dt_mipmap_buffer_t *buf)
 }
 #endif
 
-static inline uint32_t get_key(const uint32_t imgid, const dt_mipmap_size_t size)
+static inline uint32_t get_key(const int32_t imgid, const dt_mipmap_size_t size)
 {
   // imgid can't be >= 2^28 (~250 million images)
   return (((uint32_t)size) << 28) | (imgid - 1);
@@ -238,9 +238,9 @@ exit:
 }
 
 static void _init_f(dt_mipmap_buffer_t *mipmap_buf, float *buf, uint32_t *width, uint32_t *height, float *iscale,
-                    const uint32_t imgid);
+                    const int32_t imgid);
 static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *iscale,
-                    dt_colorspaces_color_profile_type_t *color_space, const uint32_t imgid,
+                    dt_colorspaces_color_profile_type_t *color_space, const int32_t imgid,
                     const dt_mipmap_size_t size);
 
 // callback for the imageio core to allocate memory.
@@ -431,7 +431,7 @@ read_error:
     entry->cost = cache->buffer_size[mip];
 }
 
-static void dt_mipmap_cache_unlink_ondisk_thumbnail(void *data, uint32_t imgid, dt_mipmap_size_t mip)
+static void dt_mipmap_cache_unlink_ondisk_thumbnail(void *data, int32_t imgid, dt_mipmap_size_t mip)
 {
   dt_mipmap_cache_t *cache = (dt_mipmap_cache_t *)data;
 
@@ -679,7 +679,7 @@ static dt_mipmap_cache_one_t *_get_cache(dt_mipmap_cache_t *cache, const dt_mipm
 void dt_mipmap_cache_get_with_caller(
     dt_mipmap_cache_t *cache,
     dt_mipmap_buffer_t *buf,
-    const uint32_t imgid,
+    const int32_t imgid,
     const dt_mipmap_size_t mip,
     const dt_mipmap_get_flags_t flags,
     const char mode,
@@ -881,6 +881,19 @@ void dt_mipmap_cache_get_with_caller(
   {
     __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_requests), 1);
     // best-effort, might also return NULL.
+    // try larger ones only now (these will be slightly slower due to cairo rescaling):
+    dt_mipmap_size_t max_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_F-1;
+    for(int k = mip; k <= max_mip; k++)
+    {
+      // already loaded?
+      dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
+      if(buf->buf && buf->width > 0 && buf->height > 0)
+      {
+        __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
+        return;
+      }
+    }
+    // Last chance: look for smaller sizes
     // never decrease mip level for float buffer or full image:
     dt_mipmap_size_t min_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_0;
     for(int k = mip; k >= min_mip && k >= 0; k--)
@@ -897,18 +910,6 @@ void dt_mipmap_cache_get_with_caller(
       {
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
         dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_PREFETCH, 'r');
-      }
-    }
-    // couldn't find a smaller thumb, try larger ones only now (these will be slightly slower due to cairo rescaling):
-    dt_mipmap_size_t max_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_F-1;
-    for(int k = mip+1; k <= max_mip; k++)
-    {
-      // already loaded?
-      dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
-      if(buf->buf && buf->width > 0 && buf->height > 0)
-      {
-        __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
-        return;
       }
     }
     __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_misses), 1);
@@ -937,7 +938,7 @@ void dt_mipmap_cache_get_with_caller(
   }
 }
 
-void dt_mipmap_cache_write_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const uint32_t imgid, const int mip, const char *file, int line)
+void dt_mipmap_cache_write_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid, const int mip, const char *file, int line)
 {
   dt_mipmap_cache_get_with_caller(cache, buf, imgid, mip, DT_MIPMAP_BLOCKING, 'w', file, line);
 }
@@ -947,7 +948,7 @@ void dt_mipmap_cache_release_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buf
 {
   if(buf->size == DT_MIPMAP_NONE) return;
   assert(buf->imgid > 0);
-  // assert(buf->size >= DT_MIPMAP_0); // breaks gcc-4.6/4.7 build
+  assert(buf->size >= DT_MIPMAP_0);
   assert(buf->size < DT_MIPMAP_NONE);
   assert(buf->cache_entry);
   dt_cache_release_with_caller(&_get_cache(cache, buf->size)->cache, buf->cache_entry, file, line);
@@ -966,7 +967,10 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(const dt_mipmap_cache_t *cach
   {
     best = k;
     if((cache->max_width[k] >= width) && (cache->max_height[k] >= height))
+    {
+      dt_print(DT_DEBUG_IMAGEIO, "[dt_mipmap_cache_get_matching_size] will load a mipmap of size %ix%i px\n", cache->max_width[k], cache->max_height[k]);
       break;
+    }
   }
   return best;
 }
@@ -984,7 +988,7 @@ dt_mipmap_size_t dt_mipmap_cache_get_min_mip_from_pref(const char *value)
   return DT_MIPMAP_NONE;
 }
 
-void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const uint32_t imgid, const dt_mipmap_size_t mip)
+void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip)
 {
   if(mip > DT_MIPMAP_8 || mip < DT_MIPMAP_0) return;
   // get rid of all ldr thumbnails:
@@ -1007,7 +1011,7 @@ void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const uint32_t img
   }
 }
 
-void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const uint32_t imgid)
+void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid)
 {
   // get rid of all ldr thumbnails:
 
@@ -1016,14 +1020,14 @@ void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const uint32_t imgid)
     dt_mipmap_cache_remove_at_size(cache, imgid, k);
   }
 }
-void dt_mipmap_cache_evict_at_size(dt_mipmap_cache_t *cache, const uint32_t imgid, const dt_mipmap_size_t mip)
+void dt_mipmap_cache_evict_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip)
 {
   const uint32_t key = get_key(imgid, mip);
   // write thumbnail to disc if not existing there
   dt_cache_remove(&_get_cache(cache, mip)->cache, key);
 }
 
-void dt_mimap_cache_evict(dt_mipmap_cache_t *cache, const uint32_t imgid)
+void dt_mimap_cache_evict(dt_mipmap_cache_t *cache, const int32_t imgid)
 {
   for(dt_mipmap_size_t k = DT_MIPMAP_0; k < DT_MIPMAP_F; k++)
   {
@@ -1035,7 +1039,7 @@ void dt_mimap_cache_evict(dt_mipmap_cache_t *cache, const uint32_t imgid)
 }
 
 static void _init_f(dt_mipmap_buffer_t *mipmap_buf, float *out, uint32_t *width, uint32_t *height, float *iscale,
-                    const uint32_t imgid)
+                    const int32_t imgid)
 {
   const uint32_t wd = *width, ht = *height;
 
@@ -1149,7 +1153,7 @@ static int _bpp(dt_imageio_module_data_t *data)
 
 static int _write_image(dt_imageio_module_data_t *data, const char *filename, const void *in,
                         dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                        void *exif, int exif_len, int imgid, int num, int total, dt_dev_pixelpipe_t *pipe,
+                        void *exif, int exif_len, int32_t imgid, int num, int total, dt_dev_pixelpipe_t *pipe,
                         const gboolean export_masks)
 {
   _dummy_data_t *d = (_dummy_data_t *)data;
@@ -1158,7 +1162,7 @@ static int _write_image(dt_imageio_module_data_t *data, const char *filename, co
 }
 
 static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *iscale,
-                    dt_colorspaces_color_profile_type_t *color_space, const uint32_t imgid,
+                    dt_colorspaces_color_profile_type_t *color_space, const int32_t imgid,
                     const dt_mipmap_size_t size)
 {
   *iscale = 1.0f;

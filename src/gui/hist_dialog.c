@@ -184,7 +184,7 @@ tree_on_row_activated(GtkTreeView        *treeview,
   }
 }
 
-int dt_gui_hist_dialog_new(dt_history_copy_item_t *d, int imgid, gboolean iscopy)
+int dt_gui_hist_dialog_new(dt_history_copy_item_t *d, int32_t imgid, gboolean iscopy)
 {
   int res;
   GtkWidget *window = dt_ui_main_window(darktable.gui->ui);

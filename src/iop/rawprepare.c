@@ -588,7 +588,7 @@ static int image_is_normalized(const dt_image_t *const image)
   return image->buf_dsc.channels == 1 && image->buf_dsc.datatype == TYPE_FLOAT;
 }
 
-static gboolean image_set_rawcrops(const uint32_t imgid, int dx, int dy)
+static gboolean image_set_rawcrops(const int32_t imgid, int dx, int dy)
 {
   dt_image_t *img = NULL;
   img = dt_image_cache_get(darktable.image_cache, imgid, 'r');

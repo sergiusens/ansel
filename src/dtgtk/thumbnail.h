@@ -47,7 +47,7 @@ typedef enum dt_thumbnail_overlay_t
 
 typedef struct
 {
-  int imgid, rowid;
+  int32_t imgid, rowid;
   int width, height;         // current thumb size (with the background and the border)
   int x, y;                  // current position at screen
   int img_width, img_height; // current image size (can be greater than the image box in case of zoom)
@@ -143,7 +143,7 @@ typedef struct
 
 } dt_thumbnail_t;
 
-dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int imgid, int rowid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
+dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
 void dt_thumbnail_destroy(dt_thumbnail_t *thumb);
 GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio);
 void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio);

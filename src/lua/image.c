@@ -65,7 +65,7 @@ static void releasewriteimage(lua_State *L, dt_image_t *image)
   dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_SAFE);
 }
 
-void dt_lua_image_push(lua_State *L, int imgid)
+void dt_lua_image_push(lua_State *L, int32_t imgid)
 {
   // check that id is valid
   sqlite3_stmt *stmt;
@@ -351,7 +351,7 @@ static int local_copy_member(lua_State *L)
   else
   {
     dt_image_t *my_image = checkwriteimage(L, 1);
-    int imgid = my_image->id;
+    int32_t imgid = my_image->id;
     luaL_checktype(L, 3, LUA_TBOOLEAN);
     // we need to release write image for the other functions to use it
     releasewriteimage(L, my_image);
@@ -369,7 +369,7 @@ static int local_copy_member(lua_State *L)
 
 static int colorlabel_member(lua_State *L)
 {
-  int imgid;
+  int32_t imgid;
   luaA_to(L, dt_lua_image_t, &imgid, 1);
   int colorlabel_index = luaL_checkoption(L, 2, NULL, dt_colorlabels_name);
   if(lua_gettop(L) != 3)
@@ -458,7 +458,7 @@ int get_group(lua_State *L)
   int table_index = 1;
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
-    int imgid = sqlite3_column_int(stmt, 0);
+    int32_t imgid = sqlite3_column_int(stmt, 0);
     luaA_push(L, dt_lua_image_t, &imgid);
     lua_seti(L, -2, table_index);
     table_index++;
@@ -635,4 +635,3 @@ int dt_lua_init_image(lua_State *L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

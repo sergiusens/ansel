@@ -856,7 +856,7 @@ static cmsHPROFILE dt_colorspaces_create_linear_infrared_profile(void)
   return profile;
 }
 
-const dt_colorspaces_color_profile_t *dt_colorspaces_get_work_profile(const int imgid)
+const dt_colorspaces_color_profile_t *dt_colorspaces_get_work_profile(const int32_t imgid)
 {
   // find the colorin module -- the pointer stays valid until darktable shuts down
   static const dt_iop_module_so_t *colorin = NULL;
@@ -906,7 +906,7 @@ const dt_colorspaces_color_profile_t *dt_colorspaces_get_work_profile(const int 
   return p;
 }
 
-dt_colorspaces_color_profile_type_t dt_image_find_best_color_profile(uint32_t imgid, cmsHPROFILE *output, gboolean *new_profile)
+dt_colorspaces_color_profile_type_t dt_image_find_best_color_profile(int32_t imgid, cmsHPROFILE *output, gboolean *new_profile)
 {
   // Note : when the image has already been opened from cache on the current session,
   // the embedded color profile is already inited and stored in img->profile.
@@ -1097,7 +1097,7 @@ finish:
 }
 
 
-const cmsHPROFILE dt_colorspaces_get_embedded_profile(const int imgid, dt_colorspaces_color_profile_type_t *type, gboolean *new_profile)
+const cmsHPROFILE dt_colorspaces_get_embedded_profile(const int32_t imgid, dt_colorspaces_color_profile_type_t *type, gboolean *new_profile)
 {
   cmsHPROFILE output;
   *type = dt_image_find_best_color_profile(imgid, &output, new_profile);
@@ -1105,7 +1105,7 @@ const cmsHPROFILE dt_colorspaces_get_embedded_profile(const int imgid, dt_colors
 }
 
 
-const dt_colorspaces_color_profile_t *_build_embedded_profile(const uint32_t imgid, dt_colorspaces_color_profile_type_t *type)
+const dt_colorspaces_color_profile_t *_build_embedded_profile(const int32_t imgid, dt_colorspaces_color_profile_type_t *type)
 {
   gboolean new_profile;
   cmsHPROFILE profile = dt_colorspaces_get_embedded_profile(imgid, type, &new_profile);
@@ -1128,7 +1128,7 @@ const dt_colorspaces_color_profile_t *_build_embedded_profile(const uint32_t img
 }
 
 
-const dt_colorspaces_color_profile_t *dt_colorspaces_get_output_profile(const int imgid,
+const dt_colorspaces_color_profile_t *dt_colorspaces_get_output_profile(const int32_t imgid,
                                                                         dt_colorspaces_color_profile_type_t *over_type,
                                                                         const char *over_filename)
 {

@@ -36,7 +36,7 @@ static int32_t preload_image_cache(dt_job_t *job)
 
   while(collection && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED)
   {
-    const int imgid = GPOINTER_TO_INT(collection->data);
+    const int32_t imgid = GPOINTER_TO_INT(collection->data);
 
     for(int k = DT_MIPMAP_FULL; k >= 0; k--)
     {

@@ -108,7 +108,7 @@ static const char *mime(dt_imageio_module_data_t *data)
 
 static int write_image(dt_imageio_module_data_t *datai, const char *filename, const void *in,
                        dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                       void *exif, int exif_len, int imgid, int num, int total, dt_dev_pixelpipe_t *pipe,
+                       void *exif, int exif_len, int32_t imgid, int num, int total, dt_dev_pixelpipe_t *pipe,
                        const gboolean export_masks)
 {
   dt_slideshow_format_t *data = (dt_slideshow_format_t *)datai;
@@ -417,7 +417,7 @@ void enter(dt_view_t *self)
   }
 
   // if one selected start with it, otherwise start at the current lighttable offset
-  const int imgid = dt_selection_get_first_id(darktable.selection);
+  const int32_t imgid = dt_selection_get_first_id(darktable.selection);
   gint selrank = -1;
 
   if(imgid > 0)

@@ -81,7 +81,7 @@ static void _update_ids_list(dt_selection_t *selection)
   _update_last_ids(selection);
 }
 
-static void _remove_id_link(dt_selection_t *selection, uint32_t imgid)
+static void _remove_id_link(dt_selection_t *selection, int32_t imgid)
 {
   GList *link = g_list_find(selection->ids, GINT_TO_POINTER(imgid));
   if(link)
@@ -92,7 +92,7 @@ static void _remove_id_link(dt_selection_t *selection, uint32_t imgid)
   _update_last_ids(selection);
 }
 
-static void _add_id_link(dt_selection_t *selection, uint32_t imgid)
+static void _add_id_link(dt_selection_t *selection, int32_t imgid)
 {
   selection->ids = g_list_append(selection->ids, GINT_TO_POINTER(imgid));
   ++selection->length;
@@ -116,7 +116,7 @@ int dt_selection_get_length(struct dt_selection_t *selection)
 }
 
 
-static void _selection_select(dt_selection_t *selection, uint32_t imgid)
+static void _selection_select(dt_selection_t *selection, int32_t imgid)
 {
   if(imgid != -1)
   {
@@ -149,7 +149,7 @@ static void _selection_select(dt_selection_t *selection, uint32_t imgid)
   }
 }
 
-void _selection_deselect(dt_selection_t *selection, uint32_t imgid)
+void _selection_deselect(dt_selection_t *selection, int32_t imgid)
 {
   if(imgid != -1)
   {
@@ -306,7 +306,7 @@ void dt_selection_clear(dt_selection_t *selection)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
 }
 
-void dt_selection_select(dt_selection_t *selection, uint32_t imgid)
+void dt_selection_select(dt_selection_t *selection, int32_t imgid)
 {
   if(imgid == -1) return;
   _selection_select(selection, imgid);
@@ -318,7 +318,7 @@ void dt_selection_select(dt_selection_t *selection, uint32_t imgid)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
 }
 
-void dt_selection_deselect(dt_selection_t *selection, uint32_t imgid)
+void dt_selection_deselect(dt_selection_t *selection, int32_t imgid)
 {
   if(imgid == -1) return;
   _selection_deselect(selection, imgid);
@@ -330,14 +330,14 @@ void dt_selection_deselect(dt_selection_t *selection, uint32_t imgid)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
 }
 
-void dt_selection_select_single(dt_selection_t *selection, uint32_t imgid)
+void dt_selection_select_single(dt_selection_t *selection, int32_t imgid)
 {
   if(imgid == -1) return;
   dt_selection_clear(selection);
   dt_selection_select(selection, imgid);
 }
 
-void dt_selection_toggle(dt_selection_t *selection, uint32_t imgid)
+void dt_selection_toggle(dt_selection_t *selection, int32_t imgid)
 {
   sqlite3_stmt *stmt;
   gboolean exists = FALSE;
@@ -378,7 +378,7 @@ void dt_selection_select_all(dt_selection_t *selection)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
 }
 
-void dt_selection_select_range(dt_selection_t *selection, uint32_t imgid)
+void dt_selection_select_range(dt_selection_t *selection, int32_t imgid)
 {
   if(!selection->collection) return;
 
@@ -533,7 +533,7 @@ void dt_selection_select_list(struct dt_selection_t *selection, GList *list)
   while(list)
   {
     uint32_t count = 1;
-    uint32_t imgid = GPOINTER_TO_INT(list->data);
+    int32_t imgid = GPOINTER_TO_INT(list->data);
     selection->last_single_id = imgid;
     gchar *query = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images VALUES (%d)", imgid);
     list = g_list_next(list);
@@ -585,7 +585,7 @@ gchar *dt_selection_ids_to_string(struct dt_selection_t *selection)
   return result;
 }
 
-gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, uint32_t imgid)
+gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, int32_t imgid)
 {
   if(!selection) return FALSE;
   if(!selection->ids) _update_ids_list(selection);

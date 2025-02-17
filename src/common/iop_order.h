@@ -242,7 +242,7 @@ gboolean dt_ioppr_move_iop_before(struct dt_develop_t *dev, struct dt_iop_module
 gboolean dt_ioppr_move_iop_after(struct dt_develop_t *dev, struct dt_iop_module_t *module, struct dt_iop_module_t *module_prev);
 
 // for debug only
-int dt_ioppr_check_iop_order(struct dt_develop_t *dev, const int imgid, const char *msg);
+int dt_ioppr_check_iop_order(struct dt_develop_t *dev, const int32_t imgid, const char *msg);
 void dt_ioppr_print_module_iop_order(GList *iop_list, const char *msg);
 void dt_ioppr_print_history_iop_order(GList *history_list, const char *msg);
 void dt_ioppr_print_iop_order(GList *iop_order_list, const char *msg);
@@ -253,4 +253,3 @@ void dt_ioppr_print_iop_order(GList *iop_order_list, const char *msg);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

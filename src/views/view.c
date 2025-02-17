@@ -628,7 +628,7 @@ void dt_view_manager_scrollbar_changed(dt_view_manager_t *vm, double x, double y
     vm->current_view->scrollbar_changed(vm->current_view, x, y);
 }
 
-dt_view_surface_value_t dt_view_image_get_surface(int imgid, int width, int height, cairo_surface_t **surface,
+dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
                                                   const gboolean quality)
 {
   double tt = 0;
@@ -860,7 +860,7 @@ void dt_view_active_images_reset(gboolean raise)
   if(raise) DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
 
-void dt_view_active_images_add(int imgid, gboolean raise)
+void dt_view_active_images_add(int32_t imgid, gboolean raise)
 {
   darktable.view_manager->active_images
       = g_list_append(darktable.view_manager->active_images, GINT_TO_POINTER(imgid));
@@ -868,7 +868,7 @@ void dt_view_active_images_add(int imgid, gboolean raise)
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
 
-void dt_view_active_images_remove(int imgid, gboolean raise)
+void dt_view_active_images_remove(int32_t imgid, gboolean raise)
 {
   GList *link = g_list_find(darktable.view_manager->active_images, GINT_TO_POINTER(imgid));
   if(link)
@@ -975,7 +975,7 @@ void dt_view_map_location_action(const dt_view_manager_t *vm, const int action)
     vm->proxy.map.location_action(vm->proxy.map.view, action);
 }
 
-void dt_view_map_drag_set_icon(const dt_view_manager_t *vm, GdkDragContext *context, const int imgid, const int count)
+void dt_view_map_drag_set_icon(const dt_view_manager_t *vm, GdkDragContext *context, const int32_t imgid, const int count)
 {
   if(vm->proxy.map.view)
     vm->proxy.map.drag_set_icon(vm->proxy.map.view, context, imgid, count);
@@ -999,7 +999,7 @@ static void _audio_child_watch(GPid pid, gint status, gpointer data)
   g_spawn_close_pid(pid);
 }
 
-void dt_view_audio_start(dt_view_manager_t *vm, int imgid)
+void dt_view_audio_start(dt_view_manager_t *vm, int32_t imgid)
 {
   char *player = dt_conf_get_string("plugins/lighttable/audio_player");
   if(player && *player)

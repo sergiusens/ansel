@@ -15,22 +15,22 @@ typedef enum dt_colorlables_enum
 extern const char *dt_colorlabels_name[];
 
 /** get the assigned colorlabels of imgid*/
-int dt_colorlabels_get_labels(const int imgid);
+int dt_colorlabels_get_labels(const int32_t imgid);
 /** remove labels associated to imgid */
-void dt_colorlabels_remove_labels(const int imgid);
+void dt_colorlabels_remove_labels(const int32_t imgid);
 /** assign a color label to imgid - no undo no image group*/
-void dt_colorlabels_set_label(const int imgid, const int color);
+void dt_colorlabels_set_label(const int32_t imgid, const int color);
 /** assign a color label to image imgid or all selected for imgid == -1*/
 void dt_colorlabels_set_labels(GList *img, const int color, const gboolean clear_on,
                                const gboolean undo_on);
 /** assign a color label to the list of image*/
 void dt_colorlabels_toggle_label_on_list(GList *list, const int color, const gboolean undo_on);
 /** remove a color label from imgid */
-void dt_colorlabels_remove_label(const int imgid, const int color);
+void dt_colorlabels_remove_label(const int32_t imgid, const int color);
 /** get the name of the color for a given number (could be replaced by an array) */
 const char *dt_colorlabels_to_string(int label);
 /** check if an image has a color label */
-int dt_colorlabels_check_label(const int imgid, const int color);
+int dt_colorlabels_check_label(const int32_t imgid, const int color);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

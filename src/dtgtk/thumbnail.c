@@ -945,7 +945,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   return thumb->widget;
 }
 
-dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int imgid, int rowid,
+dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid,
                                  dt_thumbnail_overlay_t over, dt_thumbtable_t *table)
 {
   dt_thumbnail_t *thumb = calloc(1, sizeof(dt_thumbnail_t));

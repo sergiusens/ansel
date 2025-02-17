@@ -19,7 +19,7 @@
 #pragma once
 
 /** shows a dialog for creating a new style */
-void dt_gui_styles_dialog_new(int imgid);
+void dt_gui_styles_dialog_new(int32_t imgid);
 
 /** shows a dialog for editing existing style */
 void dt_gui_styles_dialog_edit(const char *name);
@@ -29,4 +29,3 @@ void dt_gui_styles_dialog_edit(const char *name);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

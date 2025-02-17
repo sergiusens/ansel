@@ -245,7 +245,7 @@ static gboolean dt_styles_create_style_header(const char *name, const char *desc
   return TRUE;
 }
 
-static void _dt_style_update_from_image(int id, int imgid, GList *filter, GList *update)
+static void _dt_style_update_from_image(int id, int32_t imgid, GList *filter, GList *update)
 {
   if(update && imgid != -1)
   {
@@ -630,7 +630,7 @@ void dt_styles_create_from_list(const GList *list)
   /* for each image create style */
   for(const GList *l = list; l; l = g_list_next(l))
   {
-    const int imgid = GPOINTER_TO_INT(l->data);
+    const int32_t imgid = GPOINTER_TO_INT(l->data);
     dt_gui_styles_dialog_new(imgid);
     selected = TRUE;
   }
@@ -926,7 +926,7 @@ void dt_styles_delete_by_name(const char *name)
   dt_styles_delete_by_name_adv(name, TRUE);
 }
 
-GList *dt_styles_get_item_list(const char *name, gboolean params, int imgid)
+GList *dt_styles_get_item_list(const char *name, gboolean params, int32_t imgid)
 {
   GList *result = NULL;
   sqlite3_stmt *stmt;

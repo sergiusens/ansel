@@ -60,12 +60,12 @@ uint32_t view(const dt_view_t *self)
   return DT_VIEW_PRINT;
 }
 
-static void _print_mipmaps_updated_signal_callback(gpointer instance, int imgid, gpointer user_data)
+static void _print_mipmaps_updated_signal_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
   dt_control_queue_redraw_center();
 }
 
-static void _film_strip_activated(const int imgid, void *data)
+static void _film_strip_activated(const int32_t imgid, void *data)
 {
   const dt_view_t *self = (dt_view_t *)data;
   dt_print_t *prt = (dt_print_t *)self->data;
@@ -113,7 +113,7 @@ static void _film_strip_activated(const int imgid, void *data)
   dt_control_queue_redraw();
 }
 
-static void _view_print_filmstrip_activate_callback(gpointer instance, int imgid, gpointer user_data)
+static void _view_print_filmstrip_activate_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
   if(imgid > 0) _film_strip_activated(imgid, user_data);
 }
@@ -313,7 +313,7 @@ int try_enter(dt_view_t *self)
 
   //  now check that there is at least one selected image
 
-  const int imgid = dt_selection_get_first_id(darktable.selection);
+  const int32_t imgid = dt_selection_get_first_id(darktable.selection);
   dt_view_active_images_reset(FALSE);
 
   if(imgid < 0)

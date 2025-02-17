@@ -335,9 +335,9 @@ void dt_dev_process_preview(dt_develop_t *dev);
 void dt_dev_refresh_ui_images_real(dt_develop_t *dev);
 #define dt_dev_refresh_ui_images(dev) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_DEV, dt_dev_refresh_ui_images_real, (dev))
 
-int dt_dev_load_image(dt_develop_t *dev, const uint32_t imgid);
+int dt_dev_load_image(dt_develop_t *dev, const int32_t imgid);
 /** checks if provided imgid is the image currently in develop */
-int dt_dev_is_current_image(dt_develop_t *dev, uint32_t imgid);
+int dt_dev_is_current_image(dt_develop_t *dev, int32_t imgid);
 
 
 // Force a full rebuild of the pipe, needed when module order is changed.

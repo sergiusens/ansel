@@ -65,7 +65,7 @@ static void _dt_collection_recount_callback_2(gpointer instance, const int32_t i
 static void _dt_collection_filmroll_imported_callback(gpointer instance, const int32_t id, gpointer user_data);
 
 /* determine image offset of specified imgid for the given collection */
-static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int imgid);
+static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int32_t imgid);
 /* update aspect ratio for the selected images */
 static void _collection_update_aspect_ratio(const dt_collection_t *collection);
 
@@ -769,7 +769,7 @@ static void _collection_update_aspect_ratio(const dt_collection_t *collection)
     double start = dt_get_wtime();
     while(sqlite3_step(stmt) == SQLITE_ROW)
     {
-      const int imgid = sqlite3_column_int(stmt, 0);
+      const int32_t imgid = sqlite3_column_int(stmt, 0);
       dt_image_set_raw_aspect_ratio(imgid);
 
       if(dt_get_wtime() - start > MAX_TIME)
@@ -1272,7 +1272,7 @@ GList *dt_collection_get(const dt_collection_t *collection, int limit, gboolean 
 
     while(sqlite3_step(stmt) == SQLITE_ROW)
     {
-      const int imgid = sqlite3_column_int(stmt, 0);
+      const int32_t imgid = sqlite3_column_int(stmt, 0);
       list = g_list_prepend(list, GINT_TO_POINTER(imgid));
     }
 
@@ -2537,7 +2537,7 @@ void dt_collection_hint_message(const dt_collection_t *collection)
   g_idle_add(dt_collection_hint_message_internal, message);
 }
 
-static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int imgid)
+static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int32_t imgid)
 {
   if(imgid == -1) return 0;
   int offset = 0;
@@ -2567,7 +2567,7 @@ static int dt_collection_image_offset_with_collection(const dt_collection_t *col
   return offset;
 }
 
-int dt_collection_image_offset(int imgid)
+int dt_collection_image_offset(int32_t imgid)
 {
   return dt_collection_image_offset_with_collection(darktable.collection, imgid);
 }

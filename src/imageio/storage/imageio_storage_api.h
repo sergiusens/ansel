@@ -66,7 +66,7 @@ OPTIONAL(int, initialize_store, struct dt_imageio_module_storage_t *self, struct
                                 struct dt_imageio_module_format_t **format, struct dt_imageio_module_data_t **fdata,
                                 GList **images, const gboolean high_quality);
 /* this actually does the work */
-REQUIRED(int, store, struct dt_imageio_module_storage_t *self, struct dt_imageio_module_data_t *self_data, const int imgid,
+REQUIRED(int, store, struct dt_imageio_module_storage_t *self, struct dt_imageio_module_data_t *self_data, const int32_t imgid,
                      struct dt_imageio_module_format_t *format, struct dt_imageio_module_data_t *fdata, const int num,
                      const int total, const gboolean high_quality, const gboolean export_masks,
                      const enum dt_colorspaces_color_profile_type_t icc_type, const gchar *icc_filename,

@@ -32,7 +32,7 @@ typedef enum dt_thumbtable_mode_t
 
 typedef struct dt_thumbtable_cache_t
 {
-  int imgid;
+  int32_t imgid;
   dt_thumbnail_t *thumb;
 } dt_thumbtable_cache_t;
 

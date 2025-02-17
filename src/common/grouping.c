@@ -144,7 +144,7 @@ GList *dt_grouping_get_group_images(const int32_t imgid)
 
       while(sqlite3_step(stmt) == SQLITE_ROW)
       {
-        const int image_id = sqlite3_column_int(stmt, 0);
+        const int32_t image_id = sqlite3_column_int(stmt, 0);
         imgs = g_list_prepend(imgs, GINT_TO_POINTER(image_id));
       }
       sqlite3_finalize(stmt);
@@ -181,7 +181,7 @@ void dt_grouping_add_grouped_images(GList **images)
 
         while(sqlite3_step(stmt) == SQLITE_ROW)
         {
-          const int image_id = sqlite3_column_int(stmt, 0);
+          const int32_t image_id = sqlite3_column_int(stmt, 0);
           if(image_id != GPOINTER_TO_INT(imgs->data))
             gimgs = g_list_prepend(gimgs, GINT_TO_POINTER(image_id));
         }

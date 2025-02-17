@@ -110,7 +110,7 @@ GList *dt_styles_get_list(const char *filter);
     if imgid != -1, then styles from the corresponding image are also reported if they are not already part of
    the style
 */
-GList *dt_styles_get_item_list(const char *name, gboolean params, int imgid);
+GList *dt_styles_get_item_list(const char *name, gboolean params, int32_t imgid);
 
 /** get list of items for a named style as a nice string */
 char *dt_styles_get_item_list_as_string(const char *name);

@@ -565,7 +565,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 }
 
 // load the raw and get the new image struct, blocking in gui thread
-static inline int _dt_dev_load_raw(dt_develop_t *dev, const uint32_t imgid)
+static inline int _dt_dev_load_raw(dt_develop_t *dev, const int32_t imgid)
 {
   // first load the raw, to make sure dt_image_t will contain all and correct data.
   dt_times_t start;
@@ -621,7 +621,7 @@ float dt_dev_get_zoom_scale(dt_develop_t *dev, dt_dev_zoom_t zoom, int closeup_f
   return zoom_scale;
 }
 
-int dt_dev_load_image(dt_develop_t *dev, const uint32_t imgid)
+int dt_dev_load_image(dt_develop_t *dev, const int32_t imgid)
 {
   if(_dt_dev_load_raw(dev, imgid)) return 1;
 
@@ -767,7 +767,7 @@ void dt_dev_get_pointer_zoom_pos(dt_develop_t *dev, const float px, const float 
   *zoom_y = zoom2_y;
 }
 
-int dt_dev_is_current_image(dt_develop_t *dev, uint32_t imgid)
+int dt_dev_is_current_image(dt_develop_t *dev, int32_t imgid)
 {
   return (dev->image_storage.id == imgid) ? 1 : 0;
 }

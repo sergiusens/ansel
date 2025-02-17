@@ -46,7 +46,7 @@ void dt_history_item_free(gpointer data)
   g_free(item);
 }
 
-static void _remove_preset_flag(const int imgid)
+static void _remove_preset_flag(const int32_t imgid)
 {
   dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
 
@@ -143,7 +143,7 @@ void dt_history_delete_on_image(int32_t imgid)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 }
 
-int dt_history_load_and_apply(const int imgid, gchar *filename, int history_only)
+int dt_history_load_and_apply(const int32_t imgid, gchar *filename, int history_only)
 {
   dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'w');
   if(img)
@@ -181,7 +181,7 @@ int dt_history_load_and_apply_on_list(gchar *filename, const GList *list)
   dt_undo_start_group(darktable.undo, DT_UNDO_LT_HISTORY);
   for(GList *l = (GList *)list; l; l = g_list_next(l))
   {
-    const int imgid = GPOINTER_TO_INT(l->data);
+    const int32_t imgid = GPOINTER_TO_INT(l->data);
     if(dt_history_load_and_apply(imgid, filename, 1)) res = 1;
   }
   dt_undo_end_group(darktable.undo);
@@ -520,7 +520,7 @@ int dt_history_compress_on_list(const GList *imgs)
   // Get the list of selected images
   for(const GList *l = imgs; l; l = g_list_next(l))
   {
-    const int imgid = GPOINTER_TO_INT(l->data);
+    const int32_t imgid = GPOINTER_TO_INT(l->data);
     const int test = dt_history_end_attop(imgid);
     if(test == 1) // we do a compression and we know for sure history_end is at the top!
     {
@@ -959,7 +959,7 @@ dt_history_hash_t dt_history_hash_get_status(const int32_t imgid)
   return status;
 }
 
-gboolean dt_history_copy(int imgid)
+gboolean dt_history_copy(int32_t imgid)
 {
   // note that this routine does not copy anything, it just setup the copy_paste proxy
   // with the needed information that will be used while pasting.
@@ -972,7 +972,7 @@ gboolean dt_history_copy(int imgid)
   return TRUE;
 }
 
-gboolean dt_history_copy_parts(int imgid)
+gboolean dt_history_copy_parts(int32_t imgid)
 {
   if(dt_history_copy(imgid))
   {
@@ -1053,7 +1053,7 @@ gboolean dt_history_delete_on_list(const GList *list, gboolean undo)
 
   for(GList *l = g_list_first((GList *)list); l; l = g_list_next(l))
   {
-    const int imgid = GPOINTER_TO_INT(l->data);
+    const int32_t imgid = GPOINTER_TO_INT(l->data);
     dt_undo_lt_history_t *hist = dt_history_snapshot_item_init();
 
     hist->imgid = imgid;

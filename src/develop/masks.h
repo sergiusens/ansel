@@ -382,9 +382,9 @@ dt_masks_form_t *dt_masks_get_from_id_ext(GList *forms, int id);
 dt_masks_form_t *dt_masks_get_from_id(dt_develop_t *dev, int id);
 
 /** read the forms from the db */
-void dt_masks_read_masks_history(dt_develop_t *dev, const int imgid);
+void dt_masks_read_masks_history(dt_develop_t *dev, const int32_t imgid);
 /** write the forms into the db */
-void dt_masks_write_masks_history_item(const int imgid, const int num, dt_masks_form_t *form);
+void dt_masks_write_masks_history_item(const int32_t imgid, const int num, dt_masks_form_t *form);
 void dt_masks_free_form(dt_masks_form_t *form);
 void dt_masks_cleanup_unused(dt_develop_t *dev);
 

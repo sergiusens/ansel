@@ -40,7 +40,7 @@ DT_MODULE(1)
 typedef struct dt_lib_duplicate_t
 {
   GtkWidget *duplicate_box;
-  int imgid;
+  int32_t imgid;
   gboolean busy;
   int cur_final_width;
   int cur_final_height;
@@ -80,7 +80,7 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
 
 static gboolean _lib_duplicate_caption_out_callback(GtkWidget *widget, GdkEvent *event, dt_lib_module_t *self)
 {
-  const int imgid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),"imgid"));
+  const int32_t imgid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget),"imgid"));
 
   // we write the content of the textbox to the caption field
   dt_metadata_set(imgid, "Xmp.darktable.version_name", gtk_entry_get_text(GTK_ENTRY(widget)), FALSE);
@@ -92,7 +92,7 @@ static gboolean _lib_duplicate_caption_out_callback(GtkWidget *widget, GdkEvent 
 static void _lib_duplicate_delete(GtkButton *button, dt_lib_module_t *self)
 {
   dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
-  const int imgid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "imgid"));
+  const int32_t imgid = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(button), "imgid"));
 
   if(imgid == darktable.develop->image_storage.id)
   {
@@ -124,7 +124,7 @@ static gboolean _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventB
 {
   dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)g_object_get_data(G_OBJECT(widget), "thumb");
-  const int imgid = thumb->imgid;
+  const int32_t imgid = thumb->imgid;
 
   if(event->button == 1)
   {
@@ -393,7 +393,7 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
     GtkWidget *hb = gtk_grid_new();
-    const int imgid = sqlite3_column_int(stmt, 1);
+    const int32_t imgid = sqlite3_column_int(stmt, 1);
     dt_thumbnail_t *thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, 0, DT_THUMBNAIL_OVERLAYS_NONE, NULL);
 
     thumb->disable_mouseover = TRUE;
@@ -473,7 +473,7 @@ static void _lib_duplicate_collection_changed(gpointer instance, dt_collection_c
   _lib_duplicate_init_callback(instance, self);
 }
 
-static void _lib_duplicate_mipmap_updated_callback(gpointer instance, int imgid, dt_lib_module_t *self)
+static void _lib_duplicate_mipmap_updated_callback(gpointer instance, int32_t imgid, dt_lib_module_t *self)
 {
   dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
   // we reset the final size of the current image

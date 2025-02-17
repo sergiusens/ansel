@@ -33,15 +33,15 @@ void dt_selection_invert(struct dt_selection_t *selection);
 /** clears the selection */
 void dt_selection_clear(struct dt_selection_t *selection);
 /** adds imgid to the current selection */
-void dt_selection_select(struct dt_selection_t *selection, uint32_t imgid);
+void dt_selection_select(struct dt_selection_t *selection, int32_t imgid);
 /** removes imgid from the current selection */
-void dt_selection_deselect(struct dt_selection_t *selection, uint32_t imgid);
+void dt_selection_deselect(struct dt_selection_t *selection, int32_t imgid);
 /** clears current selection and adds imgid */
-void dt_selection_select_single(struct dt_selection_t *selection, uint32_t imgid);
+void dt_selection_select_single(struct dt_selection_t *selection, int32_t imgid);
 /** toggles selection of image in the current selection */
-void dt_selection_toggle(struct dt_selection_t *selection, uint32_t imgid);
+void dt_selection_toggle(struct dt_selection_t *selection, int32_t imgid);
 /** selects images range last_single_id to imgid */
-void dt_selection_select_range(struct dt_selection_t *selection, uint32_t imgid);
+void dt_selection_select_range(struct dt_selection_t *selection, int32_t imgid);
 /** selects all images from current collection */
 void dt_selection_select_all(struct dt_selection_t *selection);
 /** selects all images from filmroll of last single selected image */
@@ -66,7 +66,7 @@ int dt_selection_get_length(struct dt_selection_t *selection);
 gchar *dt_selection_ids_to_string(struct dt_selection_t *selection);
 
 /* see if the imgid is known from the selection */
-gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, uint32_t imgid);
+gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, int32_t imgid);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -123,7 +123,7 @@ static void compress_history_callback()
 static void delete_history_callback()
 {
   if(!has_selection()) return;
-  
+
   GList *imgs = dt_act_on_get_images();
   if(!imgs) return;
 
@@ -270,7 +270,7 @@ static void load_xmp_callback()
   if(act_on_one)
   {
     //single image to load xmp to, assume we want to load from same dir
-    const int imgid = GPOINTER_TO_INT(imgs->data);
+    const int32_t imgid = GPOINTER_TO_INT(imgs->data);
     const dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'r');
     if(img && img->film_id != -1)
     {

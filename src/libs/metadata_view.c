@@ -604,7 +604,7 @@ static void _metadata_view_update_values(dt_lib_module_t *self)
 
   g_free(images);
 
-  int img_id = mouse_over_id;
+  int32_t img_id = mouse_over_id;
   const dt_image_t *img = dt_image_cache_get(darktable.image_cache, img_id, 'r');
 
   if(!img) goto fill_minuses;

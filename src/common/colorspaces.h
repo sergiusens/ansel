@@ -214,13 +214,13 @@ cmsHPROFILE dt_colorspaces_create_alternate_profile(const char *makermodel);
 int dt_colorspaces_get_darktable_matrix(const char *makermodel, float *matrix);
 
 /** return the work profile as set in colorin */
-const dt_colorspaces_color_profile_t *dt_colorspaces_get_work_profile(const int imgid);
+const dt_colorspaces_color_profile_t *dt_colorspaces_get_work_profile(const int32_t imgid);
 
 /** return the embedded profile of a particular image **/
-const cmsHPROFILE dt_colorspaces_get_embedded_profile(const int imgid, dt_colorspaces_color_profile_type_t *type, gboolean *new_profile);
+const cmsHPROFILE dt_colorspaces_get_embedded_profile(const int32_t imgid, dt_colorspaces_color_profile_type_t *type, gboolean *new_profile);
 
 /** return the output profile as set in colorout, taking export override into account if passed in. */
-const dt_colorspaces_color_profile_t *dt_colorspaces_get_output_profile(const int imgid,
+const dt_colorspaces_color_profile_t *dt_colorspaces_get_output_profile(const int32_t imgid,
                                                                         dt_colorspaces_color_profile_type_t *over_type,
                                                                         const char *over_filename);
 
@@ -310,7 +310,7 @@ static inline dt_colorspaces_color_profile_type_t sanitize_colorspaces(dt_colors
  * If false and output profile is returned, the profile returned already exists on the public list of profiles and should not be freed.
  * @return dt_colorspaces_color_profile_type_t type of profile detected. This type is tested internally and guaranteed to work.
  */
-dt_colorspaces_color_profile_type_t dt_image_find_best_color_profile(uint32_t imgid, cmsHPROFILE *output, gboolean *new_profile);
+dt_colorspaces_color_profile_type_t dt_image_find_best_color_profile(int32_t imgid, cmsHPROFILE *output, gboolean *new_profile);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

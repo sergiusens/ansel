@@ -32,7 +32,7 @@
 #endif
 
 /* creates a styles dialog, if edit equals true id=styleid else id=imgid */
-static void _gui_styles_dialog_run(gboolean edit, const char *name, int imgid);
+static void _gui_styles_dialog_run(gboolean edit, const char *name, int32_t imgid);
 
 typedef struct dt_gui_styles_dialog_t
 {
@@ -58,7 +58,7 @@ typedef enum _style_items_columns_t
 
 static int _single_selected_imgid()
 {
-  int imgid = -1;
+  int32_t imgid = -1;
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt,
                               NULL);
@@ -376,7 +376,7 @@ static void _gui_styles_update_toggled(GtkCellRendererToggle *cell, gchar *path_
   gtk_tree_path_free(path);
 }
 
-void dt_gui_styles_dialog_new(int imgid)
+void dt_gui_styles_dialog_new(int32_t imgid)
 {
   _gui_styles_dialog_run(FALSE, NULL, imgid);
 }
@@ -391,7 +391,7 @@ static gint _g_list_find_module_by_name(gconstpointer a, gconstpointer b)
   return strncmp(((dt_iop_module_t *)a)->op, b, strlen(((dt_iop_module_t *)a)->op));
 }
 
-static void _gui_styles_dialog_run(gboolean edit, const char *name, int imgid)
+static void _gui_styles_dialog_run(gboolean edit, const char *name, int32_t imgid)
 {
   char title[512];
 

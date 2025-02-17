@@ -278,7 +278,7 @@ static const char *mime(dt_imageio_module_data_t *data)
 
 static int write_image(dt_imageio_module_data_t *data, const char *filename, const void *in,
                        dt_colorspaces_color_profile_type_t over_type, const char *over_filename,
-                       void *exif, int exif_len, int imgid, int num, int total, dt_dev_pixelpipe_t *pipe,
+                       void *exif, int exif_len, int32_t imgid, int num, int total, dt_dev_pixelpipe_t *pipe,
                        const gboolean export_masks)
 {
   dt_print_format_t *d = (dt_print_format_t *)data;
@@ -506,7 +506,7 @@ static int _print_job_run(dt_job_t *job)
 
   // get first image on a box, needed as print leader
 
-  int imgid = -1;
+  int32_t imgid = -1;
 
   // compute the needed size for picture for the given printer resolution
 
@@ -647,7 +647,7 @@ static void _print_button_clicked(GtkWidget *widget, gpointer user_data)
   const dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_print_settings_t *ps = (dt_lib_print_settings_t *)self->data;
 
-  int imgid = -1;
+  int32_t imgid = -1;
 
   // at least one image on a box
 
@@ -1236,7 +1236,7 @@ static void _load_image_full_page(dt_lib_print_settings_t *ps, int32_t imgid)
   dt_control_queue_redraw_center();
 }
 
-static void _print_settings_activate_or_update_callback(gpointer instance, int imgid, gpointer user_data)
+static void _print_settings_activate_or_update_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
   const dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_print_settings_t *ps = (dt_lib_print_settings_t *)self->data;

@@ -149,7 +149,7 @@ typedef enum dt_view_image_over_t
 /** returns an uppercase string of file extension **plus** some flag information **/
 char* dt_view_extend_modes_str(const char * name, const gboolean is_hdr, const gboolean is_bw, const gboolean is_bw_flow);
 /** expose an image and return a cair0_surface. */
-dt_view_surface_value_t dt_view_image_get_surface(int imgid, int width, int height, cairo_surface_t **surface,
+dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
                                                   const gboolean quality);
 
 
@@ -252,7 +252,7 @@ typedef struct dt_view_manager_t
       gboolean (*remove_marker)(const dt_view_t *view, dt_geo_map_display_t type, GObject *marker);
       void (*add_location)(const dt_view_t *view, dt_map_location_data_t *p, const guint posid);
       void (*location_action)(const dt_view_t *view, const int action);
-      void (*drag_set_icon)(const dt_view_t *view, GdkDragContext *context, const int imgid, const int count);
+      void (*drag_set_icon)(const dt_view_t *view, GdkDragContext *context, const int32_t imgid, const int count);
       gboolean (*redraw)(gpointer user_data);
       gboolean (*display_selected)(gpointer user_data);
     } map;
@@ -332,8 +332,8 @@ void dt_view_filter_reset(const dt_view_manager_t *vm, gboolean smart_filter);
 // active images functions
 void dt_view_active_images_reset(gboolean raise);
 void dt_view_active_images_set(GList *images, gboolean raise);
-void dt_view_active_images_add(int imgid, gboolean raise);
-void dt_view_active_images_remove(int imgid, gboolean raise);
+void dt_view_active_images_add(int32_t imgid, gboolean raise);
+void dt_view_active_images_remove(int32_t imgid, gboolean raise);
 GList *dt_view_active_images_get_all();
 int32_t dt_view_active_images_get_first();
 
@@ -341,7 +341,7 @@ int32_t dt_view_active_images_get_first();
 dt_darkroom_layout_t dt_view_darkroom_get_layout(dt_view_manager_t *vm);
 
 /* audio */
-void dt_view_audio_start(dt_view_manager_t *vm, int imgid);
+void dt_view_audio_start(dt_view_manager_t *vm, int32_t imgid);
 void dt_view_audio_stop(dt_view_manager_t *vm);
 
 /*
@@ -356,7 +356,7 @@ GObject *dt_view_map_add_marker(const dt_view_manager_t *vm, dt_geo_map_display_
 gboolean dt_view_map_remove_marker(const dt_view_manager_t *vm, dt_geo_map_display_t type, GObject *marker);
 void dt_view_map_add_location(const dt_view_manager_t *vm, dt_map_location_data_t *p, const guint posid);
 void dt_view_map_location_action(const dt_view_manager_t *vm, const int action);
-void dt_view_map_drag_set_icon(const dt_view_manager_t *vm, GdkDragContext *context, const int imgid, const int count);
+void dt_view_map_drag_set_icon(const dt_view_manager_t *vm, GdkDragContext *context, const int32_t imgid, const int count);
 #endif
 
 /*

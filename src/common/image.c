@@ -83,7 +83,7 @@ typedef struct dt_undo_duplicate_t
   int32_t new_imgid;
 } dt_undo_duplicate_t;
 
-static void _pop_undo_execute(const int imgid, const gboolean before, const gboolean after);
+static void _pop_undo_execute(const int32_t imgid, const gboolean before, const gboolean after);
 static int32_t _image_duplicate_with_version(const int32_t imgid, const int32_t newversion, const gboolean undo);
 static void _pop_undo(gpointer user_data, const dt_undo_type_t type, dt_undo_data_t data, const dt_undo_action_t action, GList **imgs);
 
@@ -123,7 +123,7 @@ static int64_t create_next_image_position()
   return (max_image_position() & 0xFFFFFFFF00000000) + (1ll << 32);
 }
 
-static void _image_local_copy_full_path(const int imgid, char *pathname, size_t pathname_len);
+static void _image_local_copy_full_path(const int32_t imgid, char *pathname, size_t pathname_len);
 
 int dt_image_is_ldr(const dt_image_t *img)
 {
@@ -2589,7 +2589,7 @@ void dt_image_synch_all_xmp(const gchar *pathname)
 {
   if(dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER)
   {
-    const int imgid = dt_image_get_id_full_path(pathname);
+    const int32_t imgid = dt_image_get_id_full_path(pathname);
     if(imgid != -1)
     {
       dt_image_write_sidecar_file(imgid);

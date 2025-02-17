@@ -43,12 +43,12 @@ typedef struct dt_geo_position_t
 {
   double x, y;
   int cluster_id;
-  int imgid;
+  int32_t imgid;
 } dt_geo_position_t;
 
 typedef struct dt_map_image_t
 {
-  gint imgid;
+  int32_t imgid;
   double latitude;
   double longitude;
   int group;
@@ -137,7 +137,7 @@ static void _view_map_add_location(const dt_view_t *view, dt_map_location_data_t
 static void _view_map_location_action(const dt_view_t *view, const int action);
 /* proxy function to provide a drag context icon */
 static void _view_map_drag_set_icon(const dt_view_t *self, GdkDragContext *context,
-                             const int imgid, const int count);
+                             const int32_t imgid, const int count);
 
 /* callback when the collection changes */
 static void _view_map_collection_changed(gpointer instance, dt_collection_change_t query_change,
@@ -150,7 +150,7 @@ static void _view_map_geotag_changed(gpointer instance, GList *imgs, const int l
 /* update the geotag information on location tag */
 static void _view_map_update_location_geotag(dt_view_t *self);
 /* callback when an image is selected in filmstrip, centers map */
-static void _view_map_filmstrip_activate_callback(gpointer instance, int imgid, gpointer user_data);
+static void _view_map_filmstrip_activate_callback(gpointer instance, int32_t imgid, gpointer user_data);
 /* callback when an image is dropped from filmstrip */
 static void _drag_and_drop_received(GtkWidget *widget, GdkDragContext *context, gint x, gint y,
                                     GtkSelectionData *selection_data, guint target_type, guint time,
@@ -1113,7 +1113,7 @@ static void _view_map_update_location_geotag(dt_view_t *self)
   }
 }
 
-static GdkPixbuf *_draw_image(const int imgid, int *width, int *height,
+static GdkPixbuf *_draw_image(const int32_t imgid, int *width, int *height,
                               const int group_count, const gboolean group_same_loc,
                               const uint32_t frame, const gboolean blocking,
                               const int thumbnail, dt_view_t *self)
@@ -1494,7 +1494,7 @@ static GList *_view_map_get_imgs_at_pos(dt_view_t *self, const float x, const fl
 {
   dt_map_t *lib = (dt_map_t *)self->data;
   GList *imgs = NULL;
-  int imgid = -1;
+  int32_t imgid = -1;
   dt_map_image_t *entry = NULL;
 
   for(const GSList *iter = lib->images; iter; iter = g_slist_next(iter))
@@ -1629,7 +1629,7 @@ static gboolean _display_next_image(dt_view_t *self, dt_map_image_t *entry, cons
 }
 
 static void _view_map_drag_set_icon(const dt_view_t *self, GdkDragContext *context,
-                                    const int imgid, const int count)
+                                    const int32_t imgid, const int count)
 {
   dt_map_t *lib = (dt_map_t *)self->data;
   int height;
@@ -2344,7 +2344,7 @@ static gboolean _view_map_remove_track(const dt_view_t *view, OsmGpsMapTrack *tr
 static OsmGpsMapImage *_view_map_draw_single_image(const dt_view_t *view, GList *points)
 {
   dt_map_t *lib = (dt_map_t *)view->data;
-  struct {uint32_t imgid; float latitude; float longitude; int count;} *p;
+  struct {int32_t imgid; float latitude; float longitude; int count;} *p;
   p = points->data;
   GdkPixbuf *thumb = _draw_image(p->imgid, NULL, NULL, p->count, TRUE,
                                  thumb_frame_gpx_color, TRUE, DT_MAP_THUMB_THUMB, (dt_view_t *)view);
@@ -2579,7 +2579,7 @@ static gboolean _view_map_center_on_image_list(dt_view_t *self, const char* tabl
     return FALSE;
 }
 
-static void _view_map_filmstrip_activate_callback(gpointer instance, int imgid, gpointer user_data)
+static void _view_map_filmstrip_activate_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
   dt_view_t *self = (dt_view_t *)user_data;
   _view_map_center_on_image(self, imgid);
@@ -2687,7 +2687,7 @@ static void _view_map_dnd_get_callback(GtkWidget *widget, GdkDragContext *contex
     {
       if(lib->selected_images)
       {
-        const int imgid = GPOINTER_TO_INT(lib->selected_images->data);
+        const int32_t imgid = GPOINTER_TO_INT(lib->selected_images->data);
         gchar pathname[PATH_MAX] = { 0 };
         gboolean from_cache = TRUE;
         dt_image_full_path(imgid,  pathname,  sizeof(pathname),  &from_cache, __FUNCTION__);

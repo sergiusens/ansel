@@ -83,7 +83,7 @@ static int tag_index(lua_State *L)
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, tagid);
   if(sqlite3_step(stmt) == SQLITE_ROW)
   {
-    int imgid = sqlite3_column_int(stmt, 0);
+    int32_t imgid = sqlite3_column_int(stmt, 0);
     luaA_push(L, dt_lua_image_t, &imgid);
   }
   else
@@ -270,7 +270,7 @@ int dt_lua_tag_get_tagged_images(lua_State *L)
   lua_newtable(L);
   while(rv == SQLITE_ROW)
   {
-    int imgid = sqlite3_column_int(stmt, 0);
+    int32_t imgid = sqlite3_column_int(stmt, 0);
     luaA_push(L, dt_lua_image_t, &imgid);
     lua_seti(L, -2, table_index);
     table_index++;
@@ -340,4 +340,3 @@ int dt_lua_init_tags(lua_State *L)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

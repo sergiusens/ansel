@@ -494,7 +494,7 @@ static boolean read_icc_profile(j_decompress_ptr dinfo, JOCTET **icc_data_ptr, u
 
 int dt_imageio_jpeg_write_with_icc_profile(const char *filename, const uint8_t *in, const int width,
                                            const int height, const int quality, const void *exif, int exif_len,
-                                           int imgid)
+                                           int32_t imgid)
 {
   struct dt_imageio_jpeg_error_mgr jerr;
   dt_imageio_jpeg_t jpg;

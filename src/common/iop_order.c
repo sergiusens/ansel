@@ -1765,7 +1765,7 @@ static GList *_get_fence_modules_list(GList *iop_list)
   return g_list_reverse(fences);  // list was built in reverse order, so un-reverse it
 }
 
-static void _ioppr_check_rules(GList *iop_list, const int imgid, const char *msg)
+static void _ioppr_check_rules(GList *iop_list, const int32_t imgid, const char *msg)
 {
   // check for IOP_FLAGS_FENCE on each module
   // create a list of fences modules
@@ -1902,7 +1902,7 @@ void dt_ioppr_insert_module_instance(struct dt_develop_t *dev, dt_iop_module_t *
   dev->iop_order_list = g_list_insert_before(dev->iop_order_list, place, entry);
 }
 
-int dt_ioppr_check_iop_order(dt_develop_t *dev, const int imgid, const char *msg)
+int dt_ioppr_check_iop_order(dt_develop_t *dev, const int32_t imgid, const char *msg)
 {
   int iop_order_ok = 1;
 

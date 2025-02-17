@@ -198,7 +198,7 @@ void dt_metadata_init()
 
 typedef struct dt_undo_metadata_t
 {
-  int imgid;
+  int32_t imgid;
   GList *before;      // list of key/value before
   GList *after;       // list of key/value after
 } dt_undo_metadata_t;
@@ -298,7 +298,7 @@ static void _bulk_add_metadata(gchar *metadata_list)
   }
 }
 
-static void _pop_undo_execute(const int imgid, GList *before, GList *after)
+static void _pop_undo_execute(const int32_t imgid, GList *before, GList *after)
 {
   gchar *tobe_removed_list = _get_tb_removed_metadata_string_values(before, after);
   gchar *tobe_added_list = _get_tb_added_metadata_string_values(imgid, before, after);
@@ -560,7 +560,7 @@ static void _metadata_execute(const GList *imgs, const GList *metadata, GList **
 {
   for(const GList *images = imgs; images; images = g_list_next(images))
   {
-    const int image_id = GPOINTER_TO_INT(images->data);
+    const int32_t image_id = GPOINTER_TO_INT(images->data);
 
     dt_undo_metadata_t *undometadata = (dt_undo_metadata_t *)malloc(sizeof(dt_undo_metadata_t));
     undometadata->imgid = image_id;
@@ -592,7 +592,7 @@ static void _metadata_execute(const GList *imgs, const GList *metadata, GList **
   }
 }
 
-void dt_metadata_set(const int imgid, const char *key, const char *value, const gboolean undo_on)
+void dt_metadata_set(const int32_t imgid, const char *key, const char *value, const gboolean undo_on)
 {
   if(!key || !imgid) return;
 
@@ -628,7 +628,7 @@ void dt_metadata_set(const int imgid, const char *key, const char *value, const 
   }
 }
 
-void dt_metadata_set_import(const int imgid, const char *key, const char *value)
+void dt_metadata_set_import(const int32_t imgid, const char *key, const char *value)
 {
   if(!key || !imgid || imgid == -1) return;
 
@@ -777,7 +777,7 @@ int dt_metadata_already_imported(const char *filename, const char *datetime)
                               "SELECT id FROM main.meta_data WHERE value=?1",
                               -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 1, id, -1, SQLITE_TRANSIENT);
-  int imgid = -1;
+  int32_t imgid = -1;
   if(sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_int(stmt, 0) > -1)
     imgid = sqlite3_column_int(stmt, 0);
   sqlite3_finalize(stmt);

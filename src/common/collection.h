@@ -273,7 +273,7 @@ void dt_collection_update_query(const dt_collection_t *collection, dt_collection
 void dt_collection_hint_message(const dt_collection_t *collection);
 
 /** returns the image offset in the collection */
-int dt_collection_image_offset(int imgid);
+int dt_collection_image_offset(int32_t imgid);
 
 /* serialize and deserialize into a string. */
 void dt_collection_deserialize(const char *buf);

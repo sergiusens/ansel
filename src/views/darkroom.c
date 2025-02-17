@@ -79,7 +79,7 @@ DT_MODULE(1)
 static void _update_softproof_gamut_checking(dt_develop_t *d);
 
 /* signal handler for filmstrip image switching */
-static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int imgid, gpointer user_data);
+static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int32_t imgid, gpointer user_data);
 
 static void _dev_change_image(dt_view_t *self, const int32_t imgid);
 

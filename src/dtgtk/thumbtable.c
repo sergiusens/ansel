@@ -182,7 +182,7 @@ static gboolean _set_thumb_position(dt_thumbtable_t *table, dt_thumbnail_t *thum
   return TRUE;
 }
 
-static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int imgid)
+static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->collection_inited || imgid < 0) return 1;
 
@@ -573,7 +573,7 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
   dt_pthread_mutex_unlock(&table->lock);
 }
 
-static void _dt_mipmaps_updated_callback(gpointer instance, int imgid, gpointer user_data)
+static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
@@ -600,7 +600,7 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
   dt_pthread_mutex_lock(&table->lock);
   for(GList *i = g_list_first(imgs); i; i = g_list_next(i))
   {
-    const int imgid_to_update = GPOINTER_TO_INT(i->data);
+    const int32_t imgid_to_update = GPOINTER_TO_INT(i->data);
     for(GList *l = table->list; l; l = g_list_next(l))
     {
       dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
@@ -877,7 +877,7 @@ void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
   gtk_widget_queue_draw(table->grid);
 }
 
-int _imgid_to_rowid(dt_thumbtable_t *table, int imgid)
+int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->lut) return -1;
 
@@ -995,7 +995,7 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
   // and use the mouse_over as a fall-back only.
   // Key events are "knobby", therefore more reliale than "hover",
   // so they always take precedence.
-  int imgid = dt_control_get_keyboard_over_id();
+  int32_t imgid = dt_control_get_keyboard_over_id();
   if(imgid < 0) imgid = dt_control_get_mouse_over_id();
   if(imgid < 0) imgid = dt_selection_get_first_id(darktable.selection);
   if(imgid < 0 && table->lut)

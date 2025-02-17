@@ -35,7 +35,7 @@
 
 typedef struct dt_undo_ratings_t
 {
-  int imgid;
+  int32_t imgid;
   int before;
   int after;
 } dt_undo_ratings_t;
@@ -63,7 +63,7 @@ char *dt_ratings_get_name(const int rating)
   }
 }
 
-int dt_ratings_get(const int imgid)
+int dt_ratings_get(const int32_t imgid)
 {
   int stars = 0;
   dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
@@ -78,7 +78,7 @@ int dt_ratings_get(const int imgid)
   return stars;
 }
 
-static void _ratings_apply_to_image(const int imgid, const int rating)
+static void _ratings_apply_to_image(const int32_t imgid, const int rating)
 {
   int new_rating = rating;
   dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
@@ -147,7 +147,7 @@ static void _ratings_apply(GList *imgs, const int rating, GList **undo, const gb
 
   for(const GList *images = g_list_first(imgs); images; images = g_list_next(images))
   {
-    const int image_id = GPOINTER_TO_INT(images->data);
+    const int32_t image_id = GPOINTER_TO_INT(images->data);
     const int old_rating = dt_ratings_get(image_id);
     if(undo_on)
     {
@@ -199,7 +199,7 @@ void dt_ratings_apply_on_list(GList *img, const int rating, const gboolean undo_
   }
 }
 
-void dt_ratings_apply_on_image(const int imgid, const int rating, const gboolean single_star_toggle,
+void dt_ratings_apply_on_image(const int32_t imgid, const int rating, const gboolean single_star_toggle,
                                const gboolean undo_on, const gboolean group_on)
 {
   GList *imgs = NULL;

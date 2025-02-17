@@ -57,7 +57,7 @@ int dt_imageio_jpeg_write(const char *filename, const uint8_t *in, const int wid
 /** this will collect the images icc profile (or the global export override) and append it during write. */
 int dt_imageio_jpeg_write_with_icc_profile(const char *filename, const uint8_t *in, const int width,
                                            const int height, const int quality, const void *exif, int exif_len,
-                                           int imgid);
+                                           int32_t imgid);
 /** read jpeg header from file, leave file descriptor open until jpeg_read is called. */
 int dt_imageio_jpeg_read_header(const char *filename, dt_imageio_jpeg_t *jpg);
 /** reads the jpeg to the (sufficiently allocated) buffer, closes file. */
@@ -75,4 +75,3 @@ dt_imageio_retval_t dt_imageio_open_jpeg(dt_image_t *img, const char *filename, 
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

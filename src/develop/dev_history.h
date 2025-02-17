@@ -62,11 +62,11 @@ void dt_dev_add_history_item_real(struct dt_develop_t *dev, struct dt_iop_module
 void dt_dev_reload_history_items(struct dt_develop_t *dev);
 void dt_dev_pop_history_items_ext(struct dt_develop_t *dev, int32_t cnt);
 void dt_dev_pop_history_items(struct dt_develop_t *dev, int32_t cnt);
-void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int imgid);
-void dt_dev_write_history_end_ext(const int history_end, const int imgid);
+void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int32_t imgid);
+void dt_dev_write_history_end_ext(const int history_end, const int32_t imgid);
 void dt_dev_write_history(struct dt_develop_t *dev);
-int dt_dev_write_history_item(const int imgid, dt_dev_history_item_t *h, int32_t num);
-void dt_dev_read_history_ext(struct dt_develop_t *dev, const int imgid, gboolean no_image);
+int dt_dev_write_history_item(const int32_t imgid, dt_dev_history_item_t *h, int32_t num);
+void dt_dev_read_history_ext(struct dt_develop_t *dev, const int32_t imgid, gboolean no_image);
 void dt_dev_read_history(struct dt_develop_t *dev);
 void dt_dev_free_history_item(gpointer data);
 void dt_dev_invalidate_history_module(GList *list, struct dt_iop_module_t *module);
