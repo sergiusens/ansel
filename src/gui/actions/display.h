@@ -418,13 +418,13 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
   parent = get_last_widget(lists);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Always hide"), index, NULL,
-                         always_hide_overlays_callback, always_hide_overlays_checked_callback, NULL, NULL, 0, 0);
+                         always_hide_overlays_callback, always_hide_overlays_checked_callback, NULL, NULL, GDK_KEY_h, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Show on hover"), index, NULL,
                          hover_overlays_callback, hover_overlays_checked_callback, NULL, NULL, 0, 0);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Always show"), index, NULL,
-                         always_show_overlays_callback, always_show_overlays_checked_callback, NULL, NULL, 0, 0);
+                         always_show_overlays_callback, always_show_overlays_checked_callback, NULL, NULL, GDK_KEY_o, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL, 0, 0);
 
