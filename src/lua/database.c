@@ -52,7 +52,7 @@ int dt_lua_delete_image(lua_State *L)
 
 int dt_lua_move_image(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   dt_lua_film_t filmid = -1;
   if(luaL_testudata(L, 1, "dt_lua_image_t"))
   {
@@ -78,7 +78,7 @@ int dt_lua_move_image(lua_State *L)
 
 int dt_lua_copy_image(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   dt_lua_film_t filmid = -1;
   if(luaL_testudata(L, 1, "dt_lua_image_t"))
   {

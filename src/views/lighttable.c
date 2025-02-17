@@ -88,7 +88,7 @@ uint32_t view(const dt_view_t *self)
 
 static int set_image_visible_cb(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   dt_view_t *self = lua_touserdata(L, lua_upvalueindex(1));  //check were in lighttable view
   if(view(self) == DT_VIEW_LIGHTTABLE)
   {
@@ -108,7 +108,7 @@ static int set_image_visible_cb(lua_State *L)
 
 static gboolean is_image_visible_cb(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   dt_view_t *self = lua_touserdata(L, lua_upvalueindex(1));  //check were in lighttable view
   //check we are in file manager or zoomable
   if(view(self) == DT_VIEW_LIGHTTABLE)

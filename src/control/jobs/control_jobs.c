@@ -2088,7 +2088,7 @@ gchar *dt_build_filename_from_pattern(const char *const filename, const int inde
   params->filename = g_strdup(filename);
   params->sequence = index;
   params->jobcode = g_strdup(data->jobcode);
-  params->imgid = -1;
+  params->imgid = UNKNOWN_IMAGE;
   params->img = img;
   dt_variables_set_datetime(params, data->datetime);
 

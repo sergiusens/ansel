@@ -132,6 +132,9 @@ char *dt_version_major_minor();
 #define DT_RESTRICT restrict
 #endif
 
+// Default code for imgid meaning the picture is unknown or invalid
+#define UNKNOWN_IMAGE -1
+
 
 /********************************* */
 

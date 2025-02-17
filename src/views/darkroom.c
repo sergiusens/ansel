@@ -336,7 +336,7 @@ void expose(
   const float backbuf_scale = dt_dev_get_zoom_scale(dev, zoom, 1.0f, 0) * darktable.gui->ppd;
 
   static cairo_surface_t *image_surface = NULL;
-  static int image_surface_width = 0, image_surface_height = 0, image_surface_imgid = -1;
+  static int image_surface_width = 0, image_surface_height = 0, image_surface_imgid = UNKNOWN_IMAGE;
 
   if(image_surface_width != width || image_surface_height != height || image_surface == NULL)
   {
@@ -345,7 +345,7 @@ void expose(
     image_surface_height = height;
     if(image_surface) cairo_surface_destroy(image_surface);
     image_surface = dt_cairo_image_surface_create(CAIRO_FORMAT_RGB24, width, height);
-    image_surface_imgid = -1; // invalidate old stuff
+    image_surface_imgid = UNKNOWN_IMAGE; // invalidate old stuff
   }
   cairo_surface_t *surface;
   cairo_t *cr = cairo_create(image_surface);

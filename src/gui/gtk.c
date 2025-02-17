@@ -593,7 +593,7 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   gui->grouping = dt_conf_get_bool("ui_last/grouping");
   gui->culling_mode = FALSE;
   gui->selection_stacked = FALSE;
-  gui->anchor_imgid = 0;
+  gui->anchor_imgid = UNKNOWN_IMAGE;
   gui->expanded_group_id = -1;
   gui->show_overlays = dt_conf_get_bool("lighttable/ui/expose_statuses");
   gui->presets_popup_menu = NULL;

@@ -586,7 +586,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
   g_free(basename);
 
   /* If alread imported, find out where */
-  int32_t imgid = -1;
+  int32_t imgid = UNKNOWN_IMAGE;
   if(is_path_in_lib > -1)
     imgid = is_path_in_lib;
   else if(is_metadata_in_lib > -1)

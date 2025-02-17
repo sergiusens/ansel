@@ -176,7 +176,7 @@ static int tag_delete(lua_State *L)
 
 int dt_lua_tag_attach(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   dt_lua_tag_t tagid = 0;
   if(luaL_testudata(L, 1, "dt_lua_image_t"))
   {

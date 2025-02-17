@@ -58,7 +58,7 @@ typedef enum _style_items_columns_t
 
 static int _single_selected_imgid()
 {
-  int32_t imgid = -1;
+  int32_t imgid = UNKNOWN_IMAGE;
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1, &stmt,
                               NULL);
@@ -68,7 +68,7 @@ static int _single_selected_imgid()
       imgid = sqlite3_column_int(stmt, 0);
     else
     {
-      imgid = -1;
+      imgid = UNKNOWN_IMAGE;
       break;
     }
   }

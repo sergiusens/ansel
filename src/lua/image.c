@@ -85,7 +85,7 @@ void dt_lua_image_push(lua_State *L, int32_t imgid)
 
 static int history_delete(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   luaA_to(L, dt_lua_image_t, &imgid, -1);
   dt_history_delete_on_image(imgid);
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
@@ -94,7 +94,7 @@ static int history_delete(lua_State *L)
 
 static int drop_cache(lua_State *L)
 {
-  dt_lua_image_t imgid = -1;
+  dt_lua_image_t imgid = UNKNOWN_IMAGE;
   luaA_to(L, dt_lua_image_t, &imgid, -1);
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
   return 0;

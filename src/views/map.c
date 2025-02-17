@@ -1494,7 +1494,7 @@ static GList *_view_map_get_imgs_at_pos(dt_view_t *self, const float x, const fl
 {
   dt_map_t *lib = (dt_map_t *)self->data;
   GList *imgs = NULL;
-  int32_t imgid = -1;
+  int32_t imgid = UNKNOWN_IMAGE;
   dt_map_image_t *entry = NULL;
 
   for(const GSList *iter = lib->images; iter; iter = g_slist_next(iter))

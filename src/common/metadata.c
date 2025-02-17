@@ -777,7 +777,7 @@ int dt_metadata_already_imported(const char *filename, const char *datetime)
                               "SELECT id FROM main.meta_data WHERE value=?1",
                               -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 1, id, -1, SQLITE_TRANSIENT);
-  int32_t imgid = -1;
+  int32_t imgid = UNKNOWN_IMAGE;
   if(sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_int(stmt, 0) > -1)
     imgid = sqlite3_column_int(stmt, 0);
   sqlite3_finalize(stmt);

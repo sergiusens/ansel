@@ -1918,7 +1918,7 @@ void gui_init(dt_lib_module_t *self)
     _update_layout(self);
   }
 #endif
-  d->imgid = 0;
+  d->imgid = UNKNOWN_IMAGE;
   d->datetime = d->datetime0 = _get_image_datetime(self);
   if(d->datetime)
     g_date_time_ref(d->datetime);

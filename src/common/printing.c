@@ -26,7 +26,7 @@ void _clear_pos(dt_image_pos *pos)
 
 void dt_printing_clear_box(dt_image_box *img)
 {
-  img->imgid = -1;
+  img->imgid = UNKNOWN_IMAGE;
   img->max_width = img->max_height = 0;
   img->exp_width = img->exp_height = 0;
   img->dis_width = img->dis_height = 0;

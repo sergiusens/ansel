@@ -506,7 +506,7 @@ static int _print_job_run(dt_job_t *job)
 
   // get first image on a box, needed as print leader
 
-  int32_t imgid = -1;
+  int32_t imgid = UNKNOWN_IMAGE;
 
   // compute the needed size for picture for the given printer resolution
 
@@ -647,7 +647,7 @@ static void _print_button_clicked(GtkWidget *widget, gpointer user_data)
   const dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_print_settings_t *ps = (dt_lib_print_settings_t *)self->data;
 
-  int32_t imgid = -1;
+  int32_t imgid = UNKNOWN_IMAGE;
 
   // at least one image on a box
 
@@ -1621,7 +1621,7 @@ int button_pressed(struct dt_lib_module_t *self, double x, double y, double pres
 
     // if image present remove it, otherwise remove the box
     if(b->imgid != -1)
-      b->imgid = -1;
+      b->imgid = UNKNOWN_IMAGE;
     else
       _page_delete_area(self, ps->selected);
 
