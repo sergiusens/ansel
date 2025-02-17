@@ -459,6 +459,12 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_name(d->culling, "quickfilter-culling");
   dt_gui_add_class(hbox, "quick_filter_box");
 
+  gchar *path = dt_accels_build_path(_("Lighttable/Actions"), _("Toggle culling mode"));
+  dt_accels_new_widget_shortcut(darktable.gui->accels, d->culling, "activate",
+                                darktable.gui->accels->lighttable_accels, path, GDK_KEY_s, GDK_CONTROL_MASK,
+                                FALSE);
+  g_free(path);
+
   /* sort combobox */
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
