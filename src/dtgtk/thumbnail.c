@@ -48,12 +48,6 @@
  * some callbacks/handlers can be left hanging, still record events, but send them
  * to non-existing objects. This is why we need to ensure user_data is not NULL everywhere.
  */
-
-
-// Because thumbs are inited/used/destroyed dynamically and Gtk events may be dispatched
-// from different threads or complete at weird times, we need to check everywhere that
-// we still have a thumb objects to update. If not, no big deal, because it's only a view
-// and no critical data is held there.
 #define thumb_return_if_fails(thumb, ...) { if(!thumb || !thumb->widget) return  __VA_ARGS__; }
 
 static void _thumb_resize_overlays(dt_thumbnail_t *thumb);
