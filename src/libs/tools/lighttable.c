@@ -42,8 +42,8 @@ typedef struct dt_lib_tool_lighttable_t
 } dt_lib_tool_lighttable_t;
 
 /* set zoom proxy function */
-static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom);
-static gint _lib_lighttable_get_zoom(dt_lib_module_t *self);
+//static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom);
+//static gint _lib_lighttable_get_zoom(dt_lib_module_t *self);
 
 /* zoom slider change callback */
 static void _lib_lighttable_zoom_slider_changed(GtkRange *range, gpointer user_data);
@@ -119,9 +119,6 @@ void gui_init(dt_lib_module_t *self)
   _lib_lighttable_zoom_slider_changed(GTK_RANGE(d->zoom), self); // the slider defaults to 1 and GTK doesn't
                                                                  // fire a value-changed signal when setting
                                                                  // it to 1 => empty text box
-  darktable.view_manager->proxy.lighttable.module = self;
-  darktable.view_manager->proxy.lighttable.set_zoom = _lib_lighttable_set_zoom;
-  darktable.view_manager->proxy.lighttable.get_zoom = _lib_lighttable_get_zoom;
 }
 
 void gui_cleanup(dt_lib_module_t *self)
@@ -214,6 +211,7 @@ static gboolean _lib_lighttable_zoom_entry_changed(GtkWidget *entry, GdkEventKey
   }
 }
 
+#if 0
 static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
@@ -226,6 +224,7 @@ static gint _lib_lighttable_get_zoom(dt_lib_module_t *self)
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   return d->current_zoom;
 }
+#endif
 
 #ifdef USE_LUA
 

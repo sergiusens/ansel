@@ -239,15 +239,6 @@ typedef struct dt_view_manager_t
       dt_darkroom_layout_t (*get_layout)(struct dt_view_t *view);
     } darkroom;
 
-    /* lighttable view proxy object */
-    struct
-    {
-      struct dt_lib_module_t *module;
-      struct dt_view_t *view;
-      void (*set_zoom)(struct dt_lib_module_t *module, gint zoom);
-      gint (*get_zoom)(struct dt_lib_module_t *module);
-    } lighttable;
-
 /* map view proxy object */
 #ifdef HAVE_MAP
     struct
@@ -348,14 +339,6 @@ int32_t dt_view_active_images_get_first();
 
 /** get the darkroom current layout */
 dt_darkroom_layout_t dt_view_darkroom_get_layout(dt_view_manager_t *vm);
-/** get the lighttable full preview state */
-gboolean dt_view_lighttable_preview_state(dt_view_manager_t *vm);
-/** set the lighttable full preview state */
-void dt_view_lighttable_set_preview_state(dt_view_manager_t *vm, gboolean state, gboolean focus);
-/** sets the lighttable image in row zoom */
-void dt_view_lighttable_set_zoom(dt_view_manager_t *vm, gint zoom);
-/** gets the lighttable image in row zoom */
-gint dt_view_lighttable_get_zoom(dt_view_manager_t *vm);
 
 /* audio */
 void dt_view_audio_start(dt_view_manager_t *vm, int imgid);

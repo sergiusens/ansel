@@ -171,8 +171,6 @@ void enter(dt_view_t *self)
 void init(dt_view_t *self)
 {
   self->data = calloc(1, sizeof(dt_library_t));
-  darktable.view_manager->proxy.lighttable.view = self;
-
   // ensure the memory table is up to date
   dt_collection_memory_update();
 
@@ -213,73 +211,6 @@ void leave(dt_view_t *self)
 void reset(dt_view_t *self)
 {
   dt_control_set_mouse_over_id(-1);
-}
-
-
-#if 0
-static void zoom_in_callback(dt_action_t *action)
-{
-  int zoom = dt_view_lighttable_get_zoom(darktable.view_manager);
-
-  zoom--;
-  if(zoom < 1) zoom = 1;
-
-  dt_view_lighttable_set_zoom(darktable.view_manager, zoom);
-}
-
-static void zoom_out_callback(dt_action_t *action)
-{
-  int zoom = dt_view_lighttable_get_zoom(darktable.view_manager);
-
-  zoom++;
-  if(zoom > 2 * DT_LIGHTTABLE_MAX_ZOOM) zoom = 2 * DT_LIGHTTABLE_MAX_ZOOM;
-
-  dt_view_lighttable_set_zoom(darktable.view_manager, zoom);
-}
-
-static void zoom_max_callback(dt_action_t *action)
-{
-  dt_view_lighttable_set_zoom(darktable.view_manager, 1);
-}
-
-static void zoom_min_callback(dt_action_t *action)
-{
-  dt_view_lighttable_set_zoom(darktable.view_manager, DT_LIGHTTABLE_MAX_ZOOM);
-}
-
-static void _accel_reset_first_offset(dt_action_t *action)
-{
-  dt_thumbtable_reset_first_offset(dt_ui_thumbtable(darktable.gui->ui));
-}
-
-static void _accel_select_toggle(dt_action_t *action)
-{
-  const int32_t id = dt_control_get_mouse_over_id();
-  dt_selection_toggle(darktable.selection, id);
-}
-
-static void _accel_open_single(dt_action_t *action)
-{
-  const int32_t id = dt_control_get_mouse_over_id();
-  dt_selection_select_single(darktable.selection, id);
-  if(id > 0) dt_view_manager_switch(darktable.view_manager, "darkroom");
-}
-#endif
-
-void gui_init(dt_view_t *self)
-{
-#if 0
-  dt_action_register(self, N_("reset first image offset"), _accel_reset_first_offset, 0, 0);
-  dt_action_register(self, N_("select toggle image"), _accel_select_toggle, GDK_KEY_space, 0);
-  dt_action_register(self, N_("open single image in darkroom"), _accel_open_single, GDK_KEY_Return, 0);
-
-  // zoom in/out/min/max
-  dt_action_register(self, N_("zoom in"), zoom_in_callback, GDK_KEY_plus, GDK_CONTROL_MASK);
-  dt_action_register(self, N_("zoom max"), zoom_max_callback, GDK_KEY_plus, GDK_MOD1_MASK);
-  dt_action_register(self, N_("zoom out"), zoom_out_callback, GDK_KEY_minus, GDK_CONTROL_MASK);
-  dt_action_register(self, N_("zoom min"), zoom_min_callback, GDK_KEY_minus, GDK_MOD1_MASK);
-#endif
-
 }
 
 // clang-format off

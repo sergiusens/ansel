@@ -42,7 +42,6 @@ typedef struct dt_lib_tool_filter_t
   GtkWidget *culling;
   int time_out;
   double last_key_time;
-  int zoom_level;
 } dt_lib_tool_filter_t;
 
 #ifdef USE_LUA
@@ -130,12 +129,6 @@ const char *name(struct dt_lib_module_t *self)
 
 const char **views(dt_lib_module_t *self)
 {
-  /* for now, show in all view due this affects filmroll too
-
-     TODO: Consider to add flag for all views, which prevents
-           unloading/loading a module while switching views.
-
-   */
   static const char *v[] = {"lighttable", NULL};
   return v;
 }
@@ -262,7 +255,7 @@ static void _launch_text_query(dt_lib_module_t *self)
 
 static void _text_entry_changed(GtkEntry *entry, dt_lib_module_t *self)
 {
-    _launch_text_query(self);
+  _launch_text_query(self);
 }
 
 static void _reset_text_filter(dt_lib_module_t *self)
@@ -278,16 +271,24 @@ static void _reset_text_entry(GtkButton *button, dt_lib_module_t *self)
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_SORT, NULL);
 }
 
-#if 0
-static void _focus_filter_search(dt_action_t *action)
+gboolean _focus_search_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                              GdkModifierType modifier, gpointer data)
 {
-  // set focus to the search text box
-  dt_lib_module_t *self = dt_action_lib(action);
+  dt_lib_module_t *self = (dt_lib_module_t *)data;
   dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  if(GTK_IS_ENTRY(d->text))
-    gtk_widget_grab_focus(GTK_WIDGET(d->text));
+  gtk_widget_grab_focus(GTK_WIDGET(d->text));
+  return TRUE;
 }
-#endif
+
+gboolean _reset_filter_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                              GdkModifierType modifier, gpointer data)
+{
+  dt_lib_module_t *self = (dt_lib_module_t *)data;
+  _lib_filter_reset(self, FALSE);
+  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_SORT, NULL);
+  return TRUE;
+}
+
 
 #define CPF_USER_DATA_INCLUDE CPF_USER_DATA
 #define CPF_USER_DATA_EXCLUDE CPF_USER_DATA << 1
@@ -357,25 +358,9 @@ static gboolean _colorlabel_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_modu
 
 static void _culling_mode(GtkWidget *widget, gpointer data)
 {
-  dt_lib_module_t *self = (dt_lib_module_t *)data;
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-
   if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
   {
     darktable.gui->culling_mode = TRUE;
-    d->zoom_level = dt_view_lighttable_get_zoom(darktable.view_manager);
-
-    // Adjust lighttable zoom level
-    const uint32_t selected_pictures = MAX(dt_selection_get_length(darktable.selection), 1);
-    int zoom_level;
-    if(selected_pictures < 7)
-      zoom_level = selected_pictures;
-    else if(selected_pictures < 9)
-      zoom_level = 4;
-    else
-      zoom_level = 6;
-
-    dt_view_lighttable_set_zoom(darktable.view_manager, zoom_level);
     dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
     dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
   }
@@ -383,7 +368,6 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
   {
     darktable.gui->culling_mode = FALSE;
     dt_culling_mode_to_selection();
-    dt_view_lighttable_set_zoom(darktable.view_manager, d->zoom_level);
     dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
     dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
   }
@@ -397,14 +381,6 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
 #undef CL_AND_MASK
 #undef CL_ALL_EXCLUDED
 #undef CL_ALL_INCLUDED
-
-#if 0
-static void _reset_filters(dt_action_t *action)
-{
-  _lib_filter_reset(dt_action_lib(action), FALSE);
-  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_SORT, NULL);
-}
-#endif
 
 void gui_init(dt_lib_module_t *self)
 {
@@ -547,10 +523,11 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_name(hbox, "quickfilter-search-box");
   dt_gui_add_class(hbox, "quick_filter_box");
 
-#if 0
-  dt_action_register(self, N_("search images"), _focus_filter_search, GDK_KEY_f, GDK_CONTROL_MASK);
-#endif
+  dt_accels_new_lighttable_action(_focus_search_action, self, N_("Lighttable/Actions"), N_("Search a picture"),
+                                  GDK_KEY_f, GDK_CONTROL_MASK);
 
+  dt_accels_new_lighttable_action(_reset_filter_action, self, N_("Lighttable/Actions"), N_("Reset the collection filter"),
+                                  0, 0);
   /* initialize proxy */
   darktable.view_manager->proxy.filter.module = self;
   darktable.view_manager->proxy.filter.reset_filter = _lib_filter_reset;
@@ -560,9 +537,6 @@ void gui_init(dt_lib_module_t *self)
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGES_ORDER_CHANGE,
                             G_CALLBACK(_lib_filter_images_order_change), self);
-#if 0
-  dt_action_register(self, N_("reset filters"), _reset_filters, 0, 0);
-#endif
 }
 
 void gui_cleanup(dt_lib_module_t *self)

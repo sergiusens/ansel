@@ -919,20 +919,6 @@ dt_darkroom_layout_t dt_view_darkroom_get_layout(dt_view_manager_t *vm)
     return DT_DARKROOM_LAYOUT_EDITING;
 }
 
-void dt_view_lighttable_set_zoom(dt_view_manager_t *vm, gint zoom)
-{
-  if(vm->proxy.lighttable.module)
-    vm->proxy.lighttable.set_zoom(vm->proxy.lighttable.module, zoom);
-}
-
-gint dt_view_lighttable_get_zoom(dt_view_manager_t *vm)
-{
-  if(vm->proxy.lighttable.module)
-    return vm->proxy.lighttable.get_zoom(vm->proxy.lighttable.module);
-  else
-    return 10;
-}
-
 void dt_view_collection_update(const dt_view_manager_t *vm)
 {
   if(vm->proxy.module_collect.module)

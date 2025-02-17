@@ -287,6 +287,8 @@ void dt_capitalize_label(gchar *text);
 
 #define dt_accels_new_darkroom_action(a, b, c, d, e, f) dt_accels_new_action_shortcut(darktable.gui->accels, G_CALLBACK(a), b, darktable.gui->accels->darkroom_accels, c, d, e, f, FALSE)
 
+#define dt_accels_new_lighttable_action(a, b, c, d, e, f) dt_accels_new_action_shortcut(darktable.gui->accels, G_CALLBACK(a), b, darktable.gui->accels->lighttable_accels, c, d, e, f, FALSE)
+
 #define dt_accels_new_darkroom_locked_action(a, b, c, d, e, f) dt_accels_new_action_shortcut(darktable.gui->accels, G_CALLBACK(a), b, darktable.gui->accels->darkroom_accels, c, d, e, f, TRUE)
 
 
