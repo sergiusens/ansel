@@ -736,7 +736,7 @@ void _filter_pipeline(const char *filter, dt_dev_pixelpipe_t *pipe)
 }
 
 
-gboolean _get_export_size(dt_develop_t *dev, dt_dev_pixelpipe_t *pipe, dt_imageio_module_data_t *format_params, const gboolean is_scaling, const float image_ratio,
+gboolean _get_export_size(dt_develop_t *dev, dt_dev_pixelpipe_t *pipe, const dt_imageio_module_data_t *format_params, const gboolean is_scaling, const float image_ratio,
                           double *scale, float *origin, int width, int height, int *processed_width, int *processed_height)
 {
 // Set to TRUE if width size is explicitly set by user
@@ -999,10 +999,18 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   dt_dev_load_image(&dev, imgid);
 
   dt_mipmap_buffer_t buf;
-  if(thumbnail_export)
-    dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
+  dt_image_cache_t *cache = darktable.mipmap_cache;
+
+  // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
+  // aka 720x450 px currently. Though it's a nice speed-up to generate small thumbnails,
+  // we can't use it as input for larger thumbnails, for obvious reasons.
+  // WARNING: if the editing pipeline applies cropping and the final requested image
+  // is less than 720x450 px, we will still produce an undersampled thumnbail.
+  if(thumbnail_export && format_params->max_width <= cache->max_width[DT_MIPMAP_F]
+     && format_params->max_height <= cache->max_height[DT_MIPMAP_F])
+    dt_mipmap_cache_get(cache, &buf, imgid, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
   else
-    dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
+    dt_mipmap_cache_get(cache, &buf, imgid, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
 
   const dt_image_t *img = &dev.image_storage;
 
@@ -1139,7 +1147,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   if(exif_profile) free(exif_profile);
   if(res) goto error;
 
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+  dt_mipmap_cache_release(cache, &buf);
   dt_dev_pixelpipe_cleanup(&pipe);
   dt_dev_cleanup(&dev);
 
@@ -1166,7 +1174,7 @@ error:
 error_early:
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_cleanup(&dev);
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+  dt_mipmap_cache_release(cache, &buf);
   return 1;
 }
 
