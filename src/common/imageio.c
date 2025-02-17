@@ -999,7 +999,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   dt_dev_load_image(&dev, imgid);
 
   dt_mipmap_buffer_t buf;
-  dt_image_cache_t *cache = darktable.mipmap_cache;
+  dt_mipmap_cache_t *cache = darktable.mipmap_cache;
 
   // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
   // aka 720x450 px currently. Though it's a nice speed-up to generate small thumbnails,
