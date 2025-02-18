@@ -122,10 +122,6 @@ static void _lib_duplicate_delete(GtkButton *button, dt_lib_module_t *self)
 
 static gboolean _lib_duplicate_thumb_press_callback(GtkWidget *widget, GdkEventButton *event, dt_lib_module_t *self)
 {
-  dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
-  dt_thumbnail_t *thumb = (dt_thumbnail_t *)g_object_get_data(G_OBJECT(widget), "thumb");
-  const int32_t imgid = thumb->imgid;
-
   if(event->button == 1)
   {
     if(event->type == GDK_BUTTON_PRESS)
