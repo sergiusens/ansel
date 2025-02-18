@@ -40,7 +40,7 @@
 #include "file_location.h"
 #include "whereami.h"
 
-void dt_loc_init(const char *datadir, const char *moduledir, const char *localedir, const char *configdir, const char *cachedir, const char *tmpdir)
+void dt_loc_init(const char *datadir, const char *moduledir, const char *localedir, const char *configdir, const char *cachedir, const char *tmpdir, const char *kerneldir)
 {
   // Assemble pathes
   char* application_directory = NULL;
@@ -62,6 +62,7 @@ void dt_loc_init(const char *datadir, const char *moduledir, const char *localed
   dt_loc_init_datadir(application_directory, datadir);
   dt_loc_init_moduledir(application_directory, moduledir);
   dt_loc_init_localedir(application_directory, localedir);
+  dt_loc_init_kerneldir(application_directory, kerneldir);
   dt_loc_init_user_config_dir(configdir);
   dt_loc_init_user_cache_dir(cachedir);
   dt_loc_init_sharedir(application_directory);
@@ -262,11 +263,15 @@ void dt_loc_init_sharedir(const char* application_directory)
   dt_check_opendir("ansel.sharedir", darktable.sharedir);
 }
 
+void dt_loc_init_kerneldir(const char* application_directory, const char *kerneldir)
+{
+  darktable.kerneldir = dt_loc_init_generic(kerneldir, application_directory, DARKTABLE_KERNELSDIR);
+  dt_check_opendir("ansel.kerneldir", darktable.kerneldir);
+}
+
 void dt_loc_get_kerneldir(char *kerneldir, size_t bufsize)
 {
-  char datadir[PATH_MAX] = { 0 };
-  dt_loc_get_user_cache_dir(datadir, sizeof(datadir));
-  snprintf(kerneldir, bufsize, "%s" G_DIR_SEPARATOR_S "kernels", datadir);
+  g_strlcpy(kerneldir, darktable.kerneldir, bufsize);
 }
 
 void dt_loc_get_moduledir(char *moduledir, size_t bufsize)

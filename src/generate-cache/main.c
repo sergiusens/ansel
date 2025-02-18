@@ -149,7 +149,7 @@ int main(int argc, char *arg[])
 #endif
 
   // get valid locale dir
-  dt_loc_init(NULL, NULL, NULL, NULL, NULL, NULL);
+  dt_loc_init(NULL, NULL, NULL, NULL, NULL, NULL, NULL);
   char localedir[PATH_MAX] = { 0 };
   dt_loc_get_localedir(localedir, sizeof(localedir));
   bindtextdomain(GETTEXT_PACKAGE, localedir);

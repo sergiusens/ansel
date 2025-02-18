@@ -479,6 +479,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   char *tmpdir_from_command = NULL;
   char *configdir_from_command = NULL;
   char *cachedir_from_command = NULL;
+  char *kerneldir_from_command = NULL;
 
 #ifdef HAVE_OPENCL
   gboolean exclude_opencl = FALSE;
@@ -624,6 +625,12 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
       else if(!strcmp(argv[k], "--localedir") && argc > k + 1)
       {
         localedir_from_command = argv[++k];
+        argv[k-1] = NULL;
+        argv[k] = NULL;
+      }
+      else if(!strcmp(argv[k], "--kerneldir") && argc > k + 1)
+      {
+        kerneldir_from_command = argv[++k];
         argv[k-1] = NULL;
         argv[k] = NULL;
       }
@@ -858,7 +865,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   }
 
   // get valid directories
-  dt_loc_init(datadir_from_command, moduledir_from_command, localedir_from_command, configdir_from_command, cachedir_from_command, tmpdir_from_command);
+  dt_loc_init(datadir_from_command, moduledir_from_command, localedir_from_command, configdir_from_command, cachedir_from_command, tmpdir_from_command, kerneldir_from_command);
 
   if(darktable.unmuted & DT_DEBUG_MEMORY)
   {

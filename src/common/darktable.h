@@ -554,6 +554,7 @@ typedef struct darktable_t
   char *tmpdir;
   char *configdir;
   char *cachedir;
+  char *kerneldir;
   dt_lua_state_t lua_state;
   GList *guides;
   double start_wtime;

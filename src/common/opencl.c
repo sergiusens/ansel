@@ -645,6 +645,9 @@ static int dt_opencl_device_init(dt_opencl_t *cl, const int dev, cl_device_id *d
     goto end;
   }
 
+  dt_loc_get_kerneldir(kerneldir, sizeof(kerneldir));
+  dt_print_nts(DT_DEBUG_OPENCL, "   KERNEL SOURCE DIRECTORY:  %s\n", kerneldir);
+
   double tstart, tend, tdiff;
   dt_loc_get_user_cache_dir(dtcache, PATH_MAX * sizeof(char));
 
@@ -661,15 +664,15 @@ static int dt_opencl_device_init(dt_opencl_t *cl, const int dev, cl_device_id *d
     if(isalnum(driverversion[i])) drvversion[j++] = driverversion[i];
   drvversion[j] = 0;
   snprintf(cachedir, PATH_MAX * sizeof(char), "%s" G_DIR_SEPARATOR_S "cached_kernels_for_%s_%s", dtcache, devname, drvversion);
+
+  dt_print_nts(DT_DEBUG_OPENCL, "   KERNEL BUILD DIRECTORY:   %s\n", cachedir);
+
   if(g_mkdir_with_parents(cachedir, 0700) == -1)
   {
     dt_print_nts(DT_DEBUG_OPENCL, "   *** failed to create kernel directory `%s' ***\n", cachedir);
     res = -1;
     goto end;
   }
-
-  dt_loc_get_kerneldir(kerneldir, sizeof(kerneldir));
-  dt_print_nts(DT_DEBUG_OPENCL, "   KERNEL DIRECTORY:         %s\n", kerneldir);
 
   snprintf(filename, PATH_MAX * sizeof(char), "%s" G_DIR_SEPARATOR_S "programs.conf", kerneldir);
 

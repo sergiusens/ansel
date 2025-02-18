@@ -25,7 +25,7 @@
 gchar *dt_loc_get_home_dir(const gchar *user);
 
 /** initializes all dirs */
-void dt_loc_init(const char *datadir, const char *moduledir, const char *localedir, const char *configdir, const char *cachedir, const char *tmpdir);
+void dt_loc_init(const char *datadir, const char *moduledir, const char *localedir, const char *configdir, const char *cachedir, const char *tmpdir, const char *kerneldir);
 /** init systemwide data dir */
 void dt_loc_init_datadir(const char *application_directory, const char *datadir);
 /** init the plugin dir */
@@ -40,12 +40,16 @@ void dt_loc_init_tmp_dir(const char *tmpdir);
 void dt_loc_init_user_config_dir(const char *configdir);
 /** init user cache dir */
 void dt_loc_init_user_cache_dir(const char *cachedir);
+/** init OpenCL kernels dir */
+void dt_loc_init_kerneldir(const char *application_directory, const char *kerneldir);
+
 /** init specific dir. Value is appended if application_directory is not NULL (relative path resolution). */
 gchar *dt_loc_init_generic(const char *absolute_value, const char *application_directory, const char *default_value);
 /** check if directory open worked. Exit with error message in case it does not.*/
 void dt_check_opendir(const char* text, const char* directory);
 
 /* temporary backward_compatibility*/
+void dt_loc_get_kerneldir(char *kerneldir, size_t bufsize);
 void dt_loc_get_datadir(char *datadir, size_t bufsize);
 void dt_loc_get_sharedir(char *sharedir, size_t bufsize);
 void dt_loc_get_kerneldir(char *kerneldir, size_t bufsize);
@@ -60,4 +64,3 @@ void dt_loc_get_user_cache_dir(char *cachedir, size_t bufsize);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
