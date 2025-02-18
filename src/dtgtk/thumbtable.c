@@ -399,7 +399,7 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     _grid_configure(table, new_width, new_height, cols);
   }
 
-  if(!table->thumbs_inited)
+  if(!table->thumbs_inited && table->collection_count > 0)
   {
     _update_grid_area(table);
     _update_row_ids(table);
@@ -516,7 +516,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
-  if(!table->lut || !table->configured || !table->collection_inited || table->thumbs_inited) return;
+  if(!table->lut || !table->configured || !table->collection_inited || table->thumbs_inited || table->collection_count == 0) return;
 
   if(table->reset_collection)
   {
@@ -531,11 +531,13 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   _populate_thumbnails(table, &num_thumb);
 
   // Remove unneeded thumbnails: out of viewport or out of current collection
-  if(!empty_list)
+  if(!empty_list && table->list)
   {
     _garbage_collection(table, &num_thumb);
     _resize_thumbnails(table);
   }
+
+  gtk_widget_queue_draw(table->grid);
 
   table->thumb_nb += num_thumb;
   table->thumbs_inited = TRUE;
@@ -617,6 +619,9 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
 
 static void _dt_collection_lut(dt_thumbtable_t *table)
 {
+  if(table->lut) free(table->lut);
+  table->lut = NULL;
+
   // Because the "culling" mode swaps selection with collection directly in memory,
   // we need to fetch the current collection directly from the SQLite memory DB
   // and can't rely on the regular collection API
@@ -638,7 +643,6 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
 
   dt_pthread_mutex_lock(&table->lock);
 
-  if(table->lut) free(table->lut);
   table->lut = malloc(table->collection_count * sizeof(dt_thumbtable_cache_t));
 
   if(!table->lut)
@@ -710,6 +714,14 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
   // See if the collection changed
   int changed = _dt_collection_get_hash(table);
+
+  if(changed && table->collection_count == 0)
+  {
+    _dt_thumbtable_empty_list(table);
+    dt_control_log(_(
+        "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
+    gtk_widget_queue_draw(table->grid);
+  }
 
   dt_thumbtable_configure(table);
   if(changed) g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
@@ -912,6 +924,7 @@ typedef enum dt_thumbtable_direction_t
 
 void _move_in_grid(dt_thumbtable_t *table, dt_thumbtable_direction_t direction, int origin_imgid)
 {
+  if(!table->lut) return;
   int current_rowid = _imgid_to_rowid(table, origin_imgid);
   int offset = 0;
 
@@ -983,9 +996,9 @@ void _alternative_mode(dt_thumbtable_t *table, gboolean enable)
 gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data)
 {
   if(!gtk_window_is_active(GTK_WINDOW(darktable.gui->ui->main_window))) return FALSE;
-
   if(!user_data) return FALSE;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
+  if(!table->lut) return FALSE;
 
   // Find out the current image
   // NOTE: when moving into the grid from key arrow events,
@@ -1286,7 +1299,7 @@ void dt_thumbtable_cleanup(dt_thumbtable_t *table)
 
   dt_pthread_mutex_destroy(&table->lock);
 
-  free(table->lut);
+  if(table->lut) free(table->lut);
 
   free(table);
   table = NULL;

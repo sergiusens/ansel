@@ -975,8 +975,7 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid,
   thumb->alternative_mode = FALSE;
 
   // we create the widget
-  GtkWidget *w = dt_thumbnail_create_widget(thumb, zoom_ratio);
-  g_object_ref(w);
+  dt_thumbnail_create_widget(thumb, zoom_ratio);
 
   // Query mipmap and history for the changed tooltip
   // This will then only run on "mipmap_changed" event,
@@ -1002,6 +1001,7 @@ void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
   thumb->img_surf = NULL;
 
   if(thumb->widget) gtk_widget_destroy(thumb->widget);
+  thumb->widget = NULL;
 
   if(thumb->filename) g_free(thumb->filename);
   thumb->filename = NULL;
