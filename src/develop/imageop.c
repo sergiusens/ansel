@@ -541,13 +541,6 @@ static void _gui_delete_callback(GtkButton *button, dt_iop_module_t *module)
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_HISTORY_CHANGE);
   }
 
-  // widget_list doesn't own the widget referenced, so don't deep_free
-  dt_gui_module_t *m = DT_GUI_MODULE(module);
-  g_list_free(m->widget_list);
-  g_list_free(m->widget_list_bh);
-  g_free(m->name);
-  g_free(m->view);
-
   // don't delete the module, a pipe may still need it
   dev->alliop = g_list_append(dev->alliop, module);
 
