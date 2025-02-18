@@ -18,7 +18,7 @@ mkdir build
 mkdir AppDir
 cd build
 
-export CXXFLAGS="-O3 -fno-strict-aliasing "
+export CXXFLAGS="-g -O3 -fno-strict-aliasing -ffast-math -fno-finite-math-only"
 export CFLAGS="$CXXFLAGS"
 
 ## AppImages require us to install everything in /usr, where root is the AppDir
@@ -41,6 +41,9 @@ export LINUXDEPLOY_OUTPUT_VERSION=$(sh ../tools/get_git_version_string.sh)
 
 export LDAI_UPDATE_INFORMATION="gh-releases-zsync|aurelienpierreeng|ansel|v0.0.0|Ansel-*-x86_64.AppImage.zsync"
 
+# Fix https://github.com/linuxdeploy/linuxdeploy/issues/272 on Fedora
+export NO_STRIP=true
+
 # Our plugins link against libansel, it's not in system, so tell linuxdeploy
 # where to find it. Don't use LD_PRELOAD here, linuxdeploy cannot see preloaded
 # libraries.
@@ -54,6 +57,7 @@ export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:../AppDir/usr/lib64/"
 ./linuxdeploy-x86_64.AppImage \
   --appdir ../AppDir \
   --plugin gtk \
+  --deploy-deps-only ../AppDir/usr/lib64/ansel \
   --deploy-deps-only ../AppDir/usr/lib64/ansel/views \
   --deploy-deps-only ../AppDir/usr/lib64/ansel/plugins \
   --deploy-deps-only ../AppDir/usr/lib64/ansel/plugins/imageio/format \
