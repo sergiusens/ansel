@@ -833,6 +833,71 @@ end:
   return res;
 }
 
+#define RES 5
+
+void dt_opencl_benchmark_array(dt_opencl_t *cl)
+{
+  cl->cpubenchmark = 0.f;
+
+  // We assume responsivity is a must in darkroom, not at export time because export
+  // can be launched in batch and without user supervision.
+  // So we benchmark for typical screen sizes.
+  int resolutions[RES][2]
+      = { { 1200, 800 }, { 1440, 900 }, { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }};
+
+  for(int k = 0; k < RES; k++)
+    cl->cpubenchmark += dt_opencl_benchmark_cpu(resolutions[k][0], resolutions[k][1], 5, 100.0f);
+  cl->cpubenchmark /= (float)RES;
+
+  fprintf(stdout, "[OpenCL benchmark]: CPU %f s\n", cl->cpubenchmark);
+  dt_conf_set_float("dt_cpubenchmark", cl->cpubenchmark);
+
+  // make sure all active cl devices have a benchmark result
+  int round_sizes[3] = { 16, 32, 64 };
+  int pin_modes[2] = { 0, 1 };
+  int async_modes[2] = { 0, 1 };
+  for(int n = 0; n < cl->num_devs; n++)
+  {
+    float results[2][2][3];
+
+    for(int i = 0; i < 2; i++)
+      for(int j = 0; j < 2; j++)
+        for(int l = 0; l < 3; l++)
+        {
+          cl->dev[n].pinned_memory = pin_modes[j];
+          cl->dev[n].asyncmode = async_modes[i];
+          cl->dev[n].clroundup_ht = round_sizes[l];
+          cl->dev[n].clroundup_wd = round_sizes[l];
+          results[i][j][l] = 0.f;
+
+          for(int _x = 0; _x < 5; _x++)
+            for(int k = 0; k < RES; k++)
+              results[i][j][l] += dt_opencl_benchmark_gpu(n, resolutions[k][0], resolutions[k][1], 5, 100.0f);
+
+          results[i][j][l] /= (float)RES * 5.f;
+
+          fprintf(stdout, "[OpenCL benchmark]: %s %f s for pinned %i, async %i, round %i\n", cl->dev[n].name, results[i][j][l], cl->dev[n].pinned_memory,
+                  cl->dev[n].asyncmode, cl->dev[n].clroundup_ht);
+        }
+
+    cl->dev[n].benchmark = FLT_MAX;
+    for(int i = 0; i < 2; i++)
+      for(int j = 0; j < 2; j++)
+        for(int l = 0; l < 3; l++)
+        {
+          if(results[i][j][l] < cl->dev[n].benchmark)
+          {
+            cl->dev[n].benchmark = results[i][j][l];
+            cl->dev[n].pinned_memory = pin_modes[j];
+            cl->dev[n].asyncmode = async_modes[i];
+            cl->dev[n].clroundup_ht = round_sizes[l];
+            cl->dev[n].clroundup_wd = round_sizes[l];
+          }
+        }
+    dt_opencl_write_device_config(n);
+  }
+}
+
 void dt_opencl_init(dt_opencl_t *cl, const gboolean exclude_opencl, const gboolean print_statistics)
 {
   dt_pthread_mutex_init(&cl->lock, NULL);
@@ -1059,19 +1124,7 @@ finally:
   {
     dt_print_nts(DT_DEBUG_OPENCL, "[opencl_init] OpenCL devices changed, we will update the profiling configuration.\n");
     dt_conf_set_string("opencl_checksum", checksum);
-
-    cl->cpubenchmark = dt_opencl_benchmark_cpu(3072, 2048, 5, 100.0f);
-    dt_conf_set_float("dt_cpubenchmark", cl->cpubenchmark);
-
-    // make sure all active cl devices have a benchmark result
-    for(int n = 0; n < cl->num_devs; n++)
-    {
-      if((cl->dev[n].benchmark <= 0.0f) && (cl->dev[n].disabled == 0))
-      {
-        cl->dev[n].benchmark = dt_opencl_benchmark_gpu(n, 3072, 2048, 5, 100.0f);
-        dt_opencl_write_device_config(n);
-      }
-    }
+    dt_opencl_benchmark_array(cl);
 
     // get minima and maxima of performance data of all active devices
     const float tcpu = cl->cpubenchmark;
@@ -1080,15 +1133,12 @@ finally:
     int fastest_device = -1; // Device -1 is CPU
     for(int n = 0; n < cl->num_devs; n++)
     {
-      if((cl->dev[n].benchmark > 0.0f) && (cl->dev[n].disabled == 0))
+      if((cl->dev[n].benchmark > 0.0f) && (cl->dev[n].benchmark < tgpumin))
       {
-        if(cl->dev[n].benchmark < tgpumin)
-        {
-          tgpumin = cl->dev[n].benchmark;
-          fastest_device = n;
-        }
-        tgpumax = fmaxf(cl->dev[n].benchmark, tgpumax);
+        tgpumin = cl->dev[n].benchmark;
+        fastest_device = n;
       }
+      tgpumax = fmaxf(cl->dev[n].benchmark, tgpumax);
     }
 
     if(tcpu < tgpumin / 1.2f)
