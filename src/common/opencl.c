@@ -2272,7 +2272,7 @@ int dt_opencl_enqueue_kernel_2d_with_local(const int dev, const int kernel, cons
                                                         2, NULL, sizes, local, 0, NULL, eventp);
 
   if(err != CL_SUCCESS)
-    dt_print(DT_DEBUG_OPENCL, "[dt_opencl_enqueue_kernel_2d_with_local] kernel %i on device %d: %s\n", kernel, dev, cl_errstr(err));
+    dt_print(DT_DEBUG_OPENCL, "[dt_opencl_enqueue_kernel_2d_with_local] kernel %i (%s) on device %d: %s\n", kernel, buf, dev, cl_errstr(err));
 
   return err;
 }

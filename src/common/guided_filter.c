@@ -373,7 +373,7 @@ static int cl_split_rgb(const int devid, const int width, const int height, cl_m
   const int kernel = darktable.opencl->guided_filter->kernel_guided_filter_split_rgb;
   dt_opencl_set_kernel_arg(devid, kernel, 0, sizeof(int), &width);
   dt_opencl_set_kernel_arg(devid, kernel, 1, sizeof(int), &height);
-  dt_opencl_set_kernel_arg(devid, kernel, 2, sizeof(int), &guide);
+  dt_opencl_set_kernel_arg(devid, kernel, 2, sizeof(cl_mem), &guide);
   dt_opencl_set_kernel_arg(devid, kernel, 3, sizeof(cl_mem), &imgg_r);
   dt_opencl_set_kernel_arg(devid, kernel, 4, sizeof(cl_mem), &imgg_g);
   dt_opencl_set_kernel_arg(devid, kernel, 5, sizeof(cl_mem), &imgg_b);
