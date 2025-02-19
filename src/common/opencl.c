@@ -2888,13 +2888,15 @@ gboolean dt_opencl_image_fits_device(const int devid, const size_t width, const 
   if(!cl->inited || devid < 0) return FALSE;
 
   const size_t required  = width * height * bpp;
-  const size_t total = factor * required + overhead;
+  //const size_t total = factor * required + overhead;
 
   if(cl->dev[devid].max_image_width < width || cl->dev[devid].max_image_height < height)
     return FALSE;
 
   if(_opencl_get_device_memalloc(devid) < required)      return FALSE;
-  if(dt_opencl_get_device_available(devid) < total)      return FALSE;
+  // FIXME: this is completly off in practice, and
+  // anyway, estimating used memory on GPU is a hack
+  //if(dt_opencl_get_device_available(devid) < total)      return FALSE;
   // We know here that total memory fits and if so the buffersize will also fit as there is a factor of >=2
   return TRUE;
 }
