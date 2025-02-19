@@ -1178,26 +1178,7 @@ finally:
 
   if(!cl->inited)// initialization failed
   {
-    for(int i = 0; cl->dev && i < cl->num_devs; i++)
-    {
-      dt_pthread_mutex_destroy(&cl->dev[i].lock);
-      for(int k = 0; k < DT_OPENCL_MAX_KERNELS; k++)
-        if(cl->dev[i].kernel_used[k]) (cl->dlocl->symbols->dt_clReleaseKernel)(cl->dev[i].kernel[k]);
-      for(int k = 0; k < DT_OPENCL_MAX_PROGRAMS; k++)
-        if(cl->dev[i].program_used[k]) (cl->dlocl->symbols->dt_clReleaseProgram)(cl->dev[i].program[k]);
-      (cl->dlocl->symbols->dt_clReleaseCommandQueue)(cl->dev[i].cmd_queue);
-      (cl->dlocl->symbols->dt_clReleaseContext)(cl->dev[i].context);
-      if(cl->dev[i].use_events)
-      {
-        dt_opencl_events_reset(i);
-        free(cl->dev[i].eventlist);
-        free(cl->dev[i].eventtags);
-      }
-      free((void *)(cl->dev[i].vendor));
-      free((void *)(cl->dev[i].name));
-      free((void *)(cl->dev[i].cname));
-      free((void *)(cl->dev[i].options));
-    }
+    for(int i = 0; cl->dev && i < cl->num_devs; i++) dt_opencl_cleanup_device(cl, i);
   }
 
   free(all_num_devices);
@@ -1214,6 +1195,52 @@ finally:
   return;
 }
 
+void dt_opencl_cleanup_device(dt_opencl_t *cl, int i)
+{
+  dt_pthread_mutex_destroy(&cl->dev[i].lock);
+  for(int k = 0; k < DT_OPENCL_MAX_KERNELS; k++)
+    if(cl->dev[i].kernel_used[k]) (cl->dlocl->symbols->dt_clReleaseKernel)(cl->dev[i].kernel[k]);
+  for(int k = 0; k < DT_OPENCL_MAX_PROGRAMS; k++)
+    if(cl->dev[i].program_used[k]) (cl->dlocl->symbols->dt_clReleaseProgram)(cl->dev[i].program[k]);
+  (cl->dlocl->symbols->dt_clReleaseCommandQueue)(cl->dev[i].cmd_queue);
+  (cl->dlocl->symbols->dt_clReleaseContext)(cl->dev[i].context);
+
+  if(cl->print_statistics && (darktable.unmuted & DT_DEBUG_MEMORY))
+  {
+    dt_print_nts(DT_DEBUG_OPENCL, " [opencl_summary_statistics] device '%s' (%d): peak memory usage %zu bytes (%.1f MB)\n",
+                cl->dev[i].name, i, cl->dev[i].peak_memory, (float)cl->dev[i].peak_memory/(1024*1024));
+  }
+
+  if(cl->print_statistics && cl->dev[i].use_events)
+  {
+    if(cl->dev[i].totalevents)
+    {
+      dt_print_nts(DT_DEBUG_OPENCL, " [opencl_summary_statistics] device '%s' (%d): %d out of %d events were "
+                                "successful and %d events lost. max event=%d%s\n",
+        cl->dev[i].name, i, cl->dev[i].totalsuccess, cl->dev[i].totalevents, cl->dev[i].totallost,
+        cl->dev[i].maxeventslot, (cl->dev[i].maxeventslot > 1024) ? "\n *** Warning, slots > 1024" : "");
+    }
+    else
+    {
+      dt_print_nts(DT_DEBUG_OPENCL, " [opencl_summary_statistics] device '%s' (%d): NOT utilized\n",
+                cl->dev[i].name, i);
+    }
+  }
+
+  if(cl->dev[i].use_events)
+  {
+    dt_opencl_events_reset(i);
+
+    free(cl->dev[i].eventlist);
+    free(cl->dev[i].eventtags);
+  }
+
+  free((void *)(cl->dev[i].vendor));
+  free((void *)(cl->dev[i].name));
+  free((void *)(cl->dev[i].cname));
+  free((void *)(cl->dev[i].options));
+}
+
 void dt_opencl_cleanup(dt_opencl_t *cl)
 {
   if(cl->inited)
@@ -1228,50 +1255,8 @@ void dt_opencl_cleanup(dt_opencl_t *cl)
     dt_guided_filter_free_cl_global(cl->guided_filter);
 
     for(int i = 0; i < cl->num_devs; i++)
-    {
-      dt_pthread_mutex_destroy(&cl->dev[i].lock);
-      for(int k = 0; k < DT_OPENCL_MAX_KERNELS; k++)
-        if(cl->dev[i].kernel_used[k]) (cl->dlocl->symbols->dt_clReleaseKernel)(cl->dev[i].kernel[k]);
-      for(int k = 0; k < DT_OPENCL_MAX_PROGRAMS; k++)
-        if(cl->dev[i].program_used[k]) (cl->dlocl->symbols->dt_clReleaseProgram)(cl->dev[i].program[k]);
-      (cl->dlocl->symbols->dt_clReleaseCommandQueue)(cl->dev[i].cmd_queue);
-      (cl->dlocl->symbols->dt_clReleaseContext)(cl->dev[i].context);
+      dt_opencl_cleanup_device(cl, i);
 
-      if(cl->print_statistics && (darktable.unmuted & DT_DEBUG_MEMORY))
-      {
-        dt_print_nts(DT_DEBUG_OPENCL, " [opencl_summary_statistics] device '%s' (%d): peak memory usage %zu bytes (%.1f MB)\n",
-                   cl->dev[i].name, i, cl->dev[i].peak_memory, (float)cl->dev[i].peak_memory/(1024*1024));
-      }
-
-      if(cl->print_statistics && cl->dev[i].use_events)
-      {
-        if(cl->dev[i].totalevents)
-        {
-          dt_print_nts(DT_DEBUG_OPENCL, " [opencl_summary_statistics] device '%s' (%d): %d out of %d events were "
-                                    "successful and %d events lost. max event=%d%s\n",
-            cl->dev[i].name, i, cl->dev[i].totalsuccess, cl->dev[i].totalevents, cl->dev[i].totallost,
-            cl->dev[i].maxeventslot, (cl->dev[i].maxeventslot > 1024) ? "\n *** Warning, slots > 1024" : "");
-        }
-        else
-        {
-          dt_print_nts(DT_DEBUG_OPENCL, " [opencl_summary_statistics] device '%s' (%d): NOT utilized\n",
-                   cl->dev[i].name, i);
-        }
-      }
-
-      if(cl->dev[i].use_events)
-      {
-        dt_opencl_events_reset(i);
-
-        free(cl->dev[i].eventlist);
-        free(cl->dev[i].eventtags);
-      }
-
-      free((void *)(cl->dev[i].vendor));
-      free((void *)(cl->dev[i].name));
-      free((void *)(cl->dev[i].cname));
-      free((void *)(cl->dev[i].options));
-    }
     free(cl->dev_priority_image);
     free(cl->dev_priority_preview);
     free(cl->dev_priority_export);
