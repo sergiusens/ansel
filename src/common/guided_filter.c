@@ -629,8 +629,6 @@ static int guided_filter_cl_impl(int devid, cl_mem guide, cl_mem in, cl_mem out,
   err = cl_generate_result(devid, width, height, guide, a_r, a_g, a_b, b, out, guide_weight, min, max);
 
 error:
-  if(err != CL_SUCCESS) dt_print(DT_DEBUG_OPENCL, "[guided filter] unknown error: %d\n", err);
-
   dt_opencl_release_mem_object(a_r);
   dt_opencl_release_mem_object(a_g);
   dt_opencl_release_mem_object(a_b);
@@ -693,15 +691,16 @@ void guided_filter_cl(int devid, cl_mem guide, cl_mem in, cl_mem out, const int 
   assert(ch >= 3);
   assert(w >= 1);
 
-  // estimate required memory for OpenCL code path with a safety factor of 1.25
-  const gboolean fits = dt_opencl_image_fits_device(devid, width, height, sizeof(float), 18.0f * 1.25f, 0);
+  const gboolean fits = dt_opencl_image_fits_device(devid, width, height, sizeof(float), 18.0f, 0);
+  if(!fits)
+    dt_print(DT_DEBUG_OPENCL, "[guided filter] fall back to cpu implementation due to insufficient gpu memory\n");
+
 
   int err = CL_MEM_OBJECT_ALLOCATION_FAILURE;
   if(fits)
     err = guided_filter_cl_impl(devid, guide, in, out, width, height, ch, w, sqrt_eps, guide_weight, min, max);
   if(err != CL_SUCCESS)
   {
-    dt_print(DT_DEBUG_OPENCL, "[guided filter] fall back to cpu implementation due to insufficient gpu memory\n");
     guided_filter_cl_fallback(devid, guide, in, out, width, height, ch, w, sqrt_eps, guide_weight, min, max);
   }
 }
@@ -712,4 +711,3 @@ void guided_filter_cl(int devid, cl_mem guide, cl_mem in, cl_mem out, const int 
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
