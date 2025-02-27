@@ -6,9 +6,9 @@
 # Copyright (c) Aurélien Pierre - 2022
 
 # For local builds, purge and clean build pathes if any
-if [ -d "build" ];
-then yes | rm -R build;
-fi;
+#if [ -d "build" ];
+#then yes | rm -R build;
+#fi;
 
 if [ -d "AppDir" ];
 then yes | rm -R AppDir;
