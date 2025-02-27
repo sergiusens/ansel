@@ -770,8 +770,8 @@ void commit_params(struct dt_iop_module_t *self, dt_iop_params_t *p1, dt_dev_pix
   default:
   {
     // setup linear system of equations
-    double *A = malloc(sizeof(*A) * N4 * N4);
-    double *b = malloc(sizeof(*b) * N4);
+    double *A = malloc(sizeof(double) * N4 * N4);
+    double *b = malloc(sizeof(double) * N4);
     // coefficients from nonlinear radial kernel functions
     for(int j=0;j<N;j++)
       for(int i=j;i<N;i++)
