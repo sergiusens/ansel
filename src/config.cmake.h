@@ -81,9 +81,9 @@ static const char *dt_supported_extensions[] __attribute__((unused)) = {"@DT_SUP
  * OpenCL target settings
  *****************************************************************************/
 
-// OpenCL 1.2 is the highest version supported by Nvidia drivers as of end 2019
-// we force use it because we don't have time to support every (vendor driver x OpenCL version)
-#define CL_TARGET_OPENCL_VERSION 120
+// OpenCL 3.0 is the highest version supported by Nvidia drivers as of 2025
+// and AMD caught up to 2.0.
+#define CL_TARGET_OPENCL_VERSION 200
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
