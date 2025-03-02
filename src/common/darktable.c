@@ -1137,14 +1137,12 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 
   // *SIGH*
   dt_set_signal_handlers();
+
 #elif defined HAVE_IMAGEMAGICK
+
   /* ImageMagick init */
   MagickWandGenesis();
-#endif
 
-  darktable.opencl = (dt_opencl_t *)calloc(1, sizeof(dt_opencl_t));
-#ifdef HAVE_OPENCL
-  dt_opencl_init(darktable.opencl, exclude_opencl, print_statistics);
 #endif
 
   darktable.points = (dt_points_t *)calloc(1, sizeof(dt_points_t));
@@ -1188,6 +1186,12 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     fprintf(stderr, "ERROR: can't init develop system, aborting.\n");
     return 1;
   }
+
+  darktable.opencl = (dt_opencl_t *)calloc(1, sizeof(dt_opencl_t));
+  #ifdef HAVE_OPENCL
+    dt_opencl_init(darktable.opencl, exclude_opencl, print_statistics);
+  #endif
+
 
   darktable.imageio = (dt_imageio_t *)calloc(1, sizeof(dt_imageio_t));
   dt_imageio_init(darktable.imageio);
@@ -1247,28 +1251,9 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 
   if(init_gui)
   {
-    const char *mode = "lighttable";
-#ifdef HAVE_GAME
-    // april 1st: you have to earn using dt first! or know that you can switch views with keyboard shortcuts
-    time_t now;
-    time(&now);
-    struct tm lt;
-    localtime_r(&now, &lt);
-    if(lt.tm_mon == 3 && lt.tm_mday == 1)
-    {
-      const int current_year = lt.tm_year + 1900;
-      const int last_year = dt_conf_get_int("ui_last/april1st");
-      const gboolean kill_april1st = dt_conf_get_bool("ui_last/no_april1st");
-      if(!kill_april1st && last_year < current_year)
-      {
-        dt_conf_set_int("ui_last/april1st", current_year);
-        mode = "knight";
-      }
-    }
-#endif
     // we have to call dt_ctl_switch_mode_to() here already to not run into a lua deadlock.
     // having another call later is ok
-    dt_ctl_switch_mode_to(mode);
+    dt_ctl_switch_mode_to("lighttable");
 
 #ifndef MAC_INTEGRATION
     // load image(s) specified on cmdline.

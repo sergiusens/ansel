@@ -49,8 +49,6 @@
 #include <sys/stat.h>
 #include <zlib.h>
 
-#include <X11/Xlib.h>
-
 static const char *dt_opencl_get_vendor_by_id(unsigned int id);
 static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const size_t height, const int count, const float sigma);
 static float dt_opencl_benchmark_cpu(const size_t width, const size_t height, const int count, const float sigma);
@@ -1019,6 +1017,10 @@ void dt_opencl_benchmark_window(dt_opencl_t *cl)
   gtk_window_set_icon_name(GTK_WINDOW(cl->dialog), "ansel");
   gtk_window_set_type_hint(GTK_WINDOW(cl->dialog), GDK_WINDOW_TYPE_HINT_DIALOG);
 
+  GtkWindow *win = GTK_WINDOW(dt_ui_main_window(darktable.gui->ui));
+  gtk_window_set_transient_for(GTK_WINDOW(cl->dialog), win);
+  gtk_window_set_modal(GTK_WINDOW(cl->dialog), TRUE);
+
   GtkWidget *content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_PIXEL_APPLY_DPI(20));
   gtk_container_add(GTK_CONTAINER(cl->dialog), content_area);
 
@@ -1267,10 +1269,7 @@ finally:
     dt_print_nts(DT_DEBUG_OPENCL, "[opencl_init] OpenCL devices changed, we will update the profiling configuration.\n");
     dt_conf_set_string("opencl_checksum", checksum);
 
-    // Needed for the GUI, before gtk_init()/gtk_init_check()
-    XInitThreads();
-
-    if(gtk_init_check(NULL, NULL)) // use the GUI path only if there is a graphical session
+    if(darktable.gui) // use the GUI path only if there is a graphical session
       dt_opencl_benchmark_window(cl);
     else
       dt_opencl_benchmark_sequence(cl);
