@@ -49,6 +49,8 @@
 #include <sys/stat.h>
 #include <zlib.h>
 
+#include <X11/Xlib.h>
+
 static const char *dt_opencl_get_vendor_by_id(unsigned int id);
 static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const size_t height, const int count, const float sigma);
 static float dt_opencl_benchmark_cpu(const size_t width, const size_t height, const int count, const float sigma);
@@ -1031,6 +1033,7 @@ void dt_opencl_benchmark_window(dt_opencl_t *cl)
   gtk_box_pack_start(GTK_BOX(content_area), cl->progress, TRUE, TRUE, 0);
 
   gtk_widget_show_all(cl->dialog);
+  g_signal_connect(GTK_WINDOW(cl->dialog), "destroy", G_CALLBACK(gtk_main_quit), NULL);
   g_thread_new("dt_opencl_benchmark_sequence", (GThreadFunc)dt_opencl_benchmark_sequence, cl);
   gtk_main();
 }
@@ -1263,6 +1266,9 @@ finally:
   {
     dt_print_nts(DT_DEBUG_OPENCL, "[opencl_init] OpenCL devices changed, we will update the profiling configuration.\n");
     dt_conf_set_string("opencl_checksum", checksum);
+
+    // Needed for the GUI, before gtk_init()/gtk_init_check()
+    XInitThreads();
 
     if(gtk_init_check(NULL, NULL)) // use the GUI path only if there is a graphical session
       dt_opencl_benchmark_window(cl);
