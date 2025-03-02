@@ -654,7 +654,7 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
       {
         case DT_MODULEGROUP_ACTIVE_PIPE:
         {
-          if(_is_module_in_history(module))
+          if(_is_module_in_history(module) || module->enabled)
           {
             if(w) gtk_widget_show(w);
           }
