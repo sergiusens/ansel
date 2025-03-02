@@ -833,69 +833,206 @@ end:
   return res;
 }
 
-#define RES 5
+#define RUNS 5
 
-void dt_opencl_benchmark_array(dt_opencl_t *cl)
+// If in GUI, the benchmarking array is running in a separate thread,
+// but Gtk widgets need to be updated from the main thread.
+// We need to wrap this function into g_main_context_invoke
+// to make that happen.
+static gboolean _opencl_update_progress(gpointer userdata)
 {
+  dt_opencl_t *cl = (dt_opencl_t *)userdata;
+  gtk_progress_bar_set_fraction(GTK_PROGRESS_BAR(cl->progress), cl->step / cl->steps);
+  gtk_progress_bar_set_text(GTK_PROGRESS_BAR(cl->progress), cl->progress_label);
+  return G_SOURCE_REMOVE;
+}
+
+static void dt_opencl_benchmark_array(dt_opencl_t *cl, const char *config, int width, int height, gboolean gui, int steps, int step)
+{
+  // Parametric sweep : N runs for each rounding for each device. CPU only does runs.
+  const int inner_steps_for_outer_step = 3 * RUNS * cl->num_devs + RUNS;
+  cl->steps = inner_steps_for_outer_step * steps; // total
+  cl->step = step * inner_steps_for_outer_step; // current
+
+  // CPU - no params sweep
   cl->cpubenchmark = 0.f;
+  for(int _x = 0; _x < RUNS; _x++)
+  {
+    if(gui)
+    {
+      g_snprintf(cl->progress_label, sizeof(cl->progress_label), _("Benchmarking CPU @%i×%ipx..."), width, height);
+      g_main_context_invoke(NULL, _opencl_update_progress, cl);
+    }
 
-  // We assume responsivity is a must in darkroom, not at export time because export
-  // can be launched in batch and without user supervision.
-  // So we benchmark for typical screen sizes.
-  int resolutions[RES][2]
-      = { { 1200, 800 }, { 1440, 900 }, { 1920, 1080 }, { 2560, 1440 }, { 3840, 2160 }};
+    cl->cpubenchmark += dt_opencl_benchmark_cpu(width, height, 3, 100.0f);
 
-  for(int k = 0; k < RES; k++)
-    cl->cpubenchmark += dt_opencl_benchmark_cpu(resolutions[k][0], resolutions[k][1], 5, 100.0f);
-  cl->cpubenchmark /= (float)RES;
+    cl->step += 1.;
+    if(gui) g_main_context_invoke(NULL, _opencl_update_progress, cl);
+  }
 
-  fprintf(stdout, "[OpenCL benchmark]: CPU %f s\n", cl->cpubenchmark);
+  cl->cpubenchmark /= (float)RUNS;
+
+  fprintf(stdout, "[OpenCL benchmark]: %s - CPU %f s\n", config, cl->cpubenchmark);
   dt_conf_set_float("dt_cpubenchmark", cl->cpubenchmark);
 
-  // make sure all active cl devices have a benchmark result
+  // GPU
   int round_sizes[3] = { 16, 32, 64 };
-  int pin_modes[2] = { 0, 1 };
-  int async_modes[2] = { 0, 1 };
   for(int n = 0; n < cl->num_devs; n++)
   {
-    float results[2][2][3];
+    float results[3];
 
-    for(int i = 0; i < 2; i++)
-      for(int j = 0; j < 2; j++)
-        for(int l = 0; l < 3; l++)
-        {
-          cl->dev[n].pinned_memory = pin_modes[j];
-          cl->dev[n].asyncmode = async_modes[i];
-          cl->dev[n].clroundup_ht = round_sizes[l];
-          cl->dev[n].clroundup_wd = round_sizes[l];
-          results[i][j][l] = 0.f;
+    for(int l = 0; l < 3; l++)
+    {
+      cl->dev[n].clroundup_ht = round_sizes[l];
+      cl->dev[n].clroundup_wd = round_sizes[l];
+      results[l] = 0.f;
 
-          for(int _x = 0; _x < 5; _x++)
-            for(int k = 0; k < RES; k++)
-              results[i][j][l] += dt_opencl_benchmark_gpu(n, resolutions[k][0], resolutions[k][1], 5, 100.0f);
+      if(gui)
+      {
+        g_snprintf(cl->progress_label, sizeof(cl->progress_label), _("Benchmarking %s %s @%i×%ipx..."), cl->dev[n].vendor, cl->dev[n].name, width, height);
+        g_main_context_invoke(NULL, _opencl_update_progress, cl);
+      }
 
-          results[i][j][l] /= (float)RES * 5.f;
+      for(int _x = 0; _x < RUNS; _x++)
+      {
+        results[l] += dt_opencl_benchmark_gpu(n, width, height, 3, 100.0f);
+        cl->step += 1.;
+        if(gui) g_main_context_invoke(NULL, _opencl_update_progress, cl);
+      }
 
-          fprintf(stdout, "[OpenCL benchmark]: %s %f s for pinned %i, async %i, round %i\n", cl->dev[n].name, results[i][j][l], cl->dev[n].pinned_memory,
-                  cl->dev[n].asyncmode, cl->dev[n].clroundup_ht);
-        }
+      results[l] /= (float)RUNS;
 
+      fprintf(stdout, "[OpenCL benchmark]: %s %s %f s for rounding size %i\n", config, cl->dev[n].name,
+              results[l], cl->dev[n].clroundup_ht);
+    }
+
+    // Find the best run for that device
     cl->dev[n].benchmark = FLT_MAX;
-    for(int i = 0; i < 2; i++)
-      for(int j = 0; j < 2; j++)
-        for(int l = 0; l < 3; l++)
-        {
-          if(results[i][j][l] < cl->dev[n].benchmark)
-          {
-            cl->dev[n].benchmark = results[i][j][l];
-            cl->dev[n].pinned_memory = pin_modes[j];
-            cl->dev[n].asyncmode = async_modes[i];
-            cl->dev[n].clroundup_ht = round_sizes[l];
-            cl->dev[n].clroundup_wd = round_sizes[l];
-          }
-        }
+
+    for(int l = 0; l < 3; l++)
+    {
+      if(results[l] < cl->dev[n].benchmark)
+      {
+        cl->dev[n].benchmark = results[l];
+        cl->dev[n].clroundup_ht = round_sizes[l];
+        cl->dev[n].clroundup_wd = round_sizes[l];
+      }
+    }
     dt_opencl_write_device_config(n);
   }
+
+  // Find the best run for all devices
+  const float tcpu = cl->cpubenchmark;
+  float tgpumin = INFINITY;
+  float tgpumax = -INFINITY;
+  int fastest_device = -1; // Device -1 is CPU
+  for(int n = 0; n < cl->num_devs; n++)
+  {
+    if((cl->dev[n].benchmark > 0.0f) && (cl->dev[n].benchmark < tgpumin))
+    {
+      tgpumin = cl->dev[n].benchmark;
+      fastest_device = n;
+    }
+    tgpumax = fmaxf(cl->dev[n].benchmark, tgpumax);
+  }
+
+  if(tcpu < tgpumin / 1.5f)
+  {
+    // CPU is much faster than GPU: disable GPU.
+    dt_conf_set_string(config, "-1");
+  }
+  else if(tcpu > tgpumin)
+  {
+    // GPU is faster than CPU: force enable
+    gchar *device_str = g_strdup_printf("+%i", fastest_device);
+    dt_conf_set_string(config, device_str);
+    g_free(device_str);
+  }
+  else
+  {
+    // GPU is on-par or slightly slower than CPU: still suggest it.
+    // Reason is the most power-hungry algos are not in the benchmark,
+    // and we know for a fact that OpenCL makes them faster.
+    gchar *device_str = g_strdup_printf("%i", fastest_device);
+    dt_conf_set_string(config, device_str);
+    g_free(device_str);
+  }
+
+  // Timeouts: wait for available GPU for that amount of time.
+  // Say CPU takes 2s to complete and GPU 1s,
+  // we'd better wait for at most 1s for the GPU to be available.
+  // Timeouts are expressed in increments of 5 ms
+  dt_conf_set_int("opencl_mandatory_timeout", CLAMP((tcpu - tgpumin) / 0.005f, 100, 2000));
+
+  // TODO: that should be deleted in the future
+  dt_conf_set_int("pixelpipe_synchronization_timeout", 2 * MIN(tcpu, tgpumin) / 0.005f);
+}
+
+gpointer dt_opencl_benchmark_sequence(dt_opencl_t *cl)
+{
+  // Get display size
+  int width, height;
+  gboolean gui = FALSE;
+
+  if(cl->dialog != NULL)
+  {
+    // If GUI, use screen size for darkroom pipeline
+    GdkDisplay *display = gdk_display_manager_get_default_display(gdk_display_manager_get());
+    GdkMonitor *monitor = gdk_display_get_monitor_at_window(display, gtk_widget_get_window(cl->dialog));
+    GdkRectangle geometry;
+    gdk_monitor_get_geometry(monitor, &geometry);
+    width = geometry.width * gdk_monitor_get_scale_factor(monitor);
+    height = geometry.height * gdk_monitor_get_scale_factor(monitor);
+    gui = TRUE;
+  }
+  else
+  {
+    width = 3840;
+    height = 2160;
+  }
+
+  // Each of these globally overwrites size rounding factors and timeouts
+  // So we leave the darkroom one for last since the most perf-critical
+  // pipeline is when the user is editing in realtime.
+  dt_opencl_benchmark_array(cl, "opencl_devid_thumbnail", 1440, 900, gui, 4, 0);
+  dt_opencl_benchmark_array(cl, "opencl_devid_preview", 720, 450, gui, 4, 1);
+  dt_opencl_benchmark_array(cl, "opencl_devid_export", 6000, 4000, gui, 4, 2);
+  dt_opencl_benchmark_array(cl, "opencl_devid_darkroom", width, height, gui, 4, 3);
+
+  if(gui)
+  {
+    gtk_main_quit();
+    gtk_widget_destroy(cl->dialog);
+  }
+
+  return NULL;
+}
+
+void dt_opencl_benchmark_window(dt_opencl_t *cl)
+{
+  // Create the widgets
+  cl->dialog = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+  gtk_window_set_title(GTK_WINDOW(cl->dialog), _("Tuning OpenCL parameters..."));
+  gtk_window_set_default_size(GTK_WINDOW(cl->dialog), DT_PIXEL_APPLY_DPI(600), DT_PIXEL_APPLY_DPI(400));
+  gtk_window_set_icon_name(GTK_WINDOW(cl->dialog), "ansel");
+  gtk_window_set_type_hint(GTK_WINDOW(cl->dialog), GDK_WINDOW_TYPE_HINT_DIALOG);
+
+  GtkWidget *content_area = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_PIXEL_APPLY_DPI(20));
+  gtk_container_add(GTK_CONTAINER(cl->dialog), content_area);
+
+  cl->label = gtk_label_new(_("Ansel is looking for the optimal parameters to configure your GPU. It will take some time.\n\n"
+                              "This happens when a new GPU is connected and when an OpenCL driver is updated."));
+  gtk_label_set_line_wrap(GTK_LABEL(cl->label), TRUE);
+  gtk_box_pack_start(GTK_BOX(content_area), cl->label, TRUE, TRUE, 0);
+
+  cl->progress = gtk_progress_bar_new();
+  gtk_progress_bar_set_text(GTK_PROGRESS_BAR(cl->progress), "");
+  gtk_progress_bar_set_show_text(GTK_PROGRESS_BAR(cl->progress), TRUE);
+  gtk_box_pack_start(GTK_BOX(content_area), cl->progress, TRUE, TRUE, 0);
+
+  gtk_widget_show_all(cl->dialog);
+  g_thread_new("dt_opencl_benchmark_sequence", (GThreadFunc)dt_opencl_benchmark_sequence, cl);
+  gtk_main();
 }
 
 void dt_opencl_init(dt_opencl_t *cl, const gboolean exclude_opencl, const gboolean print_statistics)
@@ -906,6 +1043,9 @@ void dt_opencl_init(dt_opencl_t *cl, const gboolean exclude_opencl, const gboole
   cl->stopped = 0;
   cl->error_count = 0;
   cl->print_statistics = print_statistics;
+  cl->progress = NULL;
+  cl->dialog = NULL;
+  cl->label = NULL;
 
   // work-around to fix a bug in some AMD OpenCL compilers, which would fail parsing certain numerical
   // constants if locale is different from "C".
@@ -1050,8 +1190,7 @@ void dt_opencl_init(dt_opencl_t *cl, const gboolean exclude_opencl, const gboole
   dt_print_nts(DT_DEBUG_OPENCL, "[opencl_init] found %d device%s\n", num_devices, num_devices > 1 ? "s" : "");
   if(num_devices == 0)
   {
-    if(devices)
-      free(devices);
+    if(devices) free(devices);
     goto finally;
   }
 
@@ -1120,58 +1259,15 @@ finally:
     cl->guided_filter = dt_guided_filter_init_cl_global();
   }
 
-  if(newcheck && !manually && cl->inited)
+  if((newcheck && !manually) && cl->inited)
   {
     dt_print_nts(DT_DEBUG_OPENCL, "[opencl_init] OpenCL devices changed, we will update the profiling configuration.\n");
     dt_conf_set_string("opencl_checksum", checksum);
-    dt_opencl_benchmark_array(cl);
 
-    // get minima and maxima of performance data of all active devices
-    const float tcpu = cl->cpubenchmark;
-    float tgpumin = INFINITY;
-    float tgpumax = -INFINITY;
-    int fastest_device = -1; // Device -1 is CPU
-    for(int n = 0; n < cl->num_devs; n++)
-    {
-      if((cl->dev[n].benchmark > 0.0f) && (cl->dev[n].benchmark < tgpumin))
-      {
-        tgpumin = cl->dev[n].benchmark;
-        fastest_device = n;
-      }
-      tgpumax = fmaxf(cl->dev[n].benchmark, tgpumax);
-    }
-
-    if(tcpu < tgpumin / 1.2f)
-    {
-      // de-activate opencl for darktable in case the cpu is faster than the fastest GPU.
-      // user can always manually overrule this later.
-      cl->enabled = FALSE;
-      dt_conf_set_bool("opencl", FALSE);
-      dt_print_nts(DT_DEBUG_OPENCL, "[opencl_init] due to a slow GPU the opencl flag has been set to OFF.\n");
-      dt_control_log(_("due to a slow GPU hardware acceleration via opencl has been de-activated"));
-    }
-
-    // apply config settings for scheduling profile: sets device priorities and pixelpipe synchronization timeout
-    if(tcpu / tgpumin > 2.0f)
-    {
-      // GPU is at least twice as fast as CPU: force GPU everywhere
-      gchar *device_str = g_strdup_printf("+%i", fastest_device);
-      dt_conf_set_string("opencl_devid_thumbnail", device_str);
-      dt_conf_set_string("opencl_devid_preview", device_str);
-      dt_conf_set_string("opencl_devid_export", device_str);
-      dt_conf_set_string("opencl_devid_darkroom", device_str);
-      g_free(device_str);
-    }
+    if(gtk_init_check(NULL, NULL)) // use the GUI path only if there is a graphical session
+      dt_opencl_benchmark_window(cl);
     else
-    {
-      // GPU is only marginally faster than CPU: suggest using it everywhere
-      gchar *device_str = g_strdup_printf("%i", fastest_device);
-      dt_conf_set_string("opencl_devid_thumbnail", device_str);
-      dt_conf_set_string("opencl_devid_preview", device_str);
-      dt_conf_set_string("opencl_devid_export", device_str);
-      dt_conf_set_string("opencl_devid_darkroom", device_str);
-      g_free(device_str);
-    }
+      dt_opencl_benchmark_sequence(cl);
   }
 
   dt_opencl_apply_scheduling_profile();

@@ -222,6 +222,14 @@ typedef struct dt_opencl_t
   dt_opencl_device_t *dev;
   dt_dlopencl_t *dlocl;
 
+  // Benchmarking GUI to make user wait while we run expensive stuff in background
+  GtkWidget *dialog;
+  GtkWidget *progress;
+  GtkWidget *label;
+  char progress_label[256];
+  double steps;
+  double step;
+
   // we want the cpu benchmark to be available
   float cpubenchmark;
   // global kernels for blending operations.
