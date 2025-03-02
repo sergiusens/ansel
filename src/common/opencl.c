@@ -1296,36 +1296,37 @@ static const char *dt_opencl_get_vendor_by_id(unsigned int id)
   return vendor;
 }
 
-// FIXME this benchmark simply doesn't reflect the power of a cl device in a meaningful way resulting in
-// - the config setting for very-fast GPU often misses a proper setting
-// - at the moment we can't use a cpu vs gpu performance ratio to decide if tiled-gpu might be worse than untiled-cpu
 static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const size_t height, const int count, const float sigma)
 {
   const int bpp = 4 * sizeof(float);
   cl_int err = DT_OPENCL_DEFAULT_ERROR;
   cl_mem dev_mem = NULL;
+  cl_mem dev_in = NULL;
+  cl_mem mem_out = NULL;
   float *buf = NULL;
   dt_gaussian_cl_t *g = NULL;
+  dt_guided_filter_cl_global_t *gf = NULL;
 
   const float Labmax[] = { INFINITY, INFINITY, INFINITY, INFINITY };
   const float Labmin[] = { -INFINITY, -INFINITY, -INFINITY, -INFINITY };
 
   unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
-  buf = dt_alloc_align(width * height * bpp);
+  // Simulate a 24 Mpx raw
+  buf = dt_alloc_align(6000 * 4000 * bpp);
   if(buf == NULL) goto error;
 
+  // Write noise in the raw image
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-  dt_omp_firstprivate(height, tea_states, width) \
-  shared(buf)
+  dt_omp_firstprivate(tea_states, buf)
 #endif
-  for(size_t j = 0; j < height; j++)
+  for(size_t j = 0; j < 4000; j++)
   {
     unsigned int *tea_state = get_tea_state(tea_states,dt_get_thread_num());
     tea_state[0] = j + dt_get_thread_num();
-    size_t index = j * 4 * width;
-    for(int i = 0; i < 4 * width; i++)
+    size_t index = j * 4 * 6000;
+    for(int i = 0; i < 4 * 6000; i++)
     {
       encrypt_tea(tea_state);
       buf[index + i] = 100.0f * tpdf(tea_state[0]);
@@ -1335,9 +1336,20 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
   // start timer
   double start = dt_get_wtime();
 
-  // allocate dev_mem buffer & copy fake data from RAM to vRAM
-  dev_mem = dt_opencl_copy_host_to_device(devid, buf, width, height, bpp);
+  // Allocate dev_in buffer & copy fake data from RAM to vRAM
+  // We take I/O cost into account in the timer because
+  // OpenCL pipelines have a lot of overhead.
+  dev_in = dt_opencl_copy_host_to_device(devid, buf, 6000, 4000, bpp);
+  if(dev_in == NULL) goto error;
+
+  dev_mem = dt_opencl_alloc_device(devid, width, height, bpp);
   if(dev_mem == NULL) goto error;
+
+  // simulate "demosaicing" a 24 Mpx raw, aka interpolation
+  const struct dt_interpolation *itor = dt_interpolation_new(DT_INTERPOLATION_LANCZOS3);
+  dt_iop_roi_t roi_in = { .height = 4000, .width = 6000, .x = 0, .y = 0 };
+  dt_iop_roi_t roi_out = { .height = height, .width = width, .x = 0, .y = 0 };
+  dt_interpolation_resample_cl(itor, devid, dev_mem, &roi_out, dev_in, &roi_in);
 
   // prepare gaussian filter
   g = dt_gaussian_init_cl(devid, width, height, 4, Labmax, Labmin, sigma, 0);
@@ -1358,88 +1370,111 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
   dt_gaussian_free_cl(g);
   g = NULL;
 
-  // copy dev_mem -> buf
-  err = dt_opencl_copy_device_to_host(devid, buf, dev_mem, width, height, bpp);
-  if(err != CL_SUCCESS) goto error;
+  // prepare guided filter
+  gf = dt_guided_filter_init_cl_global();
+  mem_out = dt_opencl_alloc_device(devid, width, height, bpp);
+  if(!mem_out) goto error;
 
-  // free dev_mem
-  dt_opencl_release_mem_object(dev_mem);
+  for(int n = 0; n < count; n++)
+  {
+    guided_filter_cl(devid, dev_mem, dev_mem, mem_out, width, height, 4, sigma, 1.0, 0.5, 0., 1.0);
+
+    // copy back to host
+    err = dt_opencl_copy_device_to_host(devid, buf, mem_out, width, height, bpp);
+    if(err != CL_SUCCESS) goto error;
+  }
+
+  // cleanup guided filter
+  dt_guided_filter_free_cl_global(gf);
+  gf = NULL;
 
   // end timer
   double end = dt_get_wtime();
 
-  dt_free_align(buf);
-  free_tea_states(tea_states);
-  return (end - start);
-
-error:
-  dt_gaussian_free_cl(g);
+  // free dev_mem
   dt_free_align(buf);
   free_tea_states(tea_states);
   dt_opencl_release_mem_object(dev_mem);
+  dt_opencl_release_mem_object(mem_out);
+  dt_opencl_release_mem_object(dev_in);
+  return (end - start);
+
+error:
+  if(g) dt_gaussian_free_cl(g);
+  dt_free_align(buf);
+  free_tea_states(tea_states);
+
+  if(gf) dt_guided_filter_free_cl_global(gf);
+  dt_opencl_release_mem_object(dev_mem);
+  dt_opencl_release_mem_object(mem_out);
+  dt_opencl_release_mem_object(dev_in);
   return INFINITY;
 }
 
 static float dt_opencl_benchmark_cpu(const size_t width, const size_t height, const int count, const float sigma)
 {
   const int bpp = 4 * sizeof(float);
-  float *buf = NULL;
-  dt_gaussian_t *g = NULL;
+
+  float *buf = dt_alloc_align(width * height * bpp);
 
   const float Labmax[] = { INFINITY, INFINITY, INFINITY, INFINITY };
   const float Labmin[] = { -INFINITY, -INFINITY, -INFINITY, -INFINITY };
 
   unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
-  buf = dt_alloc_align(width * height * bpp);
-  if(buf == NULL) goto error;
+  float *out = dt_alloc_align(width * height * bpp);
 
+  // Fake raw
+  float *in = dt_alloc_align(6000 * 4000 * bpp);
+
+  // Write noise in the fake raw
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-  dt_omp_firstprivate(height, width, tea_states) \
-  shared(buf)
+  dt_omp_firstprivate(tea_states, in)
 #endif
-  for(size_t j = 0; j < height; j++)
+  for(size_t j = 0; j < 4000; j++)
   {
     unsigned int *tea_state = get_tea_state(tea_states,dt_get_thread_num());
     tea_state[0] = j + dt_get_thread_num();
-    size_t index = j * 4 * width;
-    for(int i = 0; i < 4 * width; i++)
+    size_t index = j * 4 * 6000;
+    for(int i = 0; i < 4 * 6000; i++)
     {
       encrypt_tea(tea_state);
-      buf[index + i] = 100.0f * tpdf(tea_state[0]);
+      in[index + i] = 100.0f * tpdf(tea_state[0]);
     }
   }
 
   // start timer
   double start = dt_get_wtime();
 
-  // prepare gaussian filter
-  g = dt_gaussian_init(width, height, 4, Labmax, Labmin, sigma, 0);
-  if(!g) goto error;
+  // Simulate "demosaicing" a 24 Mpx raw, aka interpolation
+  const struct dt_interpolation *itor = dt_interpolation_new(DT_INTERPOLATION_LANCZOS3);
+  dt_iop_roi_t roi_in = { .height = 4000, .width = 6000, .x = 0, .y = 0 };
+  dt_iop_roi_t roi_out = { .height = height, .width = width, .x = 0, .y = 0 };
+  dt_interpolation_resample(itor, out, &roi_out, in, &roi_in);
 
-  // gaussian blur
+  // prepare gaussian filter
+  dt_gaussian_t *g = dt_gaussian_init(width, height, 4, Labmax, Labmin, sigma, 0);
+
   for(int n = 0; n < count; n++)
-  {
     dt_gaussian_blur(g, buf, buf);
-  }
 
   // cleanup gaussian filter
   dt_gaussian_free(g);
-  g = NULL;
+
+  // guided filter
+  for(int n = 0; n < count; n++)
+    guided_filter(buf, buf, out, width, height, 4, sigma, 0.05, 0.5, 0., FLT_MAX);
 
   // end timer
   double end = dt_get_wtime();
 
   dt_free_align(buf);
+  dt_free_align(out);
+  dt_free_align(in);
   free_tea_states(tea_states);
-  return (end - start);
 
-error:
-  dt_gaussian_free(g);
-  dt_free_align(buf);
-  free_tea_states(tea_states);
-  return INFINITY;
+  return (end - start);
 }
 
 gboolean dt_opencl_finish(const int devid)
