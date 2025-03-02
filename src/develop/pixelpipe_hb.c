@@ -2268,10 +2268,12 @@ static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, d
                                                      int pos)
 {
   darktable.dtresources.group = 4 * darktable.dtresources.level;
+
 #ifdef HAVE_OPENCL
   dt_opencl_check_tuning(pipe->devid);
 #endif
   int ret = dt_dev_pixelpipe_process_rec(pipe, dev, output, cl_mem_output, out_format, roi_out, modules, pieces, pos);
+
 #ifdef HAVE_OPENCL
   // copy back final opencl buffer (if any) to CPU
   if(ret)
@@ -2283,6 +2285,7 @@ static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, d
   {
     if(*cl_mem_output != NULL)
     {
+      // FIXME: since we mandatorily copy GPU back to pipeline cache, this is already in cache. No need to copy.
       cl_int err = dt_opencl_copy_device_to_host(pipe->devid, *output, *cl_mem_output, roi_out->width, roi_out->height,
                                           dt_iop_buffer_dsc_to_bpp(*out_format));
       dt_opencl_release_mem_object(*cl_mem_output);
