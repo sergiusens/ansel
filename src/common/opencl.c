@@ -968,6 +968,13 @@ static void dt_opencl_benchmark_array(dt_opencl_t *cl, const char *config, int w
   dt_conf_set_int("pixelpipe_synchronization_timeout", 2 * MIN(tcpu, tgpumin) / 0.005f);
 }
 
+static gboolean _close_opencl_window(gpointer userdata)
+{
+  dt_opencl_t *cl = (dt_opencl_t *)userdata;
+  gtk_widget_destroy(cl->dialog);
+  return G_SOURCE_REMOVE;
+}
+
 gpointer dt_opencl_benchmark_sequence(dt_opencl_t *cl)
 {
   // Get display size
@@ -999,7 +1006,7 @@ gpointer dt_opencl_benchmark_sequence(dt_opencl_t *cl)
   dt_opencl_benchmark_array(cl, "opencl_devid_export", 6000, 4000, gui, 4, 2);
   dt_opencl_benchmark_array(cl, "opencl_devid_darkroom", width, height, gui, 4, 3);
 
-  if(gui) gtk_widget_destroy(cl->dialog);
+  if(gui) g_main_context_invoke(NULL, _close_opencl_window, cl);
 
   return NULL;
 }
@@ -1498,7 +1505,7 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
 
 error:
   if(g) dt_gaussian_free_cl(g);
-  dt_free_align(buf);
+  if(buf) dt_free_align(buf);
   free_tea_states(tea_states);
 
   if(gf) dt_guided_filter_free_cl_global(gf);
