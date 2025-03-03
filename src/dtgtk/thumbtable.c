@@ -497,10 +497,9 @@ void _resize_thumbnails(dt_thumbtable_t *table)
   for(GList *link = table->list; link; link = g_list_next(link))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;
-    gboolean already_processed = (thumb->rowid >= table->min_row_id && thumb->rowid < table->max_row_id);
     gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
 
-    if(!already_processed && size_changed)
+    if(size_changed)
     {
       dt_thumbnail_set_overlay(thumb, table->overlays);
       dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
