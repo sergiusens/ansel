@@ -120,11 +120,11 @@ void dt_history_delete_on_image_ext(int32_t imgid, gboolean undo)
   /* unset change timestamp */
   dt_image_cache_unset_change_timestamp(darktable.image_cache, imgid);
 
-  // signal that the mipmap need to be updated
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
-
   // update history hash
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
+
+  // signal that the mipmap need to be updated
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
 
   if(undo)
   {
