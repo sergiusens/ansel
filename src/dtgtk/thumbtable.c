@@ -1020,6 +1020,10 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
 
   //fprintf(stdout, "%s\n", gtk_accelerator_name(event->keyval, event->state));
 
+  // Exit alternative mode on any keystroke other than alt
+  if(event->keyval != GDK_KEY_Alt_L && event->keyval != GDK_KEY_Alt_R)
+    _alternative_mode(table, FALSE);
+
   switch(event->keyval)
   {
     case GDK_KEY_Up:
@@ -1126,16 +1130,7 @@ gboolean dt_thumbtable_key_released_grid(GtkWidget *self, GdkEventKey *event, gp
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
   //fprintf(stdout, "%s\n", gtk_accelerator_name(event->keyval, event->state));
-
-  switch(event->keyval)
-  {
-    case GDK_KEY_Alt_L:
-    case GDK_KEY_Alt_R:
-    {
-      _alternative_mode(table, FALSE);
-      return TRUE;
-    }
-  }
+  _alternative_mode(table, FALSE);
   return FALSE;
 }
 
