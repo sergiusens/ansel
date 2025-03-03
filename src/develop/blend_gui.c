@@ -2523,11 +2523,8 @@ static void _raster_value_changed_callback(GtkWidget *widget, struct dt_iop_modu
   module->raster_mask.sink.source = entry->module;
   module->raster_mask.sink.id = entry->id;
 
-  gboolean reprocess = FALSE;
-
   if(entry->module)
   {
-    reprocess = dt_iop_is_raster_mask_used(entry->module, 0) == FALSE;
     g_hash_table_add(entry->module->raster_mask.source.users, module);
 
     // update blend_params!
@@ -2543,12 +2540,6 @@ static void _raster_value_changed_callback(GtkWidget *widget, struct dt_iop_modu
   }
 
   dt_dev_add_history_item(module->dev, module, TRUE);
-
-  if(reprocess)
-  {
-    dt_dev_invalidate_all(module->dev);
-    dt_dev_refresh_ui_images(module->dev);
-  }
 }
 
 void dt_iop_gui_update_raster(dt_iop_module_t *module)

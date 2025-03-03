@@ -2614,7 +2614,8 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
       }
       else
       {
-        // No luck on global cache, try internal reference
+        // No luck on global cache, try internal reference, though there is no reason why that would work better because this
+        // doesn't survive a pipeline recompute
         raster_mask = g_hash_table_lookup(source_piece->raster_masks, GINT_TO_POINTER(raster_mask_id));
         dt_print(DT_DEBUG_MASKS,
                  "[raster masks] no cache for mask id %i from %s (%s) for module %s (%s) in pipe %i\n",

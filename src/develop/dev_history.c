@@ -716,16 +716,21 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
   }
 
   // Recompute pipeline last
-  if(module && !has_forms)
+  if(module && !(has_forms || (module->blend_params->blend_mode & DEVELOP_MASK_RASTER)))
   {
-    // If we have a module and it doesn't have masks, we only need to resync the top-most history item with pipeline
+    // If we have a module and it doesn't use drawn or raster masks,
+    // we only need to resync the top-most history item with pipeline
     dt_dev_invalidate_all(dev);
   }
   else
   {
     // We either don't have a module, meaning we have the mask manager, or
-    // we have a module and it has masks. Both ways, masks can affect several modules anywhere.
-    // We need a full resync of all pipeline with history.
+    // we have a module and it uses masks (drawn or raster).
+    // Because masks can affect several modules anywhere, not necessarily sequentially,
+    // we need a full resync of all pipeline with history.
+    // Note that the blendop params (thus their hash) references the raster mask provider
+    // in its consumer, and the consumer in its provider. So updating the whole pipe
+    // resyncs the cumulative hashes too, and triggers a new recompute from the provider on update.
     dt_dev_pixelpipe_resync_all(dev);
   }
 

@@ -234,7 +234,9 @@ typedef struct dt_iop_module_t
           maps dt_iop_module_t* -> id
       */
       GHashTable *users;
-      /** the masks this module has to offer. maps id -> name */
+      /** the masks this module has to offer. maps id -> name.
+       * So for there is only one mask per module and its id is always 0.
+      */
       GHashTable *masks;
     } source;
     struct {

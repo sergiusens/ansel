@@ -660,11 +660,12 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
   // TODO: should we skip raster masks?
   if(piece->pipe->store_all_raster_masks || dt_iop_is_raster_mask_used(self, 0))
   {
+    // The hash table does not survive to a pipeline restart...
     g_hash_table_replace(piece->raster_masks, GINT_TO_POINTER(0), _mask);
     dt_print(DT_DEBUG_MASKS, "[raster masks] replacing raster mask id 0 for module %s (%s) for pipe %i\n", piece->module->op,
              piece->module->multi_name, piece->pipe->type);
 
-    // Copy to global pipeline cache
+    // ...which is why we need to copy to global pipeline cache
     if(!dt_dev_pixelpipe_cache_available(&(piece->pipe->cache), piece->global_mask_hash))
     {
       dt_iop_buffer_dsc_t *out_format = &piece->dsc_mask;
@@ -1245,15 +1246,18 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
   {
     dt_print(DT_DEBUG_MASKS, "[raster masks] replacing raster mask id 0 for module %s (%s) for pipe %i\n", piece->module->op,
              piece->module->multi_name, piece->pipe->type);
+
     //  get back final mask from the device to store it for later use
     if(!(mask_mode & DEVELOP_MASK_RASTER))
     {
       err = dt_opencl_copy_device_to_host(devid, mask, dev_mask_1, owidth, oheight, sizeof(float));
       if(err != CL_SUCCESS) goto error;
     }
+
+    // The hash table does not survive to a pipeline restart...
     g_hash_table_replace(piece->raster_masks, GINT_TO_POINTER(0), _mask);
 
-    // Copy to global pipeline cache
+    // ...which is why we need to copy to global pipeline cache
     if(!dt_dev_pixelpipe_cache_available(&(piece->pipe->cache), piece->global_mask_hash))
     {
       dt_iop_buffer_dsc_t *out_format = &piece->dsc_mask;

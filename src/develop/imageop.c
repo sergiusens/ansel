@@ -1608,6 +1608,20 @@ gboolean dt_iop_check_modules_equal(dt_iop_module_t *mod_1, dt_iop_module_t *mod
 }
 
 
+// hash the consumer module(s) referencing raster masks provided by the current module
+static void _hash_raster_masks(gpointer key, gpointer value, gpointer user_data)
+{
+  uint64_t *hash = (uint64_t *)user_data;
+  dt_iop_module_t *module = (dt_iop_module_t *)key;
+
+  *hash = dt_hash(*hash, (char *)module->op, sizeof(module->op));
+  *hash = dt_hash(*hash, (char *)&module->iop_order, sizeof(module->iop_order));
+  *hash = dt_hash(*hash, (char *)&module->instance, sizeof(module->instance));
+  *hash = dt_hash(*hash, (char *)&module->multi_priority, sizeof(module->multi_priority));
+  *hash = dt_hash(*hash, (char *)module->blend_params, sizeof(dt_develop_blend_params_t));
+}
+
+
 void dt_iop_compute_blendop_hash(dt_iop_module_t *module)
 {
   // Blend params are always inited even when module doesn't support blending
@@ -1626,8 +1640,15 @@ void dt_iop_compute_blendop_hash(dt_iop_module_t *module)
       hash = dt_masks_group_get_hash(hash, grp);
     }
 
-    // Raster masks
-    hash = dt_hash(hash, (char *)&module->raster_mask, sizeof(module->raster_mask));
+    // Raster masks:
+    hash = dt_hash(hash, (char *)&module->raster_mask.sink, sizeof(module->raster_mask.sink));
+
+    // This contains the list of consumer modules for the raster
+    // masks this module provides.
+    g_hash_table_foreach(module->raster_mask.source.users, (GHFunc)_hash_raster_masks, (gpointer)&hash);
+
+    // module->raster_mask.source.masks contains only one mask as of now,
+    // aka its blendop output, so no need to iterate over that.
   }
 
   module->blendop_hash = hash;
