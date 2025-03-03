@@ -999,11 +999,7 @@ gpointer dt_opencl_benchmark_sequence(dt_opencl_t *cl)
   dt_opencl_benchmark_array(cl, "opencl_devid_export", 6000, 4000, gui, 4, 2);
   dt_opencl_benchmark_array(cl, "opencl_devid_darkroom", width, height, gui, 4, 3);
 
-  if(gui)
-  {
-    gtk_main_quit();
-    gtk_widget_destroy(cl->dialog);
-  }
+  if(gui) gtk_widget_destroy(cl->dialog);
 
   return NULL;
 }
