@@ -88,7 +88,6 @@ const dt_collection_sort_t items[] =
   DT_COLLECTION_SORT_CUSTOM_ORDER,
   DT_COLLECTION_SORT_TITLE,
   DT_COLLECTION_SORT_DESCRIPTION,
-  DT_COLLECTION_SORT_ASPECT_RATIO,
   DT_COLLECTION_SORT_SHUFFLE,
 };
 #define NB_ITEMS (sizeof(items) / sizeof(dt_collection_sort_t))
@@ -108,7 +107,6 @@ static const char *_sort_names[]
       N_("custom sort"),
       N_("title"),
       N_("description"),
-      N_("aspect ratio"),
       N_("shuffle"),
       NULL };
 
@@ -834,7 +832,6 @@ void init(struct dt_lib_module_t *self)
   luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_CUSTOM_ORDER);
   luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_TITLE);
   luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_DESCRIPTION);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_ASPECT_RATIO);
   luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_SHUFFLE);
 
   luaA_enum(L,dt_collection_filter_t);

@@ -629,14 +629,10 @@ static int32_t dt_control_flip_images_job_run(dt_job_t *job)
     dt_image_flip(imgid, cw);
     t = g_list_next(t);
     fraction += 1.0 / total;
-    dt_image_set_aspect_ratio(imgid, FALSE);
     dt_control_job_set_progress(job, fraction);
   }
 
   dt_undo_end_group(darktable.undo);
-
-  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_ASPECT_RATIO,
-                             g_list_copy(params->index));
   dt_control_queue_redraw_center();
   return 0;
 }

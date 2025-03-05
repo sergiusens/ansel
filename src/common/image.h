@@ -223,9 +223,8 @@ typedef struct dt_image_t
   // common stuff
 
   // to understand this, look at comment for dt_histogram_roi_t
-  int32_t width, height, final_width, final_height, p_width, p_height;
+  int32_t width, height, p_width, p_height;
   int32_t crop_x, crop_y, crop_width, crop_height;
-  float aspect_ratio;
 
   // used by library
   int32_t num, flags, film_id, id, group_id, version;
@@ -337,7 +336,6 @@ int32_t dt_image_duplicate(const int32_t imgid);
 void dt_image_flip(const int32_t imgid, const int32_t cw);
 void dt_image_set_flip(const int32_t imgid, const dt_image_orientation_t user_flip);
 dt_image_orientation_t dt_image_get_orientation(const int32_t imgid);
-void dt_image_update_final_size(const int32_t imgid);
 /** set image location lon/lat/ele */
 void dt_image_set_location(const int32_t imgid, const dt_image_geoloc_t *geoloc,
                            const gboolean undo_on, const gboolean group_on);
@@ -353,18 +351,7 @@ void dt_image_get_location(const int32_t imgid, dt_image_geoloc_t *geoloc);
 gboolean dt_image_altered(const int32_t imgid);
 /** returns TRUE if if current has is basic, FALSE otherwise. */
 gboolean dt_image_basic(const int32_t imgid);
-/** set the image final/cropped aspect ratio */
-float dt_image_set_aspect_ratio(const int32_t imgid, const gboolean raise);
-/** set the image raw aspect ratio */
-void dt_image_set_raw_aspect_ratio(const int32_t imgid);
-/** set the image final/cropped aspect ratio */
-void dt_image_set_aspect_ratio_to(const int32_t imgid, const float aspect_ratio, const gboolean raise);
-/** set the image final/cropped aspect ratio if different from stored*/
-void dt_image_set_aspect_ratio_if_different(const int32_t imgid, const float aspect_ratio, const gboolean raise);
-/** reset the image final/cropped aspect ratio to 0.0 */
-void dt_image_reset_aspect_ratio(const int32_t imgid, const gboolean raise);
-/** get the ratio of cropped raw sensor data */
-float dt_image_get_sensor_ratio(const dt_image_t *img);
+
 /** returns the orientation bits of the image from exif. */
 static inline dt_image_orientation_t dt_image_orientation(const dt_image_t *img)
 {

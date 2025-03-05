@@ -1064,11 +1064,6 @@ gboolean dt_history_delete_on_list(const GList *list, gboolean undo)
     dt_history_snapshot_undo_create(hist->imgid, &hist->after, &hist->after_history_end);
     dt_undo_record(darktable.undo, NULL, DT_UNDO_LT_HISTORY, (dt_undo_data_t)hist, dt_history_snapshot_undo_pop,
                    dt_history_snapshot_undo_lt_history_data_free);
-
-    /* update the aspect ratio if the current sorting is based on aspect ratio, otherwise the aspect ratio will be
-       recalculated when the mimpap will be recreated */
-    if(darktable.collection->params.sort == DT_COLLECTION_SORT_ASPECT_RATIO)
-      dt_image_set_aspect_ratio(imgid, FALSE);
   }
 
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);

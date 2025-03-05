@@ -2110,27 +2110,14 @@ void leave(dt_view_t *self)
   else
     dt_conf_set_string("plugins/darkroom/active", "");
 
-
   // commit image ops to db
   dt_dev_write_history(dev);
-
-  // update aspect ratio
-  if(dev->preview_pipe->backbuf && dev->preview_pipe->status == DT_DEV_PIXELPIPE_VALID)
-  {
-    // FIXME: map that to preview pipe recomputed event
-    double aspect_ratio = (double)dev->preview_pipe->backbuf_width / (double)dev->preview_pipe->backbuf_height;
-    dt_image_set_aspect_ratio_to(dev->preview_pipe->image.id, aspect_ratio, FALSE);
-  }
-  else
-  {
-    dt_image_set_aspect_ratio(dev->image_storage.id, FALSE);
-  }
 
   // be sure light table will regenerate the thumbnail:
   if(!dt_history_hash_is_mipmap_synced(dev->image_storage.id))
   {
     dt_mipmap_cache_remove(darktable.mipmap_cache, dev->image_storage.id);
-    dt_image_update_final_size(dev->image_storage.id);
+
     // possibly dump new xmp data
     const dt_history_hash_t hash_status = dt_history_hash_get_status(dev->image_storage.id);
     const gboolean fresh = (hash_status == DT_HISTORY_HASH_BASIC) || (hash_status == DT_HISTORY_HASH_AUTO);

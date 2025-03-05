@@ -398,9 +398,6 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, dest_imgid);
 
-  /* update the aspect ratio. recompute only if really needed for performance reasons */
-  dt_image_reset_aspect_ratio(dest_imgid, FALSE);
-
   // signal that the mipmap need to be updated
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, dest_imgid);
 

@@ -145,7 +145,7 @@ static gboolean item_is_numeric_collection(dt_collection_properties_t item)
 {
   return item == DT_COLLECTION_PROP_DAY || is_time_property(item) || item == DT_COLLECTION_PROP_APERTURE
          || item == DT_COLLECTION_PROP_FOCAL_LENGTH || item == DT_COLLECTION_PROP_ISO
-         || item == DT_COLLECTION_PROP_EXPOSURE || item == DT_COLLECTION_PROP_ASPECT_RATIO
+         || item == DT_COLLECTION_PROP_EXPOSURE
          || item == DT_COLLECTION_PROP_RATING;
 }
 
@@ -192,7 +192,6 @@ void *legacy_params(struct dt_lib_module_t *self,
         DT_COLLECTION_PROP_ISO,
         DT_COLLECTION_PROP_APERTURE,
         DT_COLLECTION_PROP_EXPOSURE,
-        DT_COLLECTION_PROP_ASPECT_RATIO,
         DT_COLLECTION_PROP_FILENAME,
         DT_COLLECTION_PROP_GEOTAGGING,
         DT_COLLECTION_PROP_GROUPING,
@@ -240,7 +239,6 @@ void *legacy_params(struct dt_lib_module_t *self,
         DT_COLLECTION_PROP_DAY,
         DT_COLLECTION_PROP_TIME,
         DT_COLLECTION_PROP_GEOTAGGING,
-        DT_COLLECTION_PROP_ASPECT_RATIO,
         DT_COLLECTION_PROP_TAG,
         DT_COLLECTION_PROP_COLORLABEL,
 
@@ -286,24 +284,6 @@ void init_presets(dt_lib_module_t *self)
     params.rule[0].mode = 0;             \
     params.rule[0].item = r;             \
   }
-
-  // based on aspect-ratio
-
-  CLEAR_PARAMS(DT_COLLECTION_PROP_ASPECT_RATIO);
-  g_strlcpy(params.rule[0].string, "= 1", PARAM_STRING_SIZE);
-
-  dt_lib_presets_add(_("square"), self->plugin_name, self->version(),
-                       &params, sizeof(params), TRUE);
-
-  CLEAR_PARAMS(DT_COLLECTION_PROP_ASPECT_RATIO);
-  g_strlcpy(params.rule[0].string, "> 1", PARAM_STRING_SIZE);
-  dt_lib_presets_add(_("landscape"), self->plugin_name, self->version(),
-                       &params, sizeof(params), TRUE);
-
-  CLEAR_PARAMS(DT_COLLECTION_PROP_ASPECT_RATIO);
-  g_strlcpy(params.rule[0].string, "< 1", PARAM_STRING_SIZE);
-  dt_lib_presets_add(_("portrait"), self->plugin_name, self->version(),
-                       &params, sizeof(params), TRUE);
 
   // based on date/time
   GDateTime *now = g_date_time_new_now_local();
@@ -1772,16 +1752,6 @@ static void list_view(dt_lib_collect_rule_t *dr)
         // clang-format on
         break;
 
-      case DT_COLLECTION_PROP_ASPECT_RATIO: // aspect ratio, 3 hardcoded alternatives
-        // clang-format off
-        g_snprintf(query, sizeof(query),
-                   "SELECT ROUND(aspect_ratio,1), 1, COUNT(*) AS count"
-                   " FROM main.images AS mi "
-                   " WHERE %s"
-                   " GROUP BY ROUND(aspect_ratio,1)", where_ext);
-        // clang-format on
-        break;
-
       case DT_COLLECTION_PROP_COLORLABEL: // colorlabels
         // clang-format off
         g_snprintf(query, sizeof(query),
@@ -2053,7 +2023,6 @@ static void list_view(dt_lib_collect_rule_t *dr)
        || property == DT_COLLECTION_PROP_FOCAL_LENGTH
        || property == DT_COLLECTION_PROP_ISO
        || property == DT_COLLECTION_PROP_EXPOSURE
-       || property == DT_COLLECTION_PROP_ASPECT_RATIO
        || property == DT_COLLECTION_PROP_RATING)
     {
       gtk_tree_selection_set_mode(selection, GTK_SELECTION_MULTIPLE);
@@ -2100,7 +2069,6 @@ static void list_view(dt_lib_collect_rule_t *dr)
      || property == DT_COLLECTION_PROP_FOCAL_LENGTH
      || property == DT_COLLECTION_PROP_ISO
      || property == DT_COLLECTION_PROP_EXPOSURE
-     || property == DT_COLLECTION_PROP_ASPECT_RATIO
      || property == DT_COLLECTION_PROP_RATING)
   {
     // test selection range [xxx;xxx]
@@ -2160,7 +2128,6 @@ static void _set_tooltip(dt_lib_collect_rule_t *d)
   if(property == DT_COLLECTION_PROP_APERTURE
      || property == DT_COLLECTION_PROP_FOCAL_LENGTH
      || property == DT_COLLECTION_PROP_ISO
-     || property == DT_COLLECTION_PROP_ASPECT_RATIO
      || property == DT_COLLECTION_PROP_EXPOSURE)
   {
     gtk_widget_set_tooltip_text(d->text, _("use <, <=, >, >=, <>, =, [;] as operators"));
@@ -3126,7 +3093,6 @@ static void _populate_collect_combo(GtkWidget *w)
     ADD_COLLECT_ENTRY(DT_COLLECTION_PROP_EXPOSURE);
     ADD_COLLECT_ENTRY(DT_COLLECTION_PROP_FOCAL_LENGTH);
     ADD_COLLECT_ENTRY(DT_COLLECTION_PROP_ISO);
-    ADD_COLLECT_ENTRY(DT_COLLECTION_PROP_ASPECT_RATIO);
 
     ADD_COLLECT_ENTRY(DT_COLLECTION_PROP_GROUPING);
     ADD_COLLECT_ENTRY(DT_COLLECTION_PROP_LOCAL_COPY);
@@ -3543,7 +3509,6 @@ void init(struct dt_lib_module_t *self)
   luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_FOCAL_LENGTH);
   luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_ISO);
   luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_APERTURE);
-  luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_ASPECT_RATIO);
   luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_EXPOSURE);
   luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_FILENAME);
   luaA_enum_value(L, dt_collection_properties_t, DT_COLLECTION_PROP_GEOTAGGING);

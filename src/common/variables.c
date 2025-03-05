@@ -57,10 +57,6 @@ typedef struct dt_variables_data_t
   int raw_width;
   int raw_height;
 
-  // image size after crop, but before export resize
-  int crop_width;
-  int crop_height;
-
   // image export size after crop and export resize
   int export_width;
   int export_height;
@@ -202,26 +198,8 @@ static void _init_expansion(dt_variables_params_t *params, gboolean iterate)
     params->data->raw_width = img->p_width;
     params->data->sensor_height = img->height;
     params->data->sensor_width = img->width;
-    params->data->crop_height = img->final_height;
-    params->data->crop_width = img->final_width;
-
-    // for export size, assume initially no export scaling
-    params->data->export_height = img->final_height;
-    params->data->export_width = img->final_width;
-
-    if(params->data->max_height || params->data->max_width)
-    {
-      // export scaling occurs, calculate the resize
-      const int mh = params->data->max_height ? params->data->max_height : INT_MAX;
-      const int mw = params->data->max_width ? params->data->max_width : INT_MAX;
-      const float scale = fminf((float)mh / img->final_height, (float)mw / img->final_width);
-      if(scale < 1.0f)
-      {
-        // export scaling
-        params->data->export_height = roundf(img->final_height * scale);
-        params->data->export_width = roundf(img->final_width * scale);
-      }
-    }
+    params->data->export_height = 0;
+    params->data->export_width = 0;
   }
 
   switch (release)
@@ -670,8 +648,6 @@ static char *_get_base_value(dt_variables_params_t *params, char **variable)
     result = g_strdup_printf("%d", params->data->sensor_width);
   else if(_has_prefix(variable, "WIDTH.RAW") || _has_prefix(variable, "RAW_WIDTH"))
     result = g_strdup_printf("%d", params->data->raw_width);
-  else if(_has_prefix(variable, "WIDTH.CROP") || _has_prefix(variable, "CROP_WIDTH"))
-    result = g_strdup_printf("%d", params->data->crop_width);
   else if(_has_prefix(variable, "WIDTH.EXPORT") || _has_prefix(variable, "EXPORT_WIDTH"))
     result = g_strdup_printf("%d", params->data->export_width);
   else if(_has_prefix(variable, "HEIGHT.MAX") || _has_prefix(variable, "MAX_HEIGHT"))
@@ -680,8 +656,6 @@ static char *_get_base_value(dt_variables_params_t *params, char **variable)
     result = g_strdup_printf("%d", params->data->sensor_height);
   else if(_has_prefix(variable, "HEIGHT.RAW") || _has_prefix(variable, "RAW_HEIGHT"))
     result = g_strdup_printf("%d", params->data->raw_height);
-  else if(_has_prefix(variable, "HEIGHT.CROP") || _has_prefix(variable, "CROP_HEIGHT"))
-    result = g_strdup_printf("%d", params->data->crop_height);
   else if(_has_prefix(variable, "HEIGHT.EXPORT") || _has_prefix(variable, "EXPORT_HEIGHT"))
     result = g_strdup_printf("%d", params->data->export_height);
   else if (_has_prefix(variable, "CATEGORY"))

@@ -885,12 +885,6 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     /* remove old obsolete thumbnails */
     dt_mipmap_cache_remove(darktable.mipmap_cache, newimgid);
 
-    /* update the aspect ratio. recompute only if really needed for performance reasons */
-    if(darktable.collection->params.sort == DT_COLLECTION_SORT_ASPECT_RATIO)
-      dt_image_set_aspect_ratio(newimgid, TRUE);
-    else
-      dt_image_reset_aspect_ratio(newimgid, TRUE);
-
     /* redraw center view to update visible mipmaps */
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, newimgid);
   }

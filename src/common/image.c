@@ -703,24 +703,6 @@ void dt_image_set_images_locations(const GList *imgs, const GArray *gloc, const 
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE);
 }
 
-void dt_image_update_final_size(const int32_t imgid)
-{
-  if(imgid <= 0) return;
-  int ww = 0, hh = 0;
-  dt_pthread_mutex_lock(&darktable.develop->pipe->busy_mutex);
-  if(darktable.develop && darktable.develop->pipe && darktable.develop->pipe->output_imgid == imgid)
-  {
-    dt_dev_pixelpipe_get_roi_out(darktable.develop->pipe, darktable.develop, darktable.develop->pipe->iwidth,
-                                    darktable.develop->pipe->iheight, &ww, &hh);
-  }
-  dt_pthread_mutex_unlock(&darktable.develop->pipe->busy_mutex);
-  dt_image_t *imgtmp = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-  imgtmp->final_width = ww;
-  imgtmp->final_height = hh;
-  dt_image_cache_write_release(darktable.image_cache, imgtmp, DT_IMAGE_CACHE_RELAXED);
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_METADATA_UPDATE);
-}
-
 void dt_image_set_flip(const int32_t imgid, const dt_image_orientation_t orientation)
 {
   sqlite3_stmt *stmt;
@@ -857,122 +839,7 @@ void dt_image_flip(const int32_t imgid, const int32_t cw)
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
 
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
-}
 
-/* About the image size ratio
-   It has been calculated from the exif data width&height, this is not exact as we crop
-   the sensor data in most cases for raws.
-   This is managed by
-   rawspeed - knowing about default crops
-   rawprepare - modify the defaults
-
-   The database does **not** hold the cropped width & height so we fill the data
-   when starting to develop.
-*/
-float dt_image_get_sensor_ratio(const struct dt_image_t *img)
-{
-  if(img->p_height >0)
-    return (double)img->p_width / (double)img->p_height;
-
-  return (double)img->width / (double)img->height;
-}
-
-void dt_image_set_raw_aspect_ratio(const int32_t imgid)
-{
-  /* fetch image from cache */
-  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-
-  /* set image aspect ratio */
-  if(image->orientation < ORIENTATION_SWAP_XY)
-    image->aspect_ratio = (float )image->width / (float )image->height;
-  else
-    image->aspect_ratio = (float )image->height / (float )image->width;
-
-  /* store */
-  dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_SAFE);
-}
-
-void dt_image_set_aspect_ratio_to(const int32_t imgid, const float aspect_ratio, const gboolean raise)
-{
-  if(aspect_ratio > .0f)
-  {
-    /* fetch image from cache */
-    dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-
-    /* set image aspect ratio */
-    image->aspect_ratio = aspect_ratio;
-
-    /* store but don't save xmp*/
-    dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
-
-    if(raise && darktable.collection->params.sort == DT_COLLECTION_SORT_ASPECT_RATIO)
-      dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD,
-                                 DT_COLLECTION_PROP_ASPECT_RATIO, g_list_prepend(NULL, GINT_TO_POINTER(imgid)));
-  }
-}
-
-void dt_image_set_aspect_ratio_if_different(const int32_t imgid, const float aspect_ratio, const gboolean raise)
-{
-  if(aspect_ratio > .0f)
-  {
-    /* fetch image from cache */
-    dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-
-    /* set image aspect ratio */
-    if(fabs(image->aspect_ratio - aspect_ratio) > 0.1)
-    {
-      dt_image_cache_read_release(darktable.image_cache, image);
-      dt_image_t *wimage = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-      wimage->aspect_ratio = aspect_ratio;
-      dt_image_cache_write_release(darktable.image_cache, wimage, DT_IMAGE_CACHE_RELAXED);
-    }
-    else
-      dt_image_cache_read_release(darktable.image_cache, image);
-
-    if(raise && darktable.collection->params.sort == DT_COLLECTION_SORT_ASPECT_RATIO)
-      dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD,
-                                 DT_COLLECTION_PROP_ASPECT_RATIO, g_list_prepend(NULL, GINT_TO_POINTER(imgid)));
-  }
-}
-
-void dt_image_reset_aspect_ratio(const int32_t imgid, const gboolean raise)
-{
-  /* fetch image from cache */
-  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-
-  /* set image aspect ratio */
-  image->aspect_ratio = 0.f;
-
-  /* store */
-  dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_SAFE);
-
-  if(raise && darktable.collection->params.sort == DT_COLLECTION_SORT_ASPECT_RATIO)
-    dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_ASPECT_RATIO,
-                               g_list_prepend(NULL, GINT_TO_POINTER(imgid)));
-}
-
-float dt_image_set_aspect_ratio(const int32_t imgid, const gboolean raise)
-{
-  dt_mipmap_buffer_t buf;
-  float aspect_ratio = 0.0;
-
-  // mipmap cache must be initialized, otherwise we'll update next call
-  if(darktable.mipmap_cache)
-  {
-    dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, DT_MIPMAP_0, DT_MIPMAP_BLOCKING, 'r');
-
-    if(buf.buf && buf.height && buf.width)
-    {
-      aspect_ratio = (float)buf.width / (float)buf.height;
-      dt_image_set_aspect_ratio_to(imgid, aspect_ratio, raise);
-    }
-
-    dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-  }
-
-  return aspect_ratio;
-}
 
 int32_t dt_image_duplicate(const int32_t imgid)
 {
@@ -1740,8 +1607,7 @@ int32_t dt_image_import_lua(const int32_t film_id, const char *filename)
 void dt_image_init(dt_image_t *img)
 {
   img->width = img->height = 0;
-  img->final_width = img->final_height = img->p_width = img->p_height = 0;
-  img->aspect_ratio = 0.f;
+  img->p_width = img->p_height = 0;
   img->crop_x = img->crop_y = img->crop_width = img->crop_height = 0;
   img->orientation = ORIENTATION_NULL;
 
