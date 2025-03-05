@@ -119,10 +119,11 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
   dt_gui_add_class(table->grid, cl1);
   gtk_widget_queue_draw(table->grid);
 
+
   // we need to change the overlay content if we pass from normal to extended overlays
   // this is not done on the fly with css to avoid computing extended msg for nothing and to reserve space if needed
   dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = table->list; l; l = g_list_next(l))
+  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     // and we resize the bottom area
@@ -145,11 +146,13 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
+  const int32_t imgid = dt_control_get_mouse_over_id();
+
   dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = table->list; l; l = g_list_next(l))
+  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
-    dt_thumbnail_set_mouseover(thumb, thumb->imgid == dt_control_get_mouse_over_id());
+    dt_thumbnail_set_mouseover(thumb, thumb->imgid == imgid);
     gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -182,6 +185,24 @@ static gboolean _set_thumb_position(dt_thumbtable_t *table, dt_thumbnail_t *thum
   return TRUE;
 }
 
+static void dt_thumbtable_scroll_to_rowid(dt_thumbtable_t *table, int rowid)
+{
+  // Find (x, y) of the current thumbnail (north-west corner)
+  int x = 0, y = 0;
+  _rowid_to_position(table, rowid, &x, &y);
+
+  // Put the image always in the center of the view, if possible,
+  // aka move from north-west corner to center of the thumb
+  x += table->thumb_width / 2;
+  y += table->thumb_height / 2;
+
+  // Scroll viewport there
+  gtk_adjustment_set_value(table->v_scrollbar, (double)y - table->view_height / 2);
+  gtk_adjustment_set_value(table->h_scrollbar, (double)x - table->view_width / 2);
+  table->x_position = x;
+  table->y_position = y;
+}
+
 static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->collection_inited || imgid < 0) return 1;
@@ -200,21 +221,9 @@ static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
   }
   dt_pthread_mutex_unlock(&table->lock);
 
-  if(rowid == -1) return 0;
+  if(rowid == -1) return 1;
 
-  // Find (x, y) of the current thumbnail (north-west corner)
-  int x = 0, y = 0;
-  _rowid_to_position(table, rowid, &x, &y);
-
-  // Put the image always in the center of the view, if possible
-  x += table->thumb_width / 2;
-  y += table->thumb_height / 2;
-
-  // Scroll there
-  gtk_adjustment_set_value(table->v_scrollbar, (double)y - table->view_height / 2);
-  gtk_adjustment_set_value(table->h_scrollbar, (double)x - table->view_width / 2);
-  table->x_position = x;
-  table->y_position = y;
+  dt_thumbtable_scroll_to_rowid(table, rowid);
 
   return 0;
 }
@@ -472,7 +481,7 @@ void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
     if(new_item || size_changed)
     {
       dt_thumbnail_set_overlay(thumb, table->overlays);
-      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
+      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
       _set_thumb_position(table, thumb);
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
     }
@@ -494,7 +503,7 @@ void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
 void _resize_thumbnails(dt_thumbtable_t *table)
 {
   dt_pthread_mutex_lock(&table->lock);
-  for(GList *link = table->list; link; link = g_list_next(link))
+  for(GList *link = g_list_first(table->list); link; link = g_list_next(link))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;
     gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
@@ -502,7 +511,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
     if(size_changed)
     {
       dt_thumbnail_set_overlay(thumb, table->overlays);
-      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE, IMG_TO_FIT);
+      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
       _set_thumb_position(table, thumb);
       gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
@@ -562,12 +571,21 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
+  gboolean first = TRUE;
 
   dt_pthread_mutex_lock(&table->lock);
-  for(const GList *l = table->list; l; l = g_list_next(l))
+  for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
+
+    if(first)
+    {
+      // Sync the row id of the first thumb in selection
+      table->rowid = thumb->rowid;
+      first = FALSE;
+    }
+
     gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -579,11 +597,12 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
   dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = table->list; l; l = g_list_next(l))
+  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     if(thumb->imgid == imgid)
     {
+      fprintf(stdout, "got mipmap for %i\n", imgid);
       dt_thumbnail_image_refresh(thumb);
       break;
     }
@@ -620,7 +639,7 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
   for(GList *i = g_list_first(imgs); i; i = g_list_next(i))
   {
     const int32_t imgid_to_update = GPOINTER_TO_INT(i->data);
-    for(GList *l = table->list; l; l = g_list_next(l))
+    for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
     {
       dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
       if(thumb->imgid == imgid_to_update)
@@ -1002,7 +1021,7 @@ void _alternative_mode(dt_thumbtable_t *table, gboolean enable)
   table->alternate_mode = enable;
 
   dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = table->list; l; l = g_list_next(l))
+  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     dt_thumbnail_alternative_mode(thumb, enable);
@@ -1235,6 +1254,7 @@ dt_thumbtable_t *dt_thumbtable_new()
   table->x_position = 0.;
   table->y_position = 0.;
   table->alternate_mode = FALSE;
+  table->rowid = -1;
 
   dt_pthread_mutex_init(&table->lock, NULL);
 
@@ -1281,7 +1301,7 @@ void _dt_thumbtable_empty_list(dt_thumbtable_t *table)
     // WARNING: we need to detach children from parent starting from the last
     // otherwise, Gtk updates the index of all the next children in sequence
     // and that takes forever when thumb_nb > 1000
-    for(GList *l = table->list; l; l = g_list_next(l))
+    for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
     {
       dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
       dt_thumbnail_destroy(thumb);
@@ -1369,7 +1389,7 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
 
   dt_pthread_mutex_lock(&table->lock);
 
-  for(const GList *l = table->list; l; l = g_list_next(l))
+  for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     if(mode == DT_THUMBTABLE_MODE_FILMSTRIP)

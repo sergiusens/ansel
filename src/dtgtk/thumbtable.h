@@ -108,6 +108,11 @@ typedef struct dt_thumbtable_t
   // show extended overlays while holding alt key
   gboolean alternate_mode;
 
+  // The rowid (aka index in thumbnail sequence) of the last active thumbnail
+  // used as a fallback for missing imgid to sync scrolling when an image is evicted
+  // from current collection
+  int rowid;
+
 } dt_thumbtable_t;
 
 

@@ -308,21 +308,8 @@ static void _thumb_set_image_area(dt_thumbnail_t *thumb, float zoom_ratio)
   gtk_widget_set_size_request(thumb->w_image, image_w, image_h);
 }
 
-static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+static void _free_image_surface(dt_thumbnail_t *thumb)
 {
-  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
-  thumb_return_if_fails(thumb, FALSE);
-
-  // If image inited, it means we already have a cached image surface at the proper
-  // size. The resizing handlers should reset this flag when size changes.
-  if(thumb->image_inited) return TRUE;
-
-  // If busy, it means we already sent a request to the mipmap cache to fetch or generate
-  // the image for us. There is no need to re-ping it again until it finishes.
-  // When the image is ready, it will raise the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal,
-  // and its handler will reset thumb->busy = FALSE
-  if(thumb->busy) return FALSE;
-
   if(thumb->img_surf)
   {
     if(cairo_surface_get_reference_count(thumb->img_surf) > 0)
@@ -330,6 +317,24 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
 
     thumb->img_surf = NULL;
   }
+}
+
+static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, FALSE);
+
+  // If image inited, it means we already have a cached image surface at the proper
+  // size. The resizing handlers should reset this flag when size changes.
+  if(thumb->image_inited && thumb->img_surf) return TRUE;
+
+  // If busy, it means we already sent a request to the mipmap cache to fetch or generate
+  // the image for us. There is no need to re-ping it again until it finishes.
+  // When the image is ready, it will raise the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal,
+  // and its handler will reset thumb->busy = FALSE
+  if(thumb->busy) return FALSE;
+
+  _free_image_surface(thumb);
 
   int image_w = 0;
   int image_h = 0;
@@ -466,7 +471,11 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
   thumb_return_if_fails(thumb, TRUE);
 
   // Technically, this is already set on mouse_enter, but we never know
-  if(!thumb->mouse_over) dt_control_set_mouse_over_id(thumb->imgid);
+  if(!thumb->mouse_over)
+  {
+    dt_control_set_mouse_over_id(thumb->imgid);
+    dt_thumbnail_set_mouseover(thumb, TRUE);
+  }
 
   // To handle keyboard move on filmstrip, we need to give focus to the picture on click.
   // But if we do so on file manager, the grid looses focus which causes the scrolled window
