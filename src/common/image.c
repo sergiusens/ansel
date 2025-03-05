@@ -839,6 +839,9 @@ void dt_image_flip(const int32_t imgid, const int32_t cw)
 
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
 
+  // signal that the mipmap need to be updated
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
+}
 
 
 int32_t dt_image_duplicate(const int32_t imgid)

@@ -871,6 +871,8 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     /* add tag */
     dt_dev_append_changed_tag(newimgid);
 
+    dt_history_hash_write_from_history(newimgid, DT_HISTORY_HASH_CURRENT);
+
     /* if current image in develop reload history */
     if(dt_dev_is_current_image(darktable.develop, newimgid))
     {
@@ -886,7 +888,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     dt_mipmap_cache_remove(darktable.mipmap_cache, newimgid);
 
     /* redraw center view to update visible mipmaps */
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, newimgid);
+    dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
   }
 }
 

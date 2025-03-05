@@ -536,8 +536,6 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
     _resize_thumbnails(table);
   }
 
-  gtk_widget_queue_draw(table->grid);
-
   table->thumb_nb += num_thumb;
   table->thumbs_inited = TRUE;
 
@@ -551,9 +549,10 @@ static void _dt_profile_change_callback(gpointer instance, int type, gpointer us
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
   dt_pthread_mutex_lock(&table->lock);
-  for(const GList *l = table->list; l; l = g_list_next(l))
+  for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *th = (dt_thumbnail_t *)l->data;
+    th->image_inited = FALSE;
     dt_thumbnail_image_refresh(th);
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -591,6 +590,25 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
+
+
+void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid)
+{
+  dt_pthread_mutex_lock(&table->lock);
+  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
+  {
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    if(thumb->imgid == imgid)
+    {
+      fprintf(stdout, "refreshing mipmap for %i\n", imgid);
+      thumb->image_inited = FALSE;
+      dt_thumbnail_image_refresh(thumb);
+      break;
+    }
+  }
+  dt_pthread_mutex_unlock(&table->lock);
+}
+
 
 // this is called each time the images info change
 static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gpointer user_data)
@@ -719,13 +737,14 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     _dt_thumbtable_empty_list(table);
     dt_control_log(_(
         "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
-    gtk_widget_queue_draw(table->grid);
   }
 
   dt_thumbtable_configure(table);
   if(changed) g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
   dt_thumbtable_update(table);
   g_idle_add((GSourceFunc) _grab_focus, table);
+
+  gtk_widget_queue_draw(table->grid);
 }
 
 static void _event_dnd_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data,
@@ -1375,6 +1394,8 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_selection, table);
   dt_thumbtable_update(table);
   g_idle_add((GSourceFunc) _grab_focus, table);
+
+  gtk_widget_queue_draw(table->grid);
 }
 
 // clang-format off

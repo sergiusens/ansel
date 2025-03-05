@@ -1233,8 +1233,6 @@ void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
   thumb->is_altered = dt_image_altered(thumb->imgid);
   _thumb_update_icons(thumb);
   thumb->busy = FALSE;
-  thumb->image_inited = FALSE;
-  thumb->busy = FALSE;
   gtk_widget_queue_draw(thumb->w_image);
 }
 

@@ -129,6 +129,9 @@ void dt_thumbtable_reset_collection(dt_thumbtable_t *table);
 gboolean dt_thumbtable_key_released_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data);
 gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data);
 
+// call this when the history of an image is changed and mipmap cache needs updating
+void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid);
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

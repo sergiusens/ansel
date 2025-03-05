@@ -713,6 +713,7 @@ void dt_mipmap_cache_get_with_caller(
   {
     // and opposite: prefetch without locking
     dt_control_add_job(darktable.control, DT_JOB_QUEUE_SYSTEM_FG, dt_image_load_job_create(imgid, mip));
+    // will raise DT_SIGNAL_DEVELOP_MIPMAP_UPDATED internally when finished
   }
   else if(flags == DT_MIPMAP_PREFETCH_DISK)
   {
@@ -722,6 +723,8 @@ void dt_mipmap_cache_get_with_caller(
     // load from disk if file exists
     char filename[PATH_MAX] = {0};
     snprintf(filename, sizeof(filename), "%s.d/%d/%"PRIu32".jpg", cache->cachedir, (int)mip, (uint32_t)key);
+
+    // will raise DT_SIGNAL_DEVELOP_MIPMAP_UPDATED internally when finished
     if(g_file_test(filename, G_FILE_TEST_EXISTS))
       dt_control_add_job(darktable.control, DT_JOB_QUEUE_SYSTEM_FG, dt_image_load_job_create(imgid, mip));
     else
