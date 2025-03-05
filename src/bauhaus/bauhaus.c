@@ -84,6 +84,15 @@ static void _margins_retrieve(struct dt_bauhaus_widget_t *w)
   const GtkStateFlags state = gtk_widget_get_state_flags(GTK_WIDGET(w));
   gtk_style_context_get_margin(context, state, w->margin);
   gtk_style_context_get_padding(context, state, w->padding);
+
+  // Deal with borders by extending margins because we don't care
+  GtkBorder *borders = gtk_border_new();
+  gtk_style_context_get_border(context, state, borders);
+  w->margin->left += borders->left;
+  w->margin->right += borders->right;
+  w->margin->top += borders->top;
+  w->margin->bottom += borders->bottom;
+  gtk_border_free(borders);
 }
 
 /**
@@ -455,7 +464,7 @@ static void show_pango_text(struct dt_bauhaus_widget_t *w, GtkStyleContext *cont
   PangoFontDescription *font_desc = NULL;
   GtkStateFlags state = (ignore_pseudo_classes) ? GTK_STATE_FLAG_NORMAL
                                                 : gtk_widget_get_state_flags(GTK_WIDGET(w));
-  gtk_style_context_get(context, state, "font", &font_desc, NULL);
+  gtk_style_context_get(context, state, GTK_STYLE_PROPERTY_FONT, &font_desc, NULL);
   pango_layout_set_font_description(layout, font_desc);
 
   // Set the actual text
@@ -773,12 +782,7 @@ static gboolean dt_bauhaus_popup_button_press(GtkWidget *widget, GdkEventButton 
 
 static void dt_bauhaus_window_show(GtkWidget *w, gpointer user_data)
 {
-  // Could grab the popup_area rather than popup_window, but if so
-  // then popup_area would get all motion events including those
-  // outside of the popup. This way the popup_area gets motion events
-  // related to updating the popup, and popup_window gets all others
-  // which would be the ones telling it to close the popup.
-  gtk_grab_add(GTK_WIDGET(user_data));
+  gtk_grab_add(GTK_WIDGET(w));
 }
 
 static void dt_bh_init(DtBauhausWidget *class)
@@ -964,7 +968,7 @@ dt_bauhaus_t * dt_bauhaus_init()
   GObject *area = G_OBJECT(bauhaus->popup_area);
   g_object_set_data(area, "bauhaus", bauhaus);
 
-  g_signal_connect(window, "show", G_CALLBACK(dt_bauhaus_window_show), area);
+  g_signal_connect(window, "show", G_CALLBACK(dt_bauhaus_window_show), NULL);
   g_signal_connect(area, "draw", G_CALLBACK(dt_bauhaus_popup_draw), NULL);
   g_signal_connect(area, "motion-notify-event", G_CALLBACK(dt_bauhaus_popup_motion_notify), NULL);
   g_signal_connect(area, "leave-notify-event", G_CALLBACK(dt_bauhaus_popup_leave_notify), NULL);
@@ -1282,9 +1286,9 @@ static void _style_updated(GtkWidget *widget)
   // it NEEDS to be defined and will be contextually adapted, possibly overriden by CSS.
   // Thing is Gtk CSS min-width in combination with hexpand is wonky so this is how it should be done.
   if(w->type == DT_BAUHAUS_COMBOBOX)
-    gtk_widget_set_size_request(widget, DT_PIXEL_APPLY_DPI(50), _get_combobox_height(widget));
+    gtk_widget_set_size_request(widget, -1, _get_combobox_height(widget));
   else if(w->type == DT_BAUHAUS_SLIDER)
-    gtk_widget_set_size_request(widget, DT_PIXEL_APPLY_DPI(180), _get_slider_height(widget));
+    gtk_widget_set_size_request(widget, -1, _get_slider_height(widget));
 }
 
 GtkWidget *dt_bauhaus_slider_from_widget(dt_bauhaus_t *bh, dt_bauhaus_widget_t *w,dt_gui_module_t *self, float min, float max,
@@ -2360,6 +2364,8 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
   gint wx = 0, wy = 0;
   GdkWindow *widget_window = gtk_widget_get_window(widget);
   if(widget_window) gdk_window_get_origin(widget_window, &wx, &wy);
+  wx += w->margin->left;
+  wy += w->margin->top;
 
 #if GTK_CHECK_VERSION(3, 24, 0)
   // Get the origin coordinates of the main window box with regard to the screen
@@ -2400,7 +2406,7 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
   // That makes the GUI glitch but I have no better solution...
   gtk_widget_show(w->bauhaus->popup_window);
 
-  gdk_window_move_to_rect(GDK_WINDOW(window), &tmp, GDK_GRAVITY_NORTH, GDK_GRAVITY_NORTH,
+  gdk_window_move_to_rect(GDK_WINDOW(window), &tmp, GDK_GRAVITY_NORTH_EAST, GDK_GRAVITY_NORTH_EAST,
                           GDK_ANCHOR_SLIDE_Y, 0, 0);
 #else
   // X11 wonky way of setting window position in absolute coordinates
