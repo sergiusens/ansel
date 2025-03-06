@@ -374,17 +374,17 @@ static void _combobox_next_sensitive(struct dt_bauhaus_widget_t *w, int delta)
   dt_bauhaus_combobox_data_t *d = &w->data.combobox;
 
   int new_pos = d->active;
-  int step = delta > 0 ? 1 : -1;
-  int cur = new_pos + step;
+  int inc = (delta) > 0 ? 1 : -1;
+  int cur = new_pos + inc;
   while(delta && cur >= 0 && cur < d->entries->len)
   {
     dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, cur);
     if(entry->sensitive)
     {
       new_pos = cur;
-      delta -= step;
+      delta -= inc;
     }
-    cur += step;
+    cur += inc;
   }
   d->hovered = new_pos;
   _combobox_set(GTK_WIDGET(w), new_pos, TRUE);
@@ -617,19 +617,8 @@ static gboolean dt_bauhaus_popup_scroll(GtkWidget *widget, GdkEventScroll *event
 {
   dt_bauhaus_t *bh = g_object_get_data(G_OBJECT(widget), "bauhaus");
   dt_bauhaus_widget_t *w = bh->current;
-
-  int delta_y = 0;
-  if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
-  {
-    if(w->bauhaus->current->type == DT_BAUHAUS_COMBOBOX)
-      _combobox_next_sensitive(w, delta_y);
-    else
-    {
-      _slider_zoom_range(w, delta_y);
-      gtk_widget_queue_draw(widget);
-    }
-  }
-  return TRUE;
+  darktable.gui->has_scroll_focus = GTK_WIDGET(w);
+  return _widget_scroll(GTK_WIDGET(w), event);
 }
 
 static gboolean dt_bauhaus_popup_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
@@ -1619,8 +1608,11 @@ void _combobox_set(GtkWidget *widget, const int pos, gboolean timeout)
         g_source_remove(d->timeout_handle);
         d->timeout_handle = 0;
       }
-      // TODO: map the timeout to an user config ? Arguably, that value will be higher for senior citizen
-      d->timeout_handle = g_timeout_add(350, _delayed_combobox_commit, w);
+
+      if (w->timeout > 0)
+        d->timeout_handle = g_timeout_add(w->timeout, _delayed_combobox_commit, w);
+      else
+        _delayed_combobox_commit(w);
     }
   }
 }
@@ -2308,6 +2300,11 @@ void dt_bauhaus_hide_popup(dt_bauhaus_t *bh)
     gtk_grab_remove(bh->popup_area);
     gtk_widget_hide(bh->popup_window);
     gtk_window_set_attached_to(GTK_WINDOW(bh->popup_window), NULL);
+
+    // Give back focus to the attached widget
+    gtk_widget_grab_focus(GTK_WIDGET(bh->current));
+    darktable.gui->has_scroll_focus = GTK_WIDGET(bh->current);
+
     bh->current = NULL;
   }
 }
@@ -2434,19 +2431,20 @@ static void _slider_add_step(GtkWidget *widget, float delta, guint state)
 
 static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
+  struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
+
   // We have 2 overlapping focusing state:
   // - native Gtk focus (keyboard), that takes precedence and records all keyboard events,
   // - custom scroll focus (mouse wheel), that should not overlap with vertical scrolling.
   // Scroll focus is a subset of Gtk focus, aka we can lose scroll focus while we have Gtk focus,
   // but we can't have scroll focus if we don't have Gtk focus.
-  if(!gtk_widget_has_focus(widget)) return FALSE;
+  // We extend widget focus with the popup window focus if it is captured by the current widget.
+  if(!gtk_widget_has_focus(widget) && w->bauhaus->current != w) return FALSE;
 
   int delta_y = 0;
   int delta_x = 0;
   if(dt_gui_get_scroll_unit_deltas(event, &delta_x, &delta_y))
   {
-    struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
-
     // On touchpad emulated scrolls, we usually have both directions so
     // find the principal direction here.
     const gboolean vscroll = delta_y != 0 && abs(delta_y) > abs(delta_x);
@@ -2469,7 +2467,7 @@ static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
       else
         return FALSE;
     }
-    else if(delta_y != 0)
+    else if(vscroll && darktable.gui->has_scroll_focus)
     {
       _combobox_next_sensitive(w, delta_y);
       return TRUE;
@@ -2526,7 +2524,11 @@ static gboolean dt_bauhaus_combobox_button_press(GtkWidget *widget, GdkEventButt
   if(d->timeout_handle) g_source_remove(d->timeout_handle);
   d->timeout_handle = 0;
 
-  if(activated == BH_REGION_OUT) return FALSE;
+  if(activated == BH_REGION_OUT)
+  {
+    darktable.gui->has_scroll_focus = NULL;
+    return FALSE;
+  }
 
   gtk_widget_grab_focus(widget);
   darktable.gui->has_scroll_focus = widget;
@@ -2923,7 +2925,11 @@ static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton
   w->bauhaus->mouse_x = event_x;
   w->bauhaus->mouse_y = event_y;
 
-  if(activated == BH_REGION_OUT) return FALSE;
+  if(activated == BH_REGION_OUT)
+  {
+    darktable.gui->has_scroll_focus = NULL;
+    return FALSE;
+  }
 
   gtk_widget_grab_focus(widget);
   darktable.gui->has_scroll_focus = widget;
