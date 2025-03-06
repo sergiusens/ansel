@@ -1058,8 +1058,6 @@ static gboolean _scrolled(GtkWidget *widget, GdkEventScroll *event, gpointer use
   dt_iop_tonecurve_params_t *p = (dt_iop_tonecurve_params_t *)self->params;
   dt_iop_tonecurve_gui_data_t *c = (dt_iop_tonecurve_gui_data_t *)self->gui_data;
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   int ch = c->channel;
   int autoscale_ab = p->tonecurve_autoscale_ab;
 

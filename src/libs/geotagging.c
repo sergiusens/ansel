@@ -1406,8 +1406,6 @@ static void _selection_changed_callback(gpointer instance, dt_lib_module_t *self
 
 static gboolean _datetime_scroll_over(GtkWidget *w, GdkEventScroll *event, dt_lib_module_t *self)
 {
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   dt_lib_geotagging_t *d = (dt_lib_geotagging_t *)self->data;
   if(!d->editing)
   {

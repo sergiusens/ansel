@@ -621,13 +621,6 @@ int dt_view_manager_scrolled(dt_view_manager_t *vm, double x, double y, int up, 
   return 0;
 }
 
-void dt_view_manager_scrollbar_changed(dt_view_manager_t *vm, double x, double y)
-{
-  if(!vm->current_view) return;
-  if(vm->current_view->scrollbar_changed)
-    vm->current_view->scrollbar_changed(vm->current_view, x, y);
-}
-
 dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
                                                   const gboolean quality)
 {

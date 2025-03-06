@@ -4426,8 +4426,6 @@ static gboolean area_motion_notify(GtkWidget *widget, GdkEventMotion *event, gpo
 
 static gboolean area_scroll_callback(GtkWidget *widget, GdkEventScroll *event, gpointer user_data)
 {
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
   {
     int delta_y;

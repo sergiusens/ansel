@@ -1696,8 +1696,6 @@ static gboolean _area_scrolled_callback(GtkWidget *widget, GdkEventScroll *event
   dt_iop_colorzones_gui_data_t *c = (dt_iop_colorzones_gui_data_t *)self->gui_data;
   dt_iop_colorzones_params_t *p = (dt_iop_colorzones_params_t *)self->params;
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   int delta_y;
 
   if(darktable.develop->darkroom_skip_mouse_events)

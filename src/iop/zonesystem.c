@@ -692,8 +692,6 @@ static gboolean dt_iop_zonesystem_bar_scrolled(GtkWidget *widget, GdkEventScroll
   dt_iop_zonesystem_params_t *p = (dt_iop_zonesystem_params_t *)self->params;
   int cs = CLAMP(p->size, 4, MAX_ZONE_SYSTEM_SIZE);
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   int delta_y;
   if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
   {

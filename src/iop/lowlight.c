@@ -789,8 +789,6 @@ static gboolean lowlight_scrolled(GtkWidget *widget, GdkEventScroll *event, gpoi
   dt_iop_module_t *self = (dt_iop_module_t *)user_data;
   dt_iop_lowlight_gui_data_t *c = (dt_iop_lowlight_gui_data_t *)self->gui_data;
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   int delta_y;
   if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
   {

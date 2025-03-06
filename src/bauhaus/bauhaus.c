@@ -2463,7 +2463,7 @@ static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
       else if(vscroll && darktable.gui->has_scroll_focus)
       {
         // convert vertical scrolling to horizontal only if we have the scroll focus
-        _slider_add_step(widget, dt_conf_get_bool("scroll/reverse") ? delta_y : -delta_y, event->state);
+        _slider_add_step(widget, -delta_y, event->state);
         return TRUE;
       }
       else

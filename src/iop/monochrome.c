@@ -533,8 +533,6 @@ static gboolean dt_iop_monochrome_scrolled(GtkWidget *widget, GdkEventScroll *ev
   dt_iop_module_t *self = (dt_iop_module_t *)user_data;
   dt_iop_monochrome_params_t *p = (dt_iop_monochrome_params_t *)self->params;
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   dt_iop_color_picker_reset(self, TRUE);
 
   int delta_y;

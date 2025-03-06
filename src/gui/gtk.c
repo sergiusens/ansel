@@ -87,16 +87,6 @@ void dt_gui_remove_class(GtkWidget *widget, const gchar *class_name)
  */
 static void _init_widgets(dt_gui_gtk_t *gui);
 
-gboolean dt_gui_ignore_scroll(GdkEventScroll *event)
-{
-  // TODO: records which GtkScrollWindow is capturing scroll events,
-  // if it's not the current instance, ignore.
-  // This will need a rewrite of the logic and possibly thread mutex locks,
-  // with a timer that releases the lock after some time of inactivity.
-
-  return FALSE;
-}
-
 gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x, gdouble *delta_y)
 {
   // avoid double counting real and emulated events when receiving smooth scrolls
@@ -109,7 +99,7 @@ gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x,
     case GDK_SCROLL_LEFT:
       if(delta_x)
       {
-        *delta_x = -1.0;
+        *delta_x = dt_conf_get_bool("scroll/reverse_x") ? 1.0 : -1.0;
         if(delta_y) *delta_y = 0.0;
         handled = TRUE;
       }
@@ -117,7 +107,7 @@ gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x,
     case GDK_SCROLL_RIGHT:
       if(delta_x)
       {
-        *delta_x = 1.0;
+        *delta_x = dt_conf_get_bool("scroll/reverse_x") ? -1.0 : 1.0;
         if(delta_y) *delta_y = 0.0;
         handled = TRUE;
       }
@@ -126,7 +116,7 @@ gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x,
       if(delta_y)
       {
         if(delta_x) *delta_x = 0.0;
-        *delta_y = -1.0;
+        *delta_y = dt_conf_get_bool("scroll/reverse_y") ? 1.0 : -1.0;
         handled = TRUE;
       }
       break;
@@ -134,7 +124,7 @@ gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x,
       if(delta_y)
       {
         if(delta_x) *delta_x = 0.0;
-        *delta_y = 1.0;
+        *delta_y = dt_conf_get_bool("scroll/reverse_y") ? -1.0 : 1.0;
         handled = TRUE;
       }
       break;
@@ -143,11 +133,11 @@ gboolean dt_gui_get_scroll_deltas(const GdkEventScroll *event, gdouble *delta_x,
       if((delta_x && event->delta_x != 0) || (delta_y && event->delta_y != 0))
       {
 #ifdef GDK_WINDOWING_QUARTZ // on macOS deltas need to be scaled
-        if(delta_x) *delta_x = event->delta_x / 50;
-        if(delta_y) *delta_y = event->delta_y / 50;
+        if(delta_x) *delta_x = dt_conf_get_bool("scroll/reverse_x") ? -event->delta_x / 50. : event->delta_x / 50.;
+        if(delta_y) *delta_y = dt_conf_get_bool("scroll/reverse_y") ? -event->delta_y / 50. : event->delta_y / 50.;
 #else
-         if(delta_x) *delta_x = event->delta_x;
-         if(delta_y) *delta_y = event->delta_y;
+        if(delta_x) *delta_x = dt_conf_get_bool("scroll/reverse_x") ? -event->delta_x : event->delta_x;
+        if(delta_y) *delta_y = dt_conf_get_bool("scroll/reverse_y") ? -event->delta_y : event->delta_y;
 #endif
         handled = TRUE;
       }
@@ -173,7 +163,7 @@ gboolean dt_gui_get_scroll_unit_deltas(const GdkEventScroll *event, int *delta_x
     case GDK_SCROLL_LEFT:
       if(delta_x)
       {
-        *delta_x = -1;
+        *delta_x = dt_conf_get_bool("scroll/reverse_x") ? 1 : -1;
         if(delta_y) *delta_y = 0;
         handled = TRUE;
       }
@@ -181,7 +171,7 @@ gboolean dt_gui_get_scroll_unit_deltas(const GdkEventScroll *event, int *delta_x
     case GDK_SCROLL_RIGHT:
       if(delta_x)
       {
-        *delta_x = 1;
+        *delta_x = dt_conf_get_bool("scroll/reverse_x") ? -1 : 1;
         if(delta_y) *delta_y = 0;
         handled = TRUE;
       }
@@ -190,7 +180,7 @@ gboolean dt_gui_get_scroll_unit_deltas(const GdkEventScroll *event, int *delta_x
       if(delta_y)
       {
         if(delta_x) *delta_x = 0;
-        *delta_y = -1;
+        *delta_y = dt_conf_get_bool("scroll/reverse_y") ? 1 : -1;
         handled = TRUE;
       }
       break;
@@ -198,7 +188,7 @@ gboolean dt_gui_get_scroll_unit_deltas(const GdkEventScroll *event, int *delta_x
       if(delta_y)
       {
         if(delta_x) *delta_x = 0;
-        *delta_y = 1;
+        *delta_y = dt_conf_get_bool("scroll/reverse_y") ? -1 : 1;
         handled = TRUE;
       }
       break;
@@ -214,11 +204,11 @@ gboolean dt_gui_get_scroll_unit_deltas(const GdkEventScroll *event, int *delta_x
       // scroll, and only then tell caller that there is a scroll to
       // handle
 #ifdef GDK_WINDOWING_QUARTZ // on macOS deltas need to be scaled
-      acc_x += event->delta_x / 50;
-      acc_y += event->delta_y / 50;
+      acc_x += dt_conf_get_bool("scroll/reverse_x") ? -event->delta_x / 50. : event->delta_x / 50.;
+      acc_y += dt_conf_get_bool("scroll/reverse_y") ? -event->delta_y / 50. : event->delta_y / 50.;
 #else
-      acc_x += event->delta_x;
-      acc_y += event->delta_y;
+      acc_x += dt_conf_get_bool("scroll/reverse_x") ? -event->delta_x : event->delta_x;
+      acc_y += dt_conf_get_bool("scroll/reverse_y") ? -event->delta_y : event->delta_y;
 #endif
       const gdouble amt_x = trunc(acc_x);
       const gdouble amt_y = trunc(acc_y);

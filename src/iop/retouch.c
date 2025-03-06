@@ -1193,8 +1193,6 @@ static gboolean rt_wdbar_button_release(GtkWidget *widget, GdkEventButton *event
 
 static gboolean rt_wdbar_scrolled(GtkWidget *widget, GdkEventScroll *event, dt_iop_module_t *self)
 {
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   if(darktable.gui->reset) return TRUE;
 
   dt_iop_retouch_params_t *p = (dt_iop_retouch_params_t *)self->params;

@@ -643,8 +643,6 @@ static gboolean _area_scroll_callback(GtkWidget *widget, GdkEventScroll *event, 
   dt_iop_rgblevels_gui_data_t *c = (dt_iop_rgblevels_gui_data_t *)self->gui_data;
   dt_iop_rgblevels_params_t *p = (dt_iop_rgblevels_params_t *)self->params;
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   int delta_y;
   if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
   {

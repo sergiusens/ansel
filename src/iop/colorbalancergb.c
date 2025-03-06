@@ -1788,8 +1788,6 @@ void gui_reset(dt_iop_module_t *self)
 
 static gboolean area_scroll_callback(GtkWidget *widget, GdkEventScroll *event, gpointer user_data)
 {
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   int delta_y;
   if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
   {

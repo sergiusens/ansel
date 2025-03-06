@@ -596,8 +596,6 @@ static gboolean _area_scrolled_callback(GtkWidget *widget, GdkEventScroll *event
 
   gdouble delta_y;
 
-  if(dt_gui_ignore_scroll(event)) return FALSE;
-
   if(darktable.develop->darkroom_skip_mouse_events)
   {
     if(dt_gui_get_scroll_deltas(event, NULL, &delta_y))
