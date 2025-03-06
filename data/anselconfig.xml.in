@@ -28,81 +28,14 @@
     <shortdescription>Enable the slideshow view</shortdescription>
     <longdescription>Check to enable the global slideshow view. If you don't print yourself, keep disabled to save some resources. (needs a restart)</longdescription>
   </dtconfig>
-  <dtconfig prefs="misc" section="accel">
-    <name>accel/prefer_focused</name>
-    <type>bool</type>
-    <default>true</default>
-    <shortdescription>prefer focused instance</shortdescription>
-    <longdescription>if an instance of the module has focus, apply shortcut to that instance\nnote: blending shortcuts always apply to the focused instance</longdescription>
-  </dtconfig>
-  <dtconfig prefs="misc" section="accel">
-    <name>accel/prefer_expanded</name>
-    <type>bool</type>
-    <default>false</default>
-    <shortdescription>prefer expanded instances</shortdescription>
-    <longdescription>if instances of the module are expanded, ignore collapsed instances</longdescription>
-  </dtconfig>
-  <dtconfig prefs="misc" section="accel">
-    <name>accel/prefer_enabled</name>
-    <type>bool</type>
-    <default>false</default>
-    <shortdescription>prefer enabled instances</shortdescription>
-    <longdescription>after applying the above rule, if instances of the module are active, ignore inactive instances</longdescription>
-  </dtconfig>
-  <dtconfig prefs="misc" section="accel">
-    <name>accel/prefer_unmasked</name>
-    <type>bool</type>
-    <default>false</default>
-    <shortdescription>prefer unmasked instances</shortdescription>
-    <longdescription>after applying the above rules, if instances of the module are unmasked, ignore masked instances</longdescription>
-  </dtconfig>
-  <dtconfig prefs="misc" section="accel">
-    <name>accel/select_order</name>
-    <type>
-      <enum>
-        <option>first instance</option>
-        <option>last instance</option>
-      </enum>
-    </type>
-    <default>last instance</default>
-    <shortdescription>selection order</shortdescription>
-    <longdescription>after applying the above rules, apply the shortcut based on its position in the pixelpipe</longdescription>
-  </dtconfig>
-  <dtconfig prefs="misc" section="accel">
-    <name>accel/assign_instance</name>
-    <type>bool</type>
-    <default>false</default>
-    <shortdescription>allow visual assignment to specific instances</shortdescription>
-    <longdescription>when multiple instances are present on an image this allows shortcuts to be visually assigned to those specific instances\notherwise shortcuts will always be assigned to the preferred instance</longdescription>
-  </dtconfig>
-  <dtconfig>
-    <name>accel/slider_precision</name>
-    <type>int</type>
-    <default>0</default>
-    <shortdescription>keyboard shortcut slider precision</shortdescription>
-  </dtconfig>
-  <dtconfig>
-    <name>accel/enable_fallbacks</name>
-    <type>bool</type>
-    <default>false</default>
-    <shortdescription>enable shortcut fallbacks</shortdescription>
-    <longdescription>enables default meanings for additional buttons, modifiers or moves when used in combination with a base shortcut</longdescription>
-  </dtconfig>
   <dtconfig prefs="misc" section="interface">
-    <name>accel/load_defaults</name>
+    <name>scroll/reverse</name>
     <type>bool</type>
-    <default>true</default>
-    <shortdescription>load default shortcuts at startup</shortdescription>
-    <longdescription>load default shortcuts before user settings. switch off to prevent deleted defaults returning</longdescription>
+    <default>false</default>
+    <shortdescription>Invert the direction of the mouse vertical scroll</shortdescription>
+    <longdescription>Check this if your OS/desktop environment is configured to scroll the view instead of the content, so scrolling over sliders yields the right value. This does not affect horizontal scrolling.</longdescription>
   </dtconfig>
-  <dtconfig>
-    <name>bauhaus/scale</name>
-    <type>float</type>
-    <default>1.4</default>
-    <shortdescription>widget scale</shortdescription>
-    <longdescription>scaling factor for bauhaus widgets, will affect font size</longdescription>
-  </dtconfig>
-  <dtconfig>
+  <dtconfig prefs="storage" section="database">
     <name>database</name>
     <type>string</type>
     <default>library.db</default>
