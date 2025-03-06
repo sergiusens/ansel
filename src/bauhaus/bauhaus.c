@@ -783,7 +783,7 @@ static gboolean dt_bauhaus_popup_button_press(GtkWidget *widget, GdkEventButton 
 
 static void dt_bauhaus_window_show(GtkWidget *w, gpointer user_data)
 {
-  gtk_grab_add(GTK_WIDGET(w));
+  gtk_grab_add(GTK_WIDGET(user_data));
 }
 
 static void dt_bh_init(DtBauhausWidget *class)
@@ -974,7 +974,7 @@ dt_bauhaus_t * dt_bauhaus_init()
   GObject *area = G_OBJECT(bauhaus->popup_area);
   g_object_set_data(area, "bauhaus", bauhaus);
 
-  g_signal_connect(window, "show", G_CALLBACK(dt_bauhaus_window_show), NULL);
+  g_signal_connect(window, "show", G_CALLBACK(dt_bauhaus_window_show), area);
   g_signal_connect(area, "draw", G_CALLBACK(dt_bauhaus_popup_draw), NULL);
   g_signal_connect(area, "motion-notify-event", G_CALLBACK(dt_bauhaus_popup_motion_notify), NULL);
   g_signal_connect(area, "leave-notify-event", G_CALLBACK(dt_bauhaus_popup_leave_notify), NULL);
@@ -2457,15 +2457,20 @@ static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
   {
     struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
 
+    // On touchpad emulated scrolls, we usually have both directions so
+    // find the principal direction here.
+    const gboolean vscroll = delta_y != 0 && abs(delta_y) > abs(delta_x);
+    const gboolean hscroll = delta_x != 0 && abs(delta_x) > abs(delta_y);
+
     if(w->type == DT_BAUHAUS_SLIDER)
     {
-      if(delta_x != 0)
+      if(hscroll)
       {
         // inconditionnaly record horizontal scroll on slider
         _slider_add_step(widget, delta_x, event->state);
         return TRUE;
       }
-      else if(delta_y != 0 && darktable.gui->has_scroll_focus)
+      else if(vscroll && darktable.gui->has_scroll_focus)
       {
         // convert vertical scrolling to horizontal only if we have the scroll focus
         _slider_add_step(widget, -delta_y, event->state);
