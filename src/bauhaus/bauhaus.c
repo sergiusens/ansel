@@ -456,15 +456,13 @@ static void show_pango_text(struct dt_bauhaus_widget_t *w, GtkStyleContext *cont
                             _bh_halign_t halign, _bh_valign_t valign,
                             PangoEllipsizeMode ellipsize,
                             GdkRGBA *bg_color, float *width, float *height,
-                            gboolean ignore_pseudo_classes)
+                            GtkStateFlags state)
 {
   if(text == NULL) return;
 
   // Prepare context and font properties
   PangoLayout *layout = pango_cairo_create_layout(cr);
   PangoFontDescription *font_desc = NULL;
-  GtkStateFlags state = (ignore_pseudo_classes) ? GTK_STATE_FLAG_NORMAL
-                                                : gtk_widget_get_state_flags(GTK_WIDGET(w));
   gtk_style_context_get(context, state, GTK_STYLE_PROPERTY_FONT, &font_desc, NULL);
   pango_layout_set_font_description(layout, font_desc);
 
@@ -2050,14 +2048,7 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
 
       // draw numerical value:
       cairo_save(cr);
-      if(state & GTK_STATE_FLAG_PRELIGHT)
-        set_color(cr, text_color_hover);
-      else if(state & GTK_STATE_FLAG_FOCUSED)
-        set_color(cr, text_color_focused);
-      else if(state & GTK_STATE_FLAG_INSENSITIVE)
-        set_color(cr, text_color_insensitive);
-      else
-        set_color(cr, *fg_color);
+      set_color(cr, *fg_color);
 
       float value_width = 0.f;
       char *text = dt_bauhaus_slider_get_text(GTK_WIDGET(w), dt_bauhaus_slider_get(GTK_WIDGET(w)));
@@ -2068,7 +2059,7 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
       // Display user keyboard input if any, otherwise the current value
       show_pango_text(w, context, cr, &bounding_value,
                       (w->bauhaus->keys_cnt) ? w->bauhaus->keys : text, BH_ALIGN_RIGHT,
-                      BH_ALIGN_MIDDLE, PANGO_ELLIPSIZE_NONE, NULL, &value_width, NULL, FALSE);
+                      BH_ALIGN_MIDDLE, PANGO_ELLIPSIZE_NONE, NULL, &value_width, NULL, GTK_STATE_FLAG_NORMAL);
       g_free(text);
 
       // label on top of marker:
@@ -2079,7 +2070,7 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
                                       .width = label_width,
                                       .height = w->bauhaus->line_height };
       show_pango_text(w, context, cr, &bounding_label, label_text, BH_ALIGN_LEFT, BH_ALIGN_MIDDLE,
-                      PANGO_ELLIPSIZE_END, NULL, NULL, NULL, FALSE);
+                      PANGO_ELLIPSIZE_END, NULL, NULL, NULL, GTK_STATE_FLAG_NORMAL);
       g_free(label_text);
 
       cairo_restore(cr);
@@ -2100,7 +2091,7 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
                                      .width = main_width,
                                      .height = _bh_get_row_height(w) };
         show_pango_text(w, context, cr, &query_label, w->bauhaus->keys, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE,
-                        PANGO_ELLIPSIZE_NONE, NULL, NULL, NULL, FALSE);
+                        PANGO_ELLIPSIZE_NONE, NULL, NULL, NULL, GTK_STATE_FLAG_NORMAL);
         offset = 1;
         cairo_restore(cr);
       }
@@ -2114,19 +2105,28 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
         if(!strncmp(text_cmp, keys, w->bauhaus->keys_cnt))
         {
           // If user typed some keys, display matching entries only
-          gboolean ignore_font_style = FALSE;
+
+          // The GTK state flag is applied to the whole widget,
+          // we need to dispatch it individually to each entry
           if(!entry->sensitive)
+          {
             set_color(cr, text_color_insensitive);
-          else if(j == d->hovered)
-            set_color(cr, text_color_hover);
+            state = GTK_STATE_INSENSITIVE;
+          }
           else if(j == d->active)
+          {
             set_color(cr, text_color_selected);
+            state = GTK_STATE_FLAG_SELECTED;
+          }
+          else if(j == d->hovered)
+          {
+            set_color(cr, text_color_hover);
+            state = GTK_STATE_FLAG_PRELIGHT;
+          }
           else
           {
             set_color(cr, text_color);
-            // GTK_STATE flag is applied to the whole widget.
-            // We need to selectively dispatch here to the right internal elements.
-            ignore_font_style = TRUE;
+            state = GTK_STATE_FLAG_NORMAL;
           }
 
           GdkRectangle bounding_label = { .x = 0.,
@@ -2139,7 +2139,7 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
           cairo_stroke(cr);
 #endif
           show_pango_text(w, context, cr, &bounding_label, entry->label, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE,
-                          d->entries_ellipsis, bg_color, NULL, NULL, ignore_font_style);
+                          d->entries_ellipsis, bg_color, NULL, NULL, state);
         }
 
         g_free(text_cmp);
@@ -2219,7 +2219,7 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
                                       .height = inner_height };
       if(label_text && w->show_label)
         show_pango_text(w, context, cr, &bounding_label, label_text, BH_ALIGN_LEFT, BH_ALIGN_MIDDLE,
-                        combo_ellipsis, NULL, &label_width, &label_height, FALSE);
+                        combo_ellipsis, NULL, &label_width, &label_height, state);
 
       // The value is shown right-aligned, ellipsized if needed.
       GdkRectangle bounding_value = { .x = label_width + INNER_PADDING,
@@ -2227,7 +2227,7 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
                                       .width = available_width - label_width - INNER_PADDING,
                                       .height = inner_height };
       show_pango_text(w, context, cr, &bounding_value, text, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE, combo_ellipsis, NULL,
-                      NULL, NULL, FALSE);
+                      NULL, NULL, state);
 
       g_free(label_text);
       break;
@@ -2258,7 +2258,7 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
                                         .width = available_width,
                                         .height = w->bauhaus->line_height };
         show_pango_text(w, context, cr, &bounding_value, text, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE,
-                        PANGO_ELLIPSIZE_NONE, NULL, &value_width, NULL, FALSE);
+                        PANGO_ELLIPSIZE_NONE, NULL, &value_width, NULL, state);
         g_free(text);
       }
 
@@ -2270,7 +2270,7 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
                                       .width = label_width,
                                       .height = w->bauhaus->line_height };
       show_pango_text(w, context, cr, &bounding_label, label_text, BH_ALIGN_LEFT, BH_ALIGN_MIDDLE,
-                        PANGO_ELLIPSIZE_END, NULL, NULL, NULL, FALSE);
+                        PANGO_ELLIPSIZE_END, NULL, NULL, NULL, state);
       g_free(label_text);
     }
     break;

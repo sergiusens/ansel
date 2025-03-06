@@ -1726,6 +1726,7 @@ menuitem:hover > arrow
 }
 
 .dt_bauhaus:focus,
+.dt_bauhaus:selected,
 button:focus label,
 button:active label,
 checkbutton:focus label,
@@ -1800,6 +1801,7 @@ treeview#delete-dialog:selected
 #view-label:selected
 {
   color: @fg_color;
+  font-weight: 800;
 }
 
 /* Bauhaus states */
