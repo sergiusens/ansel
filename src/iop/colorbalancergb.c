@@ -1835,8 +1835,6 @@ void gui_init(dt_iop_module_t *self)
   dt_bauhaus_slider_set_format(g->contrast, "%");
   gtk_widget_set_tooltip_text(g->contrast, _("increase the contrast at constant chromaticity"));
 
-  ++darktable.bauhaus->skip_accel;
-
   gtk_box_pack_start(GTK_BOX(self->widget), dt_ui_section_label_new(_("linear chroma grading")), FALSE, FALSE, 0);
 
   g->chroma_global = dt_bauhaus_slider_from_params(self, "chroma_global");
@@ -1982,8 +1980,6 @@ void gui_init(dt_iop_module_t *self)
   dt_bauhaus_slider_set_digits(g->midtones_C, 4);
   dt_bauhaus_slider_set_format(g->midtones_C, "%");
   gtk_widget_set_tooltip_text(g->midtones_C, _("chroma of the color exponent in mid-tones"));
-
-  --darktable.bauhaus->skip_accel;
 
   // Page masks
   self->widget = dt_ui_notebook_page(g->notebook, N_("masks"), _("isolate luminances"));

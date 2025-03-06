@@ -1048,7 +1048,6 @@ void dt_iop_gui_set_enable_button(dt_iop_module_t *module)
 void dt_iop_gui_init(dt_iop_module_t *module)
 {
   ++darktable.gui->reset;
-  --darktable.bauhaus->skip_accel;
 
   // Add the accelerators
   if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
@@ -1059,7 +1058,6 @@ void dt_iop_gui_init(dt_iop_module_t *module)
   }
 
   if(module->gui_init) module->gui_init(module);
-  ++darktable.bauhaus->skip_accel;
   --darktable.gui->reset;
 }
 

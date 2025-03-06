@@ -433,12 +433,10 @@ void gui_init(dt_iop_module_t *self)
   dt_bauhaus_slider_set_format(g->detail, "%");
   gtk_widget_set_tooltip_text(g->detail, _("changes the local contrast"));
 
-  ++darktable.bauhaus->skip_accel;
   g->spatial = dt_bauhaus_slider_from_params(self, "sigma_s");
   g->range = dt_bauhaus_slider_from_params(self, "sigma_r");
   g->highlights = dt_bauhaus_slider_from_params(self, "sigma_r");
   g->shadows = dt_bauhaus_slider_from_params(self, "sigma_s");
-  --darktable.bauhaus->skip_accel;
 
   dt_bauhaus_slider_set_hard_min(g->spatial, 3.0);
   dt_bauhaus_slider_set_default(g->spatial, 50.0);

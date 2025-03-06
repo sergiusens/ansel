@@ -225,9 +225,6 @@ struct dt_bauhaus_t
   // flag set on button press indicating that popup should be hidden in button release handler
   gboolean hiding;
 
-  // initialise or connect accelerators in set_label
-  int skip_accel;
-
   // appearance relevant stuff:
   // sizes and fonts:
   float line_height;                     // height of a line of text

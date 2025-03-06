@@ -3010,7 +3010,6 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
   if(module->flags() & IOP_FLAGS_SUPPORTS_BLENDING)
   {
     ++darktable.gui->reset;
-    --darktable.bauhaus->skip_accel;
 
     module->blend_data = g_malloc0(sizeof(dt_iop_gui_blend_data_t));
     dt_iop_gui_blend_data_t *bd = (dt_iop_gui_blend_data_t *)module->blend_data;
@@ -3209,7 +3208,6 @@ void dt_iop_gui_init_blending(GtkWidget *iopw, dt_iop_module_t *module)
 
     bd->blend_inited = 1;
 
-    ++darktable.bauhaus->skip_accel;
     --darktable.gui->reset;
   }
 }

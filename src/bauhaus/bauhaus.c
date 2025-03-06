@@ -931,8 +931,6 @@ dt_bauhaus_t * dt_bauhaus_init()
 
   dt_bauhaus_load_theme(bauhaus);
 
-  bauhaus->skip_accel = 1;
-
   // this easily gets keyboard input:
   // bauhaus->popup_window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   // but this doesn't flicker, and the above hack with key input seems to work well.
@@ -945,7 +943,7 @@ dt_bauhaus_t * dt_bauhaus_init()
   // we need.
 
   gtk_window_set_resizable(GTK_WINDOW(bauhaus->popup_window), FALSE);
-  gtk_window_set_default_size(GTK_WINDOW(bauhaus->popup_window), 260, 260);
+  gtk_window_set_default_size(GTK_WINDOW(bauhaus->popup_window), 30, 30);
   gtk_window_set_modal(GTK_WINDOW(bauhaus->popup_window), TRUE);
 
   // Needed for Wayland and Sway :
@@ -1611,14 +1609,6 @@ void _combobox_set(GtkWidget *widget, const int pos, gboolean timeout)
   {
     d->active = new_pos;
 
-#if DEBUG
-    fprintf(stdout, "%s | %s | %s | item : %i \n",
-    (w->module && w->module->owner) ? "has owner" : "orphan",
-    (w->module) ? w->module->label : "anon",
-    w->label,
-    d->active);
-#endif
-
     if(w->bauhaus->current == w)
       gtk_widget_queue_draw(w->bauhaus->popup_area);
 
@@ -2097,21 +2087,21 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
     break;
     case DT_BAUHAUS_COMBOBOX:
     {
-      float cumulative_height = 0.f;
       const dt_bauhaus_combobox_data_t *d = &w->data.combobox;
 
       // User keyboard input goes first
+      int offset = 0;
       if(w->bauhaus->keys_cnt > 0)
       {
         cairo_save(cr);
         set_color(cr, text_color_focused);
         GdkRectangle query_label = { .x = 0.,
-                                     .y = cumulative_height,
+                                     .y = 0.,
                                      .width = main_width,
                                      .height = _bh_get_row_height(w) };
         show_pango_text(w, context, cr, &query_label, w->bauhaus->keys, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE,
                         PANGO_ELLIPSIZE_NONE, NULL, NULL, NULL, FALSE);
-        cumulative_height += query_label.height;
+        offset = 1;
         cairo_restore(cr);
       }
 
@@ -2140,12 +2130,16 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
           }
 
           GdkRectangle bounding_label = { .x = 0.,
-                                          .y = cumulative_height,
+                                          .y = (offset + j) * _bh_get_row_height(w),
                                           .width = main_width,
                                           .height = _bh_get_row_height(w) };
+#if DEBUG
+          cairo_rectangle(cr, bounding_label.x, bounding_label.y, bounding_label.width, bounding_label.height);
+          cairo_set_line_width(cr, 2);
+          cairo_stroke(cr);
+#endif
           show_pango_text(w, context, cr, &bounding_label, entry->label, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE,
                           d->entries_ellipsis, bg_color, NULL, NULL, ignore_font_style);
-          cumulative_height += bounding_label.height;
         }
 
         g_free(text_cmp);
@@ -2351,7 +2345,7 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
     }
     case DT_BAUHAUS_COMBOBOX:
     {
-      height = floorf(_get_combobox_popup_height(w));
+      height = roundf(_get_combobox_popup_height(w));
       break;
     }
     default:
@@ -2398,6 +2392,7 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
 #endif
 
   // Set desired size, but it's more a guide than a rule.
+  gtk_widget_set_size_request(w->bauhaus->popup_area, width, height);
   gtk_widget_set_size_request(w->bauhaus->popup_window, width, height);
 
   // Need to call resize to actually change something
@@ -2407,13 +2402,8 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
 
 #if GTK_CHECK_VERSION(3, 24, 0)
   // For Wayland (and supposed to work on X11 too) and Gtk 3.24 this is how you do it
-
-  // move_to_rect below needs visible widgets to compute sizing properly.
-  // That makes the GUI glitch but I have no better solution...
-  gtk_widget_show(w->bauhaus->popup_window);
-
-  gdk_window_move_to_rect(GDK_WINDOW(window), &tmp, GDK_GRAVITY_NORTH_EAST, GDK_GRAVITY_NORTH_EAST,
-                          GDK_ANCHOR_SLIDE_Y, 0, 0);
+  gdk_window_move_to_rect(GDK_WINDOW(window), &tmp, GDK_GRAVITY_STATIC, GDK_GRAVITY_STATIC,
+                          GDK_ANCHOR_SLIDE, 0, 0);
 #else
   // X11 wonky way of setting window position in absolute coordinates
   gdk_window_move(window, (gint)x, (gint)y);
@@ -2473,7 +2463,7 @@ static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
       else if(vscroll && darktable.gui->has_scroll_focus)
       {
         // convert vertical scrolling to horizontal only if we have the scroll focus
-        _slider_add_step(widget, -delta_y, event->state);
+        _slider_add_step(widget, dt_conf_get_bool("scroll/reverse") ? delta_y : -delta_y, event->state);
         return TRUE;
       }
       else
@@ -2782,14 +2772,6 @@ static void dt_bauhaus_slider_set_normalized(struct dt_bauhaus_widget_t *w, floa
       gtk_widget_queue_draw(w->bauhaus->popup_area);
 
     gtk_widget_queue_draw(GTK_WIDGET(w));
-
-#if DEBUG
-    fprintf(stdout, "%s | %s | %s | min: %f, max: %f, ratio: %f, base : %f, pos: %f\n",
-    (w->module && w->module->owner) ? "has owner" : "orphan",
-    (w->module) ? w->module->label : "anon",
-    w->label,
-    d->min, d->max, d->pos, d->factor, d->pos);
-#endif
 
     if(!darktable.gui->reset && raise)
     {
