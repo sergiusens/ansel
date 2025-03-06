@@ -386,6 +386,17 @@ static void _refresh_collection_callback(GtkButton *button, gpointer user_data)
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
 }
 
+void _widget_align_left(GtkWidget *widget)
+{
+  gtk_widget_set_halign(widget, GTK_ALIGN_START);
+  gtk_widget_set_hexpand(widget, FALSE);
+
+  gtk_widget_set_valign(widget, GTK_ALIGN_CENTER);
+  gtk_widget_set_vexpand(widget, FALSE);
+
+  gtk_widget_set_size_request(widget, -1, -1);
+}
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -393,8 +404,7 @@ void gui_init(dt_lib_module_t *self)
   self->data = (void *)d;
 
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_halign(self->widget, GTK_ALIGN_START);
-  gtk_widget_set_valign(self->widget, GTK_ALIGN_CENTER);
+  _widget_align_left(self->widget);
 
   GtkWidget *label = gtk_label_new(C_("quickfilter", "Filter"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
@@ -402,6 +412,7 @@ void gui_init(dt_lib_module_t *self)
 
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
+  _widget_align_left(hbox);
 
   DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->comparator, NULL, N_("comparator"),
                                _("filter by images rating"),
@@ -415,8 +426,7 @@ void gui_init(dt_lib_module_t *self)
                                "≠");// DT_COLLECTION_RATING_COMP_NE,
   dt_bauhaus_widget_set_label(d->comparator, NULL);
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->comparator), FALSE, FALSE, 0);
-  gtk_widget_set_hexpand(d->comparator, FALSE);
-  gtk_widget_set_size_request(d->comparator, -1, -1);
+  _widget_align_left(d->comparator);
 
   /* create the filter combobox */
   DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->stars, NULL, N_("ratings"),
@@ -485,6 +495,7 @@ void gui_init(dt_lib_module_t *self)
                                          _lib_filter_sort_combobox_changed, self, _sort_names);
   dt_bauhaus_widget_set_label(d->sort, NULL);
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->sort), FALSE, FALSE, 0);
+  _widget_align_left(d->sort);
   dt_gui_add_class(hbox, "quick_filter_box");
 
   /* reverse order checkbutton */
@@ -554,6 +565,14 @@ void gui_init(dt_lib_module_t *self)
                                 FALSE);
   g_free(path);
 
+  // dumb empty flexible spacer at the end
+  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_widget_set_vexpand(hbox, TRUE);
+  gtk_box_pack_start(GTK_BOX(self->widget), hbox, TRUE, TRUE, 0);
+
+  GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_hexpand(spacer, TRUE);
+  gtk_box_pack_start(GTK_BOX(hbox), spacer, TRUE, TRUE, 0);
 
   /* initialize proxy */
   darktable.view_manager->proxy.filter.module = self;
@@ -589,7 +608,7 @@ static gboolean _lib_filter_sync_combobox_and_comparator(dt_lib_module_t *self)
   // 7 rejected only
   // 8 all except rejected
 
-  gtk_widget_set_visible(d->comparator, filter > 1 && filter < 7);
+  gtk_widget_set_sensitive(d->comparator, filter > 1 && filter < 7);
 
   return FALSE;
 }

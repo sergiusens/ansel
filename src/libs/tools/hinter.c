@@ -76,9 +76,9 @@ void gui_init(dt_lib_module_t *self)
   gtk_container_add(GTK_CONTAINER(self->widget), d->label);
   gtk_widget_set_name(d->label, "hinter");
 
-  gtk_widget_set_halign(GTK_WIDGET(self->widget), GTK_ALIGN_CENTER);
+  gtk_widget_set_halign(GTK_WIDGET(self->widget), GTK_ALIGN_END);
   gtk_widget_set_hexpand(GTK_WIDGET(self->widget), TRUE);
-  gtk_label_set_justify(GTK_LABEL(d->label), GTK_JUSTIFY_CENTER);
+  gtk_label_set_justify(GTK_LABEL(d->label), GTK_JUSTIFY_RIGHT);
   gtk_label_set_line_wrap(GTK_LABEL(d->label), TRUE);
 
   darktable.control->proxy.hinter.module = self;

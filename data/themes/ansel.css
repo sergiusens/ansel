@@ -1434,6 +1434,11 @@ filechooser row:hover .sidebar-icon
   padding-left: 0.25em;
 }
 
+separator.horizontal
+{
+  margin: 0 1em;
+}
+
 /*------------
   - Map view -
   ------------*/

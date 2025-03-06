@@ -220,12 +220,12 @@ void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidge
 
     /* if box is center we want it to fill as much as it can */
     case DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW:
-    case DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW:
     case DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW:
     case DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER:
       gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, TRUE, TRUE, 0);
       break;
 
+    case DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW:
     default:
       gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, FALSE, FALSE, 0);
       break;
