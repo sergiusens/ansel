@@ -340,6 +340,7 @@ gboolean dt_bauhaus_focus_in_callback(GtkWidget *widget, GdkEventFocus event, gp
 
 gboolean dt_bauhaus_focus_out_callback(GtkWidget *widget, GdkEventFocus event, gpointer user_data)
 {
+  darktable.gui->has_scroll_focus = NULL;
   gtk_widget_set_state_flags(widget, GTK_STATE_FLAG_NORMAL, TRUE);
   gtk_widget_queue_draw(widget);
   return TRUE;
@@ -794,9 +795,14 @@ static void dt_bh_init(DtBauhausWidget *class)
 static gboolean _enter_leave(GtkWidget *widget, GdkEventCrossing *event)
 {
   if(event->type == GDK_ENTER_NOTIFY)
+  {
     gtk_widget_set_state_flags(widget, GTK_STATE_FLAG_PRELIGHT, FALSE);
+  }
   else
+  {
     gtk_widget_unset_state_flags(widget, GTK_STATE_FLAG_PRELIGHT);
+    darktable.gui->has_scroll_focus = NULL;
+  }
 
   gtk_widget_queue_draw(widget);
 
@@ -2419,51 +2425,62 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
 
 static void _slider_add_step(GtkWidget *widget, float delta, guint state)
 {
-  if(delta == 0) return;
+  if(delta == 0.f) return;
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
   dt_bauhaus_slider_data_t *d = &w->data.slider;
 
   delta *= dt_bauhaus_slider_get_step(widget);
+  if(dt_modifier_is(state, GDK_CONTROL_MASK)) delta /= 5.f;
+  else if(dt_modifier_is(state, GDK_SHIFT_MASK)) delta *= 5.f;
 
+  // Ensure the requested delta is at least visible given current number of digits in display
   const float min_visible = 1.f / (fabsf(d->factor) * ipow(10, d->digits));
-  if(delta && fabsf(delta) < min_visible)
+  if(fabsf(delta) < min_visible)
     delta = copysignf(min_visible, delta);
 
   const float value = dt_bauhaus_slider_get(widget);
-
-  if(dt_modifier_is(state, GDK_SHIFT_MASK | GDK_CONTROL_MASK))
-  {
-    if(d->factor > 0 ? d->pos < 0.0001 : d->pos > 0.9999) d->min = d->soft_min;
-    if(d->factor < 0 ? d->pos < 0.0001 : d->pos > 0.9999) d->max = d->soft_max;
-    dt_bauhaus_slider_set(widget, value + delta);
-  }
-  else
-    dt_bauhaus_slider_set(widget, CLAMP(value + delta, d->min, d->max));
+  dt_bauhaus_slider_set(widget, value + delta);
 }
 
 static gboolean _widget_scroll(GtkWidget *widget, GdkEventScroll *event)
 {
+  // We have 2 overlapping focusing state:
+  // - native Gtk focus (keyboard), that takes precedence and records all keyboard events,
+  // - custom scroll focus (mouse wheel), that should not overlap with vertical scrolling.
+  // Scroll focus is a subset of Gtk focus, aka we can lose scroll focus while we have Gtk focus,
+  // but we can't have scroll focus if we don't have Gtk focus.
   if(!gtk_widget_has_focus(widget)) return FALSE;
 
   int delta_y = 0;
-  if(dt_gui_get_scroll_unit_deltas(event, NULL, &delta_y))
+  int delta_x = 0;
+  if(dt_gui_get_scroll_unit_deltas(event, &delta_x, &delta_y))
   {
-    if(delta_y == 0) return TRUE;
     struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
 
     if(w->type == DT_BAUHAUS_SLIDER)
     {
-      if(dt_modifier_is(event->state, GDK_SHIFT_MASK | GDK_CONTROL_MASK))
+      if(delta_x != 0)
       {
-        _slider_zoom_range(w, delta_y);
+        // inconditionnaly record horizontal scroll on slider
+        _slider_add_step(widget, delta_x, event->state);
+        return TRUE;
+      }
+      else if(delta_y != 0 && darktable.gui->has_scroll_focus)
+      {
+        // convert vertical scrolling to horizontal only if we have the scroll focus
+        _slider_add_step(widget, -delta_y, event->state);
+        return TRUE;
       }
       else
-        _slider_add_step(widget, - delta_y, event->state);
+        return FALSE;
     }
-    else
+    else if(delta_y != 0)
+    {
       _combobox_next_sensitive(w, delta_y);
+      return TRUE;
+    }
   }
-  return TRUE; // Ensure that scrolling the combobox cannot move side panel
+  return FALSE;
 }
 
 static gboolean _widget_key_press(GtkWidget *widget, GdkEventKey *event)
@@ -2504,7 +2521,6 @@ static gboolean _widget_key_press(GtkWidget *widget, GdkEventKey *event)
 static gboolean dt_bauhaus_combobox_button_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
   struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
-  gtk_widget_grab_focus(widget);
 
   double event_x = event->x;
   double event_y = event->y;
@@ -2516,6 +2532,9 @@ static gboolean dt_bauhaus_combobox_button_press(GtkWidget *widget, GdkEventButt
   d->timeout_handle = 0;
 
   if(activated == BH_REGION_OUT) return FALSE;
+
+  gtk_widget_grab_focus(widget);
+  darktable.gui->has_scroll_focus = widget;
 
   if(activated == BH_REGION_QUAD && w->quad_toggle)
   {
@@ -2585,8 +2604,19 @@ void dt_bauhaus_slider_set(GtkWidget *widget, float pos)
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
   dt_bauhaus_slider_data_t *d = &w->data.slider;
   const float rpos = CLAMP(pos, d->hard_min, d->hard_max);
-  d->min = MIN(d->min, rpos);
-  d->max = MAX(d->max, rpos);
+
+  // Restore soft min/max if we are in its range
+  float rrpos = (rpos - d->soft_min) / (d->soft_max - d->soft_min);
+  if(rrpos > 0.f)
+    d->min = d->soft_min;
+  else
+    d->min = rpos;
+
+  if(rrpos < 1.f)
+    d->max = d->soft_max;
+  else
+    d->max = rpos;
+
   dt_bauhaus_slider_set_normalized(w, (rpos - d->min) / (d->max - d->min), TRUE, FALSE);
 }
 
@@ -2625,28 +2655,14 @@ float dt_bauhaus_slider_get_step(GtkWidget *widget)
 
   if(step == 0.f)
   {
-    gboolean zoom = dt_conf_get_bool("bauhaus/zoom_step");
-    const float min = zoom ? d->min : d->soft_min;
-    const float max = zoom ? d->max : d->soft_max;
+    const float min = d->soft_min;
+    const float max = d->soft_max;
 
     const float top = fminf(max-min, fmaxf(fabsf(min), fabsf(max)));
     if(top >= 100.f)
-    {
       step = 1.f;
-    }
     else
-    {
       step = top * fabsf(d->factor) / 100.f;
-      const float log10step = log10f(step);
-      const float fdigits = floorf(log10step + .1f);
-
-      // using ipow here makes the UI hang indefinitly.
-      // Why ? We have +/- inf in fdigits ?
-      step = powf(10.f, fdigits);
-      if(log10step - fdigits > .5f)
-        step *= 5.f;
-      step /= fabsf(d->factor);
-    }
   }
 
   return copysignf(step, d->factor);
@@ -2913,8 +2929,6 @@ static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton
   struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
   dt_bauhaus_slider_data_t *d = &w->data.slider;
 
-  gtk_widget_grab_focus(widget);
-
   double event_x = event->x;
   double event_y = event->y;
   double main_width = 0.;
@@ -2923,6 +2937,9 @@ static gboolean dt_bauhaus_slider_button_press(GtkWidget *widget, GdkEventButton
   w->bauhaus->mouse_y = event_y;
 
   if(activated == BH_REGION_OUT) return FALSE;
+
+  gtk_widget_grab_focus(widget);
+  darktable.gui->has_scroll_focus = widget;
 
   if(activated == BH_REGION_QUAD)
   {
