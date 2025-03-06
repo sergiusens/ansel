@@ -2191,10 +2191,6 @@ void leave(dt_view_t *self)
   gtk_widget_hide(dev->rawoverexposed.floating_window);
   gtk_widget_hide(dev->profile.floating_window);
 
-  // darkroom development could have changed a collection, so update that before being back in lighttable
-  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF,
-                             g_list_prepend(NULL, GINT_TO_POINTER(darktable.develop->image_storage.id)));
-
   darktable.develop->image_storage.id = -1;
 
   dt_print(DT_DEBUG_CONTROL, "[run_job-] 11 %f in darkroom mode\n", dt_get_wtime());

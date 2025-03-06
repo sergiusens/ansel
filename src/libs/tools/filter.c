@@ -40,6 +40,7 @@ typedef struct dt_lib_tool_filter_t
   GtkWidget *text;
   GtkWidget *colors[6];
   GtkWidget *culling;
+  GtkWidget *refresh;
   int time_out;
   double last_key_time;
 } dt_lib_tool_filter_t;
@@ -380,6 +381,11 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
 #undef CL_ALL_EXCLUDED
 #undef CL_ALL_INCLUDED
 
+static void _refresh_collection_callback(GtkButton *button, gpointer user_data)
+{
+  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
+}
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -391,11 +397,11 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_valign(self->widget, GTK_ALIGN_CENTER);
 
   GtkWidget *label = gtk_label_new(C_("quickfilter", "Filter"));
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
 
   DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->comparator, NULL, N_("comparator"),
                                _("filter by images rating"),
@@ -408,7 +414,9 @@ void gui_init(dt_lib_module_t *self)
                                ">", // DT_COLLECTION_RATING_COMP_GT,
                                "≠");// DT_COLLECTION_RATING_COMP_NE,
   dt_bauhaus_widget_set_label(d->comparator, NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->comparator), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->comparator), FALSE, FALSE, 0);
+  gtk_widget_set_hexpand(d->comparator, FALSE);
+  gtk_widget_set_size_request(d->comparator, -1, -1);
 
   /* create the filter combobox */
   DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->stars, NULL, N_("ratings"),
@@ -447,9 +455,9 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(hbox, "quick_filter_box");
   _update_colors_filter(self);
 
-    // Culling mode
+  // Culling mode
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
   d->culling = gtk_toggle_button_new_with_label(_("Selected"));
   gtk_widget_set_tooltip_text(d->culling, _("Restrict the current view to only selected pictures"));
   g_signal_connect(G_OBJECT(d->culling), "toggled", G_CALLBACK(_culling_mode), (gpointer)self);
@@ -465,10 +473,10 @@ void gui_init(dt_lib_module_t *self)
 
   /* sort combobox */
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
 
   label = gtk_label_new(C_("quickfilter", "Sort by"));
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(label), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 
   const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
@@ -495,10 +503,10 @@ void gui_init(dt_lib_module_t *self)
 
   // text filter
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
 
   label = gtk_label_new(C_("quickfilter", "Find"));
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(label), TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 
   d->text = gtk_search_entry_new();
@@ -523,7 +531,7 @@ void gui_init(dt_lib_module_t *self)
           /* xgettext:no-c-format */
                                 "\nis dimmed during the search execution"));
   //dt_gui_add_class(d->text, "dt_transparent_background");
-  gtk_box_pack_end(GTK_BOX(hbox), GTK_WIDGET(d->text), TRUE, TRUE, 0);
+  gtk_box_pack_end(GTK_BOX(hbox), GTK_WIDGET(d->text), FALSE, FALSE, 0);
   gtk_widget_set_name(hbox, "quickfilter-search-box");
   dt_gui_add_class(hbox, "quick_filter_box");
 
@@ -532,6 +540,21 @@ void gui_init(dt_lib_module_t *self)
 
   dt_accels_new_lighttable_action(_reset_filter_action, self, N_("Lighttable/Actions"), N_("Reset the collection filter"),
                                   0, 0);
+
+  d->refresh = dtgtk_button_new(dtgtk_cairo_paint_refresh, 0, NULL);
+  gtk_widget_set_tooltip_text(d->refresh, _("Refresh the current collection to evict images\n"
+                                            "which properties have been changed\n"
+                                            "and don't match the current filters anymore."));
+  g_signal_connect(G_OBJECT(d->refresh), "clicked", G_CALLBACK(_refresh_collection_callback), NULL);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->refresh), FALSE, FALSE, 0);
+
+  path = dt_accels_build_path(_("Lighttable/Actions"), _("Reload current collection"));
+  dt_accels_new_widget_shortcut(darktable.gui->accels, d->refresh, "activate",
+                                darktable.gui->accels->lighttable_accels, path, GDK_KEY_r, GDK_CONTROL_MASK,
+                                FALSE);
+  g_free(path);
+
+
   /* initialize proxy */
   darktable.view_manager->proxy.filter.module = self;
   darktable.view_manager->proxy.filter.reset_filter = _lib_filter_reset;

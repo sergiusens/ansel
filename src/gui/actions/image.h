@@ -78,7 +78,6 @@ static void _colorlabels_callback(int color)
 {
   GList *imgs = dt_act_on_get_images(); // this yields a copy
   dt_colorlabels_toggle_label_on_list(imgs, color, TRUE);
-  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_COLORLABEL, imgs);
   //g_list_free(imgs); // this segfaults sooner or later
 }
 
@@ -86,7 +85,6 @@ static void _rating_callback(int value)
 {
   GList *imgs = dt_act_on_get_images(); // this yields a copy
   dt_ratings_apply_on_list(imgs, value, TRUE);
-  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_RATING, imgs);
   //g_list_free(imgs); // this segfaults sooner or later
 }
 
