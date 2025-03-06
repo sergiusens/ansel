@@ -1005,6 +1005,7 @@ static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, 
   w->show_quad = TRUE;
   w->show_label = TRUE;
   w->timeout = dt_conf_get_int("processing/timeout");
+  w->expand = TRUE;
 
   gtk_widget_add_events(GTK_WIDGET(w), GDK_POINTER_MOTION_MASK
                                        | GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK
@@ -1013,6 +1014,8 @@ static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, 
                                        | darktable.gui->scroll_mask);
 
   gtk_widget_set_can_focus(GTK_WIDGET(w), TRUE);
+  gtk_widget_set_halign(GTK_WIDGET(w), GTK_ALIGN_START);
+  gtk_widget_set_hexpand(GTK_WIDGET(w), FALSE);
   g_signal_connect(G_OBJECT(w), "focus-in-event", G_CALLBACK(dt_bauhaus_focus_in_callback), NULL);
   g_signal_connect(G_OBJECT(w), "focus-out-event", G_CALLBACK(dt_bauhaus_focus_out_callback), NULL);
   g_signal_connect(G_OBJECT(w), "focus", G_CALLBACK(dt_bauhaus_focus_callback), NULL);
@@ -1142,8 +1145,12 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
   memset(w->label, 0, sizeof(w->label)); // keep valgrind happy
   if(label)
   {
-    g_strlcpy(w->label, _(label), sizeof(w->label));
+    g_strlcpy(w->label, label, sizeof(w->label));
     dt_capitalize_label(w->label);
+  }
+  else
+  {
+    w->show_label = FALSE;
   }
 
   if(w->module)
@@ -1159,7 +1166,7 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
     // Wire the focusing action
     // Note: once the focus is grabbed, interaction with the widget happens through arrow keys or mouse wheel.
     // No need to wire all possible events/interactions.
-    if(m && !w->no_accels && !w->module->deprecated)
+    if(m && !w->no_accels && !w->module->deprecated && label)
     {
       gchar *plugin_name = g_strdup_printf("%s/%s/%s", m->name, (w->type == DT_BAUHAUS_SLIDER) ? _("Slider") : _("Combobox"), label);
       gchar *scope = g_strdup_printf("%s/Plugins", m->view);
@@ -2156,11 +2163,93 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
   return TRUE;
 }
 
+
+// Get the maximum width of a full combobox without ellipsization
+static float _get_combobox_max_width(GtkWidget *widget)
+{
+  struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
+  dt_bauhaus_combobox_data_t *d = &w->data.combobox;
+  GtkStyleContext *context = gtk_widget_get_style_context(widget);
+  const GtkStateFlags state = gtk_widget_get_state_flags(widget);
+
+  cairo_surface_t *cst = dt_cairo_image_surface_create(CAIRO_FORMAT_ARGB32, 999, 999);
+  cairo_t *cr = cairo_create(cst);
+
+  float width = 0.f;
+
+  // Get chevron width + padding if any
+  if(w->show_quad)
+    width += w->bauhaus->quad_width + 2 * INNER_PADDING;
+
+  // Get label width if any
+  if(w->show_label)
+  {
+    float label_width = 0.f;
+
+    GdkRectangle bounding_label = { .x = 0.,
+                                    .y = 0.,
+                                    .width = 999,
+                                    .height = 999 };
+
+    show_pango_text(w, context, cr, &bounding_label, w->label, BH_ALIGN_LEFT, BH_ALIGN_MIDDLE,
+      PANGO_ELLIPSIZE_NONE, NULL, &label_width, NULL, state);
+
+    if(label_width > 0.f) width += label_width + INNER_PADDING;
+  }
+
+  // Get width of the longest entry
+  float max_entry = 0.f;
+  for(int i = 0; i < d->entries->len; i++)
+  {
+    const dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, i);
+
+    // The value is shown right-aligned, ellipsized if needed.
+    GdkRectangle bounding_value = { .x = 0,
+                                    .y = 0.,
+                                    .width = 999,
+                                    .height = 999 };
+    float label_width = 0.f;
+
+    show_pango_text(w, context, cr, &bounding_value, entry->label, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE, PANGO_ELLIPSIZE_NONE, NULL,
+                    &label_width, NULL, state);
+
+    if(label_width + INNER_PADDING > max_entry) max_entry = label_width + INNER_PADDING;
+  }
+
+  width += max_entry;
+  width += w->margin->left + w->margin->right + w->padding->left + w->padding->right;
+
+  cairo_destroy(cr);
+  cairo_surface_destroy(cst);
+
+  return width;
+}
+
 static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
+
+  // Get current Gtk allocation
   GtkAllocation allocation;
   gtk_widget_get_allocation(widget, &allocation);
+
+  if(w->type == DT_BAUHAUS_COMBOBOX)
+    allocation.height = _get_combobox_height(widget);
+  else if(w->type == DT_BAUHAUS_SLIDER)
+    allocation.height = _get_slider_height(widget);
+
+  if(w->type == DT_BAUHAUS_COMBOBOX && !w->expand)
+  {
+    // For comboboxes that are not set to hexpand, limit the width span to what's needed
+    // to display the internal text, aka prevent them to grow out of proportions
+    float max_width = _get_combobox_max_width(widget);
+    if(max_width < allocation.width)
+      allocation.width = ceilf(max_width);
+  }
+
+  // Force allocate to our requirements. Yes, it's ugly.
+  gtk_widget_size_allocate(widget, &allocation);
+
   cairo_surface_t *cst = dt_cairo_image_surface_create(CAIRO_FORMAT_ARGB32, allocation.width, allocation.height);
   cairo_t *cr = cairo_create(cst);
   GtkStyleContext *context = gtk_widget_get_style_context(widget);
@@ -2194,14 +2283,7 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
 
       dt_bauhaus_combobox_data_t *d = &w->data.combobox;
       const PangoEllipsizeMode combo_ellipsis = d->entries_ellipsis;
-      const gchar *text = d->text;
-      if(d->active >= 0 && d->active < d->entries->len)
-      {
-        const dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, d->active);
-        text = entry->label;
-      }
 
-      gchar *label_text = _build_label(w);
       float label_width = 0.f;
       float label_height = 0.f;
 
@@ -2209,11 +2291,17 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
                                       .y = 0.,
                                       .width = available_width,
                                       .height = inner_height };
-      if(label_text && w->show_label)
-        show_pango_text(w, context, cr, &bounding_label, label_text, BH_ALIGN_LEFT, BH_ALIGN_MIDDLE,
+      if(w->show_label)
+        show_pango_text(w, context, cr, &bounding_label, w->label, BH_ALIGN_LEFT, BH_ALIGN_MIDDLE,
                         combo_ellipsis, NULL, &label_width, &label_height, state);
 
       // The value is shown right-aligned, ellipsized if needed.
+      gchar *text = d->text;
+      if(d->active >= 0 && d->active < d->entries->len)
+      {
+        const dt_bauhaus_combobox_entry_t *entry = g_ptr_array_index(d->entries, d->active);
+        text = entry->label;
+      }
       GdkRectangle bounding_value = { .x = label_width + INNER_PADDING,
                                       .y = 0.,
                                       .width = available_width - label_width - INNER_PADDING,
@@ -2221,7 +2309,6 @@ static gboolean _widget_draw(GtkWidget *widget, cairo_t *crf)
       show_pango_text(w, context, cr, &bounding_value, text, BH_ALIGN_RIGHT, BH_ALIGN_MIDDLE, combo_ellipsis, NULL,
                       NULL, NULL, state);
 
-      g_free(label_text);
       break;
     }
     case DT_BAUHAUS_SLIDER:
@@ -3039,6 +3126,19 @@ void dt_bauhaus_set_use_default_callback(GtkWidget *widget)
   struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
   w->use_default_callback = TRUE;
 }
+
+void dt_bauhaus_set_expand(GtkWidget *widget, gboolean expand)
+{
+  struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
+  w->expand = expand;
+}
+
+void dt_bauhaus_set_show_label(GtkWidget *widget, gboolean show)
+{
+  struct dt_bauhaus_widget_t *w = (struct dt_bauhaus_widget_t *)widget;
+  w->show_label = show;
+}
+
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

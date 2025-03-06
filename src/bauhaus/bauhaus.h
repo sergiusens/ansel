@@ -159,6 +159,10 @@ typedef struct dt_bauhaus_widget_t
   // show quad icon or space
   gboolean show_quad;
 
+  // horizontally expand to fit container's width. Set to TRUE by default,
+  // assuming vertical columns. Manually set to FALSE if using in toolbar menu.
+  gboolean expand;
+
   // margin and padding structure, defined in css, retrieve on each draw
   GtkBorder *margin, *padding;
 
@@ -382,6 +386,16 @@ static inline void set_color(cairo_t *cr, GdkRGBA color)
  * @param widget
  */
 void dt_bauhaus_set_use_default_callback(GtkWidget *widget);
+
+/**
+ * @brief Fill all the container's width or keep the widget minimal
+ *
+ * @param widget
+ * @param expand
+ */
+void dt_bauhaus_set_expand(GtkWidget *widget, gboolean expand);
+
+void dt_bauhaus_set_show_label(GtkWidget *widget, gboolean show);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
