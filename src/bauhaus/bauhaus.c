@@ -2111,7 +2111,7 @@ static gboolean dt_bauhaus_popup_draw(GtkWidget *widget, cairo_t *crf, gpointer 
           if(!entry->sensitive)
           {
             set_color(cr, text_color_insensitive);
-            state = GTK_STATE_INSENSITIVE;
+            state = GTK_STATE_FLAG_INSENSITIVE;
           }
           else if(j == d->active)
           {
