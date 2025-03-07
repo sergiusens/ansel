@@ -75,9 +75,7 @@ typedef enum dt_collection_sort_t
   DT_COLLECTION_SORT_GROUP,
   DT_COLLECTION_SORT_PATH,
   DT_COLLECTION_SORT_CUSTOM_ORDER,
-  DT_COLLECTION_SORT_TITLE,
-  DT_COLLECTION_SORT_DESCRIPTION,
-  DT_COLLECTION_SORT_SHUFFLE
+  DT_COLLECTION_SORT_TITLE
 } dt_collection_sort_t;
 
 #define DT_COLLECTION_ORDER_FLAG 0x8000
@@ -163,7 +161,6 @@ typedef struct dt_collection_params_t
 
   /** sorting **/
   dt_collection_sort_t sort; // Has to be changed to a dt_collection_sort struct
-  dt_collection_sort_t sort_second_order;
   gint descending;
 
 } dt_collection_params_t;
