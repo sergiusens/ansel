@@ -20,10 +20,18 @@
 
 #include <glib.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 GList *dt_module_load_modules(const char *subdir, size_t module_size,
                               int (*load_module_so)(void *module, const char *libname, const char *plugin_name),
                               void (*init_module)(void *module),
                               gint (*sort_modules)(gconstpointer a, gconstpointer b));
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

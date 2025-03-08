@@ -22,11 +22,11 @@
 #include <xmmintrin.h>
 #endif
 
-extern "C" {
 #include "develop/imageop.h"
 #include "develop/imageop_math.h"
 
 // otherwise the name will be mangled and the linker won't be able to see the function ...
+extern "C" {
 void amaze_demosaic_RT(
     dt_dev_pixelpipe_iop_t *piece,
     const float *const in,

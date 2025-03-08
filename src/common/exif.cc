@@ -52,7 +52,6 @@
 
 #include "glib.h"
 
-extern "C" {
 #include "common/colorlabels.h"
 #include "common/darktable.h"
 #include "common/debug.h"
@@ -74,7 +73,6 @@ extern "C" {
 #include "develop/imageop.h"
 #include "develop/blend.h"
 #include "develop/masks.h"
-}
 
 using namespace std;
 

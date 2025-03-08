@@ -21,6 +21,10 @@
 #include <cairo.h>
 #include <gtk/gtk.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define CPF_USER_DATA 0x1000
 
 typedef enum dtgtk_cairo_paint_flags_t
@@ -335,6 +339,10 @@ void dtgtk_cairo_paint_shortcut(cairo_t *cr, gint x, gint y, gint w, gint h, gin
 
 /** Paint a pined icon for filtering */
 void dtgtk_cairo_paint_pin(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

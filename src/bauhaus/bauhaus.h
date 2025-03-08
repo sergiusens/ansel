@@ -30,6 +30,10 @@
 #include <stdlib.h>
 #include <string.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DT_BAUHAUS_WIDGET_TYPE dt_bh_get_type()
 #define DT_BAUHAUS_WIDGET(obj) G_TYPE_CHECK_INSTANCE_CAST((obj), DT_BAUHAUS_WIDGET_TYPE, DtBauhausWidget)
 #define DT_BAUHAUS_WIDGET_CLASS(obj) G_TYPE_CHECK_CLASS_CAST((obj), DT_BAUHAUS_WIDGET, DtBauhausWidgetClass)
@@ -396,6 +400,10 @@ void dt_bauhaus_set_use_default_callback(GtkWidget *widget);
 void dt_bauhaus_set_expand(GtkWidget *widget, gboolean expand);
 
 void dt_bauhaus_set_show_label(GtkWidget *widget, gboolean show);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

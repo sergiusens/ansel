@@ -39,7 +39,6 @@
 
 #include "glib.h"
 
-extern "C" {
 #include "common/colorspaces.h"
 #include "common/darktable.h"
 #include "common/exif.h"
@@ -47,7 +46,7 @@ extern "C" {
 #include "common/imageio_exr.h"
 #include "control/conf.h"
 #include "develop/develop.h"
-}
+
 #include "common/imageio_exr.hh"
 
 dt_imageio_retval_t dt_imageio_open_exr(dt_image_t *img, const char *filename, dt_mipmap_buffer_t *mbuf)

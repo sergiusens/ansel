@@ -24,6 +24,10 @@
 
 #include <lcms2.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // this was removed from lcms2 in 2.4
 #ifndef TYPE_XYZA_FLT
   #define TYPE_XYZA_FLT (FLOAT_SH(1)|COLORSPACE_SH(PT_XYZ)|EXTRA_SH(1)|CHANNELS_SH(3)|BYTES_SH(4))
@@ -311,6 +315,10 @@ static inline dt_colorspaces_color_profile_type_t sanitize_colorspaces(dt_colors
  * @return dt_colorspaces_color_profile_type_t type of profile detected. This type is tested internally and guaranteed to work.
  */
 dt_colorspaces_color_profile_type_t dt_image_find_best_color_profile(int32_t imgid, cmsHPROFILE *output, gboolean *new_profile);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

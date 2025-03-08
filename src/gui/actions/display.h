@@ -65,7 +65,7 @@ static gboolean _toggle_side_borders_accel_callback(GtkAccelGroup *accel_group, 
   return TRUE;
 }
 
-void dt_ui_toggle_panels_visibility(struct dt_ui_t *ui)
+void dt_ui_toggle_panels_visibility(dt_ui_t *ui)
 {
   gchar *key = panels_get_view_path("panel_collaps_state");
   const uint32_t state = dt_conf_get_int(key);

@@ -22,6 +22,10 @@
 #include <string.h>
 #include <librsvg/rsvg.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** dynamically allocate and concatenate string */
 gchar *dt_util_dstrcat(gchar *str, const gchar *format, ...) __attribute__((format(printf, 2, 3)));
 
@@ -122,6 +126,10 @@ gchar *dt_util_remove_whitespace(const gchar *path);
 
 // Get the datetime of modification for a given file, identified by its full path
 GDateTime *dt_util_get_file_datetime(const char *const path);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

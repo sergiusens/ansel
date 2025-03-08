@@ -124,6 +124,10 @@
 #include "config.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct dt_iop_module_t;
 struct dt_develop_t;
 struct dt_dev_pixelpipe_t;
@@ -246,6 +250,10 @@ int dt_ioppr_check_iop_order(struct dt_develop_t *dev, const int32_t imgid, cons
 void dt_ioppr_print_module_iop_order(GList *iop_list, const char *msg);
 void dt_ioppr_print_history_iop_order(GList *history_list, const char *msg);
 void dt_ioppr_print_iop_order(GList *iop_order_list, const char *msg);
+
+#ifdef __cplusplus
+}
+#endif
 
 #endif
 // clang-format off

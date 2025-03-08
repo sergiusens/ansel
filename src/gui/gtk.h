@@ -27,6 +27,10 @@
 #include <gtk/gtk.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DT_GUI_IOP_MODULE_CONTROL_SPACING 0
 
 /* helper macro that applies the DPI transformation to fixed pixel values. input should be defaulting to 96
@@ -83,7 +87,7 @@ typedef enum dt_gui_color_t
 typedef struct dt_gui_gtk_t
 {
 
-  struct dt_ui_t *ui;
+  dt_ui_t *ui;
 
   dt_gui_widgets_t widgets;
 
@@ -230,38 +234,38 @@ gboolean dt_gui_get_scroll_delta(const GdkEventScroll *event, gdouble *delta);
 gboolean dt_gui_get_scroll_unit_delta(const GdkEventScroll *event, int *delta);
 
 /** \brief gives a widget focus in the container */
-void dt_ui_container_focus_widget(struct dt_ui_t *ui, const dt_ui_container_t c, GtkWidget *w);
+void dt_ui_container_focus_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidget *w);
 /** \brief calls a callback on all children widgets from container */
-void dt_ui_container_foreach(struct dt_ui_t *ui, const dt_ui_container_t c, GtkCallback callback);
+void dt_ui_container_foreach(dt_ui_t *ui, const dt_ui_container_t c, GtkCallback callback);
 /** \brief destroy all child widgets from container */
-void dt_ui_container_destroy_children(struct dt_ui_t *ui, const dt_ui_container_t c);
+void dt_ui_container_destroy_children(dt_ui_t *ui, const dt_ui_container_t c);
 /** \brief shows/hide a panel */
-void dt_ui_panel_show(struct dt_ui_t *ui, const dt_ui_panel_t, gboolean show, gboolean write);
+void dt_ui_panel_show(dt_ui_t *ui, const dt_ui_panel_t, gboolean show, gboolean write);
 /** \brief toggle view of panels eg. collapse/expands to previous view state */
-void dt_ui_toggle_panels_visibility(struct dt_ui_t *ui);
+void dt_ui_toggle_panels_visibility(dt_ui_t *ui);
 /** \brief draw user's attention */
 void dt_ui_notify_user();
 /** \brief get visible state of panel */
-gboolean dt_ui_panel_visible(struct dt_ui_t *ui, const dt_ui_panel_t);
+gboolean dt_ui_panel_visible(dt_ui_t *ui, const dt_ui_panel_t);
 /**  \brief get width of right, left, or bottom panel */
-int dt_ui_panel_get_size(struct dt_ui_t *ui, const dt_ui_panel_t p);
+int dt_ui_panel_get_size(dt_ui_t *ui, const dt_ui_panel_t p);
 /**  \brief set width of right, left, or bottom panel */
-void dt_ui_panel_set_size(struct dt_ui_t *ui, const dt_ui_panel_t p, int s);
+void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s);
 /** \brief is the panel ancestor of widget */
-gboolean dt_ui_panel_ancestor(struct dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
+gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
 /** \brief get the center drawable widget */
-GtkWidget *dt_ui_center(struct dt_ui_t *ui);
-GtkWidget *dt_ui_center_base(struct dt_ui_t *ui);
+GtkWidget *dt_ui_center(dt_ui_t *ui);
+GtkWidget *dt_ui_center_base(dt_ui_t *ui);
 /** \brief get the main window widget */
-GtkWidget *dt_ui_main_window(struct dt_ui_t *ui);
+GtkWidget *dt_ui_main_window(dt_ui_t *ui);
 /** \brief get the thumb table */
-struct dt_thumbtable_t *dt_ui_thumbtable(struct dt_ui_t *ui);
+struct dt_thumbtable_t *dt_ui_thumbtable(dt_ui_t *ui);
 /** \brief get the log message widget */
-GtkWidget *dt_ui_log_msg(struct dt_ui_t *ui);
+GtkWidget *dt_ui_log_msg(dt_ui_t *ui);
 /** \brief get the toast message widget */
-GtkWidget *dt_ui_toast_msg(struct dt_ui_t *ui);
+GtkWidget *dt_ui_toast_msg(dt_ui_t *ui);
 
-GtkBox *dt_ui_get_container(struct dt_ui_t *ui, const dt_ui_container_t c);
+GtkBox *dt_ui_get_container(dt_ui_t *ui, const dt_ui_container_t c);
 
 /*  activate ellipsization of the combox entries */
 void dt_ellipsize_combo(GtkComboBox *cbox);
@@ -409,6 +413,9 @@ GtkBox *attach_help_popover(GtkWidget *widget, const char *label);
  */
 void dt_accels_disconnect_on_text_input(GtkWidget *widget);
 
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

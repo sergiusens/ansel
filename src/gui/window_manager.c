@@ -168,7 +168,7 @@ static void update_manager_sizes(dt_ui_t *ui)
 }
 
 
-gboolean dt_ui_panel_ancestor(struct dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w)
+gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w)
 {
   g_return_val_if_fail(GTK_IS_WIDGET(ui->panels[p]), FALSE);
   return gtk_widget_is_ancestor(w, ui->panels[p]) || gtk_widget_is_ancestor(ui->panels[p], w);
@@ -182,15 +182,15 @@ GtkWidget *dt_ui_center_base(dt_ui_t *ui)
 {
   return ui->center_base;
 }
-dt_thumbtable_t *dt_ui_thumbtable(struct dt_ui_t *ui)
+dt_thumbtable_t *dt_ui_thumbtable(dt_ui_t *ui)
 {
   return ui->thumbtable;
 }
-GtkWidget *dt_ui_log_msg(struct dt_ui_t *ui)
+GtkWidget *dt_ui_log_msg(dt_ui_t *ui)
 {
   return ui->log_msg;
 }
-GtkWidget *dt_ui_toast_msg(struct dt_ui_t *ui)
+GtkWidget *dt_ui_toast_msg(dt_ui_t *ui)
 {
   return ui->toast_msg;
 }
@@ -200,7 +200,7 @@ GtkWidget *dt_ui_main_window(dt_ui_t *ui)
   return ui->main_window;
 }
 
-GtkBox *dt_ui_get_container(struct dt_ui_t *ui, const dt_ui_container_t c)
+GtkBox *dt_ui_get_container(dt_ui_t *ui, const dt_ui_container_t c)
 {
   return GTK_BOX(ui->containers[c]);
 }

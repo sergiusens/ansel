@@ -20,18 +20,18 @@
 
 #ifdef FULL_API_H
 
+#include <stddef.h>
+#include <stdint.h>
+
+#include "common/colorspaces.h" // because forward declaring enums doesn't work in C++ :(
+
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-#include <stddef.h>
-#include <stdint.h>
-
 struct dt_imageio_module_format_t;
 struct dt_imageio_module_data_t;
 struct dt_dev_pixelpipe_t;
-
-#include "common/colorspaces.h" // because forward declaring enums doesn't work in C++ :(
 
 /* early definition of modules to do type checking */
 

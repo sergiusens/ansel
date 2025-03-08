@@ -20,6 +20,10 @@
 #include <glib.h>
 #include "common/image.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DT_DATETIME_LENGTH 24       // includes msec
 #define DT_DATETIME_EXIF_LENGTH 20  // exif format string length
 
@@ -116,6 +120,10 @@ GTimeSpan dt_datetime_gtimespan_add_numbers(const GTimeSpan dt, const dt_datetim
 // add values (represented by dt_datetime_t) to exif datetime
 gboolean dt_datetime_exif_add_numbers(const gchar *exif, const dt_datetime_t numbers, const gboolean add,
                                       gchar **result);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

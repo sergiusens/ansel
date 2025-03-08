@@ -28,6 +28,10 @@
 #include <glib.h>
 #include <inttypes.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** return value of image io functions. */
 typedef enum dt_imageio_retval_t
 {
@@ -434,6 +438,11 @@ char *dt_image_camera_missing_sample_message(const struct dt_image_t *img, gbool
 void dt_image_check_camera_missing_sample(const struct dt_image_t *img);
 /** get dirname from imgid */
 void dt_get_dirname_from_imgid(gchar *dir, const int32_t imgid);
+
+#ifdef __cplusplus
+}
+#endif
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

@@ -32,6 +32,10 @@
 #include <stddef.h>          // for size_t, NULL
 #include <stdint.h>          // for uint8_t, uint16_t, uint32_t
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** flip according to orientation bits, also zoom to given size. */
 void dt_iop_flip_and_zoom_8(const uint8_t *in, int32_t iw, int32_t ih, uint8_t *out, int32_t ow, int32_t oh,
                             const dt_image_orientation_t orientation, uint32_t *width, uint32_t *height);
@@ -222,6 +226,10 @@ static inline int fcol(const int row, const int col, const uint32_t filters, con
   else
     return FC(row, col, filters);
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -31,6 +31,10 @@
 #include "develop/imageop.h"
 #include "develop/dev_history.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 struct dt_iop_module_t;
 
 typedef enum dt_dev_overexposed_colorscheme_t
@@ -516,6 +520,10 @@ guint dt_dev_mask_history_overload(GList *dev_history, guint threshold);
 
 // Write the `darktable|changed` tag on the current picture upon history modification
 void dt_dev_append_changed_tag(const int32_t imgid);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

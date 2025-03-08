@@ -25,6 +25,10 @@
 #include "dtgtk/gradientslider.h"
 #include "gui/color_picker_proxy.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DEVELOP_BLEND_VERSION (11)
 
 typedef enum dt_develop_blend_colorspace_t
@@ -473,6 +477,10 @@ int dt_iop_gui_blending_mode_seq(dt_iop_gui_blend_data_t *bd, int mode);
 int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
                                 cl_mem dev_in, cl_mem dev_out, const struct dt_iop_roi_t *roi_in,
                                 const struct dt_iop_roi_t *roi_out);
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 // clang-format off

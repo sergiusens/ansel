@@ -21,6 +21,10 @@
 #include <glib.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dt_variables_params_t
 {
   /** used for expanding variables that uses filename $(FILE_FOLDER) $(FILE_NAME) and $(FILE_EXTENSION). */
@@ -72,6 +76,10 @@ void dt_variables_reset_sequence(dt_variables_params_t *params);
  * @return `gboolean` Returns TRUE if success.
  */
 gboolean dt_get_user_pictures_dir(const gchar *homedir, gchar *picdir, size_t picdir_size);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

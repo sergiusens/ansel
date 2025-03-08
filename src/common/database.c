@@ -39,7 +39,6 @@
 #include <gio/gio.h>
 #include <glib.h>
 #include <glib/gstdio.h>
-#include <sqlite3.h>
 
 #include <errno.h>
 #include <fcntl.h>

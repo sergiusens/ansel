@@ -24,8 +24,11 @@
 #include "common/tags.h"
 #include <glib.h>
 #include <stdio.h>
-
 #include <inttypes.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define FILTERS_ARE_CYGM(filters)                                                                                 \
   ((filters) == 0xb4b4b4b4 || (filters) == 0x4b4b4b4b || (filters) == 0x1e1e1e1e || (filters) == 0xe1e1e1e1)
@@ -116,6 +119,10 @@ gboolean dt_imageio_lookup_makermodel(const char *maker, const char *model,
 
 // get the type of image from its extension
 dt_image_flags_t dt_imageio_get_type_from_extension(const char *extension);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

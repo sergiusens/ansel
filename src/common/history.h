@@ -22,6 +22,10 @@
 #include <inttypes.h>
 #include <sqlite3.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // history hash is designed to detect any change made on the image
 // if current = basic the image has only the mandatory modules with their original settings
 // if current = auto the image has the mandatory and auto applied modules with their original settings
@@ -130,6 +134,10 @@ void dt_history_hash_write(const int32_t imgid, dt_history_hash_values_t *hash);
 
 /** read hash values from db */
 void dt_history_hash_read(const int32_t imgid, dt_history_hash_values_t *hash);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

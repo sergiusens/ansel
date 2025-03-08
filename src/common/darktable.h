@@ -47,6 +47,7 @@
 #else
 #include <sys/resource.h>
 #endif
+#include <stdint.h>
 #include <glib.h>
 #include <glib/gstdio.h>
 #include <glib/gi18n.h>
@@ -68,6 +69,10 @@
 
 // for signal debugging symbols
 #include "control/signal.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 #define DT_MODULE_VERSION 23 // version of dt's module interface
 
@@ -135,6 +140,9 @@ char *dt_version_major_minor();
 // Default code for imgid meaning the picture is unknown or invalid
 #define UNKNOWN_IMAGE -1
 
+#ifdef __cplusplus
+}
+#endif
 
 /********************************* */
 
@@ -170,9 +178,6 @@ typedef unsigned int u_int;
 #if defined(__SSE__)
 #include <xmmintrin.h> // needed for _mm_stream_ps
 #endif
-
-#include <glib.h>
-#include <stdint.h>
 
 #ifdef _OPENMP
 # include <omp.h>
@@ -216,6 +221,10 @@ typedef unsigned int u_int;
 # define omp_get_thread_num() 0
 
 #endif /* _OPENMP */
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 static inline int dt_get_thread_num()
 {
@@ -784,6 +793,9 @@ static inline gchar *delete_underscore(const char *s)
   return text;
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
