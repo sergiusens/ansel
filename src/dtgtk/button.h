@@ -55,6 +55,7 @@ GtkWidget *dtgtk_button_new(DTGTKCairoPaintIconFunc paint, gint paintflags, void
 void dtgtk_button_set_paint(GtkDarktableButton *button, DTGTKCairoPaintIconFunc paint, gint paintflags, void *paintdata);
 /** set the active state of the button icon */
 void dtgtk_button_set_active(GtkDarktableButton *button, gboolean active);
+gboolean dtgtk_button_get_active(GtkDarktableButton *button);
 
 G_END_DECLS
 
@@ -63,4 +64,3 @@ G_END_DECLS
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

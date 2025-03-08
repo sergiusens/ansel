@@ -33,7 +33,7 @@ DT_MODULE(1)
 
 typedef struct dt_lib_tool_filter_t
 {
-  GtkWidget *stars;
+  GtkWidget *stars[8];
   GtkWidget *comparator;
   GtkWidget *sort;
   GtkWidget *reverse;
@@ -56,18 +56,13 @@ typedef enum dt_collection_sort_order_t
 /* proxy function to intelligently reset filter */
 static void _lib_filter_reset(dt_lib_module_t *self, gboolean smart_filter);
 
-/* callback for filter combobox change */
-static void _lib_filter_combobox_changed(GtkWidget *widget, gpointer user_data);
 /* callback for sort combobox change */
 static void _lib_filter_sort_combobox_changed(GtkWidget *widget, gpointer user_data);
 /* callback for reverse sort check button change */
 static void _lib_filter_reverse_button_changed(GtkDarktableToggleButton *widget, gpointer user_data);
-/* callback for rating comparator combobox change */
-static void _lib_filter_comparator_changed(GtkWidget *widget, gpointer user_data);
 /* updates the query and redraws the view */
 static void _lib_filter_update_query(dt_lib_module_t *self, dt_collection_properties_t changed_property);
-/* make sure that the comparator button matches what is shown in the filter dropdown */
-static gboolean _lib_filter_sync_combobox_and_comparator(dt_lib_module_t *self);
+
 /* save the images order if the first collect filter is on tag*/
 static void _lib_filter_set_tag_order(dt_lib_module_t *self);
 /* images order change from outside */
@@ -88,18 +83,16 @@ const dt_collection_sort_t items[] =
   DT_COLLECTION_SORT_PATH,
   DT_COLLECTION_SORT_CUSTOM_ORDER,
   DT_COLLECTION_SORT_TITLE,
-  DT_COLLECTION_SORT_DESCRIPTION,
-  DT_COLLECTION_SORT_SHUFFLE,
 };
 #define NB_ITEMS (sizeof(items) / sizeof(dt_collection_sort_t))
 
 static const char *_sort_names[]
   = { N_("filename"),
-      N_("capture time"),
-      N_("import time"),
-      N_("last modification time"),
-      N_("last export time"),
-      N_("last print time"),
+      N_("captured"),
+      N_("imported"),
+      N_("modified"),
+      N_("exported"),
+      N_("printed"),
       N_("rating"),
       N_("id"),
       N_("color label"),
@@ -107,8 +100,6 @@ static const char *_sort_names[]
       N_("full path"),
       N_("custom sort"),
       N_("title"),
-      N_("description"),
-      N_("shuffle"),
       NULL };
 
 static int _filter_get_items(const dt_collection_sort_t sort)
@@ -389,13 +380,69 @@ static void _refresh_collection_callback(GtkButton *button, gpointer user_data)
 void _widget_align_left(GtkWidget *widget)
 {
   gtk_widget_set_halign(widget, GTK_ALIGN_START);
-  gtk_widget_set_hexpand(widget, FALSE);
+  gtk_widget_set_hexpand(widget, TRUE);
 
   gtk_widget_set_valign(widget, GTK_ALIGN_CENTER);
   gtk_widget_set_vexpand(widget, FALSE);
-
-  gtk_widget_set_size_request(widget, -1, -1);
 }
+
+
+const dt_collection_filter_flag_t ratings[7] =
+  { COLLECTION_FILTER_REJECTED,
+    COLLECTION_FILTER_0_STAR,
+    COLLECTION_FILTER_1_STAR,
+    COLLECTION_FILTER_2_STAR,
+    COLLECTION_FILTER_3_STAR,
+    COLLECTION_FILTER_4_STAR,
+    COLLECTION_FILTER_5_STAR };
+
+
+static gboolean _rating_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t *self)
+{
+  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+
+  // Toggle active state
+  gboolean active = !dtgtk_button_get_active(DTGTK_BUTTON(w));
+  dtgtk_button_set_active(DTGTK_BUTTON(w), active);
+
+  // Update GUI button state
+  if(w == d->stars[0])
+  {
+    // shitty design: the active rejected state is signaled as a right orientation...
+    if(active)
+      DTGTK_BUTTON(w)->icon_flags |= CPF_DIRECTION_RIGHT;
+    else
+      DTGTK_BUTTON(w)->icon_flags &= ~CPF_DIRECTION_RIGHT;
+  }
+  else
+  {
+    // fill stars if active
+    if(active)
+      DTGTK_BUTTON(w)->icon_data = &darktable.bauhaus->color_fg;
+    else
+      DTGTK_BUTTON(w)->icon_data = NULL;
+  }
+
+  gtk_widget_queue_draw(w);
+
+  // Update collection flags
+  for(int i = 0; i < 7; i++)
+  {
+    if(dtgtk_button_get_active(DTGTK_BUTTON(d->stars[i])))
+      flags |= ratings[i];
+    else
+      flags &= ~ratings[i];
+  }
+
+  dt_collection_set_filter_flags(darktable.collection, flags);
+
+  /* update the query and view */
+  _lib_filter_update_query(self, DT_COLLECTION_PROP_RATING);
+
+  return TRUE;
+}
+
 
 void gui_init(dt_lib_module_t *self)
 {
@@ -405,49 +452,81 @@ void gui_init(dt_lib_module_t *self)
 
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   _widget_align_left(self->widget);
+  dt_gui_add_class(self->widget, "quick_filter_box");
 
-  GtkWidget *label = gtk_label_new(C_("quickfilter", "Filter"));
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
-  dt_gui_add_class(label, "quickfilter-label");
+  GtkWidget *label;
+
+  d->refresh = dtgtk_button_new(dtgtk_cairo_paint_refresh, 0, NULL);
+  gtk_widget_set_tooltip_text(d->refresh, _("Refresh the current collection to evict images\n"
+                                            "which properties have been changed\n"
+                                            "and don't match the current filters anymore."));
+  g_signal_connect(G_OBJECT(d->refresh), "clicked", G_CALLBACK(_refresh_collection_callback), NULL);
+  gtk_widget_set_name(d->sort, "quick-filter-reload");
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->refresh), FALSE, FALSE, 0);
+
+  gchar *path = dt_accels_build_path(_("Lighttable/Actions"), _("Reload current collection"));
+  dt_accels_new_widget_shortcut(darktable.gui->accels, d->refresh, "activate",
+                                darktable.gui->accels->lighttable_accels, path, GDK_KEY_r, GDK_CONTROL_MASK,
+                                FALSE);
+  g_free(path);
+
+  // dumb empty flexible spacer at the end
+  GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_hexpand(spacer, TRUE);
+  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
+
+  label = gtk_label_new(_("Filter"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
 
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
-  _widget_align_left(hbox);
+  gtk_widget_set_name(hbox, "quick-filter-ratings");
 
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->comparator, NULL, N_("comparator"),
-                               _("filter by images rating"),
-                               dt_collection_get_rating_comparator(darktable.collection),
-                               _lib_filter_comparator_changed, self,
-                               "<", // DT_COLLECTION_RATING_COMP_LT = 0,
-                               "≤", // DT_COLLECTION_RATING_COMP_LEQ,
-                               "=", // DT_COLLECTION_RATING_COMP_EQ,
-                               "≥", // DT_COLLECTION_RATING_COMP_GEQ,
-                               ">", // DT_COLLECTION_RATING_COMP_GT,
-                               "≠");// DT_COLLECTION_RATING_COMP_NE,
-  dt_bauhaus_widget_set_label(d->comparator, NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->comparator), FALSE, FALSE, 0);
-  _widget_align_left(d->comparator);
+  // star buttons
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
 
-  /* create the filter combobox */
-  DT_BAUHAUS_COMBOBOX_NEW_FULL(darktable.bauhaus, d->stars, NULL, N_("ratings"),
-                               _("filter by images rating"),
-                               dt_collection_get_rating(darktable.collection),
-                               _lib_filter_combobox_changed, self,
-                               N_("all"),
-                               N_("unstarred only"),
-                               "\342\230\205",
-                               "\342\230\205 \342\230\205",
-                               "\342\230\205 \342\230\205 \342\230\205",
-                               "\342\230\205 \342\230\205 \342\230\205 \342\230\205",
-                               "\342\230\205 \342\230\205 \342\230\205 \342\230\205 \342\230\205",
-                               N_("rejected only"),
-                               N_("all except rejected"));
-  dt_bauhaus_widget_set_label(d->stars, NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->stars), FALSE, FALSE, 0);
-  dt_gui_add_class(hbox, "quick_filter_box");
+  for(int k = 0; k < 7; k++)
+  {
+    if(k == 0)
+      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_reject, k, NULL);
+    else if(k == 1)
+      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_unratestar, k, NULL);
+    else
+      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_star, k, NULL);
+
+    gboolean active = flags & ratings[k];
+
+    dtgtk_button_set_active(DTGTK_BUTTON(d->stars[k]), active);
+
+    if(active)
+    {
+      if(k == 0)
+        // shitty design: the active rejected state is signaled as a right orientation...
+        DTGTK_BUTTON(d->stars[k])->icon_flags |= CPF_DIRECTION_RIGHT;
+      else
+        // fill the star
+        DTGTK_BUTTON(d->stars[k])->icon_data = &darktable.bauhaus->color_fg;
+    }
+
+    dt_gui_add_class(d->stars[k], "star");
+    dt_gui_add_class(d->stars[k], "dt_no_hover");
+    gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->stars[k]), FALSE, FALSE, 0);
+    g_signal_connect(G_OBJECT(d->stars[k]), "button-press-event", G_CALLBACK(_rating_clicked), self);
+  }
+
+  gtk_widget_set_tooltip_text(d->stars[0], _("Toggle filtering in/out rejected images"));
+  gtk_widget_set_tooltip_text(d->stars[1], _("Toggle filtering in/out unrated images (0 star)"));
+  gtk_widget_set_tooltip_text(d->stars[2], _("Toggle filtering in/out images rated 1 star"));
+  gtk_widget_set_tooltip_text(d->stars[3], _("Toggle filtering in/out images rated 2 stars"));
+  gtk_widget_set_tooltip_text(d->stars[4], _("Toggle filtering in/out images rated 3 stars"));
+  gtk_widget_set_tooltip_text(d->stars[5], _("Toggle filtering in/out images rated 4 stars"));
+  gtk_widget_set_tooltip_text(d->stars[6], _("Toggle filtering in/out images rated 5 stars"));
 
   // colorlabels filter
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
+  gtk_widget_set_name(hbox, "quickfilters-colors");
+
   for(int k = 0; k < DT_COLORLABELS_LAST + 1; k++)
   {
     d->colors[k] = dtgtk_button_new(dtgtk_cairo_paint_label_sel, k, NULL);
@@ -460,50 +539,48 @@ void gui_init(dt_lib_module_t *self)
                                                 "\nthe gray button affects all color labels"));
     g_signal_connect(G_OBJECT(d->colors[k]), "button-press-event", G_CALLBACK(_colorlabel_clicked), self);
   }
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
-  gtk_widget_set_name(hbox, "lib-label-colors");
-  dt_gui_add_class(hbox, "quick_filter_box");
   _update_colors_filter(self);
 
   // Culling mode
-  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
   d->culling = gtk_toggle_button_new_with_label(_("Selected"));
   gtk_widget_set_tooltip_text(d->culling, _("Restrict the current view to only selected pictures"));
   g_signal_connect(G_OBJECT(d->culling), "toggled", G_CALLBACK(_culling_mode), (gpointer)self);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->culling), FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->culling), FALSE, FALSE, 0);
   gtk_widget_set_name(d->culling, "quickfilter-culling");
-  dt_gui_add_class(hbox, "quick_filter_box");
 
-  gchar *path = dt_accels_build_path(_("Lighttable/Actions"), _("Toggle culling mode"));
+  path = dt_accels_build_path(_("Lighttable/Actions"), _("Toggle culling mode"));
   dt_accels_new_widget_shortcut(darktable.gui->accels, d->culling, "activate",
                                 darktable.gui->accels->lighttable_accels, path, GDK_KEY_s, GDK_CONTROL_MASK,
                                 FALSE);
   g_free(path);
 
+  // dumb empty flexible spacer at the end
+  spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_hexpand(spacer, TRUE);
+  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
+
+  label = gtk_label_new(_("Sort by"));
+  gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
+
   /* sort combobox */
-  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
-
-  label = gtk_label_new(C_("quickfilter", "Sort by"));
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(label), FALSE, FALSE, 0);
-  dt_gui_add_class(label, "quickfilter-label");
-
   const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
-  d->sort = dt_bauhaus_combobox_new_full(darktable.bauhaus, DT_GUI_MODULE(NULL), N_("sort by"),
-                                         _("determine the sort order of shown images"), _filter_get_items(sort),
-                                         _lib_filter_sort_combobox_changed, self, _sort_names);
-  dt_bauhaus_widget_set_label(d->sort, NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->sort), FALSE, FALSE, 0);
-  _widget_align_left(d->sort);
-  dt_gui_add_class(hbox, "quick_filter_box");
+
+  d->sort = gtk_combo_box_text_new();
+
+  for(int i = 0; i < NB_ITEMS; i++)
+    gtk_combo_box_text_append(GTK_COMBO_BOX_TEXT(d->sort), NULL, _sort_names[i]);
+
+  gtk_combo_box_set_active(GTK_COMBO_BOX(d->sort ), _filter_get_items(sort));
+  g_signal_connect(G_OBJECT(d->sort), "changed", G_CALLBACK(_lib_filter_sort_combobox_changed), (gpointer)self);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->sort), FALSE, FALSE, 0);
+  gtk_widget_set_name(d->sort, "quick-filter-sort");
 
   /* reverse order checkbutton */
   d->reverse = dtgtk_togglebutton_new(dtgtk_cairo_paint_sortby, CPF_DIRECTION_UP, NULL);
   if(darktable.collection->params.descending)
     dtgtk_togglebutton_set_paint(DTGTK_TOGGLEBUTTON(d->reverse), dtgtk_cairo_paint_sortby,
                                  CPF_DIRECTION_DOWN, NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->reverse), FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->reverse), FALSE, FALSE, 0);
   dt_gui_add_class(d->reverse, "dt_ignore_fg_state");
 
   /* select the last value and connect callback */
@@ -512,14 +589,12 @@ void gui_init(dt_lib_module_t *self)
   g_signal_connect(G_OBJECT(d->reverse), "toggled", G_CALLBACK(_lib_filter_reverse_button_changed),
                    (gpointer)self);
 
+  // dumb empty flexible spacer at the end
+  spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_hexpand(spacer, TRUE);
+  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
+
   // text filter
-  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
-
-  label = gtk_label_new(C_("quickfilter", "Find"));
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(label), FALSE, FALSE, 0);
-  dt_gui_add_class(label, "quickfilter-label");
-
   d->text = gtk_search_entry_new();
   dt_accels_disconnect_on_text_input(d->text);
   dt_gui_add_class(GTK_WIDGET(d->text), "menu-text-entry");
@@ -542,9 +617,8 @@ void gui_init(dt_lib_module_t *self)
           /* xgettext:no-c-format */
                                 "\nis dimmed during the search execution"));
   //dt_gui_add_class(d->text, "dt_transparent_background");
-  gtk_box_pack_end(GTK_BOX(hbox), GTK_WIDGET(d->text), FALSE, FALSE, 0);
-  gtk_widget_set_name(hbox, "quickfilter-search-box");
-  dt_gui_add_class(hbox, "quick_filter_box");
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->text), FALSE, FALSE, 0);
+  gtk_widget_set_name(d->text, "quickfilter-search-box");
 
   dt_accels_new_lighttable_action(_focus_search_action, self, N_("Lighttable/Actions"), N_("Search a picture"),
                                   GDK_KEY_f, GDK_CONTROL_MASK);
@@ -552,34 +626,14 @@ void gui_init(dt_lib_module_t *self)
   dt_accels_new_lighttable_action(_reset_filter_action, self, N_("Lighttable/Actions"), N_("Reset the collection filter"),
                                   0, 0);
 
-  d->refresh = dtgtk_button_new(dtgtk_cairo_paint_refresh, 0, NULL);
-  gtk_widget_set_tooltip_text(d->refresh, _("Refresh the current collection to evict images\n"
-                                            "which properties have been changed\n"
-                                            "and don't match the current filters anymore."));
-  g_signal_connect(G_OBJECT(d->refresh), "clicked", G_CALLBACK(_refresh_collection_callback), NULL);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->refresh), FALSE, FALSE, 0);
-
-  path = dt_accels_build_path(_("Lighttable/Actions"), _("Reload current collection"));
-  dt_accels_new_widget_shortcut(darktable.gui->accels, d->refresh, "activate",
-                                darktable.gui->accels->lighttable_accels, path, GDK_KEY_r, GDK_CONTROL_MASK,
-                                FALSE);
-  g_free(path);
-
   // dumb empty flexible spacer at the end
-  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_vexpand(hbox, TRUE);
-  gtk_box_pack_start(GTK_BOX(self->widget), hbox, TRUE, TRUE, 0);
-
-  GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
   gtk_widget_set_hexpand(spacer, TRUE);
-  gtk_box_pack_start(GTK_BOX(hbox), spacer, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
 
   /* initialize proxy */
   darktable.view_manager->proxy.filter.module = self;
   darktable.view_manager->proxy.filter.reset_filter = _lib_filter_reset;
-
-  g_signal_connect_swapped(G_OBJECT(d->comparator), "map",
-                           G_CALLBACK(_lib_filter_sync_combobox_and_comparator), self);
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGES_ORDER_CHANGE,
                             G_CALLBACK(_lib_filter_images_order_change), self);
@@ -590,66 +644,6 @@ void gui_cleanup(dt_lib_module_t *self)
   dt_collection_set_text_filter(darktable.collection, NULL);
   g_free(self->data);
   self->data = NULL;
-}
-
-// show/hide the comparator dropdown as required
-static gboolean _lib_filter_sync_combobox_and_comparator(dt_lib_module_t *self)
-{
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  const int filter = dt_bauhaus_combobox_get(d->stars);
-
-  // 0 all
-  // 1 unstarred only
-  // 2 1 star
-  // 3 2 stars
-  // 4 3 stars
-  // 5 4 stars
-  // 6 5 stars
-  // 7 rejected only
-  // 8 all except rejected
-
-  gtk_widget_set_sensitive(d->comparator, filter > 1 && filter < 7);
-
-  return FALSE;
-}
-
-static void _lib_filter_combobox_changed(GtkWidget *widget, gpointer user_data)
-{
-  /* update last settings */
-  const int i = dt_bauhaus_combobox_get(widget);
-
-  uint32_t flags = dt_collection_get_filter_flags(darktable.collection)
-    & ~(COLLECTION_FILTER_REJECTED | COLLECTION_FILTER_ALTERED | COLLECTION_FILTER_UNALTERED);
-
-  /* update collection star filter flags */
-  if(i == DT_COLLECTION_FILTER_ALL) // all
-    flags &= ~(COLLECTION_FILTER_ATLEAST_RATING
-               | COLLECTION_FILTER_EQUAL_RATING
-               | COLLECTION_FILTER_CUSTOM_COMPARE);
-  else if(i == DT_COLLECTION_FILTER_STAR_NO) // unstarred only
-    flags = (flags | COLLECTION_FILTER_EQUAL_RATING) & ~(COLLECTION_FILTER_ATLEAST_RATING
-                                                         | COLLECTION_FILTER_CUSTOM_COMPARE);
-  else if(i == DT_COLLECTION_FILTER_REJECT) // rejected only
-    flags = (flags & ~(COLLECTION_FILTER_ATLEAST_RATING
-                       | COLLECTION_FILTER_EQUAL_RATING
-                       | COLLECTION_FILTER_CUSTOM_COMPARE))
-      | COLLECTION_FILTER_REJECTED;
-  else if(i == DT_COLLECTION_FILTER_NOT_REJECT) // all except rejected
-    flags = (flags | COLLECTION_FILTER_ATLEAST_RATING) & ~COLLECTION_FILTER_CUSTOM_COMPARE;
-  else // explicit stars
-    flags |= COLLECTION_FILTER_CUSTOM_COMPARE;
-
-  dt_collection_set_filter_flags(darktable.collection, flags);
-
-  /* set the star filter in collection */
-  dt_collection_set_rating(darktable.collection, i);
-  dt_control_set_mouse_over_id(-1); // maybe we are storing mouse_over_id (arrows)
-
-  /* update the gui accordingly */
-  _lib_filter_sync_combobox_and_comparator(user_data);
-
-  /* update the query and view */
-  _lib_filter_update_query(user_data, DT_COLLECTION_PROP_RATING);
 }
 
 /* save the images order if the first collect filter is on tag*/
@@ -691,17 +685,10 @@ static void _lib_filter_reverse_button_changed(GtkDarktableToggleButton *widget,
   _lib_filter_update_query(user_data, DT_COLLECTION_PROP_SORT);
 }
 
-static void _lib_filter_comparator_changed(GtkWidget *widget, gpointer user_data)
-{
-  dt_collection_set_rating_comparator(darktable.collection, dt_bauhaus_combobox_get(widget));
-
-  _lib_filter_update_query(user_data, DT_COLLECTION_PROP_RATING);
-}
-
 static void _lib_filter_sort_combobox_changed(GtkWidget *widget, gpointer user_data)
 {
   /* update the ui last settings */
-  dt_collection_set_sort(darktable.collection, items[dt_bauhaus_combobox_get(widget)], -1);
+  dt_collection_set_sort(darktable.collection, items[gtk_combo_box_get_active(GTK_COMBO_BOX(widget))], -1);
 
   /* save the images order */
   _lib_filter_set_tag_order(user_data);
@@ -721,34 +708,7 @@ static void _lib_filter_update_query(dt_lib_module_t *self, dt_collection_proper
 
 static void _reset_stars_filter(dt_lib_module_t *self, gboolean smart_filter)
 {
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-
-  if(smart_filter == TRUE)
-  {
-    /* initial import rating setting */
-    const int initial_rating = 0;
-
-    /* current selection in filter dropdown */
-    const int current_filter = dt_bauhaus_combobox_get(d->stars);
-
-    /* convert filter dropdown to rating: 2-6 is 1-5 stars, for anything else, assume 0 stars */
-    const int current_filter_rating = (current_filter >= 2 && current_filter <= 6) ? current_filter - 1 : 0;
-
-    /* new filter is the lesser of the initial rating and the current filter rating */
-    const int new_filter_rating = MIN(initial_rating, current_filter_rating);
-
-    /* convert new filter rating to filter dropdown selector */
-    const int new_filter = (new_filter_rating >= 1 && new_filter_rating <= 5) ? new_filter_rating + 1
-                                                                              : new_filter_rating;
-
-    /* Reset to new filter dropdown item */
-    dt_bauhaus_combobox_set(d->stars, new_filter);
-  }
-  else
-  {
-    /* Reset to topmost item, 'all' */
-    dt_bauhaus_combobox_set(d->stars, 0);
-  }
+  //dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
 }
 
 static void _lib_filter_reset(dt_lib_module_t *self, gboolean smart_filter)
@@ -757,151 +717,6 @@ static void _lib_filter_reset(dt_lib_module_t *self, gboolean smart_filter)
   _reset_text_filter(self);
   _reset_colors_filter(self);
 }
-
-#ifdef USE_LUA
-static int sort_cb(lua_State *L)
-{
-  dt_lib_module_t *self = lua_touserdata(L, lua_upvalueindex(1));
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  const dt_collection_sort_t tmp = dt_collection_get_sort_field(darktable.collection);
-
-  if(lua_gettop(L) > 0)
-  {
-    dt_collection_sort_t value;
-    luaA_to(L,dt_collection_sort_t,&value,1);
-    dt_collection_set_sort(darktable.collection, (uint32_t)value, 0);
-    const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
-    dt_bauhaus_combobox_set(d->sort, _filter_get_items(sort));
-    _lib_filter_update_query(self, DT_COLLECTION_PROP_SORT);
-  }
-  luaA_push(L, dt_collection_sort_t, &tmp);
-  return 1;
-}
-static int sort_order_cb(lua_State *L)
-{
-  dt_lib_module_t *self = lua_touserdata(L, lua_upvalueindex(1));
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  const gboolean tmp = dt_collection_get_sort_descending(darktable.collection);
-
-  if(lua_gettop(L) > 0)
-  {
-    dt_collection_sort_order_t value;
-    luaA_to(L,dt_collection_sort_order_t,&value,1);
-    dt_collection_sort_t sort_value = dt_collection_get_sort_field(darktable.collection);
-    dt_collection_set_sort(darktable.collection, sort_value, value);
-    const dt_collection_sort_t sort = dt_collection_get_sort_field(darktable.collection);
-    dt_bauhaus_combobox_set(d->sort, _filter_get_items(sort));
-    gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(d->reverse),
-                               dt_collection_get_sort_descending(darktable.collection));
-    _lib_filter_update_query(self, DT_COLLECTION_PROP_SORT);
-  }
-  luaA_push(L, dt_collection_sort_order_t, &tmp);
-  return 1;
-}
-static int rating_cb(lua_State *L)
-{
-  dt_lib_module_t *self = lua_touserdata(L, lua_upvalueindex(1));
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  const dt_collection_filter_t tmp = dt_collection_get_rating(darktable.collection);
-
-  if(lua_gettop(L) > 0)
-  {
-    dt_collection_filter_t value;
-    luaA_to(L,dt_collection_filter_t,&value,1);
-    dt_collection_set_rating(darktable.collection, (uint32_t)value);
-    dt_bauhaus_combobox_set(d->stars, dt_collection_get_rating(darktable.collection));
-    _lib_filter_update_query(self, DT_COLLECTION_PROP_RATING);
-  }
-  luaA_push(L, dt_collection_filter_t, &tmp);
-  return 1;
-}
-static int rating_comparator_cb(lua_State *L)
-{
-  dt_lib_module_t *self = lua_touserdata(L, lua_upvalueindex(1));
-  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  const dt_collection_rating_comperator_t tmp = dt_collection_get_rating_comparator(darktable.collection);
-
-  if(lua_gettop(L) > 0)
-  {
-    dt_collection_rating_comperator_t value;
-    luaA_to(L,dt_collection_rating_comperator_t,&value,1);
-    dt_collection_set_rating_comparator(darktable.collection, (uint32_t)value);
-    dt_bauhaus_combobox_set(d->comparator, dt_collection_get_rating_comparator(darktable.collection));
-    _lib_filter_update_query(self, DT_COLLECTION_PROP_RATING);
-  }
-  luaA_push(L, dt_collection_rating_comperator_t, &tmp);
-  return 1;
-}
-
-void init(struct dt_lib_module_t *self)
-{
-  lua_State *L = darktable.lua_state.state;
-  int my_type = dt_lua_module_entry_get_type(L, "lib", self->plugin_name);
-  lua_pushlightuserdata(L, self);
-  lua_pushcclosure(L, sort_cb, 1);
-  dt_lua_gtk_wrap(L);
-  lua_pushcclosure(L, dt_lua_type_member_common, 1);
-  dt_lua_type_register_const_type(L, my_type, "sort");
-  lua_pushlightuserdata(L, self);
-  lua_pushcclosure(L, sort_order_cb,1);
-  dt_lua_gtk_wrap(L);
-  lua_pushcclosure(L, dt_lua_type_member_common, 1);
-  dt_lua_type_register_const_type(L, my_type, "sort_order");
-  lua_pushlightuserdata(L, self);
-  lua_pushcclosure(L, rating_cb,1);
-  dt_lua_gtk_wrap(L);
-  lua_pushcclosure(L, dt_lua_type_member_common, 1);
-  dt_lua_type_register_const_type(L, my_type, "rating");
-  lua_pushlightuserdata(L, self);
-  lua_pushcclosure(L, rating_comparator_cb,1);
-  dt_lua_gtk_wrap(L);
-  lua_pushcclosure(L, dt_lua_type_member_common, 1);
-  dt_lua_type_register_const_type(L, my_type, "rating_comparator");
-
-  luaA_enum(L,dt_collection_sort_t);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_NONE);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_FILENAME);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_DATETIME);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_IMPORT_TIMESTAMP);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_CHANGE_TIMESTAMP);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_EXPORT_TIMESTAMP);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_PRINT_TIMESTAMP);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_RATING);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_ID);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_COLOR);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_GROUP);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_PATH);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_CUSTOM_ORDER);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_TITLE);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_DESCRIPTION);
-  luaA_enum_value(L,dt_collection_sort_t,DT_COLLECTION_SORT_SHUFFLE);
-
-  luaA_enum(L,dt_collection_filter_t);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_ALL);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_STAR_NO);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_STAR_1);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_STAR_2);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_STAR_3);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_STAR_4);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_STAR_5);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_REJECT);
-  luaA_enum_value(L,dt_collection_filter_t,DT_COLLECTION_FILTER_NOT_REJECT);
-
-  luaA_enum(L,dt_collection_sort_order_t);
-  luaA_enum_value(L,dt_collection_sort_order_t,DT_COLLECTION_SORT_ORDER_ASCENDING);
-  luaA_enum_value(L,dt_collection_sort_order_t,DT_COLLECTION_SORT_ORDER_DESCENDING);
-
-  luaA_enum(L,dt_collection_rating_comperator_t);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_COMP_LT);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_COMP_LEQ);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_COMP_EQ);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_COMP_GEQ);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_COMP_GT);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_COMP_NE);
-  luaA_enum_value(L,dt_collection_rating_comperator_t,DT_COLLECTION_RATING_N_COMPS);
-
-}
-#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

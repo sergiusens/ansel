@@ -1642,13 +1642,14 @@ void dtgtk_cairo_paint_reject(cairo_t *cr, gint x, gint y, gint w, gint h, gint 
   cairo_line_to(cr, 0.3, 0.7);
   cairo_move_to(cr, 0.3, 0.3);
   cairo_line_to(cr, 0.7, 0.7);
-  cairo_stroke(cr);
 
   if(flags & CPF_DIRECTION_RIGHT)
   {
     // that means the image is rejected, so we draw the cross in red bold
     cairo_set_source_rgb(cr, 1.0, 0, 0);
   }
+
+  cairo_stroke(cr);
 
   FINISH
 }
@@ -1704,6 +1705,19 @@ void dtgtk_cairo_paint_unratestar(cairo_t *cr, gint x, gint y, gint w, gint h, g
 
   // we create the path
   dt_draw_star(cr, 1 / 2., 1. / 2., 1. / 2., 1. / 5.);
+
+  // we fill the star if needed (mouseover or activated)
+  if(data)
+  {
+    GdkRGBA *bgc = (GdkRGBA *)data; // the inner star color is defined in data
+    double r, g, b, a;
+    if(cairo_pattern_get_rgba(cairo_get_source(cr), &r, &g, &b, &a) == CAIRO_STATUS_SUCCESS)
+    {
+      cairo_set_source_rgba(cr, bgc->red, bgc->green, bgc->blue, bgc->alpha);
+      cairo_fill_preserve(cr);
+      cairo_set_source_rgba(cr, r, g, b, a);
+    }
+  }
 
   // we create the cross line
   cairo_move_to(cr, 0.05, 0.95);

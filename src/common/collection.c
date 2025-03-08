@@ -45,15 +45,6 @@
 #define SELECT_QUERY "SELECT DISTINCT * FROM %s"
 #define LIMIT_QUERY "LIMIT ?1, ?2"
 
-static const char *comparators[] = {
-  "<",  // DT_COLLECTION_RATING_COMP_LT = 0,
-  "<=", // DT_COLLECTION_RATING_COMP_LEQ,
-  "=",  // DT_COLLECTION_RATING_COMP_EQ,
-  ">=", // DT_COLLECTION_RATING_COMP_GEQ,
-  ">",  // DT_COLLECTION_RATING_COMP_GT,
-  "!=", // DT_COLLECTION_RATING_COMP_NE,
-};
-
 /* Stores the collection query, returns 1 if changed.. */
 static int _dt_collection_store(const dt_collection_t *collection, gchar *query, gchar *query_no_group);
 /* Counts the number of images in the current collection */
@@ -145,6 +136,23 @@ static char * and_operator(int *term)
   assert(0); // Not reached.
 }
 
+#define or_operator_initial() (0)
+static char * or_operator(int *term)
+{
+  assert(term != NULL);
+  if(*term == 0)
+  {
+    *term = 1;
+    return "";
+  }
+  else
+  {
+    return " OR ";
+  }
+
+  assert(0); // Not reached.
+}
+
 void dt_collection_memory_update()
 {
   if(!darktable.collection || !darktable.db) return;
@@ -216,37 +224,61 @@ int dt_collection_update(const dt_collection_t *collection)
   if(!(collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT))
   {
     char *rejected_check = g_strdup_printf("((flags & %d) == %d)", DT_IMAGE_REJECTED, DT_IMAGE_REJECTED);
-    int and_term = and_operator_initial();
-    dt_collection_filter_t rating = collection->params.rating;
-    if(rating == DT_COLLECTION_FILTER_NOT_REJECT) rating = DT_COLLECTION_FILTER_STAR_NO;
+    int and_term = 1; // that effectively makes the use of and_operator() useless
+
+    // DON'T SELECT IMAGES MARKED TO BE DELETED.
+    wq = g_strdup_printf(" ((flags & %d) != %d) ", DT_IMAGE_REMOVE, DT_IMAGE_REMOVE);
 
     /* add default filters */
     if(collection->params.filter_flags & COLLECTION_FILTER_FILM_ID)
-    {
-      wq = g_strdup_printf("%s (film_id = %u)", and_operator(&and_term), collection->params.film_id);
-    }
-    // DON'T SELECT IMAGES MARKED TO BE DELETED.
-    wq = dt_util_dstrcat(wq, " %s (flags & %d) != %d",
-                         and_operator(&and_term), DT_IMAGE_REMOVE,
-                         DT_IMAGE_REMOVE);
+      wq = dt_util_dstrcat(wq, " %s (film_id = %i) ", and_operator(&and_term), collection->params.film_id);
 
+    /* From there, the other arguments are OR so we need parentheses if any rating filter is used */
+    gboolean got_rating_filter
+        = collection->params.filter_flags
+          & (COLLECTION_FILTER_REJECTED | COLLECTION_FILTER_0_STAR | COLLECTION_FILTER_1_STAR
+             | COLLECTION_FILTER_2_STAR | COLLECTION_FILTER_3_STAR | COLLECTION_FILTER_4_STAR
+             | COLLECTION_FILTER_5_STAR);
+
+    if(got_rating_filter)
+      wq = dt_util_dstrcat(wq, " %s ( ", and_operator(&and_term));
+
+    int or_term = or_operator_initial();
+    /* Rejected was a mutually-exclusive rating in initial design, but got converted to
+    a toggle state circa 2019, aka images can now have a rating AND be rejected.
+    Which sucks because users will not expect rejected images to show when they target n stars ratings.
+    Aka we collect images that are rejected OR (have rating == n AND are not rejected).
+    */
     if(collection->params.filter_flags & COLLECTION_FILTER_REJECTED)
-      wq = dt_util_dstrcat(wq, " %s %s",
-                           and_operator(&and_term),
-                           rejected_check);
-    else if(collection->params.filter_flags & COLLECTION_FILTER_CUSTOM_COMPARE)
-      wq = dt_util_dstrcat(wq, " %s (flags & 7) %s %d AND NOT %s",
-                           and_operator(&and_term),
-                           comparators[collection->params.comparator], rating - 1,
-                           rejected_check);
-    else if(collection->params.filter_flags & COLLECTION_FILTER_ATLEAST_RATING)
-      wq = dt_util_dstrcat(wq, " %s (flags & 7) >= %d AND NOT %s",
-                           and_operator(&and_term), rating - 1,
-                           rejected_check);
-    else if(collection->params.filter_flags & COLLECTION_FILTER_EQUAL_RATING)
-      wq = dt_util_dstrcat(wq, " %s (flags & 7) == %d AND NOT %s",
-                           and_operator(&and_term), rating - 1,
-                           rejected_check);
+      wq = dt_util_dstrcat(wq, " %s %s ", or_operator(&or_term), rejected_check);
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_0_STAR)
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+                           DT_VIEW_DESERT, rejected_check);
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_1_STAR)
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+                          DT_VIEW_STAR_1, rejected_check);
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_2_STAR)
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+                          DT_VIEW_STAR_2, rejected_check);
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_3_STAR)
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+                          DT_VIEW_STAR_3, rejected_check);
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_4_STAR)
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+                          DT_VIEW_STAR_4, rejected_check);
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_5_STAR)
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+                          DT_VIEW_STAR_5, rejected_check);
+
+    /* Closing the OR parentheses */
+    if(got_rating_filter)
+      wq = dt_util_dstrcat(wq, " ) ");
 
     if(collection->params.filter_flags & COLLECTION_FILTER_ALTERED)
       // clang-format off
@@ -484,14 +516,13 @@ void dt_collection_reset(const dt_collection_t *collection)
 
   /* setup defaults */
   params->query_flags = COLLECTION_QUERY_FULL;
-  params->filter_flags = COLLECTION_FILTER_FILM_ID | COLLECTION_FILTER_ATLEAST_RATING;
+
+  // enable all filters, aka filter in everything
+  params->filter_flags = ~COLLECTION_FILTER_NONE;
   params->film_id = 1;
-  params->rating = DT_COLLECTION_FILTER_STAR_NO;
 
   /* apply stored query parameters from previous darktable session */
   params->film_id = dt_conf_get_int("plugins/collection/film_id");
-  params->rating = dt_conf_get_int("plugins/collection/rating");
-  params->comparator = dt_conf_get_int("plugins/collection/rating_comparator");
   params->filter_flags = dt_conf_get_int("plugins/collection/filter_flags");
   g_free(params->text_filter);
   params->text_filter = dt_conf_get_string("plugins/collection/text_filter");
@@ -516,12 +547,12 @@ const gchar *dt_collection_get_query_no_group(const dt_collection_t *collection)
 
   return collection->query_no_group;
 }
-uint32_t dt_collection_get_filter_flags(const dt_collection_t *collection)
+dt_collection_filter_flag_t dt_collection_get_filter_flags(const dt_collection_t *collection)
 {
   return collection->params.filter_flags;
 }
 
-void dt_collection_set_filter_flags(const dt_collection_t *collection, uint32_t flags)
+void dt_collection_set_filter_flags(const dt_collection_t *collection, dt_collection_filter_flag_t flags)
 {
   dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
   params->filter_flags = flags;
@@ -550,12 +581,12 @@ void dt_collection_set_colors_filter(const dt_collection_t *collection, int colo
   params->colors_filter = colors_filter;
 }
 
-uint32_t dt_collection_get_query_flags(const dt_collection_t *collection)
+dt_collection_query_flags_t dt_collection_get_query_flags(const dt_collection_t *collection)
 {
   return collection->params.query_flags;
 }
 
-void dt_collection_set_query_flags(const dt_collection_t *collection, uint32_t flags)
+void dt_collection_set_query_flags(const dt_collection_t *collection, dt_collection_query_flags_t flags)
 {
   dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
   params->query_flags = flags;
@@ -608,31 +639,6 @@ void dt_collection_set_film_id(const dt_collection_t *collection, const int32_t 
 void dt_collection_set_tag_id(dt_collection_t *collection, const uint32_t tagid)
 {
   collection->tagid = tagid;
-}
-
-void dt_collection_set_rating(const dt_collection_t *collection, uint32_t rating)
-{
-  dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
-  params->rating = rating;
-}
-
-uint32_t dt_collection_get_rating(const dt_collection_t *collection)
-{
-  uint32_t i;
-  dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
-  i = params->rating;
-  return i;
-}
-
-void dt_collection_set_rating_comparator(const dt_collection_t *collection,
-                                         const dt_collection_rating_comperator_t comparator)
-{
-  ((dt_collection_t *)collection)->params.comparator = comparator;
-}
-
-dt_collection_rating_comperator_t dt_collection_get_rating_comparator(const dt_collection_t *collection)
-{
-  return collection->params.comparator;
 }
 
 void dt_collection_set_sort(const dt_collection_t *collection, dt_collection_sort_t sort, gboolean reverse)
@@ -810,8 +816,6 @@ static int _dt_collection_store(const dt_collection_t *collection, gchar *query,
     sprintf(colors_filter, "%x", collection->params.colors_filter);
     dt_conf_set_string("plugins/collection/colors_filter", colors_filter);
     dt_conf_set_int("plugins/collection/film_id", collection->params.film_id);
-    dt_conf_set_int("plugins/collection/rating", collection->params.rating);
-    dt_conf_set_int("plugins/collection/rating_comparator", collection->params.comparator);
     dt_conf_set_int("plugins/collection/sort", collection->params.sort);
     dt_conf_set_bool("plugins/collection/descending", collection->params.descending);
   }

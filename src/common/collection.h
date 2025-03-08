@@ -25,40 +25,30 @@
 
 #define NUM_LAST_COLLECTIONS 10
 
-typedef enum dt_collection_query_t
+typedef enum dt_collection_query_flags_t
 {
   COLLECTION_QUERY_SIMPLE             = 0,      // a query with only select and where statement
   COLLECTION_QUERY_USE_SORT           = 1 << 0, // if query should include order by statement
   COLLECTION_QUERY_USE_LIMIT          = 1 << 1, // if query should include "limit ?1,?2" part
   COLLECTION_QUERY_USE_WHERE_EXT      = 1 << 2, // if query should include extended where part
   COLLECTION_QUERY_USE_ONLY_WHERE_EXT = 1 << 3  // if query should only use extended where part
-} dt_collection_query_t;
+} dt_collection_query_flags_t;
 #define COLLECTION_QUERY_FULL (COLLECTION_QUERY_USE_SORT | COLLECTION_QUERY_USE_LIMIT)
 
-typedef enum dt_collection_filter_comparator_t
+typedef enum dt_collection_filter_flag_t
 {
   COLLECTION_FILTER_NONE            = 0,
   COLLECTION_FILTER_FILM_ID         = 1 << 0, // use film_id in filter
-  COLLECTION_FILTER_ATLEAST_RATING  = 1 << 1, // show all stars including and above selected star filter
-  COLLECTION_FILTER_EQUAL_RATING    = 1 << 2, // show only selected star filter
-  COLLECTION_FILTER_ALTERED         = 1 << 3, // show only altered images
-  COLLECTION_FILTER_UNALTERED       = 1 << 4, // show only unaltered images
-  COLLECTION_FILTER_REJECTED        = 1 << 5, // show only rejected images
-  COLLECTION_FILTER_CUSTOM_COMPARE  = 1 << 6  // use the comparator defined in the comparator field to filter stars
-} dt_collection_filter_comparator_t;
-
-typedef enum dt_collection_filter_t
-{
-  DT_COLLECTION_FILTER_ALL        = 0,
-  DT_COLLECTION_FILTER_STAR_NO    = 1,
-  DT_COLLECTION_FILTER_STAR_1     = 2,
-  DT_COLLECTION_FILTER_STAR_2     = 3,
-  DT_COLLECTION_FILTER_STAR_3     = 4,
-  DT_COLLECTION_FILTER_STAR_4     = 5,
-  DT_COLLECTION_FILTER_STAR_5     = 6,
-  DT_COLLECTION_FILTER_REJECT     = 7,
-  DT_COLLECTION_FILTER_NOT_REJECT = 8
-} dt_collection_filter_t;
+  COLLECTION_FILTER_ALTERED         = 1 << 1, // altered images
+  COLLECTION_FILTER_UNALTERED       = 1 << 2, // unaltered images
+  COLLECTION_FILTER_REJECTED        = 1 << 3, // rejected images
+  COLLECTION_FILTER_0_STAR          = 1 << 4,
+  COLLECTION_FILTER_1_STAR          = 1 << 5,
+  COLLECTION_FILTER_2_STAR          = 1 << 6,
+  COLLECTION_FILTER_3_STAR          = 1 << 7,
+  COLLECTION_FILTER_4_STAR          = 1 << 8,
+  COLLECTION_FILTER_5_STAR          = 1 << 9
+} dt_collection_filter_flag_t;
 
 typedef enum dt_collection_sort_t
 {
@@ -119,17 +109,6 @@ typedef enum dt_collection_properties_t
   DT_COLLECTION_PROP_SORT
 } dt_collection_properties_t;
 
-typedef enum dt_collection_rating_comperator_t
-{
-  DT_COLLECTION_RATING_COMP_LT  = 0,
-  DT_COLLECTION_RATING_COMP_LEQ = 1,
-  DT_COLLECTION_RATING_COMP_EQ  = 2,
-  DT_COLLECTION_RATING_COMP_GEQ = 3,
-  DT_COLLECTION_RATING_COMP_GT  = 4,
-  DT_COLLECTION_RATING_COMP_NE  = 5,
-  DT_COLLECTION_RATING_N_COMPS  = 6
-} dt_collection_rating_comperator_t;
-
 typedef enum dt_collection_change_t
 {
   DT_COLLECTION_CHANGE_NONE      = 0,
@@ -141,23 +120,20 @@ typedef enum dt_collection_change_t
 typedef struct dt_collection_params_t
 {
   /** flags for which query parts to use, see COLLECTION_QUERY_x defines... */
-  uint32_t query_flags;
+  dt_collection_query_flags_t query_flags;
 
   /** flags for which filters to use, see COLLECTION_FILTER_x defines... */
-  uint32_t filter_flags;
+  dt_collection_filter_flag_t filter_flags;
 
   /** text filter */
   char *text_filter;
 
   /** colors filter */
+  // TODO: flagify that shit
   int colors_filter;
 
   /** current film id */
-  uint32_t film_id;
-
-  /** current  filter */
-  uint32_t rating;
-  dt_collection_rating_comperator_t comparator;
+  int32_t film_id;
 
   /** sorting **/
   dt_collection_sort_t sort; // Has to be changed to a dt_collection_sort struct
@@ -203,14 +179,14 @@ gchar *dt_collection_get_extended_where(const dt_collection_t *collection, int e
 void dt_collection_set_extended_where(const dt_collection_t *collection, gchar **extended_where);
 
 /** get filter flags for collection */
-uint32_t dt_collection_get_filter_flags(const dt_collection_t *collection);
+dt_collection_filter_flag_t dt_collection_get_filter_flags(const dt_collection_t *collection);
 /** set filter flags for collection */
-void dt_collection_set_filter_flags(const dt_collection_t *collection, uint32_t flags);
+void dt_collection_set_filter_flags(const dt_collection_t *collection, dt_collection_filter_flag_t flags);
 
 /** get filter flags for collection */
-uint32_t dt_collection_get_query_flags(const dt_collection_t *collection);
+dt_collection_query_flags_t dt_collection_get_query_flags(const dt_collection_t *collection);
 /** set filter flags for collection */
-void dt_collection_set_query_flags(const dt_collection_t *collection, uint32_t flags);
+void dt_collection_set_query_flags(const dt_collection_t *collection, dt_collection_query_flags_t flags);
 
 /** get text filter for collection */
 char *dt_collection_get_text_filter(const dt_collection_t *collection);
@@ -226,15 +202,6 @@ void dt_collection_set_colors_filter(const dt_collection_t *collection, int colo
 void dt_collection_set_film_id(const dt_collection_t *collection, const int32_t film_id);
 /** set the tagid of collection */
 void dt_collection_set_tag_id(dt_collection_t *collection, const uint32_t tagid);
-/** set the star level for filter */
-void dt_collection_set_rating(const dt_collection_t *collection, uint32_t rating);
-/** get the star level for filter. The value returned starts on 0 **/
-uint32_t dt_collection_get_rating(const dt_collection_t *collection);
-/** set the comparator for rating */
-void dt_collection_set_rating_comparator(const dt_collection_t *collection,
-                                         const dt_collection_rating_comperator_t comparator);
-/** get the comparator for rating */
-dt_collection_rating_comperator_t dt_collection_get_rating_comparator(const dt_collection_t *collection);
 
 /** set the sort fields and flags used to show the collection **/
 void dt_collection_set_sort(const dt_collection_t *collection, dt_collection_sort_t sort, gint reverse);

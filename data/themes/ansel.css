@@ -352,6 +352,34 @@ textview,
   font-weight: 400;
 }
 
+/* needed to align popup menu with combobox label */
+combobox button
+{
+  padding: 2px;
+}
+
+/* the combobox popup menu can't cover the whole button for some reason
+so we need to erase the background button while the popup is visible, aka checked state */
+combobox button:checked
+{
+  background: transparent;
+}
+
+combobox window menu menuitem
+{
+  padding: 2px;
+  margin: 0 0.25em;
+}
+
+combobox {
+  margin: 2px 0.25em;
+}
+
+combobox window {
+  margin: 2px 0.25em;
+  padding: 0.25em 0;
+}
+
 /* then set specific settings for all text zones and combo */
 .combo,
 entry,
@@ -474,6 +502,7 @@ separator
 #top-second-line {
   margin: 0;
   padding-left: 0.25em;
+  padding-right: 0.25em;
   border-top: 1px solid @grey_30;
   background-color: @bg_color;
 }
@@ -534,7 +563,7 @@ menubar menuitem label
 
 #hinter /* label */
 {
-  padding: 0.14em 0;
+  padding-right: 0.25em;
   /* Some CJK fonts are taller than other fonts, this prevent size shaking. */
   min-height: 1.75em;
 }
@@ -868,7 +897,6 @@ menu
 
 combobox cellview
 {
-  padding-left: 0.14em;
 }
 
 .popup,
@@ -925,11 +953,6 @@ tooltip label,
 #range-current label
 {
   color: @tooltip_fg_color;
-}
-
-combobox label
-{
-  margin: 0 0.35em 0 0;
 }
 
 menu separator,
@@ -1383,15 +1406,13 @@ filechooser row:hover .sidebar-icon
 --------------------------------------------------*/
 
 /* and adjust label and color buttons, especially in header bar */
-.quick_filter_box
-{
-  margin-right: 1.5em;
+.quick_filter_box > * {
+	margin-left: 0.25em;
+	margin-right: 0.25em;
 }
 
 .quick_filter_box #quickfilter-culling label
 {
-  margin-left: 0.5em;
-  margin-right: 0.5em;
 }
 
 #quickfilter-culling
@@ -1407,7 +1428,7 @@ filechooser row:hover .sidebar-icon
 }
 
 .menu-text-entry {
-  margin: 2px 0.5em;
+  margin: 2px 0;
   border: 0;
   padding: 0 0.5em;
   background-color: @grey_50;
@@ -1416,8 +1437,6 @@ filechooser row:hover .sidebar-icon
 #quickfilter-search-box,
 #lib-label-colors
 {
-  margin-left: 1em;
-  margin-right: 1em;
 }
 
 #lib-label-colors .dt_module_btn
@@ -1430,13 +1449,14 @@ filechooser row:hover .sidebar-icon
   color: @section_label;
   font-family: sans-serif;
   font-weight: 500;
-  margin-right: 1em;
   padding-left: 0.25em;
 }
 
-separator.horizontal
+.quick_filter_box separator.horizontal
 {
-  margin: 0 1em;
+  margin: 2px 0.5em;
+  border: 1px solid @grey_35;
+  padding: 0;
 }
 
 /*------------

@@ -54,39 +54,39 @@ typedef enum
   //  DT_VIEW_STAR_3 = 3,
   //  DT_VIEW_STAR_4 = 4,
   //  DT_VIEW_STAR_5 = 5,
-  DT_IMAGE_REJECTED = 8,
+  DT_IMAGE_REJECTED = 1 << 3,
 
   // next field unused, but it used to be.
   // old DB entries might have it set.
   // To reuse : force to 0 in DB loading and force to 0 in DB saving
   // Use it to store a state that doesn't need to go in DB
-  DT_IMAGE_THUMBNAIL_DEPRECATED = 16,
+  DT_IMAGE_THUMBNAIL_DEPRECATED = 1 << 4,
   // set during import if the image is low-dynamic range, i.e. doesn't need demosaic, wb, highlight clipping
   // etc.
-  DT_IMAGE_LDR = 32,
+  DT_IMAGE_LDR = 1 << 5,
   // set during import if the image is raw data, i.e. it needs demosaicing.
-  DT_IMAGE_RAW = 64,
+  DT_IMAGE_RAW = 1 << 6,
   // set during import if images is a high-dynamic range image..
-  DT_IMAGE_HDR = 128,
+  DT_IMAGE_HDR = 1 << 7,
   // set when marked for deletion
-  DT_IMAGE_REMOVE = 256,
+  DT_IMAGE_REMOVE = 1 << 8,
   // set when auto-applying presets have been applied to this image.
-  DT_IMAGE_AUTO_PRESETS_APPLIED = 512,
+  DT_IMAGE_AUTO_PRESETS_APPLIED = 1 << 9,
   // legacy flag. is set for all new images. i hate to waste a bit on this :(
-  DT_IMAGE_NO_LEGACY_PRESETS = 1024,
+  DT_IMAGE_NO_LEGACY_PRESETS = 1 << 10,
   // local copy status
-  DT_IMAGE_LOCAL_COPY = 2048,
+  DT_IMAGE_LOCAL_COPY = 1 << 11,
   // image has an associated .txt file for overlay
-  DT_IMAGE_HAS_TXT = 4096,
+  DT_IMAGE_HAS_TXT = 1 << 12,
   // image has an associated wav file
-  DT_IMAGE_HAS_WAV = 8192,
+  DT_IMAGE_HAS_WAV = 1 << 13,
   // image is a bayer pattern with 4 colors (e.g., CYGM or RGBE)
-  DT_IMAGE_4BAYER = 16384,
+  DT_IMAGE_4BAYER = 1 << 14,
   // image was detected as monochrome
-  DT_IMAGE_MONOCHROME = 32768,
+  DT_IMAGE_MONOCHROME = 1 << 15,
   // DNG image has exif tags which are not cached in the database but must be read and stored in dt_image_t
   // when the image is loaded.
-  DT_IMAGE_HAS_ADDITIONAL_DNG_TAGS = 65536,
+  DT_IMAGE_HAS_ADDITIONAL_DNG_TAGS = 1 << 16,
   // image is an sraw
   DT_IMAGE_S_RAW = 1 << 17,
   // image has a monochrome preview tested

@@ -160,9 +160,14 @@ void dtgtk_button_set_active(GtkDarktableButton *button, gboolean active)
     button->icon_flags &= ~CPF_ACTIVE;
 }
 
+gboolean dtgtk_button_get_active(GtkDarktableButton *button)
+{
+  g_return_val_if_fail(button != NULL, FALSE);
+  return button->icon_flags & CPF_ACTIVE;
+}
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
