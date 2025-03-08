@@ -1545,21 +1545,11 @@ static gboolean _scroll_wrap_scroll(GtkScrolledWindow *sw, GdkEventScroll *event
     dt_conf_set_int(config_str, new_size);
 
     _scroll_wrap_resize(w, NULL, config_str);
-  }
-  else
-  {
-    GtkAdjustment *adj = gtk_scrolled_window_get_vadjustment(sw);
 
-    const gint before = gtk_adjustment_get_value(adj);
-    gint value = before + increment*delta_y;
-    value -= value % increment;
-    gtk_adjustment_set_value(adj, value);
-    const gint after = gtk_adjustment_get_value(adj);
-    if(delta_y && after == before)
-      gtk_propagate_event(gtk_widget_get_parent(GTK_WIDGET(sw)), (GdkEvent*)event);
+    return TRUE;
   }
 
-  return TRUE;
+  return FALSE;
 }
 
 GtkWidget *dt_ui_scroll_wrap(GtkWidget *w, gint min_size, char *config_str)
