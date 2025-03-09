@@ -850,11 +850,9 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     }
 
     dt_thumbtable_configure(table);
-    if(changed) g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
     dt_thumbtable_update(table);
     g_idle_add((GSourceFunc) _grab_focus, table);
-
-    gtk_widget_queue_draw(table->grid);
+    g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
   }
 }
 
