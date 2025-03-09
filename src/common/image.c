@@ -1078,13 +1078,12 @@ void dt_image_remove(const int32_t imgid)
 
   sqlite3_stmt *stmt;
   const dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-  const int old_group_id = img->group_id;
   dt_image_cache_read_release(darktable.image_cache, img);
 
   // make sure we remove from the cache first, or else the cache will look for imgid in sql
   dt_image_cache_remove(darktable.image_cache, imgid);
 
-  const int new_group_id = dt_grouping_remove_from_group(imgid);
+  dt_grouping_remove_from_group(imgid);
   // due to foreign keys added in db version 33,
   // all entries from tables having references to the images are deleted as well
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "DELETE FROM main.images WHERE id = ?1", -1, &stmt,
