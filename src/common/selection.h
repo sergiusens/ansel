@@ -21,6 +21,41 @@
 #include <glib.h>
 #include <inttypes.h>
 
+/**
+ * @file selection.h
+ *
+ * The old design built selections from collections, through SQL, to ensure selections
+ * were always a subset of collections. That didn't work well with the GUI option to show/hide
+ * grouped images, because then, every SQL query needed to be modified according to a GUI parameter,
+ * which was complicated, hard to debug, tiring to maintain.
+ *
+ * Collections now are immune to GUI parameters. It is in the thumbtable that we decide to show/hide
+ * the thumbnail widgets of grouped images, and collections contain all of them.
+ * In order to select grouped images depending on whether they are
+ * shown or not, it is also from the thumbtable that batch selection events need to be dispatched, using visible images.
+ * It is assumed that users expect selections to include everything visible but only what's visible and nothing more.
+ *
+ * Because the thumbtable is populated from collections, we know it contains only valid imgid, and contains at most
+ * the whole current collection. So we can safely assume any imgid
+ * coming from the thumbtable is a valid image ID with regard to the current collection, without additional checks.
+ *
+ * We synchronize here 2 representations of the selections:
+ *  - a memory DB table: memory.selected_images, that is saved to be restored between reboots,
+ *  - a GList of imgid, selection->ids, cached, that allows us direct access from C loops.
+ *
+ * Selections subscribe to the COLLECTION_CHANGED signal to ensure the selected imgids are a subset of the current collection
+ * at all time. But that doesn't deal with images that might be hidden from GUI, for example image group members.
+ *
+ * It is up to the thumbtable code (aka GUI) to resync selection imgids with visible widgets.
+ *
+ * No insertions or deletions should be made into the `main.selected_images` database table, outside of `selection.c`.
+ * Interactions with selections should use the public API here.
+ *
+ * `SELECT imgid FROM main.seleted_images` should be reserved to SQL JOIN, when fetching metadata from DB for the list of IDs.
+ * All other cases should iterate over the GList of imgids returned by `dt_selection_get_list()`
+ *
+ */
+
 struct dt_selection_t;
 
 struct dt_selection_t *dt_selection_new();
@@ -28,45 +63,39 @@ void dt_selection_free(struct dt_selection_t *selection);
 
 /** Get the first imgid of a selection */
 int dt_selection_get_first_id(struct dt_selection_t *selection);
-/** inverts the current selection */
-void dt_selection_invert(struct dt_selection_t *selection);
 /** clears the selection */
 void dt_selection_clear(struct dt_selection_t *selection);
-/** adds imgid to the current selection */
+/** adds a single imgid to the current selection. use the optimized `dt_selection_select_list()` to process batches. */
 void dt_selection_select(struct dt_selection_t *selection, int32_t imgid);
-/** removes imgid from the current selection */
+/** removes a single imgid from the current selection. use the optimized `dt_selection_deselect_list()` to process batches. */
 void dt_selection_deselect(struct dt_selection_t *selection, int32_t imgid);
-/** clears current selection and adds imgid */
+/** clears current selection and adds a single imgid */
 void dt_selection_select_single(struct dt_selection_t *selection, int32_t imgid);
-/** toggles selection of image in the current selection */
+/** toggles selection of a single image in the current selection */
 void dt_selection_toggle(struct dt_selection_t *selection, int32_t imgid);
-/** selects images range last_single_id to imgid */
-void dt_selection_select_range(struct dt_selection_t *selection, int32_t imgid);
-/** selects all images from current collection */
-void dt_selection_select_all(struct dt_selection_t *selection);
-/** selects all images from filmroll of last single selected image */
-void dt_selection_select_filmroll(struct dt_selection_t *selection);
-/** selects all unaltered images in the current collection */
-void dt_selection_select_unaltered(struct dt_selection_t *selection);
-/** selects a set of images from a list. the list is unaltered */
-void dt_selection_select_list(struct dt_selection_t *selection, GList *list);
-/** selects a set of images from a list. the list is unaltered */
-const struct dt_collection_t *dt_selection_get_collection(struct dt_selection_t *selection);
-/** get the list of selected images. Warning: returns a copy, the caller owns it. */
+/** selects a set of images from a list in a fast, optimized fashion. the list is unaltered */
+void dt_selection_select_list(struct dt_selection_t *selection, const GList *list);
+/** deselects a set of images from a list in a fast, optimized fashion. the list is unaltered */
+void dt_selection_deselect_list(struct dt_selection_t *selection, const GList *list);
+/** get the list of selected images. Warning: returns a copy, the caller owns it and needs to free it. */
 GList *dt_selection_get_list(struct dt_selection_t *selection);
 
-/** backup the current selection */
+/** backup the current selection to a temp memory database table */
 void dt_push_selection();
-/** restore the previous selection */
+/** restore the previous selection from a temp memory database table */
 void dt_pop_selection();
 
+/** get the length of the current selection (number of items) */
 int dt_selection_get_length(struct dt_selection_t *selection);
 
-/* concatenate all image ids from the selection as a string, separated with coma, for SQL queries */
+/** */ concatenate all image ids from the selection as a string, separated with coma, for SQL queries */
 gchar *dt_selection_ids_to_string(struct dt_selection_t *selection);
 
-/* see if the imgid is known from the selection */
+/** see if the imgid is known from the selection */
 gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, int32_t imgid);
+
+/** call this right after the selection got changed directly in memory database, to resync the GList representation of the selection */
+void dt_selection_reload_from_database(struct dt_selection_t *selection);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -174,14 +174,6 @@ typedef struct dt_view_manager_t
    */
   struct
   {
-    /* select num from history where imgid = ?1*/
-    sqlite3_stmt *have_history;
-    /* select * from selected_images where imgid = ?1 */
-    sqlite3_stmt *is_selected;
-    /* delete from selected_images where imgid = ?1 */
-    sqlite3_stmt *delete_from_selected;
-    /* insert into selected_images values (?1) */
-    sqlite3_stmt *make_selected;
     /* select color from color_labels where imgid=?1 */
     sqlite3_stmt *get_color;
     /* select images in group from images where imgid=?1 (also bind to ?2) */

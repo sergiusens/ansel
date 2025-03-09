@@ -320,9 +320,6 @@ int dt_film_import(const char *dirname)
     return 0;
   }
 
-  // deselect all
-  DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM main.selected_images", NULL, NULL, NULL);
-
   // launch import job
   dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_BG, dt_film_import1_create(film));
 

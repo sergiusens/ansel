@@ -493,8 +493,8 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
         dt_selection_select_single(darktable.selection, thumb->imgid);
       else if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
         dt_selection_toggle(darktable.selection, thumb->imgid);
-      else if(dt_modifier_is(event->state, GDK_SHIFT_MASK))
-        dt_selection_select_range(darktable.selection, thumb->imgid);
+      else if(dt_modifier_is(event->state, GDK_SHIFT_MASK) && thumb->table)
+        dt_thumbtable_select_range(thumb->table, thumb->rowid);
       // Because selection might include several images, we handle styling globally
       // in the thumbtable scope, catching the SELECTION_CHANGED signal.
     }

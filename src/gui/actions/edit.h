@@ -160,6 +160,7 @@ static void copy_callback()
 
   GList *imgs = dt_selection_get_list(darktable.selection);
   gboolean is_darkroom_image_in_list = is_image_in_dev(imgs);
+  g_list_free(imgs);
 
   if(is_darkroom_image_in_list)
   {
@@ -181,6 +182,7 @@ static void copy_parts_callback()
 
   GList *imgs = dt_selection_get_list(darktable.selection);
   gboolean is_darkroom_image_in_list = is_image_in_dev(imgs);
+  g_list_free(imgs);
 
   if(is_darkroom_image_in_list)
   {
@@ -204,7 +206,7 @@ static void paste_all_callback()
     return;
   }
 
-  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
+  GList *imgs = dt_selection_get_list(darktable.selection);
   gboolean is_darkroom_image_in_list = is_image_in_dev(imgs);
 
   if(is_darkroom_image_in_list)
@@ -234,7 +236,7 @@ static void paste_parts_callback()
     return;
   }
 
-  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
+  GList *imgs = dt_selection_get_list(darktable.selection);
   gboolean is_darkroom_image_in_list = is_image_in_dev(imgs);
 
   if(is_darkroom_image_in_list)
@@ -258,7 +260,7 @@ static void paste_parts_callback()
 
 static void load_xmp_callback()
 {
-  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
+  GList *imgs = dt_selection_get_list(darktable.selection);
   if(!imgs) return;
   const int act_on_one = g_list_is_singleton(imgs); // list length == 1?
   GtkWidget *win = dt_ui_main_window(darktable.gui->ui);

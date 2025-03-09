@@ -143,7 +143,6 @@ typedef struct dt_collection_params_t
 
 typedef struct dt_collection_t
 {
-  int clone;
   gchar *query;
   gchar **where_ext;
   unsigned int count;
@@ -155,8 +154,8 @@ typedef struct dt_collection_t
 /* returns the name for the given collection property */
 const char *dt_collection_name(dt_collection_properties_t prop);
 
-/** instantiates a collection context, if clone equals NULL default query is constructed. */
-const dt_collection_t *dt_collection_new(const dt_collection_t *clone);
+/** instantiates a collection context */
+const dt_collection_t *dt_collection_new();
 /** frees a collection context. */
 void dt_collection_free(const dt_collection_t *collection);
 /** fetch params for collection for storing. */
@@ -217,11 +216,6 @@ int dt_collection_get_nth(const dt_collection_t *collection, int nth);
 /** get all image ids order as current selection. no more than limit many images are returned, <0 ==
  * unlimited */
 GList *dt_collection_get_all(const dt_collection_t *collection, int limit);
-/** get selected image ids order as current selection. no more than limit many images are returned, <0 ==
- * unlimited */
-GList *dt_collection_get_selected(const dt_collection_t *collection, int limit);
-/** get the count of selected images */
-uint32_t dt_collection_get_selected_count(const dt_collection_t *collection);
 
 /** update query by conf vars */
 void dt_collection_update_query(const dt_collection_t *collection, dt_collection_change_t query_change,

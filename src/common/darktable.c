@@ -1117,7 +1117,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   dt_get_sysresource_level();
   res->mipmap_memory = _get_mipmap_size();
   // initialize collection query
-  darktable.collection = dt_collection_new(NULL);
+  darktable.collection = dt_collection_new();
 
   /* initialize selection */
   darktable.selection = dt_selection_new();

@@ -141,6 +141,16 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
 // call this when the history of an image is changed and mipmap cache needs updating
 void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid);
 
+// select all images from the current collection through the GUI list of thumbnails
+void dt_thumbtable_select_all(dt_thumbtable_t *table);
+
+// select all images from the current collection that lie between the closest current selection bound
+// and the specified rowid index.
+void dt_thumbtable_select_range(dt_thumbtable_t *table, const int rowid);
+
+// invert the selection of images from the current collection through the GUI list of thumbnails
+void dt_thumbtable_invert_selection(dt_thumbtable_t *table);
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

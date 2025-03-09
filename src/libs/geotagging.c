@@ -1325,7 +1325,7 @@ static void _datetime_entry_changed(GtkWidget *entry, dt_lib_module_t *self)
 static GDateTime *_get_image_datetime(dt_lib_module_t *self)
 {
   dt_lib_geotagging_t *d = (dt_lib_geotagging_t *)self->data;
-  GList *selected = dt_collection_get_selected(darktable.collection, 1);
+  GList *selected = dt_selection_get_list(darktable.selection);
   const int selid = selected ? GPOINTER_TO_INT(selected->data) : 0;
   const int32_t imgid = dt_control_get_mouse_over_id();
   GDateTime *datetime = NULL;
@@ -1340,6 +1340,7 @@ static GDateTime *_get_image_datetime(dt_lib_module_t *self)
       datetime = NULL;
   }
   d->imgid = selid;
+  g_list_free(selected);
   return datetime;
 }
 

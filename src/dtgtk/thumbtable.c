@@ -203,22 +203,21 @@ static void dt_thumbtable_scroll_to_rowid(dt_thumbtable_t *table, int rowid)
   table->y_position = y;
 }
 
+static int _find_rowid_from_imgid(dt_thumbtable_t *table, const int32_t imgid)
+{
+  for(int i = 0; i < table->collection_count; i++)
+    if(table->lut[i].imgid == imgid)
+      return i;
+
+  return -1;
+}
+
 static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->collection_inited || imgid < 0) return 1;
 
-  // Find the rowid
-  int rowid = -1;
-
   dt_pthread_mutex_lock(&table->lock);
-  for(size_t i = 0; i < table->collection_count; i++)
-  {
-    if(table->lut[i].imgid == imgid)
-    {
-      rowid = i;
-      break;
-    }
-  }
+  int rowid = _find_rowid_from_imgid(table, imgid);
   dt_pthread_mutex_unlock(&table->lock);
 
   if(rowid == -1) return 1;
@@ -720,6 +719,13 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
 
     if(table->collapse_groups && imgid != groupid)
     {
+      // if user requested to collapse image groups in GUI,
+      // only the group leader is shown. But we need to make sure
+      // there is no dangling selection pointing to hidden group members
+      // because it's unexpected that unvisible items might be selected,
+      // and selection sanitization only deals with imgids outside of current collection,
+      // but group members are always within the collection.
+      dt_selection_deselect(darktable.selection, imgid);
       continue;
     }
 
@@ -1210,7 +1216,12 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
       if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
       {
         if(dt_modifier_is(event->state, GDK_SHIFT_MASK))
-          dt_selection_select_range(darktable.selection, imgid);
+        {
+          dt_pthread_mutex_lock(&table->lock);
+          int rowid = _find_rowid_from_imgid(table, imgid);
+          dt_pthread_mutex_unlock(&table->lock);
+          dt_thumbtable_select_range(table, rowid);
+        }
         else if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
           dt_selection_toggle(darktable.selection, imgid);
         else
@@ -1224,7 +1235,10 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
       // Shift + space is decoded as nobreakspace on BÉPO keyboards
       if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
       {
-        dt_selection_select_range(darktable.selection, imgid);
+        dt_pthread_mutex_lock(&table->lock);
+        int rowid = _find_rowid_from_imgid(table, imgid);
+        dt_pthread_mutex_unlock(&table->lock);
+        dt_thumbtable_select_range(table, rowid);
         return TRUE;
       }
       break;
@@ -1503,6 +1517,103 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   g_idle_add((GSourceFunc) _grab_focus, table);
 
   gtk_widget_queue_draw(table->grid);
+}
+
+void dt_thumbtable_select_all(dt_thumbtable_t *table)
+{
+  if(!table->collection_inited || table->collection_count == 0) return;
+
+  if(table->collapse_groups)
+    dt_control_log(_("Image groups are collapsed in view.\n"
+                     "Selecting all images will only target visible members of image groups.\n"
+                     "Uncollapse groups to select all their members"));
+
+  GList *img = NULL;
+
+  dt_pthread_mutex_lock(&table->lock);
+  for(size_t i = 0; i < table->collection_count; i++)
+    img = g_list_prepend(img, GINT_TO_POINTER(table->lut[i].imgid));
+  dt_pthread_mutex_unlock(&table->lock);
+
+  if(img)
+  {
+    dt_selection_select_list(darktable.selection, img);
+    g_list_free(img);
+  }
+}
+
+void dt_thumbtable_select_range(dt_thumbtable_t *table, const int rowid)
+{
+  if(!table->collection_inited || table->collection_count == 0) return;
+  if(rowid < 0 || rowid > table->collection_count - 1) return;
+
+  if(table->collapse_groups)
+    dt_control_log(_("Image groups are collapsed in view.\n"
+                     "Selecting a range of images will only target visible members of image groups.\n"
+                     "Uncollapse groups to select all their members"));
+
+  dt_pthread_mutex_lock(&table->lock);
+
+  // Find the bounds of the current selection
+  size_t rowid_end = 0;
+  size_t rowid_start = table->collection_count;
+  GList *selected = dt_selection_get_list(darktable.selection);
+
+  for(GList *s = g_list_first(selected); s; s = g_list_next(s))
+  {
+    int32_t imgid = GPOINTER_TO_INT(s->data);
+    int row = _find_rowid_from_imgid(table, imgid);
+    if(row < 0 || rowid > table->collection_count - 1) continue;
+    if(row < rowid_start) rowid_start = row;
+    if(row > rowid_end) rowid_end = row;
+  }
+
+  g_list_free(selected);
+
+  if(rowid_start > rowid_end)
+  {
+     // the start is strictly after the end, we have a deep problem
+     dt_pthread_mutex_unlock(&table->lock);
+    return;
+  }
+
+  // Find the extra imgids to select
+  GList *img = NULL;
+  if(rowid > rowid_end)
+  {
+    // select after
+    for(size_t i = rowid_end; i <= rowid; i++)
+      img = g_list_prepend(img, GINT_TO_POINTER(table->lut[i].imgid));
+  }
+  else if(rowid < rowid_start)
+  {
+    // select before
+    for(size_t i = rowid_start; i >= rowid; i--)
+      img = g_list_prepend(img, GINT_TO_POINTER(table->lut[i].imgid));
+  }
+  // else: select within. What should that yield ??? Deselect ?
+
+  dt_pthread_mutex_unlock(&table->lock);
+
+  if(img)
+  {
+    dt_selection_select_list(darktable.selection, img);
+    g_list_free(img);
+  }
+}
+
+void dt_thumbtable_invert_selection(dt_thumbtable_t *table)
+{
+  if(!table->collection_inited || table->collection_count == 0) return;
+
+  // Record initial selection, select all, then deselect initial selection
+  GList *to_deselect = dt_selection_get_list(darktable.selection);
+  if(to_deselect)
+  {
+    dt_thumbtable_select_all(table);
+    dt_selection_deselect_list(darktable.selection, to_deselect);
+    g_list_free(to_deselect);
+  }
 }
 
 // clang-format off

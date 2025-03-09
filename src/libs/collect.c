@@ -19,6 +19,7 @@
 #include "libs/collect.h"
 #include "bauhaus/bauhaus.h"
 #include "common/collection.h"
+#include "common/selection.h"
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/film.h"
@@ -566,7 +567,11 @@ static void view_popup_menu_onRemove(GtkWidget *menuitem, gpointer userdata)
     gtk_tree_model_get(model, &iter, DT_LIB_COLLECT_COL_PATH, &filmroll_path, -1);
 
     /* Clean selected images, and add to the table those which are going to be deleted */
-    DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM main.selected_images", NULL, NULL, NULL);
+    dt_selection_clear(darktable.selection);
+
+    // FIXME:
+    // This should directly feed a GList of imgids to remove to dt_control_remove_images() instead of directly tampering with
+    // main.selected_images
 
     // clang-format off
     fullq = g_strdup_printf("INSERT INTO main.selected_images"
@@ -577,6 +582,8 @@ static void view_popup_menu_onRemove(GtkWidget *menuitem, gpointer userdata)
     // clang-format on
     DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), fullq, NULL, NULL, NULL);
     g_free(filmroll_path);
+
+    dt_selection_reload_from_database(darktable.selection);
 
     if (dt_control_remove_images())
     {
@@ -1017,32 +1024,10 @@ static void tree_set_visibility(GtkTreeModel *model, gpointer data)
 
 static void _lib_folders_update_collection(const gchar *filmroll)
 {
-
-  // remove from selected images where not in this query.
-  sqlite3_stmt *stmt = NULL;
-  const gchar *cquery = dt_collection_get_query(darktable.collection);
-  if(cquery && cquery[0] != '\0')
-  {
-    gchar *complete_query = g_strdup_printf(
-                          "DELETE FROM main.selected_images WHERE imgid NOT IN (%s)",
-                          cquery);
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), complete_query, -1, &stmt, NULL);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, 0);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, -1);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-
-    /* free allocated strings */
-    g_free(complete_query);
-  }
-
   /* raise signal of collection change, only if this is an original */
-  if(!darktable.collection->clone)
-  {
-    dt_collection_memory_update();
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, DT_COLLECTION_CHANGE_NEW_QUERY,
-                                  DT_COLLECTION_PROP_UNDEF, (GList *)NULL, -1);
-  }
+  dt_collection_memory_update();
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, DT_COLLECTION_CHANGE_NEW_QUERY,
+                                DT_COLLECTION_PROP_UNDEF, (GList *)NULL, -1);
 }
 
 static void set_properties(dt_lib_collect_rule_t *dr)

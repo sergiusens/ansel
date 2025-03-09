@@ -1333,7 +1333,7 @@ static void _new_button_clicked(GtkButton *button, dt_lib_module_t *self)
   const gchar *tag = gtk_entry_get_text(d->entry);
   if(!tag || tag[0] == '\0') return;
 
-  GList *imgs = g_list_copy(dt_selection_get_list(darktable.selection));
+  GList *imgs = dt_selection_get_list(darktable.selection);
   const gboolean res = dt_tag_attach_string_list(tag, imgs, TRUE);
   if(res) dt_image_synch_xmps(imgs);
   g_list_free(imgs);

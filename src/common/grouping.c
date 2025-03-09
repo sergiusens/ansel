@@ -164,7 +164,7 @@ void dt_grouping_add_grouped_images(GList **images)
     {
       const int img_group_id = image->group_id;
       dt_image_cache_read_release(darktable.image_cache, image);
-      if(dt_selection_get_collection(darktable.selection))
+      if(darktable.collection)
       {
         sqlite3_stmt *stmt;
         // clang-format off
@@ -172,7 +172,7 @@ void dt_grouping_add_grouped_images(GList **images)
             "SELECT id"
             "  FROM main.images"
             "  WHERE group_id = %d AND id IN (%s)",
-            img_group_id, dt_collection_get_query(dt_selection_get_collection(darktable.selection)));
+            img_group_id, dt_collection_get_query(darktable.collection));
         // clang-format on
         DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
 

@@ -58,23 +58,10 @@ static void _dt_collection_filmroll_imported_callback(gpointer instance, const i
 /* determine image offset of specified imgid for the given collection */
 static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int32_t imgid);
 
-const dt_collection_t *dt_collection_new(const dt_collection_t *clone)
+const dt_collection_t *dt_collection_new()
 {
   dt_collection_t *collection = g_malloc0(sizeof(dt_collection_t));
-
-  /* initialize collection context*/
-  if(clone) /* if clone is provided let's copy it into this context */
-  {
-    memcpy(&collection->params, &clone->params, sizeof(dt_collection_params_t));
-    memcpy(&collection->store, &clone->store, sizeof(dt_collection_params_t));
-    collection->where_ext = g_strdupv(clone->where_ext);
-    collection->query = g_strdup(clone->query);
-    collection->clone = 1;
-    collection->count = clone->count;
-    collection->tagid = clone->tagid;
-  }
-  else /* else we just initialize using the reset */
-    dt_collection_reset(collection);
+  dt_collection_reset(collection);
 
   /* connect to all the signals that might indicate that the count of images matching the collection changed
    */
@@ -824,48 +811,25 @@ uint32_t dt_collection_get_count(const dt_collection_t *collection)
   return collection->count;
 }
 
-uint32_t dt_collection_get_selected_count(const dt_collection_t *collection)
-{
-  sqlite3_stmt *stmt = NULL;
-  uint32_t count = 0;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT COUNT(*) FROM main.selected_images", -1, &stmt, NULL);
-  if(sqlite3_step(stmt) == SQLITE_ROW) count = sqlite3_column_int(stmt, 0);
-  sqlite3_finalize(stmt);
-  return count;
-}
-
-GList *dt_collection_get(const dt_collection_t *collection, int limit, gboolean selected)
+GList *dt_collection_get(const dt_collection_t *collection, int limit)
 {
   GList *list = NULL;
   const gchar *query = dt_collection_get_query(collection);
   if(query)
   {
     sqlite3_stmt *stmt = NULL;
-    if(selected)
+
+    if(collection->params.query_flags & COLLECTION_QUERY_USE_LIMIT)
     {
-      // clang-format off
       DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "SELECT mi.imgid FROM main.selected_images AS s"
-                                  " JOIN memory.collected_images AS mi WHERE mi.imgid = s.imgid LIMIT -1, ?1",
+                                  "SELECT imgid FROM memory.collected_images LIMIT -1, ?1",
                                   -1, &stmt, NULL);
-      // clang-format on
       DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, limit);
     }
     else
-    {
-      if(collection->params.query_flags & COLLECTION_QUERY_USE_LIMIT)
-      {
-        DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                    "SELECT imgid FROM memory.collected_images LIMIT -1, ?1",
-                                    -1, &stmt, NULL);
-        DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, limit);
-      }
-      else
-        DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                    "SELECT imgid FROM memory.collected_images",
-                                    -1, &stmt, NULL);
-    }
+      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+                                  "SELECT imgid FROM memory.collected_images",
+                                  -1, &stmt, NULL);
 
     while(sqlite3_step(stmt) == SQLITE_ROW)
     {
@@ -881,7 +845,7 @@ GList *dt_collection_get(const dt_collection_t *collection, int limit, gboolean 
 
 GList *dt_collection_get_all(const dt_collection_t *collection, int limit)
 {
-  return dt_collection_get(collection, limit, FALSE);
+  return dt_collection_get(collection, limit);
 }
 
 int dt_collection_get_nth(const dt_collection_t *collection, int nth)
@@ -904,11 +868,6 @@ int dt_collection_get_nth(const dt_collection_t *collection, int nth)
 
   return result;
 
-}
-
-GList *dt_collection_get_selected(const dt_collection_t *collection, int limit)
-{
-  return dt_collection_get(collection, limit, TRUE);
 }
 
 /* splits an input string into a number part and an optional operator part.
@@ -1854,39 +1813,58 @@ void dt_collection_update_query(const dt_collection_t *collection, dt_collection
                                 dt_collection_properties_t changed_property, GList *list)
 {
   int next = -1;
-  if(!collection->clone)
+  if(list)
   {
-    if(list)
-    {
-      // for changing offsets, thumbtable needs to know the first untouched imageid after the list
-      // we do this here
+    // for changing offsets, thumbtable needs to know the first untouched imageid after the list
+    // we do this here
 
-      // 1. create a string with all the imgids of the list to be used inside IN sql query
-      gchar *txt = NULL;
-      int i = 0;
-      for(GList *l = list; l; l = g_list_next(l))
-      {
-        const int id = GPOINTER_TO_INT(l->data);
-        if(i == 0)
-          txt = dt_util_dstrcat(txt, "%d", id);
-        else
-          txt = dt_util_dstrcat(txt, ",%d", id);
-        i++;
-      }
-      // 2. search the first imgid not in the list but AFTER the list (or in a gap inside the list)
-      // we need to be carefull that some images in the list may not be present on screen (collapsed groups)
+    // 1. create a string with all the imgids of the list to be used inside IN sql query
+    gchar *txt = NULL;
+    int i = 0;
+    for(GList *l = list; l; l = g_list_next(l))
+    {
+      const int id = GPOINTER_TO_INT(l->data);
+      if(i == 0)
+        txt = dt_util_dstrcat(txt, "%d", id);
+      else
+        txt = dt_util_dstrcat(txt, ",%d", id);
+      i++;
+    }
+    // 2. search the first imgid not in the list but AFTER the list (or in a gap inside the list)
+    // we need to be carefull that some images in the list may not be present on screen (collapsed groups)
+    // clang-format off
+    gchar *query = g_strdup_printf("SELECT imgid"
+                                    " FROM memory.collected_images"
+                                    " WHERE imgid NOT IN (%s)"
+                                    "  AND rowid > (SELECT rowid"
+                                    "              FROM memory.collected_images"
+                                    "              WHERE imgid IN (%s)"
+                                    "              ORDER BY rowid LIMIT 1)"
+                                    " ORDER BY rowid LIMIT 1",
+                                    txt, txt);
+    // clang-format on
+    sqlite3_stmt *stmt2;
+    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt2, NULL);
+    if(sqlite3_step(stmt2) == SQLITE_ROW)
+    {
+      next = sqlite3_column_int(stmt2, 0);
+    }
+    sqlite3_finalize(stmt2);
+    g_free(query);
+    // 3. if next is still unvalid, let's try to find the first untouched image BEFORE the list
+    if(next < 0)
+    {
       // clang-format off
-      gchar *query = g_strdup_printf("SELECT imgid"
-                                     " FROM memory.collected_images"
-                                     " WHERE imgid NOT IN (%s)"
-                                     "  AND rowid > (SELECT rowid"
-                                     "              FROM memory.collected_images"
-                                     "              WHERE imgid IN (%s)"
-                                     "              ORDER BY rowid LIMIT 1)"
-                                     " ORDER BY rowid LIMIT 1",
-                                     txt, txt);
+      query = g_strdup_printf("SELECT imgid"
+                              " FROM memory.collected_images"
+                              " WHERE imgid NOT IN (%s)"
+                              "   AND rowid < (SELECT rowid"
+                              "                FROM memory.collected_images"
+                              "                WHERE imgid IN (%s)"
+                              "                ORDER BY rowid LIMIT 1)"
+                              " ORDER BY rowid DESC LIMIT 1",
+                              txt, txt);
       // clang-format on
-      sqlite3_stmt *stmt2;
       DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt2, NULL);
       if(sqlite3_step(stmt2) == SQLITE_ROW)
       {
@@ -1894,30 +1872,8 @@ void dt_collection_update_query(const dt_collection_t *collection, dt_collection
       }
       sqlite3_finalize(stmt2);
       g_free(query);
-      // 3. if next is still unvalid, let's try to find the first untouched image BEFORE the list
-      if(next < 0)
-      {
-        // clang-format off
-        query = g_strdup_printf("SELECT imgid"
-                                " FROM memory.collected_images"
-                                " WHERE imgid NOT IN (%s)"
-                                "   AND rowid < (SELECT rowid"
-                                "                FROM memory.collected_images"
-                                "                WHERE imgid IN (%s)"
-                                "                ORDER BY rowid LIMIT 1)"
-                                " ORDER BY rowid DESC LIMIT 1",
-                                txt, txt);
-        // clang-format on
-        DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt2, NULL);
-        if(sqlite3_step(stmt2) == SQLITE_ROW)
-        {
-          next = sqlite3_column_int(stmt2, 0);
-        }
-        sqlite3_finalize(stmt2);
-        g_free(query);
-      }
-      g_free(txt);
     }
+    g_free(txt);
   }
 
   char confname[200];
@@ -1956,7 +1912,6 @@ void dt_collection_update_query(const dt_collection_t *collection, dt_collection
     g_free(text);
   }
 
-
   /* set the extended where and the use of it in the query */
   dt_collection_set_extended_where(collection, query_parts);
   g_strfreev(query_parts);
@@ -1970,38 +1925,14 @@ void dt_collection_update_query(const dt_collection_t *collection, dt_collection
   /* update query and at last the visual */
   dt_collection_update(collection);
 
-  // remove from selected images where not in this query.
-  sqlite3_stmt *stmt = NULL;
-  const gchar *cquery = dt_collection_get_query(collection);
-  if(cquery && cquery[0] != '\0')
-  {
-    gchar *complete_query = g_strdup_printf("DELETE FROM main.selected_images WHERE imgid NOT IN (%s)", cquery);
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), complete_query, -1, &stmt, NULL);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, 0);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, -1);
-    sqlite3_step(stmt);
-    sqlite3_finalize(stmt);
-    // if we have remove something from selection, we need to raise a signal
-    if(sqlite3_changes(dt_database_get(darktable.db)) > 0)
-    {
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
-    }
-
-    /* free allocated strings */
-    g_free(complete_query);
-  }
-
   /* Update recent collections history before we raise the signal,
   *  since some signal listeners will need it */
   _update_recentcollections();
 
   /* raise signal of collection change, only if this is an original */
-  if(!collection->clone)
-  {
-    dt_collection_memory_update();
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, query_change, changed_property,
-                                  list, next);
-  }
+  dt_collection_memory_update();
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, query_change, changed_property,
+                                list, next);
 }
 
 void dt_pop_collection()
@@ -2038,7 +1969,7 @@ void dt_selection_to_culling_mode()
 
   // Backup and reset current selection
   dt_push_selection();
-  DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM main.selected_images", NULL, NULL, NULL);
+  dt_selection_clear(darktable.selection);
 }
 
 void dt_culling_mode_to_selection()
@@ -2062,12 +1993,12 @@ void dt_collection_hint_message(const dt_collection_t *collection)
   gchar *message;
 
   const int c = dt_collection_get_count(collection);
-  const int cs = dt_collection_get_selected_count(collection);
+  const int cs = dt_selection_get_length(darktable.selection);
 
   if(cs == 1)
   {
     /* determine offset of the single selected image */
-    GList *selected_imgids = dt_collection_get_selected(collection, 1);
+    GList *selected_imgids = dt_selection_get_list(darktable.selection);
     int selected = -1;
 
     if(selected_imgids)
@@ -2132,12 +2063,10 @@ static void _dt_collection_recount_callback_1(gpointer instance, gpointer user_d
   dt_collection_t *collection = (dt_collection_t *)user_data;
   const int old_count = collection->count;
   collection->count = _dt_collection_compute_count(collection);
-  if(!collection->clone)
-  {
-    if(old_count != collection->count) dt_collection_hint_message(collection);
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, DT_COLLECTION_CHANGE_RELOAD,
-                                  DT_COLLECTION_PROP_UNDEF, (GList *)NULL, -1);
-  }
+
+  if(old_count != collection->count) dt_collection_hint_message(collection);
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, DT_COLLECTION_CHANGE_RELOAD,
+                                DT_COLLECTION_PROP_UNDEF, (GList *)NULL, -1);
 }
 
 static void _dt_collection_recount_callback_2(gpointer instance, const int32_t id, gpointer user_data)
@@ -2164,36 +2093,31 @@ static void _dt_collection_filmroll_imported_callback(gpointer instance, const i
   dt_collection_t *collection = (dt_collection_t *)user_data;
   const int old_count = collection->count;
   collection->count = _dt_collection_compute_count(collection);
-  if(!collection->clone)
-  {
-    int last_image = dt_conf_get_int("ui_last/import_last_image");
-    gchar first_directory[PATH_MAX] = { 0 };
-    dt_get_dirname_from_imgid(first_directory, last_image);
 
-    const gboolean duplicate = dt_conf_get_bool("ui_last/import_copy");
+  int last_image = dt_conf_get_int("ui_last/import_last_image");
+  gchar first_directory[PATH_MAX] = { 0 };
+  dt_get_dirname_from_imgid(first_directory, last_image);
 
-    char* dir = duplicate && dt_util_dir_exist(first_directory) ?
-                    g_strdup(first_directory)
-                  : g_strdup(dt_conf_get_string("ui_last/import_last_directory"));
+  const gboolean duplicate = dt_conf_get_bool("ui_last/import_copy");
 
-    dt_conf_set_string("plugins/lighttable/collect/string0", g_strdup_printf("%s*", dir));
-    free(dir);
-    dt_conf_set_int("plugins/lighttable/collect/num_rules", 1);
-    dt_conf_set_int("plugins/lighttable/collect/item0", 1);
+  char* dir = duplicate && dt_util_dir_exist(first_directory) ?
+                  g_strdup(first_directory)
+                : g_strdup(dt_conf_get_string("ui_last/import_last_directory"));
 
-    if(old_count != collection->count) dt_collection_hint_message(collection);
+  dt_conf_set_string("plugins/lighttable/collect/string0", g_strdup_printf("%s*", dir));
+  free(dir);
+  dt_conf_set_int("plugins/lighttable/collect/num_rules", 1);
+  dt_conf_set_int("plugins/lighttable/collect/item0", 1);
 
-    dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
-    dt_view_filter_reset(darktable.view_manager, TRUE);
+  if(old_count != collection->count) dt_collection_hint_message(collection);
 
-    dt_control_set_mouse_over_id(last_image);
-    dt_selection_select_single(darktable.selection, last_image);
+  dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
+  dt_view_filter_reset(darktable.view_manager, TRUE);
 
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 
-    const dt_view_t *current_view = dt_view_manager_get_current_view(darktable.view_manager);
-    if(current_view) _dt_collection_change_view_after_import(current_view);
-  }
+  const dt_view_t *current_view = dt_view_manager_get_current_view(darktable.view_manager);
+  if(current_view) _dt_collection_change_view_after_import(current_view);
 }
 
 int64_t dt_collection_get_image_position(const int32_t image_id, const int32_t tagid)

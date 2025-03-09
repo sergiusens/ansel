@@ -60,15 +60,6 @@ static void dt_view_unload_module(dt_view_t *view);
 void dt_view_manager_init(dt_view_manager_t *vm)
 {
   /* prepare statements */
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images "
-                              "WHERE imgid = ?1", -1, &vm->statements.is_selected, NULL);
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "DELETE FROM main.selected_images WHERE imgid = ?1",
-                              -1, &vm->statements.delete_from_selected, NULL);
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "INSERT OR IGNORE INTO main.selected_images VALUES (?1)", -1,
-                              &vm->statements.make_selected, NULL);
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT num FROM main.history WHERE imgid = ?1", -1,
-                              &vm->statements.have_history, NULL);
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT color FROM main.color_labels WHERE imgid=?1",
                               -1, &vm->statements.get_color, NULL);
   DT_DEBUG_SQLITE3_PREPARE_V2(

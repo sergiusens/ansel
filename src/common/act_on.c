@@ -36,7 +36,7 @@
 GList *dt_act_on_get_images()
 {
   if(dt_selection_get_length(darktable.selection) > 0)
-    return g_list_copy(dt_selection_get_list(darktable.selection));
+    return dt_selection_get_list(darktable.selection);
 
   else if(dt_view_active_images_get_first() > -1)
     return g_list_copy(dt_view_active_images_get_all());
