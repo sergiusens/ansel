@@ -33,6 +33,8 @@
 
 #define __STDC_LIMIT_MACROS
 
+#include "glib.h"
+
 extern "C" {
 #include "common/colorspaces.h"
 #include "common/darktable.h"
