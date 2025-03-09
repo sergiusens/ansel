@@ -88,7 +88,7 @@ void dt_pop_selection();
 /** get the length of the current selection (number of items) */
 int dt_selection_get_length(struct dt_selection_t *selection);
 
-/** */ concatenate all image ids from the selection as a string, separated with coma, for SQL queries */
+/** concatenate all image ids from the selection as a string, separated with coma, for SQL queries */
 gchar *dt_selection_ids_to_string(struct dt_selection_t *selection);
 
 /** see if the imgid is known from the selection */
