@@ -16,6 +16,8 @@
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include "glib.h"
+
 extern "C" {
 
 #ifdef HAVE_CONFIG_H

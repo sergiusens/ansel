@@ -29,6 +29,8 @@
 #include <OpenEXR/ImfThreading.h>
 #include <OpenEXR/ImfOutputFile.h>
 
+#include "glib.h"
+
 extern "C" {
 #include "bauhaus/bauhaus.h"
 #include "common/colorspaces.h"

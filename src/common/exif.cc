@@ -50,6 +50,8 @@
 
 #include <pugixml.hpp>
 
+#include "glib.h"
+
 extern "C" {
 #include "common/colorlabels.h"
 #include "common/darktable.h"

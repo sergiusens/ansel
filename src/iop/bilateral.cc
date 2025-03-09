@@ -18,6 +18,8 @@
 
 #define __STDC_FORMAT_MACROS
 
+#include "glib.h"
+
 extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"

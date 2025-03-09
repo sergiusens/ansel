@@ -37,6 +37,8 @@
 #include <OpenEXR/ImfThreading.h>
 #include <OpenEXR/ImfTiledInputFile.h>
 
+#include "glib.h"
+
 extern "C" {
 #include "common/colorspaces.h"
 #include "common/darktable.h"
