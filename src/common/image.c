@@ -1058,10 +1058,6 @@ static int32_t _image_duplicate_with_version(const int32_t imgid, const int32_t 
     const dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'r');
     const int grpid = img->group_id;
     dt_image_cache_read_release(darktable.image_cache, img);
-    if(darktable.gui && darktable.gui->grouping)
-    {
-      darktable.gui->expanded_group_id = grpid;
-    }
     dt_grouping_add_to_group(grpid, newid);
 
     dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
@@ -1089,9 +1085,6 @@ void dt_image_remove(const int32_t imgid)
   dt_image_cache_remove(darktable.image_cache, imgid);
 
   const int new_group_id = dt_grouping_remove_from_group(imgid);
-  if(darktable.gui && darktable.gui->expanded_group_id == old_group_id)
-    darktable.gui->expanded_group_id = new_group_id;
-
   // due to foreign keys added in db version 33,
   // all entries from tables having references to the images are deleted as well
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "DELETE FROM main.images WHERE id = ?1", -1, &stmt,

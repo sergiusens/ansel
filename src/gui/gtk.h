@@ -96,20 +96,12 @@ typedef struct dt_gui_gtk_t
 
   int32_t center_tooltip; // 0 = no tooltip, 1 = new tooltip, 2 = old tooltip
 
-  gboolean grouping;
-  int32_t expanded_group_id;
-
   // Culling mode is a special case of collection filter that is restricted to user selection
   gboolean culling_mode;
 
   // Track if the current selection has pushed on the backup copy
   // see common/selection.h:dt_push_selection()
   gboolean selection_stacked;
-
-  // The ID of the image used as anchor for lighttable offsetting.
-  // Use it to remember where default lighttable was at when re-entering
-  // from another view & mode.
-  int32_t anchor_imgid;
 
   // Global accelerators for main menu, needed for GtkMenu mnemonics.
   dt_accels_t *accels;

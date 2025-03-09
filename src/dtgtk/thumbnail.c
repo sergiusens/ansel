@@ -397,7 +397,7 @@ static gboolean _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
-  // Will run only if !image->inited
+  //fprintf(stdout, "calling draw on %i\n", thumb->imgid);
   _get_image_buffer(widget, cr, user_data);
 
   int w = 0;
@@ -545,35 +545,6 @@ static gboolean _event_grouping_release(GtkWidget *widget, GdkEventButton *event
   thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
-
-  if(event->button == 1 && !thumb->moved)
-  {
-    //TODO: will succeed if either or *both* of Shift and Control are pressed.  Do we want this?
-    if(dt_modifier_is(event->state, GDK_SHIFT_MASK) | dt_modifier_is(event->state, GDK_CONTROL_MASK))
-    {
-      // just add the whole group to the selection. TODO: make this also work for collapsed groups.
-      sqlite3_stmt *stmt;
-      DT_DEBUG_SQLITE3_PREPARE_V2(
-          dt_database_get(darktable.db),
-          "INSERT OR IGNORE INTO main.selected_images SELECT id FROM main.images WHERE group_id = ?1", -1, &stmt,
-          NULL);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, thumb->groupid);
-      sqlite3_step(stmt);
-      sqlite3_finalize(stmt);
-    }
-    else if(!darktable.gui->grouping
-            || thumb->groupid == darktable.gui->expanded_group_id) // the group is already expanded, so ...
-    {
-      if(thumb->imgid == darktable.gui->expanded_group_id && darktable.gui->grouping) // ... collapse it
-        darktable.gui->expanded_group_id = -1;
-      else // ... make the image the new representative of the group
-        darktable.gui->expanded_group_id = dt_grouping_change_representative(thumb->imgid);
-    }
-    else // expand the group
-      darktable.gui->expanded_group_id = thumb->groupid;
-    dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_GROUPING,
-                               NULL);
-  }
   return FALSE;
 }
 
@@ -966,13 +937,14 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   return thumb->widget;
 }
 
-dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid,
+dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int32_t groupid,
                                  dt_thumbnail_overlay_t over, dt_thumbtable_t *table)
 {
   dt_thumbnail_t *thumb = calloc(1, sizeof(dt_thumbnail_t));
 
   thumb->imgid = imgid;
   thumb->rowid = rowid;
+  thumb->groupid = groupid;
   thumb->over = over;
   thumb->zoom = 1.0f;
   thumb->table = table;
@@ -1135,6 +1107,7 @@ static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
 void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio)
 {
   thumb_return_if_fails(thumb);
+  //fprintf(stdout, "calling resize on %i\n", thumb->imgid);
 
   int w = 0;
   int h = 0;
@@ -1211,6 +1184,7 @@ void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over)
 
   if(thumb->mouse_over == over) return;
   thumb->mouse_over = over;
+  if(thumb->table) thumb->table->rowid = thumb->rowid;
 
   _set_flag(thumb->widget, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
   _set_flag(thumb->w_bottom_eb, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);

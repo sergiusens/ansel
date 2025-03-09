@@ -337,15 +337,13 @@ static gboolean always_show_overlays_checked_callback(GtkWidget *widget)
 
 static void collapse_grouped_callback()
 {
-  darktable.gui->grouping = !darktable.gui->grouping;
-  dt_conf_set_bool("ui_last/grouping", darktable.gui->grouping);
-  darktable.gui->expanded_group_id = -1;
+  dt_conf_set_bool("ui_last/grouping", !dt_conf_get_bool("ui_last/grouping"));
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_GROUPING, NULL);
 }
 
 static gboolean collapse_grouped_checked_callback()
 {
-  return darktable.gui->grouping;
+  return dt_conf_get_bool("ui_last/grouping");
 }
 
 static void focus_peaking_callback()

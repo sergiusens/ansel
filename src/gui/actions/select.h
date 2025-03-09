@@ -5,7 +5,7 @@
 
 gboolean select_all_sensitive_callback()
 {
-  return dt_collection_get_count_no_group(darktable.collection) > dt_collection_get_selected_count(darktable.collection)
+  return dt_collection_get_count(darktable.collection) > dt_collection_get_selected_count(darktable.collection)
     && _is_lighttable();
 }
 

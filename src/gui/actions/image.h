@@ -23,7 +23,6 @@ void reset_rotation_callback()
  * if there is an expanded group, then they will be joined there, otherwise a new one will be created. */
 void group_images_callback()
 {
-  int new_group_id = darktable.gui->expanded_group_id;
   GList *imgs = NULL;
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM main.selected_images", -1,
@@ -31,16 +30,12 @@ void group_images_callback()
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
     int id = sqlite3_column_int(stmt, 0);
-    if(new_group_id == -1) new_group_id = id;
+    int new_group_id = id;
     dt_grouping_add_to_group(new_group_id, id);
     imgs = g_list_prepend(imgs, GINT_TO_POINTER(id));
   }
   imgs = g_list_reverse(imgs); // list was built in reverse order, so un-reverse it
   sqlite3_finalize(stmt);
-  if(darktable.gui->grouping)
-    darktable.gui->expanded_group_id = new_group_id;
-  else
-    darktable.gui->expanded_group_id = -1;
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_GROUPING, imgs);
   dt_control_queue_redraw_center();
 }
@@ -65,7 +60,6 @@ void ungroup_images_callback()
   sqlite3_finalize(stmt);
   if(imgs != NULL)
   {
-    darktable.gui->expanded_group_id = -1;
     dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_GROUPING,
                                g_list_reverse(imgs));
     dt_control_queue_redraw_center();

@@ -431,7 +431,8 @@ void _garbage_collection(dt_thumbtable_t *table, int *num_thumb)
     gboolean collect_garbage = (table->thumb_nb + *num_thumb > 210)
                                 && (thumb->rowid < table->min_row_id || thumb->rowid > table->max_row_id);
 
-    // rowid doesn't match imgid: this belongs to a previous collection
+    // if current imgid stored at previously-known position in LUT doesn't match our imgid:
+    // this thumb belongs to a previous collection
     gboolean is_in_collection = (thumb->imgid == table->lut[thumb->rowid].imgid);
 
     if(collect_garbage && is_in_collection) table->lut[thumb->rowid].thumb = NULL;
@@ -448,53 +449,87 @@ void _garbage_collection(dt_thumbtable_t *table, int *num_thumb)
   dt_pthread_mutex_unlock(&table->lock);
 }
 
+dt_thumbnail_t *_find_thumb_by_imgid(dt_thumbtable_t *table, const int32_t imgid)
+{
+  for(GList *item = g_list_first(table->list); item; item = g_list_next(item))
+  {
+    dt_thumbnail_t *th = (dt_thumbnail_t *)item->data;
+    if(th->imgid == imgid)
+      return th;
+  }
+
+  return NULL;
+}
+
 // Add and/or resize thumbnails within visible viewort at current scroll level
 void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
 {
+  const int32_t mouse_over = dt_control_get_mouse_over_id();
+
   dt_pthread_mutex_lock(&table->lock);
-  for(size_t i = MAX(table->min_row_id, 0); i < MIN(table->max_row_id, table->collection_count); i++)
+
+  for(size_t rowid = MAX(table->min_row_id, 0); rowid < MIN(table->max_row_id, table->collection_count); rowid++)
   {
-    const int nrow = i;
-    const int nid = table->lut[i].imgid;
+    const int32_t imgid = table->lut[rowid].imgid;
+    const int32_t groupid = table->lut[rowid].groupid;
 
-    dt_thumbnail_t *thumb = (table->lut[i].thumb) ? (table->lut[i].thumb) : NULL;
-    gboolean new_item = (thumb == NULL);
+    dt_thumbnail_t *thumb = NULL;
+    gboolean new_item = TRUE;
+    gboolean new_position = TRUE;
 
-    if(new_item)
+    // Do we already have a thumbnail at the correct postion for the correct imgid ?
+    if(table->lut[rowid].thumb && table->lut[rowid].thumb->imgid == imgid)
     {
-      thumb = dt_thumbnail_new(IMG_TO_FIT, nid, nrow, table->overlays, table);
-      table->lut[i].thumb = thumb;
+      // YES : reuse it
+      thumb = table->lut[rowid].thumb;
+      new_position = FALSE;
+    }
+    else
+    {
+      // NO : Try to find an existing thumbnail widget by imgid in table->list
+      // That will be faster if we only changed the sorting order but are still in the same collection.
+      // NOTE: the thumb widget position in grid will be wrong
+      thumb = _find_thumb_by_imgid(table, imgid);
+    }
+
+    if(thumb)
+    {
+      // Ensure everything is up-to-date
+      thumb->rowid = rowid;
+      thumb->groupid = groupid;
+      new_item = FALSE;
+    }
+    else
+    {
+      thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, rowid, groupid, table->overlays, table);
       table->list = g_list_prepend(table->list, thumb);
       *num_thumb += 1;
     }
 
+    table->lut[rowid].thumb = thumb;
+
     if(!thumb) continue; // not sure why that would happen
 
-    // In case it's not a new item, ensure those are still up-to-date
-    // to validate the coding logic and assumptions.
-    assert(thumb->rowid == nrow);
-    assert(thumb->imgid == nid);
-
-    // There is no circumstance yet in which we simply want to move a thumbnail
-    // at constant size, moving is always assumed to come with resizing.
+    // Resize
     gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
     if(new_item || size_changed)
     {
-      dt_thumbnail_set_overlay(thumb, table->overlays);
       dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
-      _set_thumb_position(table, thumb);
-      dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
+      dt_thumbnail_set_overlay(thumb, table->overlays);
     }
 
+    // Reposition: cheap to recompute
+    _set_thumb_position(table, thumb);
+
+    // Actually moving the widgets in the grid is more expensive, do it only if necessary
     if(new_item)
       gtk_fixed_put(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
-    else if(size_changed)
+    else if(new_position || size_changed)
       gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
 
     // Update visual states and flags. Mouse over is not connected to a signal and cheap to update
-    dt_thumbnail_set_mouseover(thumb, (dt_control_get_mouse_over_id() == thumb->imgid));
-
-    gtk_widget_queue_draw(thumb->widget);
+    dt_thumbnail_set_mouseover(thumb, (mouse_over == thumb->imgid));
+    dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
@@ -524,6 +559,9 @@ void _resize_thumbnails(dt_thumbtable_t *table)
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
+  // Ensure min/max_row_id are up-to-date
+  _update_row_ids(table);
+
   if(!table->lut || !table->configured || !table->collection_inited || table->thumbs_inited || table->collection_count == 0) return;
 
   if(table->reset_collection)
@@ -544,6 +582,8 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
     _garbage_collection(table, &num_thumb);
     _resize_thumbnails(table);
   }
+
+  gtk_widget_queue_draw(table->grid);
 
   table->thumb_nb += num_thumb;
   table->thumbs_inited = TRUE;
@@ -602,7 +642,7 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     if(thumb->imgid == imgid)
     {
-      fprintf(stdout, "got mipmap for %i\n", imgid);
+      //fprintf(stdout, "got mipmap for %i\n", imgid);
       dt_thumbnail_image_refresh(thumb);
       break;
     }
@@ -658,14 +698,36 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   if(table->lut) free(table->lut);
   table->lut = NULL;
 
-  // Because the "culling" mode swaps selection with collection directly in memory,
-  // we need to fetch the current collection directly from the SQLite memory DB
-  // and can't rely on the regular collection API
+  // In-memory collected images don't store group_id, so we need to fetch it again from DB
   sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT imgid FROM memory.collected_images ORDER BY rowid ASC", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+    "SELECT im.id, im.group_id, c.rowid"
+    " FROM main.images as im, memory.collected_images as c"
+    " WHERE im.id=c.imgid"
+    " ORDER BY c.rowid ASC",
+    -1, &stmt, NULL);
+
+  // NOTE: non-grouped images have group_id equal to their own id
+  // grouped images have group_id equal to the id of the "group leader".
+  // In old database versions, it's possible that group_id may have been set to -1 for non-grouped images.
+
+  // Convert SQL imgids into C objects we can work with
   GList *collection = NULL;
   while(sqlite3_step(stmt) == SQLITE_ROW)
-    collection = g_list_prepend(collection, GINT_TO_POINTER(sqlite3_column_int(stmt, 0)));
+  {
+    int32_t imgid = sqlite3_column_int(stmt, 0);
+    int32_t groupid = sqlite3_column_int(stmt, 1);
+
+    if(table->collapse_groups && imgid != groupid)
+    {
+      continue;
+    }
+
+      int32_t *data = malloc(2 * sizeof(int32_t));
+    data[0] = imgid;
+    data[1] = groupid;
+    collection = g_list_prepend(collection, data);
+  }
   sqlite3_finalize(stmt);
 
   if(collection == NULL)
@@ -679,6 +741,11 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
 
   dt_pthread_mutex_lock(&table->lock);
 
+  // Build the collection LUT, aka a fixed-sized array of image objects
+  // where the position of an image in the collection is directly the index in the LUT/array.
+  // This makes for very efficient position -> imgid/thumbnail accesses directly in C,
+  // especially from GUI code. The downside is we need to fully clear and recreate the LUT
+  // everytime a collection changes (meaning filters OR sorting changed).
   table->lut = malloc(table->collection_count * sizeof(dt_thumbtable_cache_t));
 
   if(!table->lut)
@@ -693,17 +760,24 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   {
     // i is our SQLite rowid -1, aka position in DB result
     // NOTE: SQLite indexes from 1
-    table->lut[i].imgid = GPOINTER_TO_INT(collection_item->data);
+    int32_t *data = (int32_t *)collection_item->data;
+    table->lut[i].imgid = data[0];
+    table->lut[i].groupid = data[1];
+
+    // This will be updated when initing/freeing a new GUI thumbnail
     table->lut[i].thumb = NULL;
+
     collection_item = g_list_next(collection_item);
   }
 
+  table->collection_inited = TRUE;
+
   dt_pthread_mutex_unlock(&table->lock);
 
-  g_list_free(collection);
+  g_list_free_full(collection, g_free);
 }
 
-static int _dt_collection_get_hash(dt_thumbtable_t *table)
+static gboolean _dt_collection_get_hash(dt_thumbtable_t *table)
 {
   // Hash the collection query string
   const char *const query = dt_collection_get_query(darktable.collection);
@@ -719,12 +793,10 @@ static int _dt_collection_get_hash(dt_thumbtable_t *table)
     // Collection changed: reset everything
     table->collection_hash = hash;
     table->collection_count = num_pics;
-    table->collection_inited = TRUE;
-    table->thumbs_inited = FALSE;
-    _dt_collection_lut(table);
-    return 1;
+    table->collection_inited = FALSE;
+    return TRUE;
   }
-  return 0;
+  return FALSE;
 }
 
 static int _grab_focus(dt_thumbtable_t *table)
@@ -748,22 +820,36 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
+  gboolean collapse_groups = dt_conf_get_bool("ui_last/grouping");
+  gboolean collapsing_changed = (table->collapse_groups != collapse_groups);
+
   // See if the collection changed
-  int changed = _dt_collection_get_hash(table);
-
-  if(changed && table->collection_count == 0)
+  gboolean changed = _dt_collection_get_hash(table) || collapsing_changed;
+  if(changed)
   {
-    _dt_thumbtable_empty_list(table);
-    dt_control_log(_(
-        "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
+    // If groups are collapsed, we add only the group leader image to the collection
+    // It needs to be set before running _dt_collection_lut()
+    table->collapse_groups = collapse_groups;
+    _dt_collection_lut(table);
+
+    table->thumbs_inited = FALSE;
+
+    if(table->collection_count == 0)
+     _dt_thumbtable_empty_list(table);
+
+    if(table->collection_count == 0)
+    {
+      dt_control_log(_(
+          "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
+    }
+
+    dt_thumbtable_configure(table);
+    if(changed) g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
+    dt_thumbtable_update(table);
+    g_idle_add((GSourceFunc) _grab_focus, table);
+
+    gtk_widget_queue_draw(table->grid);
   }
-
-  dt_thumbtable_configure(table);
-  if(changed) g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
-  dt_thumbtable_update(table);
-  g_idle_add((GSourceFunc) _grab_focus, table);
-
-  gtk_widget_queue_draw(table->grid);
 }
 
 static void _event_dnd_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data,
@@ -1255,6 +1341,7 @@ dt_thumbtable_t *dt_thumbtable_new()
   table->y_position = 0.;
   table->alternate_mode = FALSE;
   table->rowid = -1;
+  table->collapse_groups = dt_conf_get_bool("ui_last/grouping");
 
   dt_pthread_mutex_init(&table->lock, NULL);
 

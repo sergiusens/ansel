@@ -135,21 +135,19 @@ GList *dt_grouping_get_group_images(const int32_t imgid)
   {
     const int img_group_id = image->group_id;
     dt_image_cache_read_release(darktable.image_cache, image);
-    if(darktable.gui && darktable.gui->grouping && darktable.gui->expanded_group_id != img_group_id)
-    {
-      sqlite3_stmt *stmt;
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "SELECT id FROM main.images WHERE group_id = ?1", -1, &stmt, NULL);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, img_group_id);
 
-      while(sqlite3_step(stmt) == SQLITE_ROW)
-      {
-        const int32_t image_id = sqlite3_column_int(stmt, 0);
-        imgs = g_list_prepend(imgs, GINT_TO_POINTER(image_id));
-      }
-      sqlite3_finalize(stmt);
+    sqlite3_stmt *stmt;
+    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+                                "SELECT id FROM main.images WHERE group_id = ?1", -1, &stmt, NULL);
+    DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, img_group_id);
+
+    while(sqlite3_step(stmt) == SQLITE_ROW)
+    {
+      const int32_t image_id = sqlite3_column_int(stmt, 0);
+      imgs = g_list_prepend(imgs, GINT_TO_POINTER(image_id));
     }
-    else imgs = g_list_prepend(imgs, GINT_TO_POINTER(imgid));
+    sqlite3_finalize(stmt);
+
   }
   return g_list_reverse(imgs);
 }
@@ -166,8 +164,7 @@ void dt_grouping_add_grouped_images(GList **images)
     {
       const int img_group_id = image->group_id;
       dt_image_cache_read_release(darktable.image_cache, image);
-      if(darktable.gui && darktable.gui->grouping && darktable.gui->expanded_group_id != img_group_id
-         && dt_selection_get_collection(darktable.selection))
+      if(dt_selection_get_collection(darktable.selection))
       {
         sqlite3_stmt *stmt;
         // clang-format off
@@ -175,7 +172,7 @@ void dt_grouping_add_grouped_images(GList **images)
             "SELECT id"
             "  FROM main.images"
             "  WHERE group_id = %d AND id IN (%s)",
-            img_group_id, dt_collection_get_query_no_group(dt_selection_get_collection(darktable.selection)));
+            img_group_id, dt_collection_get_query(dt_selection_get_collection(darktable.selection)));
         // clang-format on
         DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
 

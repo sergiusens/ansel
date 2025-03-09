@@ -33,6 +33,7 @@ typedef enum dt_thumbtable_mode_t
 typedef struct dt_thumbtable_cache_t
 {
   int32_t imgid;
+  int32_t groupid;
   dt_thumbnail_t *thumb;
 } dt_thumbtable_cache_t;
 
@@ -112,6 +113,9 @@ typedef struct dt_thumbtable_t
   // used as a fallback for missing imgid to sync scrolling when an image is evicted
   // from current collection
   int rowid;
+
+  // Set to TRUE to only display the group leader image
+  gboolean collapse_groups;
 
 } dt_thumbtable_t;
 

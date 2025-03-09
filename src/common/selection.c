@@ -123,26 +123,8 @@ static void _selection_select(dt_selection_t *selection, int32_t imgid)
     const dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
     if(image)
     {
-      const uint32_t img_group_id = image->group_id;
       dt_image_cache_read_release(darktable.image_cache, image);
-
-      gchar *query = NULL;
-      if(!darktable.gui || !darktable.gui->grouping || darktable.gui->expanded_group_id == img_group_id
-         || !selection->collection)
-      {
-        query = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images VALUES (%d)", imgid);
-      }
-      else
-      {
-        // clang-format off
-        query = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images"
-                                "  SELECT id"
-                                "  FROM main.images "
-                                "  WHERE group_id = %d AND id IN (%s)",
-                                img_group_id, dt_collection_get_query_no_group(selection->collection));
-        // clang-format on
-      }
-
+      gchar *query = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images VALUES (%d)", imgid);
       DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), query, NULL, NULL, NULL);
       g_free(query);
     }
@@ -156,23 +138,8 @@ void _selection_deselect(dt_selection_t *selection, int32_t imgid)
     const dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
     if(image)
     {
-      const uint32_t img_group_id = image->group_id;
       dt_image_cache_read_release(darktable.image_cache, image);
-
-      gchar *query = NULL;
-      if(!darktable.gui || !darktable.gui->grouping || darktable.gui->expanded_group_id == img_group_id)
-      {
-        query = g_strdup_printf("DELETE FROM main.selected_images WHERE imgid = %d", imgid);
-      }
-      else
-      {
-        // clang-format off
-        query = g_strdup_printf("DELETE FROM main.selected_images WHERE imgid IN "
-                                "(SELECT id FROM main.images WHERE group_id = %d)",
-                                img_group_id);
-        // clang-format on
-      }
-
+      gchar *query = g_strdup_printf("DELETE FROM main.selected_images WHERE imgid = %d", imgid);
       DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), query, NULL, NULL, NULL);
       g_free(query);
     }
@@ -363,7 +330,7 @@ void dt_selection_select_all(dt_selection_t *selection)
   if(!selection->collection) return;
 
   gchar *fullq = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images %s",
-                                 dt_collection_get_query_no_group(selection->collection));
+                                 dt_collection_get_query(selection->collection));
 
   DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM main.selected_images", NULL, NULL, NULL);
   DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), fullq, NULL, NULL, NULL);
@@ -389,7 +356,7 @@ void dt_selection_select_range(dt_selection_t *selection, int32_t imgid)
   sqlite3_stmt *stmt;
   uint32_t rc = 0;
   uint32_t sr = -1, er = -1;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), dt_collection_get_query_no_group(selection->collection),
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), dt_collection_get_query(selection->collection),
                               -1, &stmt, NULL);
 
   while(sqlite3_step(stmt) == SQLITE_ROW)
@@ -440,7 +407,7 @@ void dt_selection_select_range(dt_selection_t *selection, int32_t imgid)
   dt_collection_update(selection->collection);
 
   gchar *fullq = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images %s",
-                                 dt_collection_get_query_no_group(selection->collection));
+                                 dt_collection_get_query(selection->collection));
 
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), fullq, -1, &stmt, NULL);
 

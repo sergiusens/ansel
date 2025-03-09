@@ -144,9 +144,9 @@ typedef struct dt_collection_params_t
 typedef struct dt_collection_t
 {
   int clone;
-  gchar *query, *query_no_group;
+  gchar *query;
   gchar **where_ext;
-  unsigned int count, count_no_group;
+  unsigned int count;
   unsigned int tagid;
   dt_collection_params_t params;
   dt_collection_params_t store;
@@ -167,8 +167,6 @@ void dt_collection_get_makermodels(const gchar *filter, GList **sanitized, GList
 gchar *dt_collection_get_makermodel(const char *exif_maker, const char *exif_model);
 /** get the generated query for collection */
 const gchar *dt_collection_get_query(const dt_collection_t *collection);
-/** get the generated query for collection including the images hidden in groups */
-const gchar *dt_collection_get_query_no_group(const dt_collection_t *collection);
 /** updates sql query for a collection. @return 1 if query changed. */
 int dt_collection_update(const dt_collection_t *collection);
 /** reset collection to default dummy selection */
@@ -214,8 +212,6 @@ gchar *dt_collection_get_sort_query(const dt_collection_t *collection);
 
 /** get the count of query */
 uint32_t dt_collection_get_count(const dt_collection_t *collection);
-/** get the count of query including the images hidden in groups */
-uint32_t dt_collection_get_count_no_group(const dt_collection_t *collection);
 /** get the nth image in the query */
 int dt_collection_get_nth(const dt_collection_t *collection, int nth);
 /** get all image ids order as current selection. no more than limit many images are returned, <0 ==

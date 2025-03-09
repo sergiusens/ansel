@@ -380,7 +380,7 @@ static void _lib_duplicate_init_callback(gpointer instance, dt_lib_module_t *sel
   {
     GtkWidget *hb = gtk_grid_new();
     const int32_t imgid = sqlite3_column_int(stmt, 1);
-    dt_thumbnail_t *thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, 0, DT_THUMBNAIL_OVERLAYS_NONE, NULL);
+    dt_thumbnail_t *thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, 0, 0, DT_THUMBNAIL_OVERLAYS_NONE, NULL);
 
     thumb->disable_mouseover = TRUE;
     thumb->disable_actions = TRUE;
