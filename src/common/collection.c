@@ -229,9 +229,11 @@ int dt_collection_update(const dt_collection_t *collection)
 
     int or_term = or_operator_initial();
     /* Rejected was a mutually-exclusive rating in initial design, but got converted to
-    a toggle state circa 2019, aka images can now have a rating AND be rejected.
-    Which sucks because users will not expect rejected images to show when they target n stars ratings.
-    Aka we collect images that are rejected OR (have rating == n AND are not rejected).
+      a toggle state circa 2019, aka images can now have a rating AND be rejected.
+      Which sucks because users will not expect rejected images to show when they target n stars ratings.
+      Aka we collect images that are rejected OR (have rating == n AND are not rejected).
+      Also, because rating flags are not octal, we can't build a single bitmask to
+      turn into a single SQL request
     */
     if(collection->params.filter_flags & COLLECTION_FILTER_REJECTED)
       wq = dt_util_dstrcat(wq, " %s %s ", or_operator(&or_term), rejected_check);

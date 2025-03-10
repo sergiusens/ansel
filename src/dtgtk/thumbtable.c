@@ -1619,19 +1619,27 @@ void dt_thumbtable_select_range(dt_thumbtable_t *table, const int rowid)
 
   // Find the bounds of the current selection
   size_t rowid_end = 0;
-  size_t rowid_start = table->collection_count;
+  size_t rowid_start = table->collection_count - 1;
   GList *selected = dt_selection_get_list(darktable.selection);
 
-  for(GList *s = g_list_first(selected); s; s = g_list_next(s))
+  if(selected)
   {
-    int32_t imgid = GPOINTER_TO_INT(s->data);
-    int row = _find_rowid_from_imgid(table, imgid);
-    if(row < 0 || rowid > table->collection_count - 1) continue;
-    if(row < rowid_start) rowid_start = row;
-    if(row > rowid_end) rowid_end = row;
+    for(GList *s = g_list_first(selected); s; s = g_list_next(s))
+    {
+      int32_t imgid = GPOINTER_TO_INT(s->data);
+      int row = _find_rowid_from_imgid(table, imgid);
+      if(row < 0) continue; // not found - should not happen
+      if(row < rowid_start) rowid_start = row;
+      if(row > rowid_end) rowid_end = row;
+    }
+    g_list_free(selected);
   }
-
-  g_list_free(selected);
+  else
+  {
+    // range selection always has to start from a previous selection
+    dt_pthread_mutex_unlock(&table->lock);
+    return;
+  }
 
   if(rowid_start > rowid_end)
   {
@@ -1642,16 +1650,16 @@ void dt_thumbtable_select_range(dt_thumbtable_t *table, const int rowid)
 
   // Find the extra imgids to select
   GList *img = NULL;
-  if(rowid > rowid_end)
+  if(rowid > rowid_end && rowid_end < table->collection_count - 1)
   {
     // select after
-    for(size_t i = rowid_end; i <= rowid; i++)
+    for(int i = rowid_end + 1; i <= rowid; i++)
       img = g_list_prepend(img, GINT_TO_POINTER(table->lut[i].imgid));
   }
-  else if(rowid < rowid_start)
+  else if(rowid < rowid_start && rowid_start > 0)
   {
     // select before
-    for(size_t i = rowid_start; i >= rowid; i--)
+    for(int i = rowid_start - 1; i >= rowid; i--)
       img = g_list_prepend(img, GINT_TO_POINTER(table->lut[i].imgid));
   }
   // else: select within. What should that yield ??? Deselect ?

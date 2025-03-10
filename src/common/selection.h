@@ -21,6 +21,8 @@
 #include <glib.h>
 #include <inttypes.h>
 
+#include "common/debug.h"
+
 /**
  * @file selection.h
  *
@@ -95,7 +97,9 @@ gchar *dt_selection_ids_to_string(struct dt_selection_t *selection);
 gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, int32_t imgid);
 
 /** call this right after the selection got changed directly in memory database, to resync the GList representation of the selection */
-void dt_selection_reload_from_database(struct dt_selection_t *selection);
+void dt_selection_reload_from_database_real(struct dt_selection_t *selection);
+
+#define dt_selection_reload_from_database(selection) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_SQL, dt_selection_reload_from_database_real, (selection))
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -17,8 +17,8 @@
 */
 
 #include "common/collection.h"
+#include "common/selection.h"
 #include "common/darktable.h"
-#include "common/debug.h"
 #include "control/signal.h"
 #include "gui/gtk.h"
 #include "views/view.h"
@@ -103,7 +103,7 @@ static GList *_selection_database_to_glist(dt_selection_t *selection)
   return list;
 }
 
- void dt_selection_reload_from_database(dt_selection_t *selection)
+ void dt_selection_reload_from_database_real(dt_selection_t *selection)
 {
   _reset_ids_list(selection);
   selection->ids = _selection_database_to_glist(selection);
@@ -145,7 +145,7 @@ static void _add_id_link(dt_selection_t *selection, int32_t imgid)
   selection->last_single_id = imgid;
 }
 
-const GList *dt_selection_get_list(struct dt_selection_t *selection)
+GList *dt_selection_get_list(struct dt_selection_t *selection)
 {
   if(!selection->ids) dt_selection_reload_from_database(selection);
 
@@ -210,7 +210,7 @@ void dt_pop_selection()
   _update_gui();
 }
 
-const dt_selection_t *dt_selection_new()
+dt_selection_t *dt_selection_new()
 {
   dt_selection_t *selection = g_malloc0(sizeof(dt_selection_t));
 
