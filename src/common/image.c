@@ -281,6 +281,12 @@ void dt_image_film_roll_directory(const dt_image_t *img, char *pathname, size_t 
 
 void dt_image_film_roll(const dt_image_t *img, char *pathname, size_t pathname_len)
 {
+  if(img->film_id < 0)
+  {
+    g_strlcpy(pathname, _("orphaned image"), pathname_len);
+    return;
+  }
+
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT folder FROM main.film_rolls WHERE id = ?1",
                               -1, &stmt, NULL);
@@ -362,6 +368,8 @@ gboolean dt_image_safe_remove(const int32_t imgid)
  */
 void dt_image_full_path(const int32_t imgid, char *pathname, size_t pathname_len, gboolean *from_cache, const char *calling_func)
 {
+  if(imgid < 0) return;
+
   sqlite3_stmt *stmt;
   // clang-format off
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
