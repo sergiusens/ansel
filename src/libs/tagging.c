@@ -591,7 +591,8 @@ static void _postponed_update(dt_lib_module_t *self)
 
 static void _lib_tagging_redraw_callback(gpointer instance, dt_lib_module_t *self)
 {
-  dt_lib_queue_postponed_update(self, _postponed_update);
+  if(dt_lib_gui_get_expanded(self))
+    dt_lib_queue_postponed_update(self, _postponed_update);
 }
 
 static void _lib_tagging_tags_changed_callback(gpointer instance, dt_lib_module_t *self)
