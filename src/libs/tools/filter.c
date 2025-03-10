@@ -334,19 +334,18 @@ static gboolean _colorlabel_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_modu
 
 static void _culling_mode(GtkWidget *widget, gpointer data)
 {
-  if(gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget)))
-  {
-    darktable.gui->culling_mode = TRUE;
-    dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
-    dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
-  }
-  else
-  {
-    darktable.gui->culling_mode = FALSE;
-    dt_culling_mode_to_selection();
-    dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
-    dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
-  }
+  darktable.gui->culling_mode = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(widget));
+
+  // If we are exiting culling mode, we need to pop the selection before resetting the thumbtable collection
+  if(!darktable.gui->culling_mode) dt_culling_mode_to_selection();
+
+  // Anchor the re-scrollings to the right image
+  const int32_t imgid = dt_selection_get_first_id(darktable.selection);
+  dt_control_set_mouse_over_id(imgid);
+  dt_control_set_keyboard_over_id(imgid);
+
+  // Force-rebuild the whole thumbtable on the next collection update
+  dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
 
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
