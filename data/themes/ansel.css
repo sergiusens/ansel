@@ -1427,6 +1427,15 @@ filechooser row:hover .sidebar-icon
   background-color: @grey_65;
 }
 
+#quickfilter-ratings,
+#quickfilter-colors {
+  margin-right: 1em;
+}
+
+#no-star-filter {
+  margin-right: 1em;
+}
+
 .menu-text-entry {
   margin: 2px 0;
   border: 0;

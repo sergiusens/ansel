@@ -221,7 +221,7 @@ static gboolean _text_entry_changed_wait(gpointer user_data)
       if(g_strcmp0(dt_collection_get_text_filter(darktable.collection), text))
       {
         dt_collection_set_text_filter(darktable.collection, text);
-        dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_SORT, NULL);
+        _lib_filter_update_query(self, DT_COLLECTION_PROP_SORT);
       }
       else g_free(text);
       _set_widget_dimmed(d->text, FALSE);
@@ -279,71 +279,57 @@ gboolean _reset_filter_action(GtkAccelGroup *accel_group, GObject *accelerable, 
   return TRUE;
 }
 
+const dt_collection_filter_flag_t colors[6] =
+  { COLLECTION_FILTER_RED,
+    COLLECTION_FILTER_YELLOW,
+    COLLECTION_FILTER_GREEN,
+    COLLECTION_FILTER_BLUE,
+    COLLECTION_FILTER_MAGENTA,
+    COLLECTION_FILTER_WHITE };
 
-#define CPF_USER_DATA_INCLUDE CPF_USER_DATA
-#define CPF_USER_DATA_EXCLUDE CPF_USER_DATA << 1
-#define CL_AND_MASK 0x80000000
-#define CL_ALL_EXCLUDED 0x3F000
-#define CL_ALL_INCLUDED 0x3F
 
 static void _update_colors_filter(dt_lib_module_t *self)
 {
   dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  int mask = dt_collection_get_colors_filter(darktable.collection);
-  int mask_excluded = 0x1000;
-  int mask_included = 1;
-  int nb = 0;
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+
   for(int i = 0; i <= DT_COLORLABELS_LAST; i++)
   {
-    const int i_mask = mask & mask_excluded ? CPF_USER_DATA_EXCLUDE : mask & mask_included ? CPF_USER_DATA_INCLUDE : 0;
-    dtgtk_button_set_paint(DTGTK_BUTTON(d->colors[i]), dtgtk_cairo_paint_label_sel,
-                           (i | i_mask | CPF_LABEL_PURPLE), NULL);
-    gtk_widget_queue_draw(d->colors[i]);
-    if((mask & mask_excluded) || (mask & mask_included))
-      nb++;
-    mask_excluded <<= 1;
-    mask_included <<= 1;
-  }
-  if(nb <= 1)
-  {
-    mask |= CL_AND_MASK;
-    dt_collection_set_colors_filter(darktable.collection, mask);
-  }
-}
+    // Toggle active state
+    gboolean active = flags & colors[i];
+    dtgtk_button_set_active(DTGTK_BUTTON(DTGTK_BUTTON(d->colors[i])), active);
 
-static void _reset_colors_filter(dt_lib_module_t *self)
-{
-  dt_collection_set_colors_filter(darktable.collection, CL_AND_MASK);
+    // shitty design: the active rejected state is signaled as a right orientation...
+    if(active)
+      DTGTK_BUTTON(d->colors[i])->icon_flags |= CPF_DIRECTION_RIGHT;
+    else
+      DTGTK_BUTTON(d->colors[i])->icon_flags &= ~CPF_DIRECTION_RIGHT;
+
+    gtk_widget_queue_draw(d->colors[i]);
+  }
 }
 
 static gboolean _colorlabel_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t *self)
 {
-  const int mask = dt_collection_get_colors_filter(darktable.collection);
-  const int k = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(w), "colors_index"));
-  int mask_k = (1 << k) | (1 << (k + 12));
-  if(k == DT_COLORLABELS_LAST)
+  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+
+  // Toggle state
+  dtgtk_button_set_active(DTGTK_BUTTON(w), !dtgtk_button_get_active(DTGTK_BUTTON(w)));
+
+  // Update collection flags
+  for(int i = 0; i <= DT_COLORLABELS_LAST; i++)
   {
-    if(mask & mask_k)
-      mask_k = 0;
-    else if(dt_modifier_is(e->state, GDK_CONTROL_MASK))
-      mask_k = CL_ALL_EXCLUDED;
-    else if(dt_modifier_is(e->state, 0))
-      mask_k = CL_ALL_INCLUDED;
-    dt_collection_set_colors_filter(darktable.collection, mask_k | (mask & CL_AND_MASK));
+    if(dtgtk_button_get_active(DTGTK_BUTTON(d->colors[i])))
+      flags |= colors[i];
+    else
+      flags &= ~colors[i];
   }
-  else
-  {
-    if(mask & mask_k)
-      mask_k = 0;
-    else if(dt_modifier_is(e->state, GDK_CONTROL_MASK))
-      mask_k = 1 << (k + 12);
-    else if(dt_modifier_is(e->state, 0))
-      mask_k = 1 << k;
-    dt_collection_set_colors_filter(darktable.collection, (mask & ~((1 << k) | (1 << (k + 12)))) | mask_k);
-  }
+
+  dt_collection_set_filter_flags(darktable.collection, flags);
   _update_colors_filter(self);
-  dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_COLORLABEL, NULL);
-  return FALSE;
+  _lib_filter_update_query(self, DT_COLLECTION_PROP_COLORLABEL);
+  return TRUE;
 }
 
 static void _culling_mode(GtkWidget *widget, gpointer data)
@@ -366,12 +352,6 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);
 }
 
-#undef CPF_USER_DATA_INCLUDE
-#undef CPF_USER_DATA_EXCLUDE
-#undef CL_AND_MASK
-#undef CL_ALL_EXCLUDED
-#undef CL_ALL_INCLUDED
-
 static void _refresh_collection_callback(GtkButton *button, gpointer user_data)
 {
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
@@ -386,7 +366,6 @@ void _widget_align_left(GtkWidget *widget)
   gtk_widget_set_vexpand(widget, FALSE);
 }
 
-
 const dt_collection_filter_flag_t ratings[7] =
   { COLLECTION_FILTER_REJECTED,
     COLLECTION_FILTER_0_STAR,
@@ -397,34 +376,46 @@ const dt_collection_filter_flag_t ratings[7] =
     COLLECTION_FILTER_5_STAR };
 
 
+static void _update_rating(dt_lib_module_t *self)
+{
+  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+
+  // Update GUI button state
+  for(int i = 0; i < 7; i++)
+  {
+    gboolean active = flags & ratings[i];
+    dtgtk_button_set_active(DTGTK_BUTTON(d->stars[i]), active);
+
+    if(i == 0)
+    {
+      // shitty design: the active rejected state is signaled as a right orientation...
+      if(active)
+        DTGTK_BUTTON(d->stars[i])->icon_flags |= CPF_DIRECTION_RIGHT;
+      else
+        DTGTK_BUTTON(d->stars[i])->icon_flags &= ~CPF_DIRECTION_RIGHT;
+    }
+    else
+    {
+      // fill stars if active
+      if(active)
+        DTGTK_BUTTON(d->stars[i])->icon_data = &darktable.bauhaus->color_fg;
+      else
+        DTGTK_BUTTON(d->stars[i])->icon_data = NULL;
+    }
+
+    gtk_widget_queue_draw(d->stars[i]);
+  }
+}
+
+
 static gboolean _rating_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t *self)
 {
   dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
   dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
 
-  // Toggle active state
-  gboolean active = !dtgtk_button_get_active(DTGTK_BUTTON(w));
-  dtgtk_button_set_active(DTGTK_BUTTON(w), active);
-
-  // Update GUI button state
-  if(w == d->stars[0])
-  {
-    // shitty design: the active rejected state is signaled as a right orientation...
-    if(active)
-      DTGTK_BUTTON(w)->icon_flags |= CPF_DIRECTION_RIGHT;
-    else
-      DTGTK_BUTTON(w)->icon_flags &= ~CPF_DIRECTION_RIGHT;
-  }
-  else
-  {
-    // fill stars if active
-    if(active)
-      DTGTK_BUTTON(w)->icon_data = &darktable.bauhaus->color_fg;
-    else
-      DTGTK_BUTTON(w)->icon_data = NULL;
-  }
-
-  gtk_widget_queue_draw(w);
+  // Toggle state
+  dtgtk_button_set_active(DTGTK_BUTTON(w), !dtgtk_button_get_active(DTGTK_BUTTON(w)));
 
   // Update collection flags
   for(int i = 0; i < 7; i++)
@@ -436,10 +427,8 @@ static gboolean _rating_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t
   }
 
   dt_collection_set_filter_flags(darktable.collection, flags);
-
-  /* update the query and view */
+  _update_rating(self);
   _lib_filter_update_query(self, DT_COLLECTION_PROP_RATING);
-
   return TRUE;
 }
 
@@ -461,7 +450,7 @@ void gui_init(dt_lib_module_t *self)
                                             "which properties have been changed\n"
                                             "and don't match the current filters anymore."));
   g_signal_connect(G_OBJECT(d->refresh), "clicked", G_CALLBACK(_refresh_collection_callback), NULL);
-  gtk_widget_set_name(d->sort, "quick-filter-reload");
+  gtk_widget_set_name(d->refresh, "quick-filter-reload");
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->refresh), FALSE, FALSE, 0);
 
   gchar *path = dt_accels_build_path(_("Lighttable/Actions"), _("Reload current collection"));
@@ -483,36 +472,27 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_name(hbox, "quick-filter-ratings");
 
   // star buttons
-  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
-
   for(int k = 0; k < 7; k++)
   {
     if(k == 0)
+    {
       d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_reject, k, NULL);
+      gtk_widget_set_name(d->stars[k], "rejected-filter");
+    }
     else if(k == 1)
+    {
       d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_unratestar, k, NULL);
+      gtk_widget_set_name(d->stars[k], "no-star-filter");
+    }
     else
       d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_star, k, NULL);
-
-    gboolean active = flags & ratings[k];
-
-    dtgtk_button_set_active(DTGTK_BUTTON(d->stars[k]), active);
-
-    if(active)
-    {
-      if(k == 0)
-        // shitty design: the active rejected state is signaled as a right orientation...
-        DTGTK_BUTTON(d->stars[k])->icon_flags |= CPF_DIRECTION_RIGHT;
-      else
-        // fill the star
-        DTGTK_BUTTON(d->stars[k])->icon_data = &darktable.bauhaus->color_fg;
-    }
 
     dt_gui_add_class(d->stars[k], "star");
     dt_gui_add_class(d->stars[k], "dt_no_hover");
     gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->stars[k]), FALSE, FALSE, 0);
     g_signal_connect(G_OBJECT(d->stars[k]), "button-press-event", G_CALLBACK(_rating_clicked), self);
   }
+  _update_rating(self);
 
   gtk_widget_set_tooltip_text(d->stars[0], _("Toggle filtering in/out rejected images"));
   gtk_widget_set_tooltip_text(d->stars[1], _("Toggle filtering in/out unrated images (0 star)"));
@@ -531,15 +511,17 @@ void gui_init(dt_lib_module_t *self)
   {
     d->colors[k] = dtgtk_button_new(dtgtk_cairo_paint_label_sel, k, NULL);
     dt_gui_add_class(d->colors[k], "dt_no_hover");
-    g_object_set_data(G_OBJECT(d->colors[k]), "colors_index", GINT_TO_POINTER(k));
     gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->colors[k]), FALSE, FALSE, 0);
-    gtk_widget_set_tooltip_text(d->colors[k], _("filter by images color label"
-                                                "\nclick to toggle the color label selection"
-                                                "\nctrl+click to exclude the color label"
-                                                "\nthe gray button affects all color labels"));
     g_signal_connect(G_OBJECT(d->colors[k]), "button-press-event", G_CALLBACK(_colorlabel_clicked), self);
   }
   _update_colors_filter(self);
+
+  gtk_widget_set_tooltip_text(d->colors[0], _("Toggle filtering in/out images with red label"));
+  gtk_widget_set_tooltip_text(d->colors[1], _("Toggle filtering in/out images with yellow label"));
+  gtk_widget_set_tooltip_text(d->colors[2], _("Toggle filtering in/out images with green label"));
+  gtk_widget_set_tooltip_text(d->colors[3], _("Toggle filtering in/out images with blue label"));
+  gtk_widget_set_tooltip_text(d->colors[4], _("Toggle filtering in/out images with purple label"));
+  gtk_widget_set_tooltip_text(d->colors[5], _("Toggle filtering in/out images without color label"));
 
   // Culling mode
   d->culling = gtk_toggle_button_new_with_label(_("Selected"));
@@ -715,7 +697,6 @@ static void _lib_filter_reset(dt_lib_module_t *self, gboolean smart_filter)
 {
   _reset_stars_filter(self, smart_filter);
   _reset_text_filter(self);
-  _reset_colors_filter(self);
 }
 
 // clang-format off

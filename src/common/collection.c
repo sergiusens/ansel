@@ -18,6 +18,7 @@
 
 #include "common/collection.h"
 #include "common/debug.h"
+#include "common/colorlabels.h"
 #include "common/image.h"
 #include "common/imageio_rawspeed.h"
 #include "common/metadata.h"
@@ -207,7 +208,7 @@ int dt_collection_update(const dt_collection_t *collection)
   gchar *where_ext = dt_collection_get_extended_where(collection, -1);
   if(!(collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT))
   {
-    char *rejected_check = g_strdup_printf("((flags & %d) == %d)", DT_IMAGE_REJECTED, DT_IMAGE_REJECTED);
+    char *rejected_check = g_strdup_printf("((flags & %d) = %d)", DT_IMAGE_REJECTED, DT_IMAGE_REJECTED);
     int and_term = 1; // that effectively makes the use of and_operator() useless
 
     // DON'T SELECT IMAGES MARKED TO BE DELETED.
@@ -225,46 +226,46 @@ int dt_collection_update(const dt_collection_t *collection)
              | COLLECTION_FILTER_5_STAR);
 
     if(got_rating_filter)
-      wq = dt_util_dstrcat(wq, " %s ( ", and_operator(&and_term));
+      wq = dt_util_dstrcat(wq, " %s (", and_operator(&and_term));
 
     int or_term = or_operator_initial();
     /* Rejected was a mutually-exclusive rating in initial design, but got converted to
       a toggle state circa 2019, aka images can now have a rating AND be rejected.
       Which sucks because users will not expect rejected images to show when they target n stars ratings.
       Aka we collect images that are rejected OR (have rating == n AND are not rejected).
-      Also, because rating flags are not octal, we can't build a single bitmask to
+      Also, because rating flags are bitmasks but not octal, we can't build a single bitmask to
       turn into a single SQL request
     */
     if(collection->params.filter_flags & COLLECTION_FILTER_REJECTED)
       wq = dt_util_dstrcat(wq, " %s %s ", or_operator(&or_term), rejected_check);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_0_STAR)
-      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) = %i AND NOT %s) ", or_operator(&or_term),
                            DT_VIEW_DESERT, rejected_check);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_1_STAR)
-      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) = %i AND NOT %s) ", or_operator(&or_term),
                           DT_VIEW_STAR_1, rejected_check);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_2_STAR)
-      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) = %i AND NOT %s) ", or_operator(&or_term),
                           DT_VIEW_STAR_2, rejected_check);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_3_STAR)
-      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) = %i AND NOT %s) ", or_operator(&or_term),
                           DT_VIEW_STAR_3, rejected_check);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_4_STAR)
-      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) = %i AND NOT %s) ", or_operator(&or_term),
                           DT_VIEW_STAR_4, rejected_check);
 
     if(collection->params.filter_flags & COLLECTION_FILTER_5_STAR)
-      wq = dt_util_dstrcat(wq, " %s ((flags & 7) == %i AND NOT %s) ", or_operator(&or_term),
+      wq = dt_util_dstrcat(wq, " %s ((flags & 7) = %i AND NOT %s) ", or_operator(&or_term),
                           DT_VIEW_STAR_5, rejected_check);
 
     /* Closing the OR parentheses */
     if(got_rating_filter)
-      wq = dt_util_dstrcat(wq, " ) ");
+      wq = dt_util_dstrcat(wq, ") ");
 
     if(collection->params.filter_flags & COLLECTION_FILTER_ALTERED)
       // clang-format off
@@ -302,48 +303,44 @@ int dt_collection_update(const dt_collection_t *collection)
     }
 
     /* add colorlabel filter if any */
-    if(collection->params.colors_filter & ~0x80000000)
+    gboolean got_color_filter = collection->params.filter_flags
+                                & (COLLECTION_FILTER_BLUE | COLLECTION_FILTER_GREEN | COLLECTION_FILTER_MAGENTA
+                                   | COLLECTION_FILTER_RED | COLLECTION_FILTER_YELLOW | COLLECTION_FILTER_WHITE);
+
+    if(got_color_filter)
     {
-      const int colors_set = collection->params.colors_filter & 0xFFF;
-      const int colors_unset = (collection->params.colors_filter & 0xFFF000) >> 12;
-      const gboolean op = collection->params.colors_filter & 0x80000000;
-      if(op) // AND
-      {
-        if(colors_set)
-          // clang-format off
-          wq = dt_util_dstrcat(wq, " %s id IN (SELECT id FROM (SELECT imgid AS id, SUM(1 << color) AS mask"
-                                              "  FROM main.color_labels GROUP BY imgid)"
-                                              "  WHERE ((mask & %d) = %d) AND (mask & %d = 0))",
-                               and_operator(&and_term), colors_set, colors_set, colors_unset);
-          // clang-format on
-        else if(colors_unset)
-          // clang-format off
-          wq = dt_util_dstrcat(wq, " %s NOT id IN (SELECT id FROM (SELECT imgid AS id, SUM(1 << color) AS mask"
-                                              "  FROM main.color_labels GROUP BY imgid)"
-                                              "  WHERE ((mask & %d) <> 0))",
-                               and_operator(&and_term), colors_unset);
-          // clang-format on
-      }
-      else  // OR
-      {
-        if(!colors_unset)
-          // clang-format off
-          wq = dt_util_dstrcat(wq, " %s id IN (SELECT id FROM (SELECT imgid AS id, SUM(1 << color) AS mask"
-                                              "  FROM main.color_labels GROUP BY imgid)"
-                                              "  WHERE ((mask & %d) <> 0))",
-                               and_operator(&and_term), colors_set);
-          // clang-format on
-        else
-          // clang-format off
-          wq = dt_util_dstrcat(wq, " %s (id IN (SELECT id FROM (SELECT imgid AS id, SUM(1 << color) AS mask"
-                                              "  FROM main.color_labels GROUP BY imgid)"
-                                              "  WHERE ((mask & %d) <> 0))"
-                                   " OR id NOT IN (SELECT id FROM (SELECT imgid AS id, SUM(1 << color) AS mask"
-                                              "  FROM main.color_labels GROUP BY imgid)"
-                                              "  WHERE ((mask & %d) = %d)))",
-                               and_operator(&and_term), colors_set, colors_unset, colors_unset);
-          // clang-format on
-      }
+      int color_mask = 0;
+      if(collection->params.filter_flags & COLLECTION_FILTER_RED)
+        color_mask |= 1 << DT_COLORLABELS_RED;
+      if(collection->params.filter_flags & COLLECTION_FILTER_YELLOW)
+        color_mask |= 1 << DT_COLORLABELS_YELLOW;
+      if(collection->params.filter_flags & COLLECTION_FILTER_GREEN)
+        color_mask |= 1 << DT_COLORLABELS_GREEN;
+      if(collection->params.filter_flags & COLLECTION_FILTER_BLUE)
+        color_mask |= 1 << DT_COLORLABELS_BLUE;
+      if(collection->params.filter_flags & COLLECTION_FILTER_MAGENTA)
+        color_mask |= 1 << DT_COLORLABELS_PURPLE;
+
+      // color_mask = 31 when all flags are on
+      wq = dt_util_dstrcat(wq, " %s (", and_operator(&and_term));
+
+      or_term = or_operator_initial();
+
+      // clang-format off
+      if(color_mask > 0)
+        wq = dt_util_dstrcat(wq, " %s id IN (SELECT id FROM"
+                                 " (SELECT imgid AS id, SUM(1 << color) AS mask FROM main.color_labels GROUP BY imgid)"
+                                 " WHERE ((mask & %i) > 0))",
+                                 or_operator(&or_term), color_mask);
+
+      if((collection->params.filter_flags & COLLECTION_FILTER_WHITE))
+        wq = dt_util_dstrcat(wq, " %s id NOT IN (SELECT id FROM"
+                                 " (SELECT imgid AS id, SUM(1 << color) AS mask FROM main.color_labels GROUP BY imgid)"
+                                 " WHERE ((mask & 31) > 0))",
+                                 or_operator(&or_term));
+
+      // clang-format on
+      wq = dt_util_dstrcat(wq, ")");
     }
 
     /* add where ext if wanted */
@@ -482,7 +479,6 @@ void dt_collection_reset(const dt_collection_t *collection)
   params->filter_flags = dt_conf_get_int("plugins/collection/filter_flags");
   g_free(params->text_filter);
   params->text_filter = dt_conf_get_string("plugins/collection/text_filter");
-  params->colors_filter = strtol(dt_conf_get_string_const("plugins/collection/colors_filter"), NULL, 16);
   params->sort = dt_conf_get_int("plugins/collection/sort");
   params->descending = dt_conf_get_bool("plugins/collection/descending");
   dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
@@ -517,17 +513,6 @@ void dt_collection_set_text_filter(const dt_collection_t *collection, char *text
   dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
   g_free(params->text_filter);
   params->text_filter = text_filter;
-}
-
-int dt_collection_get_colors_filter(const dt_collection_t *collection)
-{
-  return collection->params.colors_filter;
-}
-
-void dt_collection_set_colors_filter(const dt_collection_t *collection, int colors_filter)
-{
-  dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
-  params->colors_filter = colors_filter;
 }
 
 dt_collection_query_flags_t dt_collection_get_query_flags(const dt_collection_t *collection)
@@ -761,9 +746,6 @@ static int _dt_collection_store(const dt_collection_t *collection, gchar *query)
     dt_conf_set_int("plugins/collection/query_flags", collection->params.query_flags);
     dt_conf_set_int("plugins/collection/filter_flags", collection->params.filter_flags);
     dt_conf_set_string("plugins/collection/text_filter", collection->params.text_filter ? collection->params.text_filter : "");
-    char colors_filter[16];
-    sprintf(colors_filter, "%x", collection->params.colors_filter);
-    dt_conf_set_string("plugins/collection/colors_filter", colors_filter);
     dt_conf_set_int("plugins/collection/film_id", collection->params.film_id);
     dt_conf_set_int("plugins/collection/sort", collection->params.sort);
     dt_conf_set_bool("plugins/collection/descending", collection->params.descending);

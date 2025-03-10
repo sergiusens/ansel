@@ -47,7 +47,13 @@ typedef enum dt_collection_filter_flag_t
   COLLECTION_FILTER_2_STAR          = 1 << 6,
   COLLECTION_FILTER_3_STAR          = 1 << 7,
   COLLECTION_FILTER_4_STAR          = 1 << 8,
-  COLLECTION_FILTER_5_STAR          = 1 << 9
+  COLLECTION_FILTER_5_STAR          = 1 << 9,
+  COLLECTION_FILTER_RED             = 1 << 10,
+  COLLECTION_FILTER_YELLOW          = 1 << 11,
+  COLLECTION_FILTER_GREEN           = 1 << 12,
+  COLLECTION_FILTER_BLUE            = 1 << 13,
+  COLLECTION_FILTER_MAGENTA         = 1 << 14,
+  COLLECTION_FILTER_WHITE           = 1 << 15, // white means "no color label"
 } dt_collection_filter_flag_t;
 
 typedef enum dt_collection_sort_t
@@ -128,10 +134,6 @@ typedef struct dt_collection_params_t
   /** text filter */
   char *text_filter;
 
-  /** colors filter */
-  // TODO: flagify that shit
-  int colors_filter;
-
   /** current film id */
   int32_t film_id;
 
@@ -189,11 +191,6 @@ void dt_collection_set_query_flags(const dt_collection_t *collection, dt_collect
 char *dt_collection_get_text_filter(const dt_collection_t *collection);
 /** set text filter for collection */
 void dt_collection_set_text_filter(const dt_collection_t *collection, char *text_filter);
-
-/** get colors filter for collection */
-int dt_collection_get_colors_filter(const dt_collection_t *collection);
-/** set colors filter for collection */
-void dt_collection_set_colors_filter(const dt_collection_t *collection, int colors_filter);
 
 /** set the film_id of collection */
 void dt_collection_set_film_id(const dt_collection_t *collection, const int32_t film_id);
