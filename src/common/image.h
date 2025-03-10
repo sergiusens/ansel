@@ -402,7 +402,7 @@ int dt_image_local_copy_reset(const int32_t imgid);
 /* check whether it is safe to remove a file */
 gboolean dt_image_safe_remove(const int32_t imgid);
 /* try to sync .xmp for all local copies */
-void dt_image_local_copy_synch(void);
+void dt_image_local_copy_synch();
 // xmp functions:
 int dt_image_write_sidecar_file(const int32_t imgid);
 void dt_image_synch_xmp(const int selected);

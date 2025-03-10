@@ -2410,7 +2410,7 @@ void dt_image_synch_all_xmp(const gchar *pathname)
   }
 }
 
-void dt_image_local_copy_synch(void)
+void dt_image_local_copy_synch()
 {
   // nothing to do if not creating .xmp
   if(dt_image_get_xmp_mode() == DT_WRITE_XMP_NEVER) return;
