@@ -147,8 +147,9 @@ void dt_collection_memory_update()
   gchar *query = g_strdup(dt_collection_get_query(darktable.collection));
   if(!query) return;
 
-  // we have a new query for the collection of images to display. For speed reason we collect all images into
-  // a temporary (in-memory) table (collected_images).
+  // Handle culling mode across re-queryings : re-restrict collection to selection
+  if(darktable.gui && darktable.gui->culling_mode)
+    dt_culling_mode_to_selection();
 
   // 1. drop previous data
 
@@ -174,6 +175,10 @@ void dt_collection_memory_update()
 
   g_free(query);
   g_free(ins_query);
+
+  // Handle culling mode across re-queryings : re-restrict collection to selection
+  if(darktable.gui && darktable.gui->culling_mode)
+    dt_selection_to_culling_mode();
 }
 
 static void _dt_collection_set_selq_pre_sort(const dt_collection_t *collection, char **selq_pre)
@@ -447,13 +452,6 @@ int dt_collection_update(const dt_collection_t *collection)
   g_free(selq_pre);
   g_free(selq_post);
   g_free(query);
-
-  // Handle culling mode across re-queryings : re-restrict collection to selection
-  if(darktable.gui && darktable.gui->culling_mode)
-  {
-    dt_pop_selection();
-    dt_selection_to_culling_mode();
-  }
 
   /* update the cached count. collection isn't a real const anyway, we are writing to it in
    * _dt_collection_store, too. */

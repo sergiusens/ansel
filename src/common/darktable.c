@@ -1241,7 +1241,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     dt_print_mem_usage();
   }
 
-  
+
 /* init lua last, since it's user made stuff it must be in the real environment */
 #ifdef USE_LUA
   dt_lua_init(darktable.lua_state.state, lua_command);
@@ -1351,6 +1351,10 @@ void dt_get_sysresource_level()
 void dt_cleanup()
 {
   const int init_gui = (darktable.gui != NULL);
+
+  // Restore selection if exiting on culling mode to be sure it's saved in DB
+  if(darktable.gui && darktable.gui->culling_mode)
+    dt_culling_mode_to_selection();
 
   // last chance to ask user for any input...
 
