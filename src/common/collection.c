@@ -2094,7 +2094,6 @@ static void _dt_collection_filmroll_imported_callback(gpointer instance, const i
   if(old_count != collection->count) dt_collection_hint_message(collection);
 
   dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
-  dt_view_filter_reset(darktable.view_manager, TRUE);
 
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 

@@ -210,13 +210,6 @@ typedef struct dt_view_manager_t
       void (*add)(struct dt_lib_module_t *, GtkWidget *, dt_view_type_flags_t);
     } module_toolbox;
 
-    /* filter toolbox proxy object */
-    struct
-    {
-      struct dt_lib_module_t *module;
-      void (*reset_filter)(struct dt_lib_module_t *, gboolean smart_filter);
-    } filter;
-
     /* module collection proxy object */
     struct
     {
@@ -314,11 +307,6 @@ const char *dt_view_tethering_get_job_code(const dt_view_manager_t *vm);
 
 /** update the collection module */
 void dt_view_collection_update(const dt_view_manager_t *vm);
-
-/*
- * Filter dropdown proxy
- */
-void dt_view_filter_reset(const dt_view_manager_t *vm, gboolean smart_filter);
 
 // active images functions
 void dt_view_active_images_reset(gboolean raise);

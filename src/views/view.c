@@ -826,15 +826,6 @@ char* dt_view_extend_modes_str(const char * name, const gboolean is_hdr, const g
 }
 
 
-/**
- * \brief Reset filter
- */
-void dt_view_filter_reset(const dt_view_manager_t *vm, gboolean smart_filter)
-{
-  if(vm->proxy.filter.module && vm->proxy.filter.reset_filter)
-    vm->proxy.filter.reset_filter(vm->proxy.filter.module, smart_filter);
-}
-
 void dt_view_active_images_reset(gboolean raise)
 {
   if(!darktable.view_manager->active_images) return;
