@@ -1752,8 +1752,22 @@ void dtgtk_cairo_paint_altered(cairo_t *cr, gint x, gint y, gint w, gint h, gint
 {
   PREAMBLE(0.5 * 0.95, 1, 0.5, 0.5)
 
+  cairo_push_group(cr);
+
   const float r = 1.;
   cairo_arc(cr, 0, 0, r, 0, 2.0f * M_PI);
+
+  if(flags & CPF_DIRECTION_RIGHT)
+    cairo_fill(cr);
+  else
+    cairo_stroke(cr);
+
+  if(flags & CPF_DIRECTION_RIGHT)
+  {
+    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+    cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
+  }
+
   const float dx = r * cosf(M_PI / 8.0f), dy = r * sinf(M_PI / 8.0f);
   cairo_move_to(cr,  - dx,  - dy);
   cairo_curve_to(cr, 0, -2.0 * dy, 0, 2.0 * dy, dx, dy);
@@ -1765,8 +1779,43 @@ void dtgtk_cairo_paint_altered(cairo_t *cr, gint x, gint y, gint w, gint h, gint
   cairo_line_to(cr,  .5 * dx, -.8 * dy + .3 * dx);
   cairo_stroke(cr);
 
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+
   FINISH
 }
+
+void dtgtk_cairo_paint_unaltered(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data)
+{
+  PREAMBLE(0.5 * 0.95, 1, 0.5, 0.5)
+
+  cairo_push_group(cr);
+
+  const float r = 1.;
+  cairo_arc(cr, 0, 0, r, 0, 2.0f * M_PI);
+
+  if(flags & CPF_DIRECTION_RIGHT)
+    cairo_fill(cr);
+  else
+    cairo_stroke(cr);
+
+  if(flags & CPF_DIRECTION_RIGHT)
+  {
+    cairo_set_operator(cr, CAIRO_OPERATOR_CLEAR);
+    cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
+  }
+
+  const float dx = r * cosf(M_PI / 8.0f), dy = r * sinf(M_PI / 8.0f);
+  cairo_move_to(cr,  - dx,  - dy);
+  cairo_curve_to(cr, 0, -2.0 * dy, 0, 2.0 * dy, dx, dy);
+  cairo_stroke(cr);
+  
+  cairo_pop_group_to_source(cr);
+  cairo_paint(cr);
+
+  FINISH
+}
+
 
 void dtgtk_cairo_paint_audio(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data)
 {

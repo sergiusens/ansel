@@ -41,6 +41,8 @@ typedef struct dt_lib_tool_filter_t
   GtkWidget *colors[6];
   GtkWidget *culling;
   GtkWidget *refresh;
+  GtkWidget *altered;
+  GtkWidget *unaltered;
   GtkWidget *menu;
   int time_out;
   double last_key_time;
@@ -280,25 +282,25 @@ const dt_collection_filter_flag_t colors[6] =
     COLLECTION_FILTER_WHITE };
 
 
+static void _dtgtk_button_set_active(GtkWidget *w, gboolean active)
+{
+  // shitty design: the active rejected state is signaled as a right orientation...
+  if(active)
+    DTGTK_BUTTON(w)->icon_flags |= CPF_DIRECTION_RIGHT;
+  else
+    DTGTK_BUTTON(w)->icon_flags &= ~CPF_DIRECTION_RIGHT;
+
+  dtgtk_button_set_active(DTGTK_BUTTON(DTGTK_BUTTON(w)), active);
+  gtk_widget_queue_draw(w);
+}
+
+
 static void _update_colors_filter(dt_lib_module_t *self)
 {
   dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
   dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
-
   for(int i = 0; i <= DT_COLORLABELS_LAST; i++)
-  {
-    // Toggle active state
-    gboolean active = flags & colors[i];
-    dtgtk_button_set_active(DTGTK_BUTTON(DTGTK_BUTTON(d->colors[i])), active);
-
-    // shitty design: the active rejected state is signaled as a right orientation...
-    if(active)
-      DTGTK_BUTTON(d->colors[i])->icon_flags |= CPF_DIRECTION_RIGHT;
-    else
-      DTGTK_BUTTON(d->colors[i])->icon_flags &= ~CPF_DIRECTION_RIGHT;
-
-    gtk_widget_queue_draw(d->colors[i]);
-  }
+    _dtgtk_button_set_active(d->colors[i], flags & colors[i]);
 }
 
 static gboolean _colorlabel_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t *self)
@@ -327,6 +329,65 @@ static gboolean _colorlabel_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_modu
 
   dt_collection_set_filter_flags(darktable.collection, flags);
   _update_colors_filter(self);
+  _lib_filter_update_query(self, DT_COLLECTION_PROP_COLORLABEL);
+  return TRUE;
+}
+
+static void _update_altered_filters(dt_lib_module_t *self)
+{
+  dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+  _dtgtk_button_set_active(d->altered, flags & COLLECTION_FILTER_ALTERED);
+  _dtgtk_button_set_active(d->unaltered, flags & COLLECTION_FILTER_UNALTERED);
+}
+
+
+static gboolean _altered_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t *self)
+{
+  if(e->button == 3)
+  {
+    _show_popover_menu(self, w);
+    return TRUE;
+  }
+
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+
+  // Toggle state
+  dtgtk_button_set_active(DTGTK_BUTTON(w), !dtgtk_button_get_active(DTGTK_BUTTON(w)));
+
+  // Update collection flags
+  if(dtgtk_button_get_active(DTGTK_BUTTON(w)))
+    flags |= COLLECTION_FILTER_ALTERED;
+  else
+    flags &= ~COLLECTION_FILTER_ALTERED;
+
+  dt_collection_set_filter_flags(darktable.collection, flags);
+  _update_altered_filters(self);
+  _lib_filter_update_query(self, DT_COLLECTION_PROP_COLORLABEL);
+  return TRUE;
+}
+
+static gboolean _unaltered_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t *self)
+{
+  if(e->button == 3)
+  {
+    _show_popover_menu(self, w);
+    return TRUE;
+  }
+
+  dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
+
+  // Toggle state
+  dtgtk_button_set_active(DTGTK_BUTTON(w), !dtgtk_button_get_active(DTGTK_BUTTON(w)));
+
+  // Update collection flags
+  if(dtgtk_button_get_active(DTGTK_BUTTON(w)))
+    flags |= COLLECTION_FILTER_UNALTERED;
+  else
+    flags &= ~COLLECTION_FILTER_UNALTERED;
+
+  dt_collection_set_filter_flags(darktable.collection, flags);
+  _update_altered_filters(self);
   _lib_filter_update_query(self, DT_COLLECTION_PROP_COLORLABEL);
   return TRUE;
 }
@@ -383,17 +444,7 @@ static void _update_rating_filter(dt_lib_module_t *self)
   for(int i = 0; i < 7; i++)
   {
     gboolean active = flags & ratings[i];
-    dtgtk_button_set_active(DTGTK_BUTTON(d->stars[i]), active);
-
-    if(i == 0)
-    {
-      // shitty design: the active rejected state is signaled as a right orientation...
-      if(active)
-        DTGTK_BUTTON(d->stars[i])->icon_flags |= CPF_DIRECTION_RIGHT;
-      else
-        DTGTK_BUTTON(d->stars[i])->icon_flags &= ~CPF_DIRECTION_RIGHT;
-    }
-    else
+    if(i > 0)
     {
       // fill stars if active
       if(active)
@@ -402,7 +453,7 @@ static void _update_rating_filter(dt_lib_module_t *self)
         DTGTK_BUTTON(d->stars[i])->icon_data = NULL;
     }
 
-    gtk_widget_queue_draw(d->stars[i]);
+    _dtgtk_button_set_active(d->stars[i], active);
   }
 }
 
@@ -443,6 +494,7 @@ static void _select_all_callback(GtkWidget *widget, dt_lib_module_t *self)
   dt_collection_set_filter_flags(darktable.collection, ~COLLECTION_FILTER_NONE & ~COLLECTION_FILTER_FILM_ID);
   _update_rating_filter(self);
   _update_colors_filter(self);
+  _update_altered_filters(self);
   _lib_filter_update_query(self, DT_COLLECTION_PROP_UNDEF);
 }
 
@@ -451,6 +503,7 @@ static void _select_none_callback(GtkWidget *widget, dt_lib_module_t *self)
   dt_collection_set_filter_flags(darktable.collection, COLLECTION_FILTER_NONE);
   _update_rating_filter(self);
   _update_colors_filter(self);
+  _update_altered_filters(self);
   _lib_filter_update_query(self, DT_COLLECTION_PROP_UNDEF);
 }
 
@@ -552,6 +605,23 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_tooltip_text(d->colors[3], _("Toggle filtering in/out images with blue label"));
   gtk_widget_set_tooltip_text(d->colors[4], _("Toggle filtering in/out images with purple label"));
   gtk_widget_set_tooltip_text(d->colors[5], _("Toggle filtering in/out images without color label"));
+
+  // changed filter
+  hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
+  gtk_widget_set_name(hbox, "quickfilters-altered");
+
+  d->altered = dtgtk_button_new(dtgtk_cairo_paint_altered, 0, NULL);
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->altered), FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(d->altered), "button-press-event", G_CALLBACK(_altered_clicked), self);
+  gtk_widget_set_tooltip_text(d->altered, _("Toggle filtering in/out edited images"));
+
+  d->unaltered = dtgtk_button_new(dtgtk_cairo_paint_unaltered, 0, NULL);
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->unaltered), FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(d->unaltered), "button-press-event", G_CALLBACK(_unaltered_clicked), self);
+  gtk_widget_set_tooltip_text(d->unaltered, _("Toggle filtering in/out unedited images"));
+
+  _update_altered_filters(self);
 
   // Culling mode
   d->culling = gtk_toggle_button_new_with_label(_("Selected"));

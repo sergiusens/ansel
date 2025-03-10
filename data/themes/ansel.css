@@ -1428,7 +1428,8 @@ filechooser row:hover .sidebar-icon
 }
 
 #quickfilter-ratings,
-#quickfilter-colors {
+#quickfilter-colors,
+#quickfilters-altered {
   margin-right: 1em;
 }
 

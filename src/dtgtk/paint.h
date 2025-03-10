@@ -135,6 +135,7 @@ void dtgtk_cairo_paint_star(cairo_t *cr, gint x, gint y, gint w, gint h, gint fl
 void dtgtk_cairo_paint_unratestar(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data);
 /** Paint an altered icon on thumbs */
 void dtgtk_cairo_paint_altered(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data);
+void dtgtk_cairo_paint_unaltered(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data);
 /** Paint an audio icon on thumbs */
 void dtgtk_cairo_paint_audio(cairo_t *cr, gint x, gint y, gint w, gint h, gint flags, void *data);
 /** Paint a colorlabel "flower" icon on thumbs */
@@ -340,4 +341,3 @@ void dtgtk_cairo_paint_pin(cairo_t *cr, gint x, gint y, gint w, gint h, gint fla
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

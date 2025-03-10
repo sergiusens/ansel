@@ -272,21 +272,33 @@ int dt_collection_update(const dt_collection_t *collection)
     if(got_rating_filter)
       wq = dt_util_dstrcat(wq, ") ");
 
+    gboolean got_altered_filter
+        = collection->params.filter_flags & (COLLECTION_FILTER_ALTERED | COLLECTION_FILTER_UNALTERED);
+
+    if(got_altered_filter)
+      wq = dt_util_dstrcat(wq, " %s (", and_operator(&and_term));
+
+    or_term = or_operator_initial();
     if(collection->params.filter_flags & COLLECTION_FILTER_ALTERED)
       // clang-format off
       wq = dt_util_dstrcat(wq, " %s id IN (SELECT imgid FROM main.images, main.history_hash "
                                            "WHERE history_hash.imgid=id AND "
                                            " (basic_hash IS NULL OR current_hash != basic_hash) AND "
                                            " (auto_hash IS NULL OR current_hash != auto_hash))",
-                           and_operator(&and_term));
+                           or_operator(&or_term));
       // clang-format on
-    else if(collection->params.filter_flags & COLLECTION_FILTER_UNALTERED)
+
+    if(collection->params.filter_flags & COLLECTION_FILTER_UNALTERED)
       // clang-format off
       wq = dt_util_dstrcat(wq, " %s id IN (SELECT imgid FROM main.images, main.history_hash "
-                                           "WHERE history_hash.imgid=id AND "
-                                           " (current_hash == basic_hash OR current_hash == auto_hash))",
-                           and_operator(&and_term));
+                               "WHERE history_hash.imgid=id AND "
+                               " (current_hash == basic_hash OR current_hash == auto_hash))"
+                               " OR id NOT IN (SELECT imgid FROM main.history_hash)",
+                           or_operator(&or_term));
       // clang-format on
+
+    if(got_altered_filter)
+      wq = dt_util_dstrcat(wq, ") ");
 
     /* add text filter if any */
     if(collection->params.text_filter && collection->params.text_filter[0])
