@@ -186,9 +186,6 @@ uint32_t dt_tag_get_recent_used(GList **result);
 /** frees the memory of a result set. */
 void dt_tag_free_result(GList **result);
 
-/** get number of selected images */
-uint32_t dt_selected_images_count();
-
 /** get number of images affected with that tag */
 uint32_t dt_tag_images_count(gint tagid);
 

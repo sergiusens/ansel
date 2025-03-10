@@ -1040,7 +1040,7 @@ uint32_t dt_tag_get_suggestions(GList **result)
 {
   sqlite3_stmt *stmt;
 
-  const uint32_t nb_selected = dt_selected_images_count();
+  const uint32_t nb_selected = dt_selection_get_length(darktable.selection);
   const int nb_recent = dt_conf_get_int("plugins/lighttable/tagging/nb_recent_tags");
   const uint32_t confidence = dt_conf_get_int("plugins/lighttable/tagging/confidence");
   const char *slist = dt_conf_get_string_const("plugins/lighttable/tagging/recent_tags");
@@ -1254,19 +1254,6 @@ void dt_tag_get_tags_images(const gchar *keyword, GList **tag_list, GList **img_
   DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM memory.similar_tags", NULL, NULL, NULL);
 }
 
-uint32_t dt_selected_images_count()
-{
-  sqlite3_stmt *stmt;
-
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT count(*) FROM main.selected_images",
-                              -1, &stmt, NULL);
-  sqlite3_step(stmt);
-  const uint32_t nb_selected = sqlite3_column_int(stmt, 0);
-  sqlite3_finalize(stmt);
-  return nb_selected;
-}
-
 uint32_t dt_tag_images_count(gint tagid)
 {
   sqlite3_stmt *stmt;
@@ -1301,7 +1288,7 @@ uint32_t dt_tag_get_with_usage(GList **result)
   sqlite3_step(stmt);
   sqlite3_finalize(stmt);
 
-  const uint32_t nb_selected = dt_selected_images_count();
+  const uint32_t nb_selected = dt_selection_get_length(darktable.selection);
 
   /* Now put all the bits together */
   // clang-format off

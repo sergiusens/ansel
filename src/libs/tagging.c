@@ -365,7 +365,7 @@ static void _init_treeview(dt_lib_module_t *self, const int which)
   if(which == 0) // tags of selected images
   {
     const int imgsel = dt_control_get_mouse_over_id();
-    no_sel = imgsel > 0 || dt_selected_images_count() == 1;
+    no_sel = imgsel > 0 || dt_selection_get_length(darktable.selection) == 1;
     count = dt_tag_get_attached(imgsel, &tags, d->dttags_flag ? FALSE : TRUE);
     view = d->attached_view;
     model = gtk_tree_view_get_model(GTK_TREE_VIEW(view));
