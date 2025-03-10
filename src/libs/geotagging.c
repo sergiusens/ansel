@@ -1325,22 +1325,20 @@ static void _datetime_entry_changed(GtkWidget *entry, dt_lib_module_t *self)
 static GDateTime *_get_image_datetime(dt_lib_module_t *self)
 {
   dt_lib_geotagging_t *d = (dt_lib_geotagging_t *)self->data;
-  GList *selected = dt_selection_get_list(darktable.selection);
-  const int selid = selected ? GPOINTER_TO_INT(selected->data) : 0;
-  const int32_t imgid = dt_control_get_mouse_over_id();
+  int32_t imgid = dt_control_get_mouse_over_id();
+  if(imgid < 0) imgid = dt_act_on_get_first_image();
+  if(imgid < 0) return NULL;
   GDateTime *datetime = NULL;
-  if((selid != 0) || ((selid == 0) && (imgid != -1)))
-  {
-    // consider act on only if no selected
-    char datetime_s[DT_DATETIME_LENGTH];
-    dt_image_get_datetime(selid ? selid : imgid, datetime_s);
-    if(datetime_s[0] != '\0')
-      datetime = dt_datetime_exif_to_gdatetime(datetime_s, darktable.utc_tz);
-    else
-      datetime = NULL;
-  }
-  d->imgid = selid;
-  g_list_free(selected);
+
+  // consider act on only if no selected
+  char datetime_s[DT_DATETIME_LENGTH];
+  dt_image_get_datetime(imgid, datetime_s);
+  if(datetime_s[0] != '\0')
+    datetime = dt_datetime_exif_to_gdatetime(datetime_s, darktable.utc_tz);
+  else
+    datetime = NULL;
+
+  d->imgid = imgid;
   return datetime;
 }
 
@@ -1387,6 +1385,13 @@ static void _image_info_changed(gpointer instance, gpointer imgs, dt_lib_module_
     _refresh_track_list(self);
   }
 #endif
+}
+
+
+static void _mouse_over_image_callback(gpointer instance, dt_lib_module_t *self)
+{
+  if(dt_lib_gui_get_expanded(self))
+    _refresh_image_datetime(self);
 }
 
 static void _selection_changed_callback(gpointer instance, dt_lib_module_t *self)
@@ -1932,8 +1937,10 @@ void gui_init(dt_lib_module_t *self)
     g_signal_connect(d->dt.widget[i], "key-press-event", G_CALLBACK(_datetime_key_pressed), self);
     g_signal_connect(d->dt.widget[i], "scroll-event", G_CALLBACK(_datetime_scroll_over), self);
   }
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE,
+                                  G_CALLBACK(_mouse_over_image_callback), self);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_SELECTION_CHANGED,
-                            G_CALLBACK(_selection_changed_callback), self);
+                                  G_CALLBACK(_selection_changed_callback), self);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED,
                             G_CALLBACK(_image_info_changed), self);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_PREFERENCES_CHANGE,
@@ -1963,6 +1970,8 @@ void gui_cleanup(dt_lib_module_t *self)
     g_date_time_unref(d->datetime);
   if(d->datetime0)
     g_date_time_unref(d->datetime0);
+
+  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_mouse_over_image_callback), self);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_selection_changed_callback), self);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_image_info_changed), self);
   if(d->imgs)
