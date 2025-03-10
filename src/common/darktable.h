@@ -777,6 +777,7 @@ static inline uint64_t dt_hash(uint64_t hash, const char *str, size_t size)
 // Remove underscore from GUI labels containing mnemonics
 static inline gchar *delete_underscore(const char *s)
 {
+  if(!s) return NULL;
   gchar **split = g_strsplit(s, "_", -1);
   gchar *text = g_strjoinv("", split);
   g_strfreev(split);
