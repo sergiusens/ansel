@@ -11,8 +11,7 @@ It is forked on Darktable 4.0, and is compatible with editing histories produced
 It is not compatible with Darktable 4.2 and later and will not be, since 4.2 introduces irresponsible choices that
 will be the burden of those who commited them to maintain, and 4.4 will be even worse.
 
-30.000 lines of code have been removed from Darktable 4.0 and 10.000 lines have been re-written. The end goal
-is :
+The end goal is :
 
 1. to produce a more robust and faster software, with fewer opportunities for weird, contextual bugs
 that can't be systematically reproduced, and therefore will never be fixed,
@@ -34,6 +33,7 @@ Ansel was forked from Darktable at commit 7b88fdd7afe7b8530a992ae3c12e7a088dc9e9
 `cloc --git --diff 7b88fdd7afe7b8530a992ae3c12e7a088dc9e992 HEAD` returns (output truncated to relevant languages):
 
 ```
+github.com/AlDanial/cloc v 2.02  T=228.44 s (3.3 files/s, 5236.4 lines/s)
 --------------------------------------------------------------------------------
 Language                      files          blank        comment           code
 --------------------------------------------------------------------------------
@@ -71,6 +71,55 @@ SUM:
  removed                        186          25494          96370         187755
 --------------------------------------------------------------------------------
 ```
+
+`cloc --git 7b88fdd7afe7b8530a992ae3c12e7a088dc9e992`:
+
+```
+github.com/AlDanial/cloc v 2.02  T=3.44 s (337.6 files/s, 388596.5 lines/s)
+--------------------------------------------------------------------------------
+Language                      files          blank        comment           code
+--------------------------------------------------------------------------------
+PO File                          36         148288         225050         381427
+C                               439          51319          37122         303148
+Lua                              13            457            144          28672
+C/C++ Header                    284           7286          11522          24848
+SVG                              71             66             72          18544
+OpenCL                           36           3055           1648          10969
+CSS                              20            564            617          10353
+C++                              11           1489           1138           9899
+HTML                              3           3944             11           8993
+JSON                              2              0              0           8775
+JavaScript                        8           1513            593           4869
+CMake                            94           1047           1236           4813
+XML                              10              0              0           4312
+Bourne Shell                     29            528            490           2153
+Perl                              6            461            202           1832
+Markdown                         17            676              4           1711
+Ruby                             17            269            168           1354
+YAML                              9             37             50           1093
+XSLT                              4            175             35           1074
+Bourne Again Shell                8            209            137           1010
+Python                            7            150            148            876
+TeX                               3            121             49            355
+Text                              5             83              0            286
+make                              4             82             43            281
+Objective-C++                     1             20             28            203
+ERB                               3             17              0            185
+diff                             12             34            136            109
+Dockerfile                        1             15             39             81
+Assembly                          1              6             15             46
+SQL                               1              3             31             38
+Nix                               1              7              5             32
+DTD                               1              0              0             26
+awk                               1              4              0             21
+Lisp                              1              0              0              3
+INI                               1              0              0              2
+--------------------------------------------------------------------------------
+SUM:                           1160         221925         280733         832393
+--------------------------------------------------------------------------------
+```
+
+The volume of C code has therefore been reduced by 15%.
 
 ## Download and test
 
