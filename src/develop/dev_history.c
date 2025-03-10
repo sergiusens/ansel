@@ -1849,7 +1849,9 @@ void dt_dev_history_compress(dt_develop_t *dev)
   for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
-    if(module->enabled && !_module_leaves_no_history(module))
+    if((module->enabled || module->default_enabled
+        || (module->force_enable && module->force_enable(module, module->enabled)))
+       && !_module_leaves_no_history(module))
       dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
   }
 
