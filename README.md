@@ -29,6 +29,49 @@ this will be available only for computers with GPU and is a prototype that will 
 audience for the next years to come. __Ansel__ aims at sunsetting __Darktable__ with something "finished",
 pending a VKDT version usable by common folks.
 
+Ansel was forked from Darktable at commit 7b88fdd7afe7b8530a992ae3c12e7a088dc9e992.
+
+`cloc --git --diff 7b88fdd7afe7b8530a992ae3c12e7a088dc9e992 HEAD` returns (output truncated to relevant languages):
+
+```
+--------------------------------------------------------------------------------
+Language                      files          blank        comment           code
+--------------------------------------------------------------------------------
+C
+ same                             0              0          22928         208021
+ modified                       266              0            964           7059
+ added                           19           2072           2955          18146
+ removed                         48           6747           5243          51264
+C/C++ Header
+ same                             0              0           5018          11746
+ modified                        92              0            195            476
+ added                           17            599            857           2565
+ removed                          9            296            704           2487
+C++
+ same                             0              0            791           6746
+ modified                         8              0             20            170
+ added                            1            321            280           2210
+ removed                          1            318            243           2020
+OpenCL
+ same                             0              0            650           4253
+ modified                         7              0             43            170
+ added                            0             35             28            199
+ removed                          0              0              6             35
+CSS
+ same                             0              0              0              0
+ modified                         0              0              0              0
+ added                            3            324            357           1794
+ removed                         13            419            519           9575
+...
+--------------------------------------------------------------------------------
+SUM:
+ same                             0              0          56961         491408
+ modified                       486              0         111210          48354
+ added                           88          15173          42295         121201
+ removed                        186          25494          96370         187755
+--------------------------------------------------------------------------------
+```
+
 ## Download and test
 
 The virtual `0.0.0` [pre-release](https://github.com/aurelienpierreeng/ansel/releases/tag/v0.0.0)
