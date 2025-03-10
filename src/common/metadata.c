@@ -323,8 +323,6 @@ static void _pop_undo(gpointer user_data, const dt_undo_type_t type, dt_undo_dat
       _pop_undo_execute(undometadata->imgid, before, after);
       *imgs = g_list_prepend(*imgs, GINT_TO_POINTER(undometadata->imgid));
     }
-
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE);
   }
 }
 

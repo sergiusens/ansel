@@ -1974,7 +1974,6 @@ static int32_t dt_control_datetime_job_run(dt_job_t *job)
   const char *mes21 = offset ? N_("added time offset to %d image") : N_("set date/time of %d image");
   const char *mes22 = offset ? N_("added time offset to %d images") : N_("set date/time of %d images");
   dt_control_log(ngettext(mes21, mes22, cntr), cntr);
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE);
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, imgs);
   return 0;
 }
