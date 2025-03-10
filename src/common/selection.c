@@ -147,16 +147,14 @@ static void _add_id_link(dt_selection_t *selection, int32_t imgid)
 
 GList *dt_selection_get_list(struct dt_selection_t *selection)
 {
-  if(!selection->ids) dt_selection_reload_from_database(selection);
+  if(!selection->ids) return NULL;
 
   return g_list_copy(selection->ids);
 }
 
 int dt_selection_get_length(struct dt_selection_t *selection)
 {
-  if(!selection) return 0;
-  if(!selection->ids) dt_selection_reload_from_database(selection);
-  if(!selection->ids) return 0;
+  if(!selection || !selection->ids) return 0;
 
   return selection->length;
 }
@@ -205,6 +203,9 @@ void dt_pop_selection()
     DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "INSERT INTO main.selected_images"
                                                          " SELECT * FROM memory.selected_backup", NULL, NULL, NULL);
     darktable.gui->selection_stacked = FALSE;
+
+    // Commit from DB to GList of imgids
+    dt_selection_reload_from_database(darktable.selection);
   }
 
   _update_gui();
@@ -334,9 +335,6 @@ void dt_selection_deselect_list(struct dt_selection_t *selection, const GList *c
 
 gchar *dt_selection_ids_to_string(struct dt_selection_t *selection)
 {
-  // In case we didn't already init the selection
-  if(!selection->ids) dt_selection_reload_from_database(selection);
-
   // There is no selection even after init, abort
   if(!selection->ids) return NULL;
 
@@ -363,9 +361,7 @@ gchar *dt_selection_ids_to_string(struct dt_selection_t *selection)
 
 gboolean dt_selection_is_id_selected(struct dt_selection_t *selection, int32_t imgid)
 {
-  if(!selection) return FALSE;
-  if(!selection->ids) dt_selection_reload_from_database(selection);
-  if(!selection->ids) return FALSE;
+  if(!selection || !selection->ids) return FALSE;
   return (g_list_find(selection->ids, GINT_TO_POINTER(imgid)) != NULL);
 }
 
