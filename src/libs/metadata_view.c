@@ -57,6 +57,9 @@ typedef struct dt_lib_metadata_view_t
   GtkWidget *grid;
   GList *metadata;
   GObject *filmroll_event;
+
+  // currently-displayed imgid
+  int32_t imgid;
 } dt_lib_metadata_view_t;
 
 typedef struct dt_lib_metadata_info_t
@@ -465,153 +468,123 @@ static void _metadata_get_flags(const dt_image_t *const img, char *const text, c
 static int lua_update_metadata(lua_State*L);
 #endif
 
+static void _concatenate_multiple_images(gboolean skip[md_size], int count)
+{
+  gchar *images = dt_selection_ids_to_string(darktable.selection);
+  sqlite3_stmt *stmt = NULL;
+  // clang-format off
+  gchar *query = g_strdup_printf("SELECT COUNT(DISTINCT film_id), "
+                                        "2, " //id always different
+                                        "COUNT(DISTINCT group_id), "
+                                        "COUNT(DISTINCT filename), "
+                                        "COUNT(DISTINCT version), "
+                                        "COUNT(DISTINCT film_id || '/' || filename), " //path
+                                        "COUNT(DISTINCT flags & 2048), " //local copy
+                                        "COUNT(DISTINCT import_timestamp), "
+                                        "COUNT(DISTINCT change_timestamp), "
+                                        "COUNT(DISTINCT export_timestamp), "
+                                        "COUNT(DISTINCT print_timestamp), "
+                                        "COUNT(DISTINCT flags), "
+                                        "COUNT(DISTINCT model), "
+                                        "COUNT(DISTINCT maker), "
+                                        "COUNT(DISTINCT lens), "
+                                        "COUNT(DISTINCT aperture), "
+                                        "COUNT(DISTINCT exposure), "
+                                        "COUNT(DISTINCT IFNULL(exposure_bias, '')), "
+                                        "COUNT(DISTINCT focal_length), "
+                                        "COUNT(DISTINCT focus_distance), "
+                                        "COUNT(DISTINCT iso), "
+                                        "COUNT(DISTINCT datetime_taken), "
+                                        "COUNT(DISTINCT width), "
+                                        "COUNT(DISTINCT height), "
+                                        "COUNT(DISTINCT IFNULL(output_width, '')), " //exported width
+                                        "COUNT(DISTINCT IFNULL(output_height, '')), " //exported height
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 2 WHERE images.id in (%s)), " //title
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 3 WHERE images.id in (%s)), " //description
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 0 WHERE images.id in (%s)), " //creator
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 1 WHERE images.id in (%s)), " //publisher
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 4 WHERE images.id in (%s)), " //rights
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 5 WHERE images.id in (%s)), " //notes
+                                        "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 6 WHERE images.id in (%s)), " //version name
+                                        "COUNT(DISTINCT IFNULL(latitude, '')), "
+                                        "COUNT(DISTINCT IFNULL(longitude, '')), "
+                                        "COUNT(DISTINCT IFNULL(altitude, '')) "
+                                        "FROM main.images "
+                                        "WHERE id IN (%s)",
+                                  images, images, images, images, images, images, images, images);
+  // clang-format on
+
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
+
+  sqlite3_stmt *stmt_tags = NULL;
+  // clang-format off
+  gchar *tag_query = g_strdup_printf("SELECT flags, COUNT(DISTINCT imgid) "
+                                      "FROM main.tagged_images "
+                                      "JOIN data.tags "
+                                      "ON data.tags.id = main.tagged_images.tagid AND name NOT LIKE 'darktable|%%' "
+                                      "WHERE imgid in (%s) GROUP BY tagid", images);
+  // clang-format on
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), tag_query, -1, &stmt_tags, NULL);
+  g_free(tag_query);
+  g_free(query);
+
+  if(sqlite3_step(stmt) == SQLITE_ROW)
+    for(int32_t md = 0; md < md_tag_names; md++)
+      skip[md] = (sqlite3_column_int(stmt, md) > 1);
+
+  sqlite3_finalize(stmt);
+
+  // Tags and categories management
+  gboolean same_tags = TRUE;
+  gboolean same_categories = TRUE;
+
+  while(sqlite3_step(stmt_tags) == SQLITE_ROW)
+  {
+    if(sqlite3_column_int(stmt_tags, 0) & DT_TF_CATEGORY)
+      same_categories &= (sqlite3_column_int(stmt_tags, 1) == count);
+    else
+      same_tags &= (sqlite3_column_int(stmt_tags, 1) == count);
+  }
+
+  skip[md_tag_names] = !same_tags;
+  skip[md_categories] = !same_categories;
+
+  sqlite3_finalize(stmt_tags);
+  g_free(images);
+}
+
+
 /* update all values to reflect mouse over image id or no data at all */
 static void _metadata_view_update_values(dt_lib_module_t *self)
 {
-  int32_t mouse_over_id = dt_control_get_mouse_over_id();
+  dt_lib_metadata_view_t *d = (dt_lib_metadata_view_t *)self->data;
+
   int32_t count = 0;
+  gboolean skip[md_size] = {FALSE};
 
-  gchar *images = NULL;
-
-  if(mouse_over_id == -1)
-  {
-    const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-    if(cv->view(cv) == DT_VIEW_DARKROOM)
-    {
-       mouse_over_id = darktable.develop->image_storage.id;
-    }
-    else
-    {
-      images = dt_selection_ids_to_string(darktable.selection);
-      sqlite3_stmt *stmt;
-      // clang-format off
-      gchar *query = g_strdup_printf("SELECT id, COUNT(id) "
-                                     "FROM main.images "
-                                     "WHERE id IN (%s)",
-                                     images);
-      // clang-format on
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
-      if(sqlite3_step(stmt) == SQLITE_ROW)
-      {
-        mouse_over_id = sqlite3_column_int(stmt, 0);
-        count = sqlite3_column_int(stmt, 1);
-      }
-      sqlite3_finalize(stmt);
-      g_free(query);
-
-      // Still 0 => no selection in progress
-      if(count == 0)
-      {
-        goto fill_minuses;
-      }
-    }
-  }
-  else // over an image
+  int32_t img_id = dt_control_get_mouse_over_id();
+  if(img_id > -1)
   {
     count = 1;
   }
-
-  gboolean skip[md_size] = {FALSE};
-
-  if(count > 1)
+  else if(dt_selection_get_length(darktable.selection) > 1)
   {
-    if(!images) images = dt_selection_ids_to_string(darktable.selection);
-    sqlite3_stmt *stmt = NULL;
-    // clang-format off
-    gchar *query = g_strdup_printf("SELECT COUNT(DISTINCT film_id), "
-                                         "2, " //id always different
-                                         "COUNT(DISTINCT group_id), "
-                                         "COUNT(DISTINCT filename), "
-                                         "COUNT(DISTINCT version), "
-                                         "COUNT(DISTINCT film_id || '/' || filename), " //path
-                                         "COUNT(DISTINCT flags & 2048), " //local copy
-                                         "COUNT(DISTINCT import_timestamp), "
-                                         "COUNT(DISTINCT change_timestamp), "
-                                         "COUNT(DISTINCT export_timestamp), "
-                                         "COUNT(DISTINCT print_timestamp), "
-                                         "COUNT(DISTINCT flags), "
-                                         "COUNT(DISTINCT model), "
-                                         "COUNT(DISTINCT maker), "
-                                         "COUNT(DISTINCT lens), "
-                                         "COUNT(DISTINCT aperture), "
-                                         "COUNT(DISTINCT exposure), "
-                                         "COUNT(DISTINCT IFNULL(exposure_bias, '')), "
-                                         "COUNT(DISTINCT focal_length), "
-                                         "COUNT(DISTINCT focus_distance), "
-                                         "COUNT(DISTINCT iso), "
-                                         "COUNT(DISTINCT datetime_taken), "
-                                         "COUNT(DISTINCT width), "
-                                         "COUNT(DISTINCT height), "
-                                         "COUNT(DISTINCT IFNULL(output_width, '')), " //exported width
-                                         "COUNT(DISTINCT IFNULL(output_height, '')), " //exported height
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 2 WHERE images.id in (%s)), " //title
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 3 WHERE images.id in (%s)), " //description
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 0 WHERE images.id in (%s)), " //creator
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 1 WHERE images.id in (%s)), " //publisher
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 4 WHERE images.id in (%s)), " //rights
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 5 WHERE images.id in (%s)), " //notes
-                                         "(SELECT COUNT(DISTINCT IFNULL(value,'')) FROM images LEFT JOIN meta_data ON meta_data.id = images.id AND key = 6 WHERE images.id in (%s)), " //version name
-                                         "COUNT(DISTINCT IFNULL(latitude, '')), "
-                                         "COUNT(DISTINCT IFNULL(longitude, '')), "
-                                         "COUNT(DISTINCT IFNULL(altitude, '')) "
-                                         "FROM main.images "
-                                         "WHERE id IN (%s)",
-                                   images, images, images, images, images, images, images, images);
-    // clang-format on
-
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
-
-    sqlite3_stmt *stmt_tags = NULL;
-    // clang-format off
-    gchar *tag_query = g_strdup_printf("SELECT flags, COUNT(DISTINCT imgid) "
-                                       "FROM main.tagged_images "
-                                       "JOIN data.tags "
-                                       "ON data.tags.id = main.tagged_images.tagid AND name NOT LIKE 'darktable|%%' "
-                                       "WHERE imgid in (%s) GROUP BY tagid", images);
-    // clang-format on
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), tag_query, -1, &stmt_tags, NULL);
-    g_free(tag_query);
-    g_free(query);
-
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-    {
-      for(int32_t md = 0; md < md_tag_names; md++)
-      {
-        skip[md] = (sqlite3_column_int(stmt, md) > 1);
-      }
-    }
-    sqlite3_finalize(stmt);
-
-    // Tags and categories management
-    gboolean same_tags = TRUE;
-    gboolean same_categories = TRUE;
-
-    while(sqlite3_step(stmt_tags) == SQLITE_ROW)
-    {
-      if(sqlite3_column_int(stmt_tags, 0) & DT_TF_CATEGORY)
-      {
-        same_categories &= (sqlite3_column_int(stmt_tags, 1) == count);
-      }
-      else
-      {
-        same_tags &= (sqlite3_column_int(stmt_tags, 1) == count);
-      }
-    }
-
-    skip[md_tag_names] = ! same_tags;
-    skip[md_categories] = ! same_categories;
-
-    sqlite3_finalize(stmt_tags);
+    count = dt_selection_get_length(darktable.selection);
+    img_id = dt_selection_get_first_id(darktable.selection);
+  }
+  else if(dt_act_on_get_first_image() > -1)
+  {
+    count = 1;
+    img_id = dt_act_on_get_first_image();
   }
 
-  g_free(images);
+  if(img_id == d->imgid) return; // nothing to update, spare the SQL queries
+  d->imgid = img_id;
 
-  int32_t img_id = mouse_over_id;
+  if(count > 1) _concatenate_multiple_images(skip, count);
+
   const dt_image_t *img = dt_image_cache_get(darktable.image_cache, img_id, 'r');
-
-  if(!img) goto fill_minuses;
-
-  if(img->film_id == -1)
+  if(!img || img->film_id == -1)
   {
     dt_image_cache_read_release(darktable.image_cache, img);
     goto fill_minuses;
@@ -623,14 +596,11 @@ static void _metadata_view_update_values(dt_lib_module_t *self)
     if(skip[md] == TRUE)
     {
       if(md == md_internal_flags)
-      {
         _metadata_update_tooltip(md, NULL, self);
-      }
 
       if(md == md_internal_filmroll)
-      {
         _metadata_update_tooltip(md, NULL, self);
-      }
+
       _metadata_update_value(md, _("<various values>"), self);
       _metadata_update_markup(md, "<span style=\"italic\">%s</span>", self);
       continue;
@@ -952,15 +922,15 @@ static void _metadata_view_update_values(dt_lib_module_t *self)
   }
   dt_image_cache_read_release(darktable.image_cache, img);
 
-  if(mouse_over_id >= 0)
-  {
 #ifdef USE_LUA
+  if(img_id >= 0)
+  {
     dt_lua_async_call_alien(lua_update_metadata,
                             0,NULL,NULL,
                             LUA_ASYNC_TYPENAME,"void*",self,
-                            LUA_ASYNC_TYPENAME,"int32_t",mouse_over_id,LUA_ASYNC_DONE);
-#endif
+                            LUA_ASYNC_TYPENAME,"int32_t", img_id,LUA_ASYNC_DONE);
   }
+#endif
 
   return;
 
@@ -1011,7 +981,8 @@ static gboolean _filmroll_clicked(GtkWidget *widget, GdkEventButton *event, gpoi
 static void _mouse_over_image_callback(gpointer instance, gpointer user_data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
-  if(dt_control_running()) _metadata_view_update_values(self);
+  if(dt_control_running() && dt_lib_gui_get_expanded(self))
+    _metadata_view_update_values(self);
 }
 
 static char *_get_current_configuration(dt_lib_module_t *self)
@@ -1321,6 +1292,7 @@ void gui_init(dt_lib_module_t *self)
   /* initialize ui */
   dt_lib_metadata_view_t *d = (dt_lib_metadata_view_t *)g_malloc0(sizeof(dt_lib_metadata_view_t));
   self->data = (void *)d;
+  d->imgid = -1;
 
   _lib_metadata_init_queue(self);
 
@@ -1344,33 +1316,6 @@ void gui_init(dt_lib_module_t *self)
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_SELECTION_CHANGED,
                                   G_CALLBACK(_mouse_over_image_callback), self);
-
-  /*
-  We signup only for mouse over and selection changes. The rationale is all signals
-  seem to be fired at once whenever mouse moves, which shows 5 SQL queries per thumbnail
-  when using lighttable. In any case, mouse over and selection are the signals used the most
-  and triggered on user interaction, which means when user needs the info,
-  and the info here is not so critical that it needs refreshing when metadata are edited.
-
-  FIXME: in the future, find out why all signals are triggered on mouse over event in thumbtable
-
-  lets signup for develop image changed signals
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_IMAGE_CHANGED,
-                            G_CALLBACK(_mouse_over_image_callback), self);
-
-  signup for develop initialize to update info of current
-     image in darkroom when enter
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_INITIALIZE,
-                            G_CALLBACK(_mouse_over_image_callback), self);
-
-  signup for tags changes
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_TAG_CHANGED,
-                            G_CALLBACK(_mouse_over_image_callback), self);
-
-  signup for metadata changes
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_METADATA_UPDATE,
-                            G_CALLBACK(_mouse_over_image_callback), self);
-  */
 }
 
 static void _free_metadata_queue(dt_lib_metadata_info_t *m)

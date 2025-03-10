@@ -30,7 +30,7 @@ typedef struct dt_selection_t
 
   /* this stores the last single clicked image id indicating
      the start of a selection range */
-  uint32_t last_single_id;
+  int32_t last_single_id;
 
   /* GList of ids of all images in selection */
   GList *ids;
@@ -45,7 +45,7 @@ static void _update_gui()
 }
 
 
-int dt_selection_get_first_id(struct dt_selection_t *selection)
+int32_t dt_selection_get_first_id(struct dt_selection_t *selection)
 {
   return selection->last_single_id;
 }

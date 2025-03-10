@@ -27,6 +27,9 @@ GList *dt_act_on_get_images();
 // get only the number of images to act on
 int dt_act_on_get_images_nb(const gboolean only_visible, const gboolean force);
 
+// get the imgid of the first active image if any, else -1
+int32_t dt_act_on_get_first_image();
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

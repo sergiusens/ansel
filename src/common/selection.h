@@ -64,7 +64,7 @@ struct dt_selection_t *dt_selection_new();
 void dt_selection_free(struct dt_selection_t *selection);
 
 /** Get the first imgid of a selection */
-int dt_selection_get_first_id(struct dt_selection_t *selection);
+int32_t dt_selection_get_first_id(struct dt_selection_t *selection);
 /** clears the selection */
 void dt_selection_clear(struct dt_selection_t *selection);
 /** adds a single imgid to the current selection. use the optimized `dt_selection_select_list()` to process batches. */

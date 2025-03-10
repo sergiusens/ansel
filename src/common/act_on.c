@@ -62,6 +62,20 @@ int dt_act_on_get_images_nb(const gboolean only_visible, const gboolean force)
   return 0;
 }
 
+int32_t dt_act_on_get_first_image()
+{
+  if(dt_selection_get_length(darktable.selection) > 0)
+    return dt_selection_get_first_id(darktable.selection);
+
+  else if(dt_view_active_images_get_first() > -1)
+    return dt_view_active_images_get_first();
+
+  else if(dt_control_get_keyboard_over_id() > -1)
+    return dt_control_get_keyboard_over_id();
+
+  return -1;
+}
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

@@ -697,6 +697,7 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
+  dt_control_set_mouse_over_id(-1);
   dt_thumbnail_set_mouseover(thumb, FALSE);
   gtk_widget_queue_draw(thumb->widget);
   return FALSE;
