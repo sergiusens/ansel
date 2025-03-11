@@ -476,6 +476,12 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
   if((thumb->table && thumb->table->mode == DT_THUMBTABLE_MODE_FILMSTRIP) || !thumb->table)
     gtk_widget_grab_focus(thumb->widget);
 
+  // Ensure mouse_over_id is set because that's what darkroom uses to open a picture
+  if(thumb->table)
+    dt_thumbtable_dispatch_over(thumb->table, event->type, thumb->imgid);
+  else
+    dt_control_set_mouse_over_id(thumb->imgid);
+
   // select on single or double click, whatever happens next
   if(event->button == 1 && event->type == GDK_BUTTON_PRESS)
   {
