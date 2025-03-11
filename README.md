@@ -144,12 +144,32 @@ The volume of C code has therefore been reduced by 11%, the volume of CSS (for 
 by 75%. Excluding the pixel operations (`cloc  --fullpath --not-match-d=/src/iop --git`),
 the C code volume has reduced by 15%.
 
-
 The [cyclomatic complexity](https://en.wikipedia.org/wiki/Cyclomatic_complexity) of the project
-was reduced from [56170](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierre_darktable)
-to [48806](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_ansel).
+has also been reduced reduced:
+
+| Metric | Ansel Master | Darktable 4.0 | Darktable 5.0 |
+| ------ | -----------: | ------------: | ------------: |
+| Cyclomatic complexity | [48806](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_ansel) | [56170](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierre_darktable) | [59377](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_darktable-5) |
+| Cognitive complexity | [62122](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_ansel) | [72743](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierre_darktable) | [77039](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_darktable-5) |
+| Lines of code | [318741](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_ansel) | [361046](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierre_darktable) | [370781](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_darktable-5) |
+| Ratio of comments | [12.3%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierreeng_ansel) | [11.5%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierre_darktable) | [11.7%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierreeng_darktable-5) |
+
+Those figures are indirect indicators of the long-term maintainability of the project:
+
+- comments document the code and are used by Doxygen to build the [dev docs](https://dev.ansel.photos),
+- code volume and complexity make bugs harder to find and fix properly, and lead to more cases to cover with tests,
+- code volume and complexity prevent from finding optimization opportunities,
+- let's remember that it's mostly the same software with pretty much the same features anyway.
+
+Dealing with growing features should be made through modularity, that is splitting the app features into modules,
+enclosing modules into their own space, and make modules independent from each other's internals.
+We will see below how those "modules" behave (spoiler 1: that this did not happen), (spoiler 2:
+feel free to go the [dev docs](https://dev.ansel.photos), where all functions have their
+dependency graph in their doc, to witness that "modules" are not even modular, and the whole application
+is actually aware of the whole application).
+
 Let's see a comparison of Ansel vs. Dartable 4.0 and 5.0 complexity per file/feature
-(figures are: cyclomatic complexity / lines of code, excluding comments) :
+(figures are: cyclomatic complexity / lines of code excluding comments - lower is better) :
 
 
 ### Pixel pipeline, development history, image manipulation backends
