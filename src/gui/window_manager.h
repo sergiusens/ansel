@@ -5,6 +5,10 @@
 #include <gtk/gtk.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DT_UI_PANEL_MODULE_SPACING 0
 #define DT_UI_PANEL_SIDE_DEFAULT_SIZE 350
 #define DT_UI_PANEL_BOTTOM_DEFAULT_SIZE 120
@@ -109,18 +113,22 @@ gchar *panels_get_panel_path(dt_ui_panel_t panel, char *suffix);
 int dt_ui_panel_get_size(dt_ui_t *ui, const dt_ui_panel_t p);
 void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s);
 
-gboolean dt_ui_panel_ancestor(struct dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
+gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
 GtkWidget *dt_ui_center(dt_ui_t *ui);
 GtkWidget *dt_ui_center_base(dt_ui_t *ui);
-dt_thumbtable_t *dt_ui_thumbtable(struct dt_ui_t *ui);
-GtkWidget *dt_ui_log_msg(struct dt_ui_t *ui);
-GtkWidget *dt_ui_toast_msg(struct dt_ui_t *ui);
+dt_thumbtable_t *dt_ui_thumbtable(dt_ui_t *ui);
+GtkWidget *dt_ui_log_msg(dt_ui_t *ui);
+GtkWidget *dt_ui_toast_msg(dt_ui_t *ui);
 GtkWidget *dt_ui_main_window(dt_ui_t *ui);
 
-void dt_ui_init_main_table(GtkWidget *container, struct dt_ui_t *ui);
+void dt_ui_init_main_table(GtkWidget *container, dt_ui_t *ui);
 void dt_ui_cleanup_main_table(dt_ui_t *ui);
 
-GtkBox *dt_ui_get_container(struct dt_ui_t *ui, const dt_ui_container_t c);
+GtkBox *dt_ui_get_container(dt_ui_t *ui, const dt_ui_container_t c);
 void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidget *w);
 
 void dt_ui_restore_panels(dt_ui_t *ui);
+
+#ifdef __cplusplus
+}
+#endif

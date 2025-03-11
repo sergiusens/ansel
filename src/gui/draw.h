@@ -36,6 +36,10 @@
 #include <stdlib.h>
 #include <gui/gtk.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef M_PI
 #define M_PI 3.141592654
 #endif
@@ -520,6 +524,10 @@ static inline GdkPixbuf *dt_draw_paint_to_pixbuf
   cairo_surface_destroy(cst);
   return pixbuf;
 }
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

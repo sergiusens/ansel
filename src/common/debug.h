@@ -20,6 +20,10 @@
 
 #include <sqlite3.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 // define this to see all sql queries passed to prepare and exec at compile time, or a variable name
 // warning:
 // there are some direct calls to sqlite3_exec and sqlite3_prepare_v2 which are missing here. grep manually.
@@ -118,6 +122,10 @@
               #function, __FUNCTION__, __FILE__, __LINE__);              \
     function(__VA_ARGS__);                                               \
   } while (0)
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

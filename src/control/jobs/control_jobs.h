@@ -28,6 +28,10 @@
 #include "common/cups_print.h"
 #endif
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dt_control_import_t
 {
   GList *imgs;
@@ -90,6 +94,10 @@ void dt_control_refresh_exif();
  * @return gchar* The full path after variables expansion
  */
 gchar *dt_build_filename_from_pattern(const char *const filename, const int index, dt_image_t *img, dt_control_import_t *data);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

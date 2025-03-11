@@ -21,6 +21,10 @@
 #include "common/darktable.h"
 #include <gtk/gtk.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DT_VIEW_RATINGS_MASK 0x7
 // first three bits of dt_view_image_over_t
 
@@ -34,6 +38,9 @@ void dt_ratings_apply_on_image(const int32_t imgid, const int rating, const gboo
 /** apply rating to all images in the list */
 void dt_ratings_apply_on_list(GList *list, const int rating, const gboolean undo_on);
 
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

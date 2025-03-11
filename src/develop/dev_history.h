@@ -26,11 +26,6 @@ struct dt_iop_module_t;
 struct dt_develop_blend_params_t;
 struct dt_develop_t;
 
-#ifdef __cplusplus
-}
-#endif
-
-
 typedef struct dt_dev_history_item_t
 {
   struct dt_iop_module_t *module; // pointer to image operation module
@@ -114,3 +109,7 @@ int dt_history_copy_and_paste_on_image(int32_t imgid, int32_t dest_imgid, GList 
  * @param dev
  */
 void dt_dev_history_compress(struct dt_develop_t *dev);
+
+#ifdef __cplusplus
+}
+#endif

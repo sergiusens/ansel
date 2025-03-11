@@ -23,12 +23,20 @@
 #include <sched.h>
 #include <stdint.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 /** region of interest */
 typedef struct dt_iop_roi_t
 {
   int x, y, width, height;
   float scale;
 } dt_iop_roi_t;
+
+#ifdef __cplusplus
+}
+#endif
 
 #include "common/darktable.h"
 #include "common/introspection.h"
@@ -39,6 +47,10 @@ typedef struct dt_iop_roi_t
 #include "develop/pixelpipe.h"
 #include "dtgtk/togglebutton.h"
 #include "gui/gtk.h"
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct dt_develop_t;
 struct dt_dev_pixelpipe_t;
@@ -554,6 +566,9 @@ static inline void dt_sfence()
 #define dt_omploop_sfence() dt_sfence()
 #endif
 
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

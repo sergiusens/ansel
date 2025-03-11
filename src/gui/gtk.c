@@ -904,13 +904,13 @@ void dt_ui_container_focus_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWid
   gtk_widget_queue_draw(ui->containers[c]);
 }
 
-void dt_ui_container_foreach(struct dt_ui_t *ui, const dt_ui_container_t c, GtkCallback callback)
+void dt_ui_container_foreach(dt_ui_t *ui, const dt_ui_container_t c, GtkCallback callback)
 {
   g_return_if_fail(GTK_IS_CONTAINER(ui->containers[c]));
   gtk_container_foreach(GTK_CONTAINER(ui->containers[c]), callback, (gpointer)ui->containers[c]);
 }
 
-void dt_ui_container_destroy_children(struct dt_ui_t *ui, const dt_ui_container_t c)
+void dt_ui_container_destroy_children(dt_ui_t *ui, const dt_ui_container_t c)
 {
   dt_gui_container_destroy_children(GTK_CONTAINER(ui->containers[c]));
 }

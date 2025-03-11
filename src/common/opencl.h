@@ -52,6 +52,10 @@
 #include <CL/cl.h>
 // #pragma GCC diagnostic
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define ROUNDUP(a, n) ((a) % (n) == 0 ? (a) : ((a) / (n)+1) * (n))
 
 // use per device roundups here
@@ -492,9 +496,19 @@ int dt_opencl_avoid_atomics(const int devid);
 int dt_opencl_micro_nap(const int devid);
 gboolean dt_opencl_use_pinned_memory(const int devid);
 
+#ifdef __cplusplus
+}
+#endif
+
 #else
+
 #include "control/conf.h"
 #include <stdlib.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dt_opencl_t
 {
   int inited;
@@ -632,6 +646,11 @@ static inline int dt_opencl_events_flush(const int devid, const int reset)
 static inline void dt_opencl_events_profiling(const int devid, const int aggregated)
 {
 }
+
+#ifdef __cplusplus
+}
+#endif
+
 #endif
 
 // clang-format off

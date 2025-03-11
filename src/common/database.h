@@ -19,6 +19,11 @@
 #pragma once
 
 #include <glib.h>
+#include <sqlite3.h>
+
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 struct dt_database_t;
 
@@ -27,7 +32,7 @@ struct dt_database_t *dt_database_init(const char *alternative, const gboolean l
 /** closes down database and frees memory */
 void dt_database_destroy(const struct dt_database_t *);
 /** get handle */
-struct sqlite3 *dt_database_get(const struct dt_database_t *);
+sqlite3 *dt_database_get(const struct dt_database_t *);
 /** Returns database path */
 const gchar *dt_database_get_path(const struct dt_database_t *db);
 /** test if database was already locked by another instance */
@@ -59,6 +64,9 @@ void dt_database_rollback_transaction(const struct dt_database_t *db);
 #define dt_database_start_transaction(db) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_SQL, dt_database_start_transaction_debug, (db))
 #define dt_database_release_transaction(db) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_SQL, dt_database_release_transaction_debug, (db))
 
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

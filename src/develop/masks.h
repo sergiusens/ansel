@@ -28,6 +28,10 @@
 
 #include <assert.h>
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #define DEVELOP_MASKS_VERSION (6)
 
 /**forms types */
@@ -676,6 +680,9 @@ int dt_masks_roundup(int num, int mult)
   return (rem == 0) ? num : num + mult - rem;
 }
 
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

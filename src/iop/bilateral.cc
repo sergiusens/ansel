@@ -20,7 +20,6 @@
 
 #include "glib.h"
 
-extern "C" {
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -39,12 +38,13 @@ extern "C" {
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-}
+
 #include "iop/Permutohedral.h"
-extern "C" {
+
 #include <gtk/gtk.h>
 #include <inttypes.h>
 
+extern "C" {
 /**
  * implementation of the 5d-color bilateral filter using andrew adams et al.'s
  * permutohedral lattice, which they kindly provided online as c++ code, under new bsd license.

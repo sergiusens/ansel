@@ -31,7 +31,6 @@
 
 #include "glib.h"
 
-extern "C" {
 #include "bauhaus/bauhaus.h"
 #include "common/colorspaces.h"
 #include "common/darktable.h"
@@ -42,7 +41,7 @@ extern "C" {
 #include "control/conf.h"
 #include "control/control.h"
 #include "imageio/format/imageio_format_api.h"
-}
+
 #include "common/imageio_exr.hh"
 
 #ifdef __cplusplus

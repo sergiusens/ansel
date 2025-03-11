@@ -35,7 +35,6 @@
 
 #include "glib.h"
 
-extern "C" {
 #include "common/colorspaces.h"
 #include "common/darktable.h"
 #include "common/exif.h"
@@ -45,7 +44,6 @@ extern "C" {
 #include "common/tags.h"
 #include "develop/imageop.h"
 #include <stdint.h>
-}
 
 // define this function, it is only declared in rawspeed:
 int rawspeed_get_number_of_processor_cores()

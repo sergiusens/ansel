@@ -18,12 +18,12 @@
 
 #pragma once
 
+#include "common/image.h"
+#include "common/mipmap_cache.h"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
-
-#include "common/image.h"
-#include "common/mipmap_cache.h"
 
 gboolean dt_rawspeed_lookup_makermodel(const char *maker, const char *model,
                                        char *mk, int mk_len, char *md, int md_len,

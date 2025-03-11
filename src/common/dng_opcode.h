@@ -21,6 +21,10 @@
 #include <stdint.h>
 #include "image.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dt_dng_gain_map_t
 {
   uint32_t top;
@@ -42,3 +46,7 @@ typedef struct dt_dng_gain_map_t
 } dt_dng_gain_map_t;
 
 void dt_dng_opcode_process_opcode_list_2(uint8_t *buf, uint32_t size, dt_image_t *img);
+
+#ifdef __cplusplus
+}
+#endif

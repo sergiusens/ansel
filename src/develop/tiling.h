@@ -22,6 +22,10 @@
 #include "develop/imageop.h"
 #include "develop/pixelpipe.h"
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef struct dt_develop_tiling_t
 {
   /** memory requirement as a multiple of image buffer size (on host/CPU) */
@@ -73,6 +77,10 @@ void tiling_callback(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t
 
 int dt_tiling_piece_fits_host_memory(const size_t width, const size_t height, const unsigned bpp,
                                      const float factor, const size_t overhead);
+
+#ifdef __cplusplus
+}
+#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
