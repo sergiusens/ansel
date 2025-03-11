@@ -20,6 +20,7 @@
 #include "dtgtk/thumbnail.h"
 #include "common/dtpthread.h"
 #include <gtk/gtk.h>
+#include <gdk/gdk.h>
 
 #pragma once
 
@@ -150,6 +151,9 @@ void dt_thumbtable_select_range(dt_thumbtable_t *table, const int rowid);
 
 // invert the selection of images from the current collection through the GUI list of thumbnails
 void dt_thumbtable_invert_selection(dt_thumbtable_t *table);
+
+// set mouse_over imgid while resolving conflicts between mouse and keyboard events
+void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int32_t imgid);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -994,7 +994,7 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
     }
 
     /*GList *check_list = NULL;
-    for (check_list = g_list_first(files); check_list; check_list = g_list_next(check_list)) 
+    for (check_list = g_list_first(files); check_list; check_list = g_list_next(check_list))
       fprintf(stdout,"dnd list check: %s\n", (char *)check_list->data);
     g_list_free(check_list);*/
 
@@ -1114,7 +1114,7 @@ typedef enum dt_thumbtable_direction_t
 } dt_thumbtable_direction_t;
 
 
-void _move_in_grid(dt_thumbtable_t *table, dt_thumbtable_direction_t direction, int origin_imgid)
+void _move_in_grid(dt_thumbtable_t *table, GdkEventKey *event, dt_thumbtable_direction_t direction, int origin_imgid)
 {
   if(!table->lut) return;
   int current_rowid = _imgid_to_rowid(table, origin_imgid);
@@ -1154,8 +1154,7 @@ void _move_in_grid(dt_thumbtable_t *table, dt_thumbtable_direction_t direction, 
   int new_imgid = table->lut[new_rowid].imgid;
   dt_pthread_mutex_unlock(&table->lock);
 
-  dt_control_set_mouse_over_id(new_imgid);
-  dt_control_set_keyboard_over_id(new_imgid);
+  dt_thumbtable_dispatch_over(table, event->type, new_imgid);
 
   if(!_is_rowid_visible(table, new_rowid))
   {
@@ -1223,7 +1222,7 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
     {
       if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
       {
-        _move_in_grid(table, DT_TT_MOVE_UP, imgid);
+        _move_in_grid(table, event, DT_TT_MOVE_UP, imgid);
         return TRUE;
       }
       break;
@@ -1233,7 +1232,7 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
     {
       if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
       {
-        _move_in_grid(table, DT_TT_MOVE_DOWN, imgid);
+        _move_in_grid(table, event, DT_TT_MOVE_DOWN, imgid);
         return TRUE;
       }
       break;
@@ -1241,37 +1240,37 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
     case GDK_KEY_Left:
     case GDK_KEY_KP_Left:
     {
-      _move_in_grid(table, DT_TT_MOVE_LEFT, imgid);
+      _move_in_grid(table, event, DT_TT_MOVE_LEFT, imgid);
       return TRUE;
     }
     case GDK_KEY_Right:
     case GDK_KEY_KP_Right:
     {
-      _move_in_grid(table, DT_TT_MOVE_RIGHT, imgid);
+      _move_in_grid(table, event, DT_TT_MOVE_RIGHT, imgid);
       return TRUE;
     }
     case GDK_KEY_Page_Up:
     case GDK_KEY_KP_Page_Up:
     {
-      _move_in_grid(table, DT_TT_MOVE_PREVIOUS_PAGE, imgid);
+      _move_in_grid(table, event, DT_TT_MOVE_PREVIOUS_PAGE, imgid);
       return TRUE;
     }
     case GDK_KEY_Page_Down:
     case GDK_KEY_KP_Page_Down:
     {
-      _move_in_grid(table, DT_TT_MOVE_NEXT_PAGE, imgid);
+      _move_in_grid(table, event, DT_TT_MOVE_NEXT_PAGE, imgid);
       return TRUE;
     }
     case GDK_KEY_Home:
     case GDK_KEY_KP_Home:
     {
-      _move_in_grid(table, DT_TT_MOVE_START, imgid);
+      _move_in_grid(table, event, DT_TT_MOVE_START, imgid);
       return TRUE;
     }
     case GDK_KEY_End:
     case GDK_KEY_KP_End:
     {
-      _move_in_grid(table, DT_TT_MOVE_END, imgid);
+      _move_in_grid(table, event, DT_TT_MOVE_END, imgid);
       return TRUE;
     }
     case GDK_KEY_space:
@@ -1684,6 +1683,26 @@ void dt_thumbtable_invert_selection(dt_thumbtable_t *table)
     dt_thumbtable_select_all(table);
     dt_selection_deselect_list(darktable.selection, to_deselect);
     g_list_free(to_deselect);
+  }
+}
+
+static gint64 next_over_time = 0;
+
+void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int32_t imgid)
+{
+  gint64 current_time = g_get_real_time(); // microseconds
+  if(type == GDK_KEY_PRESS || type == GDK_KEY_RELEASE)
+  {
+    // allow the mouse to capture the next hover events
+    // in more than 50 ms:
+    next_over_time = current_time + 50000;
+
+    dt_control_set_mouse_over_id(imgid);
+    dt_control_set_keyboard_over_id(imgid);
+  }
+  else if(current_time > next_over_time)
+  {
+    dt_control_set_mouse_over_id(imgid);
   }
 }
 

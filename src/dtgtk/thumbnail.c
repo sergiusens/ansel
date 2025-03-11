@@ -470,13 +470,6 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
-  // Technically, this is already set on mouse_enter, but we never know
-  if(!thumb->mouse_over)
-  {
-    dt_control_set_mouse_over_id(thumb->imgid);
-    dt_thumbnail_set_mouseover(thumb, TRUE);
-  }
-
   // To handle keyboard move on filmstrip, we need to give focus to the picture on click.
   // But if we do so on file manager, the grid looses focus which causes the scrolled window
   // to scroll back to the top, and that's annoying.
@@ -676,7 +669,11 @@ static gboolean _event_main_motion(GtkWidget *widget, GdkEventMotion *event, gpo
     // If we lost the mouse-over in this case, grab it again from mouse motion.
     // Be conservative with sending mouse_over_id events/signal because many
     // places in the soft listen to them and refresh stuff from DB, so it's expensive.
-    dt_control_set_mouse_over_id(thumb->imgid);
+    if(thumb->table)
+      dt_thumbtable_dispatch_over(thumb->table, event->type, thumb->imgid);
+    else
+      dt_control_set_mouse_over_id(thumb->imgid);
+
     dt_thumbnail_set_mouseover(thumb, TRUE);
     gtk_widget_queue_draw(thumb->widget);
   }
@@ -687,7 +684,12 @@ static gboolean _event_main_enter(GtkWidget *widget, GdkEventCrossing *event, gp
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
-  dt_control_set_mouse_over_id(thumb->imgid);
+
+  if(thumb->table)
+    dt_thumbtable_dispatch_over(thumb->table, event->type, thumb->imgid);
+  else
+    dt_control_set_mouse_over_id(thumb->imgid);
+
   dt_thumbnail_set_mouseover(thumb, TRUE);
   gtk_widget_queue_draw(thumb->widget);
   return FALSE;
@@ -697,7 +699,12 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
-  dt_control_set_mouse_over_id(-1);
+
+  if(thumb->table)
+    dt_thumbtable_dispatch_over(thumb->table, event->type, -1);
+  else
+    dt_control_set_mouse_over_id(-1);
+
   dt_thumbnail_set_mouseover(thumb, FALSE);
   gtk_widget_queue_draw(thumb->widget);
   return FALSE;
