@@ -1694,16 +1694,28 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
   if(type == GDK_KEY_PRESS || type == GDK_KEY_RELEASE)
   {
     // allow the mouse to capture the next hover events
-    // in more than 50 ms:
-    next_over_time = current_time + 50000;
+    // in more than 100 ms:
+    next_over_time = current_time + 100000;
 
     dt_control_set_mouse_over_id(imgid);
     dt_control_set_keyboard_over_id(imgid);
   }
-  else if(current_time > next_over_time)
+  else if(type == GDK_ENTER_NOTIFY	|| type == GDK_LEAVE_NOTIFY)
   {
+    // When navigating the grid with arrow keys, the view will get scrolled.
+    // If the mouse pointer is over the grid, it will enter a new thumbnail
+    // which will trigger leave/enter events.
+    // But we don't want that when interacting from the keyboard, so disallow
+    // recording enter/leave events in the next 100 ms after keyboard interaction.
+    if(current_time > next_over_time) dt_control_set_mouse_over_id(imgid);
+  }
+  else if(type == GDK_MOTION_NOTIFY	|| type == GDK_BUTTON_PRESS)
+  {
+    // Active mouse pointer interactions: accept unconditionnaly
     dt_control_set_mouse_over_id(imgid);
   }
+  else
+    fprintf(stderr, "[dt_thumbtable_dispatch_over] unsupported event type: %i\n", type);
 }
 
 // clang-format off
