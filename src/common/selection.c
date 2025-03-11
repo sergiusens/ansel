@@ -177,7 +177,7 @@ static void _selection_deselect(dt_selection_t *selection, int32_t imgid)
   g_free(query);
 }
 
-void dt_push_selection()
+void dt_selection_push()
 {
   // Backup current selection
   if(!darktable.gui->selection_stacked)
@@ -194,7 +194,7 @@ void dt_push_selection()
   _update_gui();
 }
 
-void dt_pop_selection()
+void dt_selection_pop()
 {
   // Restore current selection
   if(darktable.gui->selection_stacked)

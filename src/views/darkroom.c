@@ -2056,7 +2056,10 @@ void enter(dt_view_t *self)
 
   // change active image
   dt_view_active_images_reset(FALSE);
-  dt_view_active_images_add(dev->image_storage.id, TRUE);
+  dt_view_active_images_add(dev->image_storage.id, FALSE);
+
+  // save and clear selection, we don't want selections in darkroom
+  dt_selection_push(darktable.selection);
   dt_selection_clear(darktable.selection);
 
   dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILMSTRIP);
@@ -2079,8 +2082,9 @@ void leave(dt_view_t *self)
 
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
-  // Restore the selection
-  dt_selection_select_single(darktable.selection, dev->image_storage.id);
+  // Restore the previous selection
+  dt_view_active_images_reset(FALSE);
+  dt_selection_pop(darktable.selection);
 
   // Send all shutdown signals
   dev->exit = 1;

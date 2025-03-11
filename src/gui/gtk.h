@@ -104,7 +104,7 @@ typedef struct dt_gui_gtk_t
   gboolean culling_mode;
 
   // Track if the current selection has pushed on the backup copy
-  // see common/selection.h:dt_push_selection()
+  // see common/selection.h:dt_selection_push()
   gboolean selection_stacked;
 
   // Global accelerators for main menu, needed for GtkMenu mnemonics.

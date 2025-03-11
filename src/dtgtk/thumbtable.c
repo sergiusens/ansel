@@ -1308,6 +1308,13 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
     case GDK_KEY_Return:
     case GDK_KEY_KP_Enter:
     {
+      // This is only to be consistent with mouse events:
+      // opening to darkroom happens with double click (aka ACTIVATE event),
+      // but the first click always select the clicked thumbnail before.
+      // So we do the same here, even though it's not required and actually slightly annoying.
+      if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+        dt_selection_select_single(darktable.selection, imgid);
+
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, imgid);
       return TRUE;
     }
@@ -1700,7 +1707,7 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
     dt_control_set_mouse_over_id(imgid);
     dt_control_set_keyboard_over_id(imgid);
   }
-  else if(type == GDK_ENTER_NOTIFY	|| type == GDK_LEAVE_NOTIFY)
+  else if(type == GDK_ENTER_NOTIFY || type == GDK_LEAVE_NOTIFY)
   {
     // When navigating the grid with arrow keys, the view will get scrolled.
     // If the mouse pointer is over the grid, it will enter a new thumbnail
@@ -1709,7 +1716,7 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
     // recording enter/leave events in the next 100 ms after keyboard interaction.
     if(current_time > next_over_time) dt_control_set_mouse_over_id(imgid);
   }
-  else if(type == GDK_MOTION_NOTIFY	|| type == GDK_BUTTON_PRESS)
+  else if(type == GDK_MOTION_NOTIFY	|| type == GDK_BUTTON_PRESS || type == GDK_2BUTTON_PRESS)
   {
     // Active mouse pointer interactions: accept unconditionnaly
     dt_control_set_mouse_over_id(imgid);

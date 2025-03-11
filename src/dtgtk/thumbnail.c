@@ -476,33 +476,40 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
   if((thumb->table && thumb->table->mode == DT_THUMBTABLE_MODE_FILMSTRIP) || !thumb->table)
     gtk_widget_grab_focus(thumb->widget);
 
-  // Ensure mouse_over_id is set because that's what darkroom uses to open a picture
+  // Ensure mouse_over_id is set because that's what darkroom uses to open a picture.
+  // NOTE: Duplicate module uses that fucking thumbnail without a table...
   if(thumb->table)
     dt_thumbtable_dispatch_over(thumb->table, event->type, thumb->imgid);
   else
     dt_control_set_mouse_over_id(thumb->imgid);
 
-  // select on single or double click, whatever happens next
-  if(event->button == 1 && event->type == GDK_BUTTON_PRESS)
-  {
-    // Duplicate module uses that fucking thumbnail without a table...
-    if(thumb->table && thumb->table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
-    {
-      if(dt_modifier_is(event->state, 0))
-        dt_selection_select_single(darktable.selection, thumb->imgid);
-      else if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
-        dt_selection_toggle(darktable.selection, thumb->imgid);
-      else if(dt_modifier_is(event->state, GDK_SHIFT_MASK) && thumb->table)
-        dt_thumbtable_select_range(thumb->table, thumb->rowid);
-      // Because selection might include several images, we handle styling globally
-      // in the thumbtable scope, catching the SELECTION_CHANGED signal.
-    }
-  }
-
   // raise signal on double click
   if(event->button == 1 && event->type == GDK_2BUTTON_PRESS)
   {
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, thumb->imgid);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+static gboolean _event_main_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+
+  // select on single click only in filemanager mode. Filmstrip mode only raises ACTIVATE signals.
+  if(event->button == 1
+     && thumb->table && thumb->table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+  {
+    if(dt_modifier_is(event->state, 0))
+      dt_selection_select_single(darktable.selection, thumb->imgid);
+    else if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
+      dt_selection_toggle(darktable.selection, thumb->imgid);
+    else if(dt_modifier_is(event->state, GDK_SHIFT_MASK) && thumb->table)
+      dt_thumbtable_select_range(thumb->table, thumb->rowid);
+    // Because selection might include several images, we handle styling globally
+    // in the thumbtable scope, catching the SELECTION_CHANGED signal.
     return TRUE;
   }
 
@@ -758,7 +765,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   thumb->widget = gtk_event_box_new();
   dt_gui_add_class(thumb->widget, "thumb-main");
   gtk_event_box_set_above_child(GTK_EVENT_BOX(thumb->widget), TRUE);
-  gtk_widget_set_events(thumb->widget, GDK_BUTTON_PRESS_MASK | GDK_STRUCTURE_MASK | GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
+  gtk_widget_set_events(thumb->widget, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK | GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
 
   // this is only here to ensure that mouse-over value is updated correctly
   // all dragging actions take place inside thumbatble.c
@@ -769,6 +776,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   gtk_widget_show(thumb->widget);
 
   g_signal_connect(G_OBJECT(thumb->widget), "button-press-event", G_CALLBACK(_event_main_press), thumb);
+  g_signal_connect(G_OBJECT(thumb->widget), "button-release-event", G_CALLBACK(_event_main_release), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "enter-notify-event", G_CALLBACK(_event_main_enter), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "leave-notify-event", G_CALLBACK(_event_main_leave), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "motion-notify-event", G_CALLBACK(_event_main_motion), thumb);

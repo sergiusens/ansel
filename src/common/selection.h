@@ -83,9 +83,9 @@ void dt_selection_deselect_list(struct dt_selection_t *selection, const GList *l
 GList *dt_selection_get_list(struct dt_selection_t *selection);
 
 /** backup the current selection to a temp memory database table */
-void dt_push_selection();
+void dt_selection_push();
 /** restore the previous selection from a temp memory database table */
-void dt_pop_selection();
+void dt_selection_pop();
 
 /** get the length of the current selection (number of items) */
 int dt_selection_get_length(struct dt_selection_t *selection);
