@@ -177,7 +177,7 @@ static void _selection_deselect(dt_selection_t *selection, int32_t imgid)
   g_free(query);
 }
 
-void dt_selection_push()
+void dt_selection_push(dt_selection_t *selection)
 {
   // Backup current selection
   if(!darktable.gui->selection_stacked)
@@ -188,13 +188,13 @@ void dt_selection_push()
     darktable.gui->selection_stacked = TRUE;
 
     // Commit from DB to GList of imgids
-    dt_selection_reload_from_database(darktable.selection);
+    dt_selection_reload_from_database(selection);
   }
 
   _update_gui();
 }
 
-void dt_selection_pop()
+void dt_selection_pop(dt_selection_t *selection)
 {
   // Restore current selection
   if(darktable.gui->selection_stacked)
@@ -205,7 +205,7 @@ void dt_selection_pop()
     darktable.gui->selection_stacked = FALSE;
 
     // Commit from DB to GList of imgids
-    dt_selection_reload_from_database(darktable.selection);
+    dt_selection_reload_from_database(selection);
   }
 
   _update_gui();

@@ -1962,14 +1962,14 @@ void dt_selection_to_culling_mode()
                         NULL, NULL, NULL);
 
   // Backup and reset current selection
-  dt_selection_push();
+  dt_selection_push(darktable.selection);
   dt_selection_clear(darktable.selection);
 }
 
 void dt_culling_mode_to_selection()
 {
   // Restore everything as before
-  dt_selection_pop();
+  dt_selection_pop(darktable.selection);
   dt_pop_collection();
 }
 
