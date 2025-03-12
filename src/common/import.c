@@ -281,6 +281,10 @@ static int32_t dt_get_selected_files(dt_import_t *import)
 
     dt_pthread_mutex_unlock(import->lock);
   }
+  else
+  {
+    dt_pthread_mutex_unlock(import->lock);
+  }
 
   return valid; // TRUE if completed without interruption
 }
