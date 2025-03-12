@@ -49,32 +49,19 @@
 /* Stores the collection query, returns 1 if changed.. */
 static int _dt_collection_store(const dt_collection_t *collection, gchar *query);
 /* Counts the number of images in the current collection */
-static uint32_t _dt_collection_compute_count(const dt_collection_t *collection);
-/* signal handlers to update the cached count when something interesting might have happened.
- * we need 2 different since there are different kinds of signals we need to listen to. */
-static void _dt_collection_recount_callback_1(gpointer instance, gpointer user_data);
-static void _dt_collection_recount_callback_2(gpointer instance, const int32_t id, gpointer user_data);
+static uint32_t _dt_collection_compute_count(dt_collection_t *collection);
 static void _dt_collection_filmroll_imported_callback(gpointer instance, const int32_t id, gpointer user_data);
 
 /* determine image offset of specified imgid for the given collection */
 static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int32_t imgid);
 
-const dt_collection_t *dt_collection_new()
+dt_collection_t *dt_collection_new()
 {
   dt_collection_t *collection = g_malloc0(sizeof(dt_collection_t));
   dt_collection_reset(collection);
 
   /* connect to all the signals that might indicate that the count of images matching the collection changed
    */
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_TAG_CHANGED,
-                            G_CALLBACK(_dt_collection_recount_callback_1), collection);
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_FILMROLLS_CHANGED,
-                            G_CALLBACK(_dt_collection_recount_callback_1), collection);
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_FILMROLLS_REMOVED,
-                            G_CALLBACK(_dt_collection_recount_callback_1), collection);
-
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGE_IMPORT,
-                            G_CALLBACK(_dt_collection_recount_callback_2), collection);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_FILMROLLS_IMPORTED,
                             G_CALLBACK(_dt_collection_filmroll_imported_callback), collection);
   return collection;
@@ -82,10 +69,6 @@ const dt_collection_t *dt_collection_new()
 
 void dt_collection_free(const dt_collection_t *collection)
 {
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_collection_recount_callback_1),
-                               (gpointer)collection);
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_collection_recount_callback_2),
-                               (gpointer)collection);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_collection_filmroll_imported_callback),
                                (gpointer)collection);
 
@@ -179,6 +162,9 @@ void dt_collection_memory_update()
   // Handle culling mode across re-queryings : re-restrict collection to selection
   if(darktable.gui && darktable.gui->culling_mode)
     dt_selection_to_culling_mode();
+
+  _dt_collection_compute_count(darktable.collection);
+  dt_collection_hint_message(darktable.collection);
 }
 
 static void _dt_collection_set_selq_pre_sort(const dt_collection_t *collection, char **selq_pre)
@@ -464,11 +450,6 @@ int dt_collection_update(const dt_collection_t *collection)
   g_free(selq_pre);
   g_free(selq_post);
   g_free(query);
-
-  /* update the cached count. collection isn't a real const anyway, we are writing to it in
-   * _dt_collection_store, too. */
-  ((dt_collection_t *)collection)->count = _dt_collection_compute_count(collection);
-  dt_collection_hint_message(collection);
 
   return result;
 }
@@ -769,34 +750,14 @@ static int _dt_collection_store(const dt_collection_t *collection, gchar *query)
   return 1;
 }
 
-static uint32_t _dt_collection_compute_count(const dt_collection_t *collection)
+static uint32_t _dt_collection_compute_count(dt_collection_t *collection)
 {
   sqlite3_stmt *stmt = NULL;
   uint32_t count = 1;
-  const gchar *query = dt_collection_get_query(collection);
-  gchar *count_query = NULL;
-
-  gchar *fq = g_strstr_len(query, strlen(query), "FROM");
-  if((collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT))
-  {
-    gchar *where_ext = dt_collection_get_extended_where(collection, -1);
-    count_query = g_strdup_printf("SELECT COUNT(DISTINCT main.images.id) FROM main.images AS mi %s", where_ext);
-    g_free(where_ext);
-  }
-  else
-    count_query = g_strdup_printf("SELECT COUNT(DISTINCT mi.id) %s", fq);
-
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), count_query, -1, &stmt, NULL);
-  if((collection->params.query_flags & COLLECTION_QUERY_USE_LIMIT)
-     && !(collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT))
-  {
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, 0);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, -1);
-  }
-
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT COUNT(DISTINCT imgid) from memory.collected_images", -1, &stmt, NULL);
   if(sqlite3_step(stmt) == SQLITE_ROW) count = sqlite3_column_int(stmt, 0);
   sqlite3_finalize(stmt);
-  g_free(count_query);
+  collection->count = count;
   return count;
 }
 
@@ -2052,22 +2013,6 @@ int dt_collection_image_offset(int32_t imgid)
   return dt_collection_image_offset_with_collection(darktable.collection, imgid);
 }
 
-static void _dt_collection_recount_callback_1(gpointer instance, gpointer user_data)
-{
-  dt_collection_t *collection = (dt_collection_t *)user_data;
-  const int old_count = collection->count;
-  collection->count = _dt_collection_compute_count(collection);
-
-  if(old_count != collection->count) dt_collection_hint_message(collection);
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED, DT_COLLECTION_CHANGE_RELOAD,
-                                DT_COLLECTION_PROP_UNDEF, (GList *)NULL, -1);
-}
-
-static void _dt_collection_recount_callback_2(gpointer instance, const int32_t id, gpointer user_data)
-{
-  _dt_collection_recount_callback_1(instance, user_data);
-}
-
 static inline void _dt_collection_change_view_after_import(const dt_view_t *current_view)
 {
   const int nb = dt_conf_get_int("ui_last/nb_imported");
@@ -2085,8 +2030,6 @@ static inline void _dt_collection_change_view_after_import(const dt_view_t *curr
 static void _dt_collection_filmroll_imported_callback(gpointer instance, const int32_t id, gpointer user_data)
 {
   dt_collection_t *collection = (dt_collection_t *)user_data;
-  const int old_count = collection->count;
-  collection->count = _dt_collection_compute_count(collection);
 
   int last_image = dt_conf_get_int("ui_last/import_last_image");
   gchar first_directory[PATH_MAX] = { 0 };
@@ -2102,8 +2045,6 @@ static void _dt_collection_filmroll_imported_callback(gpointer instance, const i
   free(dir);
   dt_conf_set_int("plugins/lighttable/collect/num_rules", 1);
   dt_conf_set_int("plugins/lighttable/collect/item0", 1);
-
-  if(old_count != collection->count) dt_collection_hint_message(collection);
 
   dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
 

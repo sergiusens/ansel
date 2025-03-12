@@ -157,7 +157,7 @@ typedef struct dt_collection_t
 const char *dt_collection_name(dt_collection_properties_t prop);
 
 /** instantiates a collection context */
-const dt_collection_t *dt_collection_new();
+dt_collection_t *dt_collection_new();
 /** frees a collection context. */
 void dt_collection_free(const dt_collection_t *collection);
 /** fetch params for collection for storing. */
