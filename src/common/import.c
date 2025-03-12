@@ -742,6 +742,7 @@ static void _filelist_changed_callback(gpointer instance, GList *files, guint el
 
     // The list of files is not used in GUI. It's not freed in the job either.
     g_list_free_full(g_steal_pointer(&files), g_free);
+    files = NULL;
     dt_pthread_mutex_unlock(&d->lock);
   }
   else
