@@ -2076,6 +2076,29 @@ static void list_view(dt_lib_collect_rule_t *dr)
     gtk_tree_model_foreach(d->listfilter, (GtkTreeModelForeachFunc)list_select, dr);
 }
 
+
+static void _clean_wildcards(dt_lib_collect_rule_t *dr)
+{
+  char *pref = g_strdup_printf("plugins/lighttable/collect/string%1d", dr->num);
+  char *filmroll = dt_conf_get_string(pref);
+  if(filmroll && pref)
+  {
+    // cleanup conf
+    gchar *no_star_filmroll = dt_string_replace(filmroll, "*");
+    gchar *no_percent_filmroll = dt_string_replace(no_star_filmroll, "\%");
+
+    dt_conf_set_string(pref, no_percent_filmroll);
+    g_free(no_percent_filmroll);
+    g_free(no_star_filmroll);
+    g_free(filmroll);
+
+    // reload GUI from conf
+    get_properties(dr);
+  }
+  g_free(pref);
+}
+
+
 static void update_view(dt_lib_collect_rule_t *dr)
 {
   const int property = _combo_get_active_collection(dr->combo);
@@ -2088,7 +2111,13 @@ static void update_view(dt_lib_collect_rule_t *dr)
     )
     tree_view(dr);
   else
+  {
+    // wildcards are not supported in pathes for filmrolls
+    if(property == DT_COLLECTION_PROP_FILMROLL)
+      _clean_wildcards(dr);
+
     list_view(dr);
+  }
 }
 
 static void _set_tooltip(dt_lib_collect_rule_t *d)
@@ -2389,7 +2418,7 @@ static void _lib_collect_gui_update(dt_lib_module_t *self)
     // fprintf(stdout, "general case\n");
   }
 
-  // Set notebook page without triggering the callback
+  // Set notebook page without triggering its callback
   g_signal_handlers_block_matched(d->notebook, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _lib_collect_mode, NULL);
   gtk_notebook_set_current_page(GTK_NOTEBOOK(d->notebook), page_num);
   g_signal_handlers_unblock_matched(d->notebook, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _lib_collect_mode, NULL);
