@@ -491,7 +491,7 @@ static gboolean _rating_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t
 
 static void _select_all_callback(GtkWidget *widget, dt_lib_module_t *self)
 {
-  dt_collection_set_filter_flags(darktable.collection, ~COLLECTION_FILTER_NONE & ~COLLECTION_FILTER_FILM_ID);
+  dt_collection_set_filter_flags(darktable.collection, ~COLLECTION_FILTER_NONE);
   _update_rating_filter(self);
   _update_colors_filter(self);
   _update_altered_filters(self);

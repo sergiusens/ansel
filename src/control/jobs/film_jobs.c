@@ -304,6 +304,7 @@ static void _film_import1(dt_job_t *job, dt_film_t *film, GList *images)
   dt_film_t *cfr = film;
   int pending = 0;
   double last_update = dt_get_wtime();
+  int32_t imgid = UNKNOWN_IMAGE;
   for(GList *image = images; image; image = g_list_next(image))
   {
     gchar *cdn = g_path_get_dirname((const gchar *)image->data);
@@ -334,7 +335,7 @@ static void _film_import1(dt_job_t *job, dt_film_t *film, GList *images)
     g_free(cdn);
 
     /* import image */
-    const int32_t imgid = dt_image_import(cfr->id, (const gchar *)image->data, FALSE);
+    imgid = dt_image_import(cfr->id, (const gchar *)image->data, FALSE);
     pending++;  // we have another image which hasn't been reported yet
     fraction += 1.0 / total;
     dt_control_job_set_progress(job, fraction);
@@ -361,9 +362,8 @@ static void _film_import1(dt_job_t *job, dt_film_t *film, GList *images)
 
   // only redraw at the end, to not spam the cpu with exposure events
   dt_control_queue_redraw_center();
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_FILMROLLS_IMPORTED, film ? film->id : cfr->id);
+  dt_collection_load_filmroll(darktable.collection, imgid, g_list_length(all_imgs) == 1);
 
   //QUESTION: should this come after _apply_filmroll_gpx, since that can change geotags again?
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_GEOTAG_CHANGED, all_imgs, 0);

@@ -38,22 +38,21 @@ typedef enum dt_collection_query_flags_t
 typedef enum dt_collection_filter_flag_t
 {
   COLLECTION_FILTER_NONE            = 0,
-  COLLECTION_FILTER_FILM_ID         = 1 << 0, // use film_id in filter
-  COLLECTION_FILTER_ALTERED         = 1 << 1, // altered images
-  COLLECTION_FILTER_UNALTERED       = 1 << 2, // unaltered images
-  COLLECTION_FILTER_REJECTED        = 1 << 3, // rejected images
-  COLLECTION_FILTER_0_STAR          = 1 << 4,
-  COLLECTION_FILTER_1_STAR          = 1 << 5,
-  COLLECTION_FILTER_2_STAR          = 1 << 6,
-  COLLECTION_FILTER_3_STAR          = 1 << 7,
-  COLLECTION_FILTER_4_STAR          = 1 << 8,
-  COLLECTION_FILTER_5_STAR          = 1 << 9,
-  COLLECTION_FILTER_RED             = 1 << 10,
-  COLLECTION_FILTER_YELLOW          = 1 << 11,
-  COLLECTION_FILTER_GREEN           = 1 << 12,
-  COLLECTION_FILTER_BLUE            = 1 << 13,
-  COLLECTION_FILTER_MAGENTA         = 1 << 14,
-  COLLECTION_FILTER_WHITE           = 1 << 15, // white means "no color label"
+  COLLECTION_FILTER_ALTERED         = 1 << 0, // altered images
+  COLLECTION_FILTER_UNALTERED       = 1 << 1, // unaltered images
+  COLLECTION_FILTER_REJECTED        = 1 << 2, // rejected images
+  COLLECTION_FILTER_0_STAR          = 1 << 3,
+  COLLECTION_FILTER_1_STAR          = 1 << 4,
+  COLLECTION_FILTER_2_STAR          = 1 << 5,
+  COLLECTION_FILTER_3_STAR          = 1 << 6,
+  COLLECTION_FILTER_4_STAR          = 1 << 7,
+  COLLECTION_FILTER_5_STAR          = 1 << 8,
+  COLLECTION_FILTER_RED             = 1 << 9,
+  COLLECTION_FILTER_YELLOW          = 1 << 10,
+  COLLECTION_FILTER_GREEN           = 1 << 11,
+  COLLECTION_FILTER_BLUE            = 1 << 12,
+  COLLECTION_FILTER_MAGENTA         = 1 << 13,
+  COLLECTION_FILTER_WHITE           = 1 << 14, // white means "no color label"
 } dt_collection_filter_flag_t;
 
 typedef enum dt_collection_sort_t
@@ -192,10 +191,11 @@ char *dt_collection_get_text_filter(const dt_collection_t *collection);
 /** set text filter for collection */
 void dt_collection_set_text_filter(const dt_collection_t *collection, char *text_filter);
 
-/** set the film_id of collection */
-void dt_collection_set_film_id(const dt_collection_t *collection, const int32_t film_id);
 /** set the tagid of collection */
 void dt_collection_set_tag_id(dt_collection_t *collection, const uint32_t tagid);
+
+/** load a filmroll-based collection from an imgid */
+void dt_collection_load_filmroll(dt_collection_t *collection, const int32_t imgid, gboolean open_single_image);
 
 /** set the sort fields and flags used to show the collection **/
 void dt_collection_set_sort(const dt_collection_t *collection, dt_collection_sort_t sort, gint reverse);

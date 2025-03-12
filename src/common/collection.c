@@ -50,7 +50,6 @@
 static int _dt_collection_store(const dt_collection_t *collection, gchar *query);
 /* Counts the number of images in the current collection */
 static uint32_t _dt_collection_compute_count(dt_collection_t *collection);
-static void _dt_collection_filmroll_imported_callback(gpointer instance, const int32_t id, gpointer user_data);
 
 /* determine image offset of specified imgid for the given collection */
 static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int32_t imgid);
@@ -59,19 +58,11 @@ dt_collection_t *dt_collection_new()
 {
   dt_collection_t *collection = g_malloc0(sizeof(dt_collection_t));
   dt_collection_reset(collection);
-
-  /* connect to all the signals that might indicate that the count of images matching the collection changed
-   */
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_FILMROLLS_IMPORTED,
-                            G_CALLBACK(_dt_collection_filmroll_imported_callback), collection);
   return collection;
 }
 
 void dt_collection_free(const dt_collection_t *collection)
 {
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_collection_filmroll_imported_callback),
-                               (gpointer)collection);
-
   g_free(collection->query);
   g_strfreev(collection->where_ext);
   g_free((dt_collection_t *)collection);
@@ -204,10 +195,6 @@ int dt_collection_update(const dt_collection_t *collection)
 
     // DON'T SELECT IMAGES MARKED TO BE DELETED.
     wq = g_strdup_printf(" ((flags & %d) != %d) ", DT_IMAGE_REMOVE, DT_IMAGE_REMOVE);
-
-    /* add default filters */
-    if(collection->params.filter_flags & COLLECTION_FILTER_FILM_ID)
-      wq = dt_util_dstrcat(wq, " %s (film_id = %i) ", and_operator(&and_term), collection->params.film_id);
 
     /* From there, the other arguments are OR so we need parentheses if any rating filter is used */
     gboolean got_rating_filter
@@ -553,12 +540,6 @@ void dt_collection_set_extended_where(const dt_collection_t *collection, gchar *
 
   /* set new from parameter */
   ((dt_collection_t *)collection)->where_ext = g_strdupv(extended_where);
-}
-
-void dt_collection_set_film_id(const dt_collection_t *collection, const int32_t film_id)
-{
-  dt_collection_params_t *params = (dt_collection_params_t *)&collection->params;
-  params->film_id = film_id;
 }
 
 void dt_collection_set_tag_id(dt_collection_t *collection, const uint32_t tagid)
@@ -1873,10 +1854,6 @@ void dt_collection_update_query(const dt_collection_t *collection, dt_collection
   dt_collection_set_query_flags(collection,
                                 (dt_collection_get_query_flags(collection) | COLLECTION_QUERY_USE_WHERE_EXT));
 
-  /* remove film id from default filter */
-  dt_collection_set_filter_flags(collection,
-                                 (dt_collection_get_filter_flags(collection) & ~COLLECTION_FILTER_FILM_ID));
-
   /* update query and at last the visual */
   dt_collection_update(collection);
 
@@ -2013,45 +1990,50 @@ int dt_collection_image_offset(int32_t imgid)
   return dt_collection_image_offset_with_collection(darktable.collection, imgid);
 }
 
-static inline void _dt_collection_change_view_after_import(const dt_view_t *current_view)
+static inline void _dt_collection_change_view_after_import(const dt_view_t *current_view, gboolean open_single_image)
 {
-  const int nb = dt_conf_get_int("ui_last/nb_imported");
-  if(nb == 1)
+  if(open_single_image)
   {
     if(!g_strcmp0(current_view->module_name, "darkroom")) // if current view IS "darkroom".
       dt_ctl_reload_view("darkroom");
     else
       dt_ctl_switch_mode_to("darkroom");
   }
-  else if(nb > 1 && g_strcmp0(current_view->module_name, "lighttable")) // if current view IS NOT "lighttable".
+  else if(g_strcmp0(current_view->module_name, "lighttable")) // if current view IS NOT "lighttable".
     dt_ctl_switch_mode_to("lighttable");
 }
 
-static void _dt_collection_filmroll_imported_callback(gpointer instance, const int32_t id, gpointer user_data)
+void dt_collection_load_filmroll(dt_collection_t *collection, const int32_t imgid, gboolean open_single_image)
 {
-  dt_collection_t *collection = (dt_collection_t *)user_data;
-
-  int last_image = dt_conf_get_int("ui_last/import_last_image");
   gchar first_directory[PATH_MAX] = { 0 };
-  dt_get_dirname_from_imgid(first_directory, last_image);
+  dt_get_dirname_from_imgid(first_directory, imgid);
 
   const gboolean duplicate = dt_conf_get_bool("ui_last/import_copy");
 
-  char* dir = duplicate && dt_util_dir_exist(first_directory) ?
-                  g_strdup(first_directory)
-                : g_strdup(dt_conf_get_string("ui_last/import_last_directory"));
+  char *dir = (duplicate && dt_util_dir_exist(first_directory))
+                  ? g_strdup(first_directory)
+                  : g_strdup(dt_conf_get_string("ui_last/import_last_directory"));
 
   dt_conf_set_string("plugins/lighttable/collect/string0", g_strdup_printf("%s*", dir));
-  free(dir);
   dt_conf_set_int("plugins/lighttable/collect/num_rules", 1);
   dt_conf_set_int("plugins/lighttable/collect/item0", 1);
+  free(dir);
 
-  dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
+  // Reload the collection with the current filmroll
+  dt_collection_update_query(collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_FILMROLL, NULL);
 
+  // Necessary to directly open in darkroom if we want to.
+  dt_control_set_mouse_over_id(imgid);
+
+  // To scroll the lighttable automatically to this image,
+  // it needs to be selected.
+  dt_selection_select(darktable.selection, imgid);
+
+  // New images are untagged, that may need an update of the collection module for untagged count
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 
   const dt_view_t *current_view = dt_view_manager_get_current_view(darktable.view_manager);
-  if(current_view) _dt_collection_change_view_after_import(current_view);
+  if(current_view) _dt_collection_change_view_after_import(current_view, open_single_image);
 }
 
 int64_t dt_collection_get_image_position(const int32_t image_id, const int32_t tagid)

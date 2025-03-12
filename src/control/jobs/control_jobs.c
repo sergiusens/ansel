@@ -2174,7 +2174,6 @@ const int32_t _import_job(dt_control_import_t *data, gchar *img_path_to_db)
 {
   fprintf(stdout, "::IMPORT FILE::\n%s to DB\n", img_path_to_db);
 
-  dt_conf_set_int("ui_last/import_last_image", -1);
   gchar *dirname = g_strdup(dt_util_path_get_dirname(img_path_to_db));
 
   dt_film_t film;
@@ -2320,15 +2319,16 @@ void _write_xmp_id(const char *filename, int32_t imgid)
  * @param img the current image.
  * @param data info from import module.
  * @param index current loop's index.
- * @return gboolean
+ * @return int32_t the imgid of the imported image (or -1 if import failed)
  */
-gboolean _import_image(const GList *img, dt_control_import_t *data, const int index, GList **discarded)
+int32_t _import_image(const GList *img, dt_control_import_t *data, const int index, GList **discarded)
 {
   const char *filename = (const char*) img->data;
   fprintf(stdout, "Filename: %s\n", filename);
 
   gchar img_path_to_db[PATH_MAX] = { 0 };
-  gboolean process_error = 0;
+  gboolean process_error = FALSE;
+  int32_t imgid = UNKNOWN_IMAGE;
 
   if(data->copy)
     // Copy the file to destination folder, expanding variables internally
@@ -2337,30 +2337,29 @@ gboolean _import_image(const GList *img, dt_control_import_t *data, const int in
     // destination = origin, nothing to do
     g_strlcpy(img_path_to_db, filename, sizeof(img_path_to_db));
 
-  process_error |= (*img_path_to_db == 0);
-
   if(process_error)
-    fprintf(stdout, "Process Error\n");
+  {
+    fprintf(stdout, "Could not copy file on disk: %s\n", img_path_to_db);
+  }
   else
   {
-    const int32_t imgid = _import_job(data, img_path_to_db);
+    imgid = _import_job(data, img_path_to_db);
 
-    if(imgid == -1)
+    if(imgid == UNKNOWN_IMAGE)
     {
-      dt_control_log(_("Error importing file in collection (imgid: %i)."), imgid);
-      process_error = 1;
+      dt_control_log(_("Error importing file in collection: %s"), img_path_to_db);
+      fprintf(stderr, "Error importing file in collection: %s", img_path_to_db);
     }
     else
     {
       _write_xmp_id(filename, imgid);
       fprintf(stdout, "imgid: %i\n", imgid);
-      dt_conf_set_int("ui_last/import_last_image", imgid);
     }
   }
 
   fprintf(stdout, "::End of import_image.\n");
 
-  return process_error;
+  return imgid;
 }
 
 void _refresh_progress_counter(dt_job_t *job, const int elements, const int index)
@@ -2380,19 +2379,26 @@ static int32_t _control_import_job_run(dt_job_t *job)
   dt_control_import_t *data = params->data;
 
   int index = 0;
+  int32_t imgid = UNKNOWN_IMAGE;
 
   for(GList *img = g_list_first(data->imgs); img; img = g_list_next(img))
   {
     fprintf(stdout, "\nIMG %i.\n", index + 1);
 
     _refresh_progress_counter(job, data->elements, index);
+    imgid = _import_image(img, data, index, &data->discarded);
 
-    if(_import_image(img, data, index, &data->discarded))
-      fprintf(stderr, "Skipping this one.\n");
-    else
+    if(imgid > UNKNOWN_IMAGE)
     {
       data->total_imported_elements += 1;
       fprintf(stdout, "N: %i\n", data->total_imported_elements);
+
+      // On first image, we change the current filmroll in collection.
+      // On the next, we simply update the collection.
+      if(index == 0)
+        dt_collection_load_filmroll(darktable.collection, imgid, FALSE);
+      else
+        dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
     }
     index++;
 
@@ -2404,11 +2410,14 @@ static int32_t _control_import_job_run(dt_job_t *job)
     dt_control_log(_("No image imported!"));
     fprintf(stderr, "No image imported!\n\n");
   }
+  else if(index == 1)
+  {
+    dt_collection_load_filmroll(darktable.collection, imgid, TRUE);
+  }
   else if(data->filmid > -1)
   {
     dt_control_log(ngettext("imported %d image", "imported %d images", data->total_imported_elements), data->total_imported_elements);
     fprintf(stdout, "%d files imported in database.\n\n", data->total_imported_elements);
-    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_FILMROLLS_IMPORTED, data->filmid); // refresh lighttable
   }
 
   fprintf(stdout,":::END OF IMPORT:::\n\n");

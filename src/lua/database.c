@@ -252,16 +252,6 @@ static int collection_numindex(lua_State *L)
   return 1;
 
 }
-
-static void on_film_imported(gpointer instance, uint32_t id, gpointer user_data)
-{
-  dt_lua_async_call_alien(dt_lua_event_trigger_wrapper,
-      0,NULL,NULL,
-      LUA_ASYNC_TYPENAME,"const char*","post-import-film",
-      LUA_ASYNC_TYPENAME,"dt_lua_film_t",GINT_TO_POINTER(id),
-      LUA_ASYNC_DONE);
-}
-
 int dt_lua_init_database(lua_State *L)
 {
 
@@ -311,8 +301,6 @@ int dt_lua_init_database(lua_State *L)
   lua_pushcfunction(L, dt_lua_event_multiinstance_destroy);
   lua_pushcfunction(L, dt_lua_event_multiinstance_trigger);
   dt_lua_event_add(L, "post-import-film");
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_FILMROLLS_IMPORTED, G_CALLBACK(on_film_imported),
-                            NULL);
 
   lua_pushcfunction(L, dt_lua_event_multiinstance_register);
   lua_pushcfunction(L, dt_lua_event_multiinstance_destroy);
