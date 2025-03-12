@@ -69,7 +69,7 @@ typedef struct dt_import_t {
   GList *files;
 
   // Kill-switch to stop the list building before it completed
-  gboolean *shutdown;
+  gboolean shutdown;
 
   // Number of elements in the list
   uint32_t elements;
@@ -140,7 +140,7 @@ static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import)
 
 static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
 {
-  if(*(import->shutdown)) return;
+  if((import->shutdown)) return;
 
   gchar *pathname = g_file_get_path(document);
   /*
@@ -188,7 +188,7 @@ static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
 static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import)
 {
   // Get subfolders and files from current folder
-  if(*(import->shutdown)) return;
+  if((import->shutdown)) return;
 
   GFileEnumerator *files
       = g_file_enumerate_children(folder, G_FILE_ATTRIBUTE_STANDARD_NAME "," G_FILE_ATTRIBUTE_STANDARD_TYPE,
@@ -202,7 +202,7 @@ static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import)
     if(!file) break;
 
     // Shutdown ASAP
-    if(*(import->shutdown))
+    if((import->shutdown))
     {
       g_object_unref(files);
       return;
@@ -220,7 +220,7 @@ static void _recurse_selection(GSList *selection, dt_import_t *const import)
   // GtkFileChooser gives us a GSList for selection, so we can't directly recurse from here
   // since the import job expects a GList.
 
-  if(*(import->shutdown)) return;
+  if((import->shutdown)) return;
 
   GVfs *vfs = g_vfs_get_default();
   for(GSList *uri = selection; uri; uri = g_slist_next(uri))
@@ -249,7 +249,7 @@ static int32_t dt_get_selected_files(dt_import_t *import)
 
   dt_pthread_mutex_lock(import->lock);
   // Re-init flags
-  *import->shutdown = FALSE;
+  import->shutdown = FALSE;
 
   // Start the delayed file count update
   import->timeout = g_timeout_add(1000, _delayed_file_count, import);
@@ -257,7 +257,7 @@ static int32_t dt_get_selected_files(dt_import_t *import)
   // Get the new list
   _recurse_selection(import->selection, import);
   import->elements = (import->files) ? g_list_length(import->files) : 0;
-  gboolean valid = !(*import->shutdown);
+  gboolean valid = !(import->shutdown);
 
   // Stop the delayed file count update
   g_source_remove(import->timeout);
@@ -267,6 +267,8 @@ static int32_t dt_get_selected_files(dt_import_t *import)
   // In that case, it will segfault. So don't raise the signal at all if shutdown was set.
   if(valid)
   {
+    dt_pthread_mutex_unlock(import->lock);
+
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_FILELIST_CHANGED, import->files, import->elements, 1);
     // import->files needs to be freed in the callback capturing DT_SIGNAL_FILELIST_CHANGED if final == 1
     // if passed to the import job, it will be freed there.
@@ -276,9 +278,9 @@ static int32_t dt_get_selected_files(dt_import_t *import)
     g_list_free_full(g_steal_pointer(&import->files), g_free);
     import->files = NULL;
     // no callback will be triggered. Free here.
-  }
 
-  dt_pthread_mutex_unlock(import->lock);
+    dt_pthread_mutex_unlock(import->lock);
+  }
 
   return valid; // TRUE if completed without interruption
 }
@@ -727,12 +729,19 @@ static void _filelist_changed_callback(gpointer instance, GList *files, guint el
 {
   dt_lib_import_t *d = (dt_lib_import_t *)user_data;
   if(!d || !d->selected_files) return;
+
+  if(finished)
+    dt_pthread_mutex_lock(&d->lock);
+
   gtk_label_set_text(GTK_LABEL(d->selected_files), finished ? g_strdup_printf(_("%i files selected"), elements)
                                                             : g_strdup_printf(_("Detection in progress... (%i files found so far)"), elements));
 
   // The list of files is not used in GUI. It's not freed in the job either.
   if(finished)
-    g_list_free_full(files, g_free);
+  {
+    g_list_free_full(g_steal_pointer(&files), g_free);
+    dt_pthread_mutex_unlock(&d->lock);
+  }
 }
 
 static void _selection_changed(GtkWidget *filechooser, dt_lib_import_t *d)
@@ -1177,21 +1186,21 @@ static void gui_init(dt_lib_import_t *d)
                                   G_CALLBACK(_filelist_changed_callback), d);
 }
 
-static void _do_select_all(dt_lib_import_t *d)
-{
-  gtk_file_chooser_select_all(GTK_FILE_CHOOSER(d->file_chooser));
-}
-
 static void _do_select_none(dt_lib_import_t *d)
 {
   gtk_file_chooser_unselect_all(GTK_FILE_CHOOSER(d->file_chooser));
+}
+
+static void _do_select_all(dt_lib_import_t *d)
+{
+  gtk_file_chooser_select_all(GTK_FILE_CHOOSER(d->file_chooser));
 }
 
 static void _do_select_new(dt_lib_import_t *d)
 {
   // Twisted Gtk doesn't let us select multiple files.
   // We need to select all then unselect what we don't want.
-  gtk_file_chooser_select_all(GTK_FILE_CHOOSER(d->file_chooser));
+  _do_select_all(d);
 
   gchar *folder = gtk_file_chooser_get_current_folder(GTK_FILE_CHOOSER(d->file_chooser));
   GFileEnumerator *files = g_file_enumerate_children(
@@ -1262,11 +1271,13 @@ void dt_images_import()
 static dt_import_t * dt_import_init(dt_lib_import_t *d)
 {
   dt_import_t *import = g_malloc(sizeof(dt_import_t));
-  import->shutdown = &d->shutdown;
+  import->shutdown = d->shutdown;
   import->files = NULL;
   import->elements = 0;
   import->lock = &d->lock;
   import->timeout = 0;
+
+  dt_pthread_mutex_lock(import->lock);
 
   // selection is owned here and will need to be freed.
   import->selection = gtk_file_chooser_get_uris(GTK_FILE_CHOOSER(d->file_chooser));
@@ -1275,6 +1286,8 @@ static dt_import_t * dt_import_init(dt_lib_import_t *d)
   // because we only capture a reference to the original (we don't own it).
   import->filter = gtk_file_chooser_get_filter(GTK_FILE_CHOOSER(d->file_chooser));
   g_object_ref_sink(import->filter);
+
+  dt_pthread_mutex_unlock(import->lock);
 
   return import;
 }
