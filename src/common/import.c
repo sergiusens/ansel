@@ -735,16 +735,19 @@ static void _filelist_changed_callback(gpointer instance, GList *files, guint el
   if(!d || !d->selected_files) return;
 
   if(finished)
-    dt_pthread_mutex_lock(&d->lock);
-
-  gtk_label_set_text(GTK_LABEL(d->selected_files), finished ? g_strdup_printf(_("%i files selected"), elements)
-                                                            : g_strdup_printf(_("Detection in progress... (%i files found so far)"), elements));
-
-  // The list of files is not used in GUI. It's not freed in the job either.
-  if(finished)
   {
+    // Lock the thread to ensure we have the correct final number
+    dt_pthread_mutex_lock(&d->lock);
+    gtk_label_set_text(GTK_LABEL(d->selected_files), g_strdup_printf(_("%i files selected"), elements));
+
+    // The list of files is not used in GUI. It's not freed in the job either.
     g_list_free_full(g_steal_pointer(&files), g_free);
     dt_pthread_mutex_unlock(&d->lock);
+  }
+  else
+  {
+    // We don't care for correctness, we just want to show user that we are still at it
+    gtk_label_set_text(GTK_LABEL(d->selected_files), g_strdup_printf(_("Detection in progress... (%i files found so far)"), elements));
   }
 }
 
