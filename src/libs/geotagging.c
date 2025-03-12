@@ -1390,8 +1390,8 @@ static void _image_info_changed(gpointer instance, gpointer imgs, dt_lib_module_
 
 static void _mouse_over_image_callback(gpointer instance, dt_lib_module_t *self)
 {
-  if(dt_lib_gui_get_expanded(self))
-    _refresh_image_datetime(self);
+  //if(dt_lib_gui_get_expanded(self)) // this segfaults internally, for some reason
+  _refresh_image_datetime(self);
 }
 
 static void _selection_changed_callback(gpointer instance, dt_lib_module_t *self)
