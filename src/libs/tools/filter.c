@@ -470,8 +470,21 @@ static gboolean _rating_clicked(GtkWidget *w, GdkEventButton *e, dt_lib_module_t
 
   dt_collection_filter_flag_t flags = dt_collection_get_filter_flags(darktable.collection);
 
-  // Toggle state
-  dtgtk_button_set_active(DTGTK_BUTTON(w), !dtgtk_button_get_active(DTGTK_BUTTON(w)));
+  // Do range selection for >= rating if Shift + Click
+  if(dt_modifier_is(e->state, GDK_SHIFT_MASK))
+  {
+    gboolean include = TRUE;
+    for(int i = 6; i > 1; i--)
+    {
+      dtgtk_button_set_active(DTGTK_BUTTON(d->stars[i]), include);
+      if(w == d->stars[i]) include = FALSE;
+    }
+  }
+  else
+  {
+    // Toggle state for clicked button
+    dtgtk_button_set_active(DTGTK_BUTTON(w), !dtgtk_button_get_active(DTGTK_BUTTON(w)));
+  }
 
   // Update collection flags
   for(int i = 0; i < 7; i++)
@@ -571,7 +584,6 @@ void gui_init(dt_lib_module_t *self)
       d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_star, k, NULL);
 
     dt_gui_add_class(d->stars[k], "star");
-    dt_gui_add_class(d->stars[k], "dt_no_hover");
     gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->stars[k]), FALSE, FALSE, 0);
     g_signal_connect(G_OBJECT(d->stars[k]), "button-press-event", G_CALLBACK(_rating_clicked), self);
   }
@@ -593,7 +605,6 @@ void gui_init(dt_lib_module_t *self)
   for(int k = 0; k < DT_COLORLABELS_LAST + 1; k++)
   {
     d->colors[k] = dtgtk_button_new(dtgtk_cairo_paint_label_sel, k, NULL);
-    dt_gui_add_class(d->colors[k], "dt_no_hover");
     gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->colors[k]), FALSE, FALSE, 0);
     g_signal_connect(G_OBJECT(d->colors[k]), "button-press-event", G_CALLBACK(_colorlabel_clicked), self);
   }

@@ -435,11 +435,6 @@ popover spinbutton  /* needed to set some margin on overlay popover between it a
   margin-left: 0.35em;
 }
 
-/* Default extra margin for icons optical alignment */
-#button-canvas
-{
-  margin: 5px; /* not real pixels. This is used as a percent extra space and couldn't be scalable */
-}
 
 /* fix misalignment for specific icons related to bauhaus widgets */
 .dt_plugin_ui .dt_bauhaus_alignment,

@@ -1580,12 +1580,13 @@ void dtgtk_cairo_paint_label_sel(cairo_t *cr, gint x, gint y, gint w, gint h, gi
 {
   PREAMBLE(0.9, 1, 0, 0)
 
-  const double r = 0.4;
+  const double r = 0.45;
   const dt_colorlabels_enum color = (flags & 7);
 
   if(color < DT_COLORLABELS_LAST)
   {
-    set_color(cr, darktable.bauhaus->colorlabels[color]);
+    GdkRGBA rgba = darktable.bauhaus->colorlabels[color];
+    cairo_set_source_rgba(cr, rgba.red, rgba.green, rgba.blue, .7);
   }
   else
   {
@@ -1805,9 +1806,8 @@ void dtgtk_cairo_paint_unaltered(cairo_t *cr, gint x, gint y, gint w, gint h, gi
     cairo_set_source_rgb(cr, 0.45, 0.45, 0.45);
   }
 
-  const float dx = r * cosf(M_PI / 8.0f), dy = r * sinf(M_PI / 8.0f);
-  cairo_move_to(cr,  - dx,  - dy);
-  cairo_curve_to(cr, 0, -2.0 * dy, 0, 2.0 * dy, dx, dy);
+  cairo_move_to(cr,  -1,  0);
+  cairo_line_to(cr, 1, -0);
   cairo_stroke(cr);
 
   cairo_pop_group_to_source(cr);
