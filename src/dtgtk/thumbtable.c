@@ -215,11 +215,16 @@ static int _find_rowid_from_imgid(dt_thumbtable_t *table, const int32_t imgid)
 
 static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 {
-  if(!table->collection_inited || imgid < 0) return 1;
-
-  dt_pthread_mutex_lock(&table->lock);
-  int rowid = _find_rowid_from_imgid(table, imgid);
-  dt_pthread_mutex_unlock(&table->lock);
+  if(!table->collection_inited) return 1;
+  int rowid = -1;
+  if(imgid > UNKNOWN_IMAGE)
+  {
+    dt_pthread_mutex_lock(&table->lock);
+    rowid = _find_rowid_from_imgid(table, imgid);
+    dt_pthread_mutex_unlock(&table->lock);
+  }
+  else
+    rowid = table->rowid;
 
   if(rowid == -1) return 1;
 
@@ -234,7 +239,6 @@ static int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table)
   int id = dt_selection_get_first_id(darktable.selection);
   if(id < 0) id = dt_control_get_keyboard_over_id();
   if(id < 0) id = dt_control_get_mouse_over_id();
-  if(id < 0) id = table->rowid;
   dt_thumbtable_scroll_to_imgid(table, id);
   return 0;
 }
@@ -1717,7 +1721,10 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
     // which will trigger leave/enter events.
     // But we don't want that when interacting from the keyboard, so disallow
     // recording enter/leave events in the next 100 ms after keyboard interaction.
-    if(current_time > next_over_time) dt_control_set_mouse_over_id(imgid);
+    if(current_time > next_over_time)
+      dt_control_set_mouse_over_id(imgid);
+    else
+      return;
   }
   else if(type == GDK_MOTION_NOTIFY	|| type == GDK_BUTTON_PRESS || type == GDK_2BUTTON_PRESS)
   {
@@ -1725,7 +1732,14 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
     dt_control_set_mouse_over_id(imgid);
   }
   else
+  {
     fprintf(stderr, "[dt_thumbtable_dispatch_over] unsupported event type: %i\n", type);
+    return;
+  }
+
+  dt_pthread_mutex_lock(&table->lock);
+  table->rowid = _find_rowid_from_imgid(table, imgid);
+  dt_pthread_mutex_unlock(&table->lock);
 }
 
 // clang-format off
