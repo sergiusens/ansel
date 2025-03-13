@@ -370,13 +370,6 @@
     <longdescription>the number of folder levels to show in film roll names, starting from the right</longdescription>
   </dtconfig>
   <dtconfig>
-    <name>plugins/collection/film_id</name>
-    <type>int</type>
-    <default>1</default>
-    <shortdescription/>
-    <longdescription/>
-  </dtconfig>
-  <dtconfig>
     <name>plugins/collection/rating</name>
     <type>int</type>
     <default>1</default>

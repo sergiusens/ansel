@@ -450,10 +450,8 @@ void dt_collection_reset(const dt_collection_t *collection)
 
   // enable all filters, aka filter in everything
   params->filter_flags = ~COLLECTION_FILTER_NONE;
-  params->film_id = 1;
 
   /* apply stored query parameters from previous darktable session */
-  params->film_id = dt_conf_get_int("plugins/collection/film_id");
   params->filter_flags = dt_conf_get_int("plugins/collection/filter_flags");
   g_free(params->text_filter);
   params->text_filter = dt_conf_get_string("plugins/collection/text_filter");
@@ -718,7 +716,6 @@ static int _dt_collection_store(const dt_collection_t *collection, gchar *query)
     dt_conf_set_int("plugins/collection/query_flags", collection->params.query_flags);
     dt_conf_set_int("plugins/collection/filter_flags", collection->params.filter_flags);
     dt_conf_set_string("plugins/collection/text_filter", collection->params.text_filter ? collection->params.text_filter : "");
-    dt_conf_set_int("plugins/collection/film_id", collection->params.film_id);
     dt_conf_set_int("plugins/collection/sort", collection->params.sort);
     dt_conf_set_bool("plugins/collection/descending", collection->params.descending);
   }

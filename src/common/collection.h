@@ -133,9 +133,6 @@ typedef struct dt_collection_params_t
   /** text filter */
   char *text_filter;
 
-  /** current film id */
-  int32_t film_id;
-
   /** sorting **/
   dt_collection_sort_t sort; // Has to be changed to a dt_collection_sort struct
   gint descending;
