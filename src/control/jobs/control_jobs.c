@@ -2177,11 +2177,11 @@ const int32_t _import_job(dt_control_import_t *data, gchar *img_path_to_db)
   gchar *dirname = g_strdup(dt_util_path_get_dirname(img_path_to_db));
 
   dt_film_t film;
-  data->filmid = dt_film_new(&film, dirname);
+  const int32_t filmid = dt_film_new(&film, dirname);
 
-  fprintf(stdout, "dirname: %s\tfilmid: %i\n", dirname, data->filmid);
+  fprintf(stdout, "dirname: %s\tfilmid: %i\n", dirname, filmid);
 
-  const int32_t imgid = dt_image_import(data->filmid, img_path_to_db, FALSE);
+  const int32_t imgid = dt_image_import(filmid, img_path_to_db, FALSE);
   g_free(dirname);
   return imgid;
 }
@@ -2383,15 +2383,14 @@ static int32_t _control_import_job_run(dt_job_t *job)
 
   for(GList *img = g_list_first(data->imgs); img; img = g_list_next(img))
   {
-    fprintf(stdout, "\nIMG %i.\n", index + 1);
+    fprintf(stdout, "\nIMG %i.\n", index);
 
     _refresh_progress_counter(job, data->elements, index);
     imgid = _import_image(img, data, index, &data->discarded);
 
     if(imgid > UNKNOWN_IMAGE)
     {
-      data->total_imported_elements += 1;
-      fprintf(stdout, "N: %i\n", data->total_imported_elements);
+      fprintf(stdout, "N: %i\n", index);
 
       // On first image, we change the current filmroll in collection.
       // On the next, we simply update the collection.
@@ -2411,21 +2410,21 @@ static int32_t _control_import_job_run(dt_job_t *job)
     dt_control_log(_("No image imported!"));
     fprintf(stderr, "No image imported!\n\n");
   }
-  else if(index == 1 && imgid > UNKNOWN_IMAGE)
+  else if(index == 1)
   {
     dt_collection_load_filmroll(darktable.collection, imgid, TRUE);
   }
-  else if(data->filmid > -1)
+  else
   {
-    dt_control_log(ngettext("imported %d image", "imported %d images", data->total_imported_elements), data->total_imported_elements);
-    fprintf(stdout, "%d files imported in database.\n\n", data->total_imported_elements);
+    dt_control_log(ngettext("imported %d image", "imported %d images", index), index);
+    fprintf(stdout, "%d files imported in database.\n\n", index);
   }
 
   fprintf(stdout,":::END OF IMPORT:::\n\n");
 
-  dt_conf_set_int("ui_last/nb_imported", data->total_imported_elements);
+  dt_conf_set_int("ui_last/nb_imported", index);
 
-  return data->total_imported_elements >= 1 ? 0 : 1;
+  return index >= 1 ? 0 : 1;
 }
 
 static void _control_import_job_cleanup(void *p)

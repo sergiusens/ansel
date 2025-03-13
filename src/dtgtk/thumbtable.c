@@ -1009,8 +1009,6 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
                                   .target_file_pattern = dt_conf_get_string("session/filename_pattern"),
                                   .target_dir = NULL,
                                   .elements = elements,
-                                  .total_imported_elements = 0,
-                                  .filmid = -1,
                                   .discarded = NULL
                                   };
 

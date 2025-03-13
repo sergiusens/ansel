@@ -43,9 +43,7 @@ typedef struct dt_control_import_t
   char *target_file_pattern;
   char *target_dir;
   const int elements;
-  int total_imported_elements;
 
-  int32_t filmid;
   GList *discarded;
 
 } dt_control_import_t;

@@ -1,7 +1,8 @@
 /*
     This file is part of Ansel.
     Copyright (C) 2011-2022 darktable developers.
-    Copyright (C) 2023 Aurélien Pierre.
+    Copyright (C) 2023-2025 Aurélien Pierre.
+    Copyright (C) 2024-2025 Guillaume Stutin
 
     darktable is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -234,7 +235,7 @@ static void _recurse_selection(GSList *selection, dt_import_t *const import)
   GFile *filepath = g_vfs_get_file_for_uri(vfs, (const char *)selection->data);
   const char *first_element = (const char*) g_file_get_path(filepath);
   g_object_unref(filepath);
-  
+
   if(first_element)
   {
     fprintf(stdout,"IMPORT: first element: %s\n", first_element);
@@ -703,8 +704,6 @@ static void _set_test_path(dt_lib_import_t *d, dt_image_t *img)
                                 .target_file_pattern = dt_conf_get_string("session/filename_pattern"),
                                 .target_dir = NULL,
                                 .elements = 1,
-                                .total_imported_elements = 0,
-                                .filmid = -1,
                                 .discarded = NULL,
                                 };
 
@@ -892,8 +891,6 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
                                 .target_file_pattern = dt_conf_get_string("session/filename_pattern"),
                                 .target_dir = NULL,
                                 .elements = elements,
-                                .total_imported_elements = 0,
-                                .filmid = -1,
                                 .discarded = NULL
                                 };
 
