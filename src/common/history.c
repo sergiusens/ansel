@@ -185,6 +185,7 @@ int dt_history_load_and_apply_on_list(gchar *filename, const GList *list)
     const int32_t imgid = GPOINTER_TO_INT(l->data);
     if(dt_history_load_and_apply(imgid, filename, 1)) res = 1;
   }
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy((GList *)list));
   dt_undo_end_group(darktable.undo);
   return res;
 }
@@ -1070,6 +1071,7 @@ gboolean dt_history_delete_on_list(const GList *list, gboolean undo)
   }
 
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy((GList *)list));
 
   if(undo) dt_undo_end_group(darktable.undo);
   return TRUE;
