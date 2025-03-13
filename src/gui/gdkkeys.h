@@ -74,6 +74,12 @@ static inline guint dt_keys_keypad_alternatives(const guint key_val)
     case GDK_KEY_Page_Down:
       alt_char = GDK_KEY_KP_Page_Down;
       break;
+    case GDK_KEY_plus:
+      alt_char = GDK_KEY_KP_Add;
+      break;
+    case GDK_KEY_minus:
+      alt_char = GDK_KEY_KP_Subtract;
+      break;
     default:
       break;
   }
