@@ -144,14 +144,6 @@ static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
   if((import->shutdown)) return;
 
   gchar *pathname = g_file_get_path(document);
-  /*
-  fprintf(stdout, "URI: %s\n", g_file_get_uri(document));
-  fprintf(stdout, "PATHNAME: %s\n", pathname);
-  fprintf(stdout, "FILENAME: %s\n", g_filename_from_uri(g_file_get_uri(document), NULL, NULL));
-  fprintf(stdout, "BASENAME: %s\n", g_file_get_basename(document));
-  fprintf(stdout, "PARSENAME: %s\n", g_file_get_parse_name(document));
-  */
-
   GtkFileFilterInfo filter_info = { gtk_file_filter_get_needed(import->filter),
                                     g_file_get_parse_name(document),
                                     g_file_get_uri(document),
@@ -172,18 +164,6 @@ static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
     _recurse_folder(vfs, document, import);
     g_free(pathname);
   }
-  /*
-  else if(gtk_file_filter_filter(import->filter, &filter_info))
-  {
-    fprintf(stdout, "passed filter\n");
-    g_free(pathname);
-  }
-  else
-  {
-    fprintf(stdout, "is nothing\n");
-    g_free(pathname);
-  }
-  */
 }
 
 static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import)
@@ -250,8 +230,9 @@ static void _recurse_selection(GSList *selection, dt_import_t *const import)
 static gboolean _delayed_file_count(gpointer data)
 {
   dt_import_t *import = (dt_import_t *)data;
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_FILELIST_CHANGED, import->files,
-                                g_list_length(import->files), 0);
+  if(import->files)
+    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_FILELIST_CHANGED, import->files,
+                                  g_list_length(import->files), 0);
   return G_SOURCE_CONTINUE;
 }
 
@@ -279,7 +260,7 @@ static int32_t dt_get_selected_files(dt_import_t *import)
 
   // If shutdown was triggered, we may already have no Gtk label widget to update through the callback.
   // In that case, it will segfault. So don't raise the signal at all if shutdown was set.
-  if(valid)
+  if(valid && import->files)
   {
     dt_pthread_mutex_unlock(import->lock);
 
@@ -323,67 +304,67 @@ void dt_control_get_selected_files(dt_lib_import_t *d, gboolean destroy_window)
 static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, const int height)
 {
   GdkPixbuf *pixbuf = NULL;
-  gboolean no_preview_fallback = FALSE;
 
-  if(!filename || !g_file_test(filename, G_FILE_TEST_IS_REGULAR))
-    no_preview_fallback = TRUE;
+  if(!filename || !g_file_test(filename, G_FILE_TEST_IS_REGULAR)) return NULL;
 
   // Step 1: try to check whether the picture contains embedded thumbnail
   // In case it has, we'll use that thumbnail to show on the dialog
-  if(!no_preview_fallback)
+  uint8_t *buffer = NULL;
+  size_t size = 0;
+  char *mime_type = NULL;
+  if(!dt_exif_get_thumbnail(filename, &buffer, &size, &mime_type))
   {
-    uint8_t *buffer = NULL;
-    size_t size = 0;
-    char *mime_type = NULL;
-    if(!dt_exif_get_thumbnail(filename, &buffer, &size, &mime_type))
+    // Scale the image to the correct size
+    GdkPixbuf *tmp;
+    GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
+
+    // Calling gdk_pixbuf_loader_close forces the data to be parsed by the
+    // loader. We must do this before calling gdk_pixbuf_loader_get_pixbuf.
+    gboolean valid = gdk_pixbuf_loader_write(loader, buffer, size, NULL);
+
+    if(valid)
     {
-      // Scale the image to the correct size
-      GdkPixbuf *tmp;
-      GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
+      tmp = gdk_pixbuf_loader_get_pixbuf(loader);
+      valid = (tmp != NULL);
+    }
 
-      // Calling gdk_pixbuf_loader_close forces the data to be parsed by the
-      // loader. We must do this before calling gdk_pixbuf_loader_get_pixbuf.
-      if (!gdk_pixbuf_loader_write(loader, buffer, size, NULL)) goto cleanup;
-      if(!gdk_pixbuf_loader_close(loader, NULL)) goto cleanup;
-      if (!(tmp = gdk_pixbuf_loader_get_pixbuf(loader))) goto cleanup;
-
+    if(valid)
+    {
       const float ratio = ((float)gdk_pixbuf_get_height(tmp)) / ((float)gdk_pixbuf_get_width(tmp));
       pixbuf = gdk_pixbuf_scale_simple(tmp, width / ratio, height, GDK_INTERP_BILINEAR);
+    }
 
-    cleanup:
-      gdk_pixbuf_loader_close(loader, NULL);
-      free(mime_type);
-      free(buffer);
-      g_object_unref(loader); // This should clean up tmp as well
-    }
-    else
-    {
-      // Fallback to whatever Gtk found in the file
-      pixbuf = gdk_pixbuf_new_from_file_at_size(filename, width, height, NULL);
-    }
+    gdk_pixbuf_loader_close(loader, NULL);
+    free(mime_type);
+    free(buffer);
+    g_object_unref(loader); // This should clean up tmp as well
+  }
+  else
+  {
+    // Fallback to whatever Gtk found in the file
+    pixbuf = gdk_pixbuf_new_from_file_at_size(filename, width, height, NULL);
   }
 
-  if(!no_preview_fallback && pixbuf != NULL)
+  if(pixbuf == NULL) return NULL;
+
+  // get image orientation
+  dt_image_t img = { 0 };
+  (void)dt_exif_read(&img, filename);
+
+  // Rotate the image to the correct orientation
+  GdkPixbuf *tmp = pixbuf;
+
+  if(img.orientation == ORIENTATION_ROTATE_CCW_90_DEG)
+    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+  else if(img.orientation == ORIENTATION_ROTATE_CW_90_DEG)
+    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_CLOCKWISE);
+  else if(img.orientation == ORIENTATION_ROTATE_180_DEG)
+    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
+
+  if(pixbuf != tmp)
   {
-    // get image orientation
-    dt_image_t img = { 0 };
-    (void)dt_exif_read(&img, filename);
-
-    // Rotate the image to the correct orientation
-    GdkPixbuf *tmp = pixbuf;
-
-    if(img.orientation == ORIENTATION_ROTATE_CCW_90_DEG)
-      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
-    else if(img.orientation == ORIENTATION_ROTATE_CW_90_DEG)
-      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_CLOCKWISE);
-    else if(img.orientation == ORIENTATION_ROTATE_180_DEG)
-      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
-
-    if(pixbuf != tmp)
-    {
-      g_object_unref(pixbuf);
-      pixbuf = tmp;
-    }
+    g_object_unref(pixbuf);
+    pixbuf = tmp;
   }
 
   return pixbuf;
