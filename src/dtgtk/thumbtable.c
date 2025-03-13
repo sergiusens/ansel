@@ -234,6 +234,7 @@ static int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table)
   int id = dt_selection_get_first_id(darktable.selection);
   if(id < 0) id = dt_control_get_keyboard_over_id();
   if(id < 0) id = dt_control_get_mouse_over_id();
+  if(id < 0) id = table->rowid;
   dt_thumbtable_scroll_to_imgid(table, id);
   return 0;
 }
