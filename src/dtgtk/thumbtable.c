@@ -601,15 +601,7 @@ static void _dt_profile_change_callback(gpointer instance, int type, gpointer us
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-
-  dt_pthread_mutex_lock(&table->lock);
-  for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
-  {
-    dt_thumbnail_t *th = (dt_thumbnail_t *)l->data;
-    th->image_inited = FALSE;
-    dt_thumbnail_image_refresh(th);
-  }
-  dt_pthread_mutex_unlock(&table->lock);
+  dt_thumbtable_refresh_thumbnail(table, -1, TRUE);
 }
 
 static void _dt_selection_changed_callback(gpointer instance, gpointer user_data)
@@ -636,27 +628,16 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
   dt_pthread_mutex_unlock(&table->lock);
 }
 
+// can be called with imgid = -1, in that case we reload all mipmaps
 static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-
-  dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
-  {
-    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
-    if(thumb->imgid == imgid)
-    {
-      //fprintf(stdout, "got mipmap for %i\n", imgid);
-      dt_thumbnail_image_refresh(thumb);
-      break;
-    }
-  }
-  dt_pthread_mutex_unlock(&table->lock);
+  dt_thumbtable_refresh_thumbnail(table, imgid, FALSE);
 }
 
-
-void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid)
+// can be called with imgid = -1, in that case we reload all mipmaps
+void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboolean reinit)
 {
   dt_pthread_mutex_lock(&table->lock);
   for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
@@ -665,9 +646,14 @@ void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid)
     if(thumb->imgid == imgid)
     {
       fprintf(stdout, "refreshing mipmap for %i\n", imgid);
-      thumb->image_inited = FALSE;
+      if(reinit) thumb->image_inited = FALSE;
       dt_thumbnail_image_refresh(thumb);
       break;
+    }
+    else if(imgid == -1)
+    {
+      if(reinit) thumb->image_inited = FALSE;
+      dt_thumbnail_image_refresh(thumb);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);

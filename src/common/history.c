@@ -124,7 +124,7 @@ void dt_history_delete_on_image_ext(int32_t imgid, gboolean undo)
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
 
   // signal that the mipmap need to be updated
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
 
   if(undo)
   {
@@ -172,7 +172,7 @@ int dt_history_load_and_apply(const int32_t imgid, gchar *filename, int history_
   }
 
   // signal that the mipmap need to be updated
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
   return 0;
 }
 
@@ -455,7 +455,7 @@ void dt_history_compress_on_image(const int32_t imgid)
   dt_database_release_transaction(darktable.db);
 
   // signal that the mipmap need to be updated
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
 }
 
 /* Please note: dt_history_truncate_on_image
@@ -514,7 +514,7 @@ void dt_history_truncate_on_image(const int32_t imgid, const int32_t history_end
   dt_database_release_transaction(darktable.db);
 
   // signal that the mipmap need to be updated
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
 }
 
 int dt_history_compress_on_list(const GList *imgs)

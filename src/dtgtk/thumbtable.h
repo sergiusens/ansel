@@ -139,8 +139,9 @@ void dt_thumbtable_reset_collection(dt_thumbtable_t *table);
 gboolean dt_thumbtable_key_released_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data);
 gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpointer user_data);
 
-// call this when the history of an image is changed and mipmap cache needs updating
-void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid);
+// call this when the history of an image is changed and mipmap cache needs updating.
+// reinit = TRUE will force-flush the existing thumbnail. imgid = -1 applies on all thumbnails in thumbtable.
+void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboolean reinit);
 
 // select all images from the current collection through the GUI list of thumbnails
 void dt_thumbtable_select_all(dt_thumbtable_t *table);

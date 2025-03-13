@@ -259,8 +259,6 @@ static void profile_callback(GtkWidget *widget)
     dt_colorspaces_update_display_transforms();
     pthread_rwlock_unlock(&darktable.color_profiles->xprofile_lock);
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_CONTROL_PROFILE_USER_CHANGED, DT_COLORSPACES_PROFILE_TYPE_DISPLAY);
-    dt_dev_pixelpipe_resync_all(darktable.develop);
-    dt_dev_refresh_ui_images(darktable.develop);
   }
 }
 
@@ -295,8 +293,7 @@ static void intent_callback(GtkWidget *widget)
     pthread_rwlock_rdlock(&darktable.color_profiles->xprofile_lock);
     dt_colorspaces_update_display_transforms();
     pthread_rwlock_unlock(&darktable.color_profiles->xprofile_lock);
-    dt_dev_pixelpipe_resync_all(darktable.develop);
-    dt_dev_refresh_ui_images(darktable.develop);
+    DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_CONTROL_PROFILE_USER_CHANGED, DT_COLORSPACES_PROFILE_TYPE_DISPLAY);
   }
 }
 
@@ -350,7 +347,7 @@ static void focus_peaking_callback()
 {
   darktable.gui->show_focus_peaking = !darktable.gui->show_focus_peaking;
   // Redraw all thumbnails
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, -1);
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), -1, TRUE);
 }
 
 static gboolean focus_peaking_checked_callback()

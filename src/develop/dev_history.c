@@ -401,7 +401,7 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
   dt_mipmap_cache_remove(darktable.mipmap_cache, dest_imgid);
 
   // signal that the mipmap need to be updated
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid);
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
 
   return ret_val;
 }
