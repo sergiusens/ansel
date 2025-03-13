@@ -2399,18 +2399,19 @@ static int32_t _control_import_job_run(dt_job_t *job)
         dt_collection_load_filmroll(darktable.collection, imgid, FALSE);
       else
         dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_NEW_QUERY, DT_COLLECTION_PROP_UNDEF, NULL);
+
+      index++;
     }
-    index++;
 
     fprintf(stdout, "BOTTOM LOOP.\n\n");
   }
 
-  if(data->total_imported_elements == 0 && data->filmid == -1)
+  if(index == 0)
   {
     dt_control_log(_("No image imported!"));
     fprintf(stderr, "No image imported!\n\n");
   }
-  else if(index == 1)
+  else if(index == 1 && imgid > UNKNOWN_IMAGE)
   {
     dt_collection_load_filmroll(darktable.collection, imgid, TRUE);
   }
