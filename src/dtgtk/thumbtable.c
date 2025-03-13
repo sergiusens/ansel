@@ -980,7 +980,7 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
 {
   gchar **uris = gtk_selection_data_get_uris(selection_data);
   int elements = 0;
-  GList *files = NULL; // must be freed in the job cleanup function
+  GList *files = NULL;
 
   if(uris)
   {
@@ -1000,7 +1000,10 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
 
     if(elements > 0)
     {
-      dt_control_import_t data = {.imgs = files,
+      // WARNING: we copy a Glist of pathes as char*
+      // The references to the char* still belong to the original.
+      // We will free them in the import job.
+      dt_control_import_t data = {.imgs = g_list_copy(files),
                                   .datetime = g_date_time_new_now_local(),
                                   .copy = FALSE, // we only import in place.
                                   .jobcode = dt_conf_get_string("ui_last/import_jobcode"),
@@ -1012,12 +1015,13 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
                                   .discarded = NULL
                                   };
 
-    dt_control_import(data);
+      dt_control_import(data);
     }
     else fprintf(stderr,"No files to import. Check your selection or use 'File > Import'.");
   }
 
   g_strfreev(uris);
+  g_list_free(files);
   return elements >= 0 ? TRUE : FALSE;
 }
 

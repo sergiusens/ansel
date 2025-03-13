@@ -722,11 +722,10 @@ static void _set_test_path(dt_lib_import_t *d, dt_image_t *img)
     else
       gtk_label_set_text(GTK_LABEL(d->test_path), _("Can't build a valid path."));
 
-    g_free(basedir);
     g_free(cut);
     g_free(_path);
     g_free(fake_path);
-    g_list_free_full(file, g_free);
+    dt_control_import_data_free(&data);
   }
 }
 
@@ -871,7 +870,10 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
 
   if(elements > 0)
   {
-    dt_control_import_t data = {.imgs = files,
+    // WARNING: we copy a Glist of pathes as char*
+    // The references to the char* still belong to the original.
+    // We will free them in the import job.
+    dt_control_import_t data = {.imgs = g_list_copy(files),
                                 .datetime = dt_string_to_datetime(gtk_entry_get_text(GTK_ENTRY(d->datetime))),
                                 .copy = dt_conf_get_bool("ui_last/import_copy"),
                                 .jobcode = dt_conf_get_string("ui_last/import_jobcode"),
@@ -886,8 +888,11 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
     // Prepare to catch the end of import signal
     dt_control_import(data);
   }
-  else dt_control_log(_("No files to import. Check your selection."));
+  else
+    dt_control_log(_("No files to import. Check your selection."));
 
+  g_list_free(g_steal_pointer(&files));
+  files = NULL;
   fprintf(stdout, ":END:\n\n");
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_process_file_list), (gpointer)d);
   gui_cleanup(d);

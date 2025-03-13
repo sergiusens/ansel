@@ -175,12 +175,8 @@ static void dt_control_image_enumerator_cleanup(void *p)
 {
   dt_control_image_enumerator_t *params = p;
 
-  // TODO: fix the fucking mess in jobs because each one cleans up its own way
   g_list_free(params->index);
   params->index = NULL;
-
-  //FIXME: we need to free params->data to avoid a memory leak, but doing so here causes memory corruption....
-//  g_free(params->data);
 
   free(params);
 }
@@ -2427,6 +2423,20 @@ static int32_t _control_import_job_run(dt_job_t *job)
   return index >= 1 ? 0 : 1;
 }
 
+void dt_control_import_data_free(dt_control_import_t *data)
+{
+  g_date_time_unref(data->datetime);
+  g_free(data->jobcode);
+  g_free(data->target_folder);
+  g_free(data->target_subfolder_pattern);
+  g_free(data->target_file_pattern);
+  g_free(data->target_dir);
+
+  // GList of pathes stored as *char. We need to free the list and the *char
+  if(data->discarded) g_list_free_full(data->discarded, g_free);
+  if(data->imgs) g_list_free_full(data->imgs, g_free);
+}
+
 static void _control_import_job_cleanup(void *p)
 {
   dt_control_image_enumerator_t *params = (dt_control_image_enumerator_t *)p;
@@ -2499,11 +2509,7 @@ static void _control_import_job_cleanup(void *p)
     gtk_widget_destroy(dialog);
   }
 
-  g_list_free_full(data->discarded, g_free);
-
-  for(GList *img = g_list_first(data->imgs); img; img = g_list_next(img))
-    free(img->data);
-
+  dt_control_import_data_free(data);
   free(data);
   dt_control_image_enumerator_cleanup(params);
 }
@@ -2533,7 +2539,7 @@ static dt_job_t *_control_import_job_create(dt_control_import_t data)
     return NULL;
   }
   memcpy(params->data, &data, sizeof(dt_control_import_t));
-  params->index = ((dt_control_import_t *)params->data)->imgs;
+  params->index = NULL;
   dt_control_job_add_progress(job, _("import"), FALSE);
   dt_control_job_set_params(job, params, _control_import_job_cleanup);
   fprintf(stdout, "END Job create.\n");

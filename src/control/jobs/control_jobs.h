@@ -49,6 +49,9 @@ typedef struct dt_control_import_t
 } dt_control_import_t;
 
 
+// free the internal strings of a dt_control_import_t structure. Doesn't free the structure itself.
+void dt_control_import_data_free(dt_control_import_t *data);
+
 void dt_control_gpx_apply(const gchar *filename, int32_t filmid, const gchar *tz, GList *imgs);
 
 void dt_control_datetime(const GTimeSpan offset, const char *datetime, GList *imgs);
