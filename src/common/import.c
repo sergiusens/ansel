@@ -139,6 +139,13 @@ static void _do_select_new(dt_lib_import_t *d);
 
 static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import);
 
+// one-liner to set GtkLabel text from non-constant text and free it straight away
+static void _gtk_label_set_and_free(GtkWidget *widget, gchar *label)
+{
+  gtk_label_set_text(GTK_LABEL(widget), label);
+  g_free(label);
+}
+
 static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
 {
   if((import->shutdown)) return;
@@ -418,6 +425,16 @@ static void _resize_dialog(GtkWidget *widget)
   dt_conf_set_int("ui_last/import_dialog_height", allocation.height);
 }
 
+static void _build_filter(GtkFileFilter *filter, const gchar *extension)
+{
+  gchar *text = g_strdup_printf("*.%s", extension);
+  gchar *TEXT = g_utf8_strup(text, -1); // uppercase variant
+  gtk_file_filter_add_pattern(filter, text);
+  gtk_file_filter_add_pattern(filter, TEXT);
+  g_free(text);
+  g_free(TEXT);
+}
+
 /* Add file extension patterns for file chooser filters
 * Bloody GTK doesn't support regex patterns so we need to unroll
 * every combination separately, for lowercase and uppercase.
@@ -442,16 +459,9 @@ static void _file_filters(GtkWidget *file_chooser)
   filter = gtk_file_filter_new();
   gtk_file_filter_set_name(filter, _("All image files"));
   //TODO: use dt_supported_extensions list ?
-  for(int i = 0; i < 46; i++)
-  {
-    gtk_file_filter_add_pattern(filter, g_strdup_printf("*.%s", raw[i]));
-    gtk_file_filter_add_pattern(filter, g_utf8_strup(g_strdup_printf("*.%s", raw[i]), -1));
-  }
-  for(int i = 0; i < 14; i++)
-  {
-    gtk_file_filter_add_pattern(filter, g_strdup_printf("*.%s", raster[i]));
-    gtk_file_filter_add_pattern(filter, g_utf8_strup(g_strdup_printf("*.%s", raster[i]), -1));
-  }
+  for(int i = 0; i < 46; i++) _build_filter(filter, raw[i]);
+  for(int i = 0; i < 14; i++) _build_filter(filter, raster[i]);
+
   gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(file_chooser), filter);
 
   // Set ALL IMAGES as default
@@ -460,21 +470,14 @@ static void _file_filters(GtkWidget *file_chooser)
   /* RAW ONLY */
   filter = gtk_file_filter_new();
   gtk_file_filter_set_name(filter, _("Raw image files"));
-  for(int i = 0; i < 46; i++)
-  {
-    gtk_file_filter_add_pattern(filter, g_strdup_printf("*.%s", raw[i]));
-    gtk_file_filter_add_pattern(filter, g_utf8_strup(g_strdup_printf("*.%s", raw[i]), -1));
-  }
+  for(int i = 0; i < 46; i++) _build_filter(filter, raw[i]);
   gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(file_chooser), filter);
 
   /* RASTER ONLY */
   filter = gtk_file_filter_new();
   gtk_file_filter_set_name(filter, _("Raster image files"));
-  for(int i = 0; i < 14; i++)
-  {
-    gtk_file_filter_add_pattern(filter, g_strdup_printf("*.%s", raster[i]));
-    gtk_file_filter_add_pattern(filter, g_utf8_strup(g_strdup_printf("*.%s", raster[i]), -1));
-  }
+  for(int i = 0; i < 14; i++) _build_filter(filter, raster[i]);
+
   gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(file_chooser), filter);
 }
 
@@ -522,6 +525,11 @@ static int _is_in_library_by_metadata(GFile *file)
   const int res = dt_metadata_already_imported(g_file_info_get_name(info), dtid);
   g_object_unref(info);
   return res;
+}
+
+static void _exif_text_set_and_free(dt_lib_import_t *d, exif_fields_t field, gchar *label)
+{
+  _gtk_label_set_and_free(d->exif_info[field], label);
 }
 
 static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
@@ -609,18 +617,17 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
   {
     char datetime[200];
     const gboolean valid = dt_datetime_img_to_local(datetime, sizeof(datetime), img, FALSE);
-    const gchar *exposure_field = g_strdup_printf("%.0f ISO - f/%.1f - %s", img->exif_iso, img->exif_aperture,
-                                                  dt_util_format_exposure(img->exif_exposure));
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_DATETIME_FIELD]), g_strdup_printf(" %s", valid ? datetime : "-"));
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_MODEL_FIELD]), g_strdup_printf(" %s", (img->exif_model[0] != '\0') ? img->exif_model : "-"));
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_MAKER_FIELD]), g_strdup_printf(" %s", (img->exif_maker[0] != '\0') ? img->exif_maker : "-"));
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_LENS_FIELD]),  g_strdup_printf(" %s", (img->exif_lens[0]  != '\0') ? img->exif_lens  : "-"));
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_FOCAL_LENS_FIELD]), g_strdup_printf(" %0.f mm", img->exif_focal_length));
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_EXPOSURE_FIELD]), exposure_field);
-    gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_INLIB_FIELD]), (is_in_lib) ? g_strdup_printf(_(" Yes (ID %i), in"), imgid) : _(" No"));
+    gchar *exposure_field = g_strdup_printf("%.0f ISO - f/%.1f - %s", img->exif_iso, img->exif_aperture,
+                                             dt_util_format_exposure(img->exif_exposure));
+    _exif_text_set_and_free(d, EXIF_DATETIME_FIELD, g_strdup_printf(" %s", valid ? datetime : "-"));
+    _exif_text_set_and_free(d, EXIF_MODEL_FIELD, g_strdup_printf(" %s", (img->exif_model[0] != '\0') ? img->exif_model : "-"));
+    _exif_text_set_and_free(d, EXIF_MAKER_FIELD, g_strdup_printf(" %s", (img->exif_maker[0] != '\0') ? img->exif_maker : "-"));
+    _exif_text_set_and_free(d, EXIF_LENS_FIELD,  g_strdup_printf(" %s", (img->exif_lens[0]  != '\0') ? img->exif_lens  : "-"));
+    _exif_text_set_and_free(d, EXIF_FOCAL_LENS_FIELD, g_strdup_printf(" %0.f mm", img->exif_focal_length));
+    _exif_text_set_and_free(d, EXIF_EXPOSURE_FIELD, exposure_field);
+    _exif_text_set_and_free(d, EXIF_INLIB_FIELD, (is_in_lib) ? g_strdup_printf(_(" Yes (ID %i), in"), imgid) : _(" No"));
 
-    if(is_in_lib)
-      gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_PATH_FIELD]), g_strdup_printf(_("%s"), path));
+    if(is_in_lib) _exif_text_set_and_free(d, EXIF_PATH_FIELD, g_strdup_printf(_("%s"), path));
   }
 
   g_free(filename);
@@ -654,7 +661,7 @@ static void _set_test_path(dt_lib_import_t *d, dt_image_t *img)
   const gboolean duplicate = dt_conf_get_bool("ui_last/import_copy");
   if(!duplicate)
   {
-    gtk_label_set_text(GTK_LABEL(d->test_path), g_strdup_printf(_("No copy.")));
+    gtk_label_set_text(GTK_LABEL(d->test_path), _("No copy."));
     return;
   }
 
@@ -710,9 +717,10 @@ static void _set_test_path(dt_lib_import_t *d, dt_image_t *img)
 
     if(free_after) g_free(img);
 
-    gtk_label_set_text(GTK_LABEL(d->test_path), (fake_path && fake_path != NULL)
-                  ? g_strdup_printf(_("Result of the pattern : ...%s"), fake_path)
-                  : g_strdup(_("Can't build a valid path.")));
+    if(fake_path && fake_path[0] != 0)
+      _gtk_label_set_and_free(d->test_path, g_strdup_printf(_("Result of the pattern : ...%s"), fake_path));
+    else
+      gtk_label_set_text(GTK_LABEL(d->test_path), _("Can't build a valid path."));
 
     g_free(basedir);
     g_free(cut);
@@ -731,7 +739,7 @@ static void _filelist_changed_callback(gpointer instance, GList *files, guint el
   {
     // Lock the thread to ensure we have the correct final number
     dt_pthread_mutex_lock(&d->lock);
-    gtk_label_set_text(GTK_LABEL(d->selected_files), g_strdup_printf(_("%i files selected"), elements));
+    _gtk_label_set_and_free(d->selected_files, g_strdup_printf(_("%i files selected"), elements));
 
     // The list of files is not used in GUI. It's not freed in the job either.
     g_list_free_full(g_steal_pointer(&files), g_free);
@@ -741,7 +749,7 @@ static void _filelist_changed_callback(gpointer instance, GList *files, guint el
   else
   {
     // We don't care for correctness, we just want to show user that we are still at it
-    gtk_label_set_text(GTK_LABEL(d->selected_files), g_strdup_printf(_("Detection in progress... (%i files found so far)"), elements));
+    _gtk_label_set_and_free(d->selected_files, g_strdup_printf(_("Detection in progress... (%i files found so far)"), elements));
   }
 }
 
