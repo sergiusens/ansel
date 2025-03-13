@@ -274,12 +274,13 @@ gboolean _focus_search_action(GtkAccelGroup *accel_group, GObject *accelerable, 
 }
 
 const dt_collection_filter_flag_t colors[6] =
-  { COLLECTION_FILTER_RED,
+  {
+    COLLECTION_FILTER_WHITE,
+    COLLECTION_FILTER_RED,
     COLLECTION_FILTER_YELLOW,
     COLLECTION_FILTER_GREEN,
     COLLECTION_FILTER_BLUE,
-    COLLECTION_FILTER_MAGENTA,
-    COLLECTION_FILTER_WHITE };
+    COLLECTION_FILTER_MAGENTA,};
 
 
 static void _dtgtk_button_set_active(GtkWidget *w, gboolean active)
@@ -426,8 +427,9 @@ void _widget_align_left(GtkWidget *widget)
 }
 
 const dt_collection_filter_flag_t ratings[7] =
-  { COLLECTION_FILTER_REJECTED,
+  {
     COLLECTION_FILTER_0_STAR,
+    COLLECTION_FILTER_REJECTED,
     COLLECTION_FILTER_1_STAR,
     COLLECTION_FILTER_2_STAR,
     COLLECTION_FILTER_3_STAR,
@@ -444,7 +446,7 @@ static void _update_rating_filter(dt_lib_module_t *self)
   for(int i = 0; i < 7; i++)
   {
     gboolean active = flags & ratings[i];
-    if(i > 0)
+    if(i != 1)
     {
       // fill stars if active
       if(active)
@@ -572,13 +574,13 @@ void gui_init(dt_lib_module_t *self)
   {
     if(k == 0)
     {
-      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_reject, k, NULL);
-      gtk_widget_set_name(d->stars[k], "rejected-filter");
+      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_unratestar, k, NULL);
+      gtk_widget_set_name(d->stars[k], "no-star-filter");
     }
     else if(k == 1)
     {
-      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_unratestar, k, NULL);
-      gtk_widget_set_name(d->stars[k], "no-star-filter");
+      d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_reject, k, NULL);
+      gtk_widget_set_name(d->stars[k], "rejected-filter");
     }
     else
       d->stars[k] = dtgtk_button_new(dtgtk_cairo_paint_star, k, NULL);
@@ -589,8 +591,8 @@ void gui_init(dt_lib_module_t *self)
   }
   _update_rating_filter(self);
 
-  gtk_widget_set_tooltip_text(d->stars[0], _("Toggle filtering in/out rejected images"));
-  gtk_widget_set_tooltip_text(d->stars[1], _("Toggle filtering in/out unrated images (0 star)"));
+  gtk_widget_set_tooltip_text(d->stars[0], _("Toggle filtering in/out unrated images (0 star)"));
+  gtk_widget_set_tooltip_text(d->stars[1], _("Toggle filtering in/out rejected images"));
   gtk_widget_set_tooltip_text(d->stars[2], _("Toggle filtering in/out images rated 1 star"));
   gtk_widget_set_tooltip_text(d->stars[3], _("Toggle filtering in/out images rated 2 stars"));
   gtk_widget_set_tooltip_text(d->stars[4], _("Toggle filtering in/out images rated 3 stars"));
@@ -602,35 +604,39 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
   gtk_widget_set_name(hbox, "quickfilters-colors");
 
+  const int col[] = { DT_COLORLABELS_LAST,  DT_COLORLABELS_RED,  DT_COLORLABELS_YELLOW,
+                      DT_COLORLABELS_GREEN, DT_COLORLABELS_BLUE, DT_COLORLABELS_PURPLE };
+
   for(int k = 0; k < DT_COLORLABELS_LAST + 1; k++)
   {
-    d->colors[k] = dtgtk_button_new(dtgtk_cairo_paint_label_sel, k, NULL);
+    d->colors[k] = dtgtk_button_new(dtgtk_cairo_paint_label_sel, col[k], NULL);
     gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->colors[k]), FALSE, FALSE, 0);
     g_signal_connect(G_OBJECT(d->colors[k]), "button-press-event", G_CALLBACK(_colorlabel_clicked), self);
   }
   _update_colors_filter(self);
 
-  gtk_widget_set_tooltip_text(d->colors[0], _("Toggle filtering in/out images with red label"));
-  gtk_widget_set_tooltip_text(d->colors[1], _("Toggle filtering in/out images with yellow label"));
-  gtk_widget_set_tooltip_text(d->colors[2], _("Toggle filtering in/out images with green label"));
-  gtk_widget_set_tooltip_text(d->colors[3], _("Toggle filtering in/out images with blue label"));
-  gtk_widget_set_tooltip_text(d->colors[4], _("Toggle filtering in/out images with purple label"));
-  gtk_widget_set_tooltip_text(d->colors[5], _("Toggle filtering in/out images without color label"));
+  gtk_widget_set_tooltip_text(d->colors[0], _("Toggle filtering in/out images without color label"));
+  gtk_widget_set_tooltip_text(d->colors[1], _("Toggle filtering in/out images with red label"));
+  gtk_widget_set_tooltip_text(d->colors[2], _("Toggle filtering in/out images with yellow label"));
+  gtk_widget_set_tooltip_text(d->colors[3], _("Toggle filtering in/out images with green label"));
+  gtk_widget_set_tooltip_text(d->colors[4], _("Toggle filtering in/out images with blue label"));
+  gtk_widget_set_tooltip_text(d->colors[5], _("Toggle filtering in/out images with purple label"));
 
   // changed filter
   hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(hbox), FALSE, FALSE, 0);
   gtk_widget_set_name(hbox, "quickfilters-altered");
 
+  d->unaltered = dtgtk_button_new(dtgtk_cairo_paint_unaltered, 0, NULL);
+  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->unaltered), FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(d->unaltered), "button-press-event", G_CALLBACK(_unaltered_clicked), self);
+  gtk_widget_set_tooltip_text(d->unaltered, _("Toggle filtering in/out unedited images"));
+
   d->altered = dtgtk_button_new(dtgtk_cairo_paint_altered, 0, NULL);
   gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->altered), FALSE, FALSE, 0);
   g_signal_connect(G_OBJECT(d->altered), "button-press-event", G_CALLBACK(_altered_clicked), self);
   gtk_widget_set_tooltip_text(d->altered, _("Toggle filtering in/out edited images"));
 
-  d->unaltered = dtgtk_button_new(dtgtk_cairo_paint_unaltered, 0, NULL);
-  gtk_box_pack_start(GTK_BOX(hbox), GTK_WIDGET(d->unaltered), FALSE, FALSE, 0);
-  g_signal_connect(G_OBJECT(d->unaltered), "button-press-event", G_CALLBACK(_unaltered_clicked), self);
-  gtk_widget_set_tooltip_text(d->unaltered, _("Toggle filtering in/out unedited images"));
 
   _update_altered_filters(self);
 
