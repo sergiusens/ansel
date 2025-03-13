@@ -17,6 +17,7 @@
 */
 
 #include "common/image_cache.h"
+#include "common/colorlabels.h"
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/exif.h"
@@ -124,7 +125,7 @@ void dt_image_cache_allocate(void *data, dt_cache_entry_t *entry)
     img->change_timestamp = sqlite3_column_int64(stmt, 30);
     img->export_timestamp = sqlite3_column_int64(stmt, 31);
     img->print_timestamp = sqlite3_column_int64(stmt, 32);
-    
+
     /* Deprecated:
     img->final_width = sqlite3_column_int(stmt, 33);
     img->final_height = sqlite3_column_int(stmt, 34);
@@ -167,6 +168,9 @@ void dt_image_cache_allocate(void *data, dt_cache_entry_t *entry)
             sqlite3_errmsg(dt_database_get(darktable.db)));
   }
   sqlite3_finalize(stmt);
+
+  img->color_labels = dt_colorlabels_get_labels(entry->key);
+
   img->cache_entry = entry; // init backref
   // could downgrade lock write->read on entry->lock if we were using concurrencykit..
   dt_image_refresh_makermodel(img);
@@ -308,6 +312,8 @@ void dt_image_cache_write_release(dt_image_cache_t *cache, dt_image_t *img, dt_i
   const int rc = sqlite3_step(stmt);
   if(rc != SQLITE_DONE) fprintf(stderr, "[image_cache_write_release] sqlite3 error %d\n", rc);
   sqlite3_finalize(stmt);
+
+  dt_colorlabels_set_labels(img->id, img->color_labels);
 
   // TODO: make this work in relaxed mode, too.
   // TODO: protect XMP saving from concurrent accesses to DB history

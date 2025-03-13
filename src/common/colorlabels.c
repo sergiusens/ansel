@@ -58,8 +58,8 @@ char * dt_colorlabels_get_name(const int label)
 typedef struct dt_undo_colorlabels_t
 {
   int32_t imgid;
-  uint8_t before;
-  uint8_t after;
+  int before;
+  int after;
 } dt_undo_colorlabels_t;
 
 int dt_colorlabels_get_labels(const int32_t imgid)
@@ -72,29 +72,46 @@ int dt_colorlabels_get_labels(const int32_t imgid)
   // clang-format on
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
   int colors = 0;
+
+  // Colors are int between 0 and 5, turn them into octal bitmask
   while(sqlite3_step(stmt) == SQLITE_ROW)
-    colors |= (1<<sqlite3_column_int(stmt, 0));
+    colors |= (1 << sqlite3_column_int(stmt, 0));
+
   sqlite3_finalize(stmt);
   return colors;
 }
 
-static void _pop_undo_execute(const int32_t imgid, const uint8_t before, const uint8_t after)
+void dt_colorlabels_set_labels(const int32_t imgid, const int colors)
 {
-
-  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-
-  for(int color=0; color<5; color++)
+  for(int color = 0; color < 5; color++)
   {
-    if(after & (1<<color))
-    {
-      if (!(before & (1<<color)))
-        dt_colorlabels_set_label(imgid, color);
-    }
-    else if (before & (1<<color))
+    if(colors & (1 << color))
+      dt_colorlabels_set_label(imgid, color);
+    else
       dt_colorlabels_remove_label(imgid, color);
   }
+}
 
-  dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
+static void _pop_undo_execute(const int32_t imgid, const int before, const int after)
+{
+  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
+  if(!image) return;
+
+  // Write to image
+  for(int color = 0; color < 5; color++)
+  {
+    if(after & (1 << color))
+    {
+      if (!(before & (1 << color)))
+        image->color_labels |= (1 << color);
+    }
+    else if (before & (1 << color))
+      image->color_labels &= ~(1 << color);
+  }
+
+  // Update image cache object and write to DB in _write_release
+  image->color_labels = dt_colorlabels_get_labels(imgid);
+  dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_SAFE);
 }
 
 static void _pop_undo(gpointer user_data, dt_undo_type_t type, dt_undo_data_t data, dt_undo_action_t action, GList **imgs)
@@ -105,8 +122,8 @@ static void _pop_undo(gpointer user_data, dt_undo_type_t type, dt_undo_data_t da
     {
       dt_undo_colorlabels_t *undocolorlabels = (dt_undo_colorlabels_t *)list->data;
 
-      const uint8_t before = (action == DT_ACTION_UNDO) ? undocolorlabels->after : undocolorlabels->before;
-      const uint8_t after = (action == DT_ACTION_UNDO) ? undocolorlabels->before : undocolorlabels->after;
+      const int before = (action == DT_ACTION_UNDO) ? undocolorlabels->after : undocolorlabels->before;
+      const int after = (action == DT_ACTION_UNDO) ? undocolorlabels->before : undocolorlabels->after;
       _pop_undo_execute(undocolorlabels->imgid, before, after);
       *imgs = g_list_prepend(*imgs, GINT_TO_POINTER(undocolorlabels->imgid));
     }
@@ -136,7 +153,7 @@ void dt_colorlabels_set_label(const int32_t imgid, const int color)
   sqlite3_stmt *stmt;
   // clang-format off
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "INSERT INTO main.color_labels (imgid, color) VALUES (?1, ?2)",
+                              "INSERT OR IGNORE INTO main.color_labels (imgid, color) VALUES (?1, ?2)",
                               -1, &stmt, NULL);
   // clang-format on
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
@@ -175,7 +192,12 @@ static void _colorlabels_execute(GList *imgs, const int labels, GList **undo, co
     for(const GList *image = g_list_first(imgs); image; image = g_list_next((GList *)image))
     {
       const int32_t image_id = GPOINTER_TO_INT(image->data);
-      const uint8_t before = dt_colorlabels_get_labels(image_id);
+
+      dt_image_t *img = dt_image_cache_get(darktable.image_cache, image_id, 'r');
+      if(!img) continue;
+
+      const int before = img->color_labels;
+      dt_image_cache_read_release(darktable.image_cache, img);
 
       // as long as a single image does not have the label we do not toggle the label for all images
       // but add the label to all unlabeled images first
@@ -190,8 +212,12 @@ static void _colorlabels_execute(GList *imgs, const int labels, GList **undo, co
   for(GList *image = g_list_first(imgs); image; image = g_list_next((GList *)image))
   {
     const int32_t image_id = GPOINTER_TO_INT(image->data);
-    const uint8_t before = dt_colorlabels_get_labels(image_id);
-    uint8_t after = 0;
+
+    dt_image_t *img = dt_image_cache_get(darktable.image_cache, image_id, 'w');
+    if(!img) continue;
+
+    const int before = img->color_labels;
+    int after = 0;
     switch(action)
     {
       case DT_CA_SET:
@@ -208,6 +234,9 @@ static void _colorlabels_execute(GList *imgs, const int labels, GList **undo, co
         break;
     }
 
+    img->color_labels = after;
+    dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_SAFE);
+
     if(undo_on)
     {
       dt_undo_colorlabels_t *undocolorlabels = (dt_undo_colorlabels_t *)malloc(sizeof(dt_undo_colorlabels_t));
@@ -216,13 +245,11 @@ static void _colorlabels_execute(GList *imgs, const int labels, GList **undo, co
       undocolorlabels->after = after;
       *undo = g_list_append(*undo, undocolorlabels);
     }
-
-    _pop_undo_execute(image_id, before, after);
   }
 }
 
-void dt_colorlabels_set_labels(GList *img, const int labels, const gboolean clear_on,
-                               const gboolean undo_on)
+void dt_colorlabels_set_labels_list(GList *img, const int labels, const gboolean clear_on,
+                                    const gboolean undo_on)
 {
   if(img)
   {

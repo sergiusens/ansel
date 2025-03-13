@@ -1809,7 +1809,7 @@ void dtgtk_cairo_paint_unaltered(cairo_t *cr, gint x, gint y, gint w, gint h, gi
   cairo_move_to(cr,  - dx,  - dy);
   cairo_curve_to(cr, 0, -2.0 * dy, 0, 2.0 * dy, dx, dy);
   cairo_stroke(cr);
-  
+
   cairo_pop_group_to_source(cr);
   cairo_paint(cr);
 
@@ -1845,35 +1845,35 @@ void dtgtk_cairo_paint_label_flower(cairo_t *cr, gint x, gint y, gint w, gint h,
 
   const float r = 0.18;
 
-  if(flags & CPF_LABEL_RED)
+  if(flags & (1 << DT_COLORLABELS_RED))
   {
     cairo_arc(cr, r, r, r, 0, 2.0f * M_PI);
     set_color(cr, darktable.bauhaus->colorlabels[DT_COLORLABELS_RED]);
     cairo_fill(cr);
   }
 
-  if(flags & CPF_LABEL_YELLOW)
+  if(flags & (1 << DT_COLORLABELS_YELLOW))
   {
     cairo_arc(cr, 1.0 - r, r, r, 0, 2.0f * M_PI);
     set_color(cr, darktable.bauhaus->colorlabels[DT_COLORLABELS_YELLOW]);
     cairo_fill(cr);
   }
 
-  if(flags & CPF_LABEL_GREEN)
+  if(flags & (1 << DT_COLORLABELS_GREEN))
   {
     cairo_arc(cr, 0.5, 0.5, r, 0, 2.0f * M_PI);
     set_color(cr, darktable.bauhaus->colorlabels[DT_COLORLABELS_GREEN]);
     cairo_fill(cr);
   }
 
-  if(flags & CPF_LABEL_BLUE)
+  if(flags & (1 << DT_COLORLABELS_BLUE))
   {
     cairo_arc(cr, r, 1.0 - r, r, 0, 2.0f * M_PI);
     set_color(cr, darktable.bauhaus->colorlabels[DT_COLORLABELS_BLUE]);
     cairo_fill(cr);
   }
 
-  if(flags & CPF_LABEL_PURPLE)
+  if(flags & (1 << DT_COLORLABELS_PURPLE))
   {
     cairo_arc(cr, 1.0 - r, 1.0 - r, r, 0, 2.0f * M_PI);
     set_color(cr, darktable.bauhaus->colorlabels[DT_COLORLABELS_PURPLE]);

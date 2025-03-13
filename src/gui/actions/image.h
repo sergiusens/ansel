@@ -186,7 +186,7 @@ void append_image(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#2222BB'>\342\254\244</span> Blue"), index, NULL,
                          blue_label_callback, NULL, NULL, has_active_images, GDK_KEY_F4, 0);
 
-  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#BB22BB'>\342\254\244</span> Magenta"), index, NULL,
+  add_sub_sub_menu_entry(menus, parent, lists, _("<span foreground='#BB22BB'>\342\254\244</span> Purple"), index, NULL,
                          magenta_label_callback, NULL, NULL, has_active_images, GDK_KEY_F5, 0);
 
   add_sub_menu_separator(parent);

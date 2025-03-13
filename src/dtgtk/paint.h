@@ -34,17 +34,12 @@ typedef enum dtgtk_cairo_paint_flags_t
   CPF_DIRECTION_DOWN = 1 << 1,
   CPF_DIRECTION_LEFT = 1 << 2,
   CPF_DIRECTION_RIGHT = 1 << 3,
-  CPF_ACTIVE = 1 << 4,
-  CPF_PRELIGHT = 1 << 5,
+  // we need flags from 1 << 0 to 1 << 4 for color labels
+  // nothing may collide with those
+  CPF_ACTIVE = 1 << 11,
+  CPF_PRELIGHT = 1 << 12,
   CPF_FOCUS = 1 << 13,
   CPF_SPECIAL_FLAG = 1 << 14, // this needs to be the last one. also update shift in dtgtk_cairo_paint_alignment
-
-  // colorlabels
-  CPF_LABEL_RED = CPF_DIRECTION_UP,
-  CPF_LABEL_YELLOW = CPF_DIRECTION_DOWN,
-  CPF_LABEL_GREEN = CPF_DIRECTION_LEFT,
-  CPF_LABEL_BLUE = CPF_DIRECTION_RIGHT,
-  CPF_LABEL_PURPLE = 1 << 7
 } dtgtk_cairo_paint_flags_t;
 
 

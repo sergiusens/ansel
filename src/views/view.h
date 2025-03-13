@@ -174,8 +174,6 @@ typedef struct dt_view_manager_t
    */
   struct
   {
-    /* select color from color_labels where imgid=?1 */
-    sqlite3_stmt *get_color;
     /* select images in group from images where imgid=?1 (also bind to ?2) */
     sqlite3_stmt *get_grouped;
   } statements;

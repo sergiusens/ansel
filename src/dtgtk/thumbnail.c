@@ -168,7 +168,6 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
     thumb->is_hdr = dt_image_is_hdr(img);
     thumb->filename = g_strdup(img->filename);
     thumb->has_audio = (img->flags & DT_IMAGE_HAS_WAV);
-    thumb->has_localcopy = (img->flags & DT_IMAGE_LOCAL_COPY);
 
     thumb->iso = img->exif_iso;
     thumb->aperture = img->exif_aperture;
@@ -181,6 +180,7 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
     memcpy(&thumb->lens, &img->exif_lens, 128 * sizeof(char));
 
     thumb->groupid = img->group_id;
+    thumb->colorlabels = img->color_labels;
 
     dt_image_cache_read_release(darktable.image_cache, img);
   }
@@ -191,26 +191,6 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
   }
 
   // colorlabels
-  // TODO: colors should be grapped from image cache, like ratings
-  thumb->colorlabels = 0;
-  DT_DEBUG_SQLITE3_CLEAR_BINDINGS(darktable.view_manager->statements.get_color);
-  DT_DEBUG_SQLITE3_RESET(darktable.view_manager->statements.get_color);
-  DT_DEBUG_SQLITE3_BIND_INT(darktable.view_manager->statements.get_color, 1, thumb->imgid);
-  while(sqlite3_step(darktable.view_manager->statements.get_color) == SQLITE_ROW)
-  {
-    const int col = sqlite3_column_int(darktable.view_manager->statements.get_color, 0);
-    // we reuse CPF_* flags, as we'll pass them to the paint fct after
-    if(col == 0)
-      thumb->colorlabels |= CPF_LABEL_RED;
-    else if(col == 1)
-      thumb->colorlabels |= CPF_LABEL_YELLOW;
-    else if(col == 2)
-      thumb->colorlabels |= CPF_LABEL_GREEN;
-    else if(col == 3)
-      thumb->colorlabels |= CPF_LABEL_BLUE;
-    else if(col == 4)
-      thumb->colorlabels |= CPF_LABEL_PURPLE;
-  }
   if(thumb->w_color)
   {
     GtkDarktableThumbnailBtn *btn = (GtkDarktableThumbnailBtn *)thumb->w_color;
