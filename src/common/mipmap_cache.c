@@ -802,6 +802,9 @@ void dt_mipmap_cache_get_with_caller(
           // imgid, data[0], data[1], img->width, img->height, data);
           // don't write xmp for this (we only changed db stuff):
           dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
+
+          // Notify the DB that mipmap is in sync with current history hash
+          dt_history_hash_set_mipmap(imgid);
         }
       }
       else if(mip == DT_MIPMAP_F)
