@@ -2085,7 +2085,7 @@ static void _clean_wildcards(dt_lib_collect_rule_t *dr)
   {
     // cleanup conf
     gchar *no_star_filmroll = dt_string_replace(filmroll, "*");
-    gchar *no_percent_filmroll = dt_string_replace(no_star_filmroll, "\%");
+    gchar *no_percent_filmroll = dt_string_replace(no_star_filmroll, "%");
 
     dt_conf_set_string(pref, no_percent_filmroll);
     g_free(no_percent_filmroll);
@@ -2102,6 +2102,9 @@ static void _clean_wildcards(dt_lib_collect_rule_t *dr)
 static void update_view(dt_lib_collect_rule_t *dr)
 {
   const int property = _combo_get_active_collection(dr->combo);
+  // wildcards are not supported in pathes for filmrolls
+  if(property == DT_COLLECTION_PROP_FILMROLL)
+    _clean_wildcards(dr);
 
   if(property == DT_COLLECTION_PROP_FOLDERS
      || property == DT_COLLECTION_PROP_TAG
@@ -2112,10 +2115,6 @@ static void update_view(dt_lib_collect_rule_t *dr)
     tree_view(dr);
   else
   {
-    // wildcards are not supported in pathes for filmrolls
-    if(property == DT_COLLECTION_PROP_FILMROLL)
-      _clean_wildcards(dr);
-
     list_view(dr);
   }
 }
@@ -2620,7 +2619,6 @@ static void row_activated_with_event(GtkTreeView *view, GtkTreePath *path, GtkTr
   g_free(text);
 
   if(item == DT_COLLECTION_PROP_TAG
-     || item == DT_COLLECTION_PROP_FOLDERS
      || item == DT_COLLECTION_PROP_FILMROLL
      || item == DT_COLLECTION_PROP_DAY
      || is_time_property(item)
