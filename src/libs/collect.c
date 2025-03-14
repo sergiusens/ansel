@@ -2529,13 +2529,12 @@ static void row_activated_with_event(GtkTreeView *view, GtkTreePath *path, GtkTr
   }
 
   gchar *text;
+  gboolean order_request = FALSE;
   int order;
 
   get_number_of_rules(d);
   dt_lib_collect_rule_t *active_rule = get_active_rule(d);
   active_rule->typing = FALSE;
-
-  gboolean force_update_view = FALSE;
 
   const int item = d->view_rule;
   gtk_tree_model_get(model, &iter, DT_LIB_COLLECT_COL_PATH, &text, -1);
