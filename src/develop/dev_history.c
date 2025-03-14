@@ -1044,7 +1044,16 @@ void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const i
 
   // write the current iop-order-list for this image
   dt_ioppr_write_iop_order_list(iop_order_list, imgid);
+
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
+  dt_dev_append_changed_tag(imgid);
+  dt_image_cache_set_change_timestamp(darktable.image_cache, imgid);
+
+  // We call dt_dev_write_history_ext only when history hash has changed,
+  // however, we use our C-based cumulative custom hash while the following
+  // fetches history MD5 hash from DB
+  //if(!dt_history_hash_is_mipmap_synced(imgid))
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
 }
 
 void dt_dev_write_history(dt_develop_t *dev)
