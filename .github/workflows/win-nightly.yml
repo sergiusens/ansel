@@ -67,6 +67,7 @@ jobs:
             libavif:p
             libexif:p
             libheif:p
+            libinih:p
             libjpeg-turbo:p
             libjxl:p
             librsvg:p
