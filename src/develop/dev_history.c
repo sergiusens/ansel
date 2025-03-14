@@ -901,6 +901,7 @@ void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt)
   }
   --darktable.gui->reset;
 
+  dt_dev_modulegroups_update_visibility(dev);
   dt_dev_masks_list_change(dev);
   dt_dev_pixelpipe_rebuild(dev);
   dt_dev_refresh_ui_images(dev);
@@ -1844,15 +1845,40 @@ void dt_dev_history_compress(dt_develop_t *dev)
   // Cleanup old history
   dt_dev_history_free_history(dev);
 
-  // Rebuild an history from current pipeline
+  // Rebuild an history from current pipeline.
+  // First: modules enabled by default or forced enabled for technical reasons
   for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
-    if((module->enabled || module->default_enabled
-        || (module->force_enable && module->force_enable(module, module->enabled)))
+    if(module->enabled
+       && (module->default_enabled || (module->force_enable && module->force_enable(module, module->enabled)))
        && !_module_leaves_no_history(module))
       dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
   }
+
+  // Second: modules enabled by user
+  for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
+  {
+    dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
+    if(module->enabled
+      && !(module->default_enabled || (module->force_enable && module->force_enable(module, module->enabled)))
+      && !_module_leaves_no_history(module))
+      dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
+  }
+
+  // Third: disabled modules that have an history. Maybe users want to re-enable them later,
+  // or it's modules enabled by default that were manually disabled.
+  for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
+  {
+    dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
+    if(!module->enabled
+       && (module->default_enabled || memcmp(module->params, module->default_params, module->params_size) != 0)
+       && !_module_leaves_no_history(module))
+      dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
+  }
+
+  // Disabled modules go at the end of the history, so user can truncate it after the last enabled item
+  // to get rid of disabled history.
 
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
