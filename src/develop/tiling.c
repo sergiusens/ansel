@@ -1530,8 +1530,8 @@ error:
   piece->pipe->tiling = 0;
   const gboolean pinning_error = (use_pinned_memory == FALSE) && dt_opencl_use_pinned_memory(devid);
   dt_print(DT_DEBUG_TILING | DT_DEBUG_OPENCL,
-      "[default_process_tiling_opencl_ptp] couldn't run process_cl() for module '%s' in tiling mode:%s %s\n",
-      self->op, (pinning_error) ? " pinning problem" : "", cl_errstr(err));
+      "[default_process_tiling_opencl_ptp] couldn't run process_cl() for module '%s' in tiling mode:%s %i\n",
+      self->op, (pinning_error) ? " pinning problem" : "", err);
   if(pinning_error) darktable.opencl->dev[devid].runtime_error |= DT_OPENCL_TUNE_PINNED;
   return FALSE;
 }
@@ -1969,8 +1969,8 @@ error:
   piece->pipe->tiling = 0;
   const gboolean pinning_error = (use_pinned_memory == FALSE) && dt_opencl_use_pinned_memory(devid);
   dt_print(DT_DEBUG_OPENCL | DT_DEBUG_TILING,
-      "[default_process_tiling_opencl_roi] couldn't run process_cl() for module '%s' in tiling mode:%s %s\n",
-      self->op, (pinning_error) ? " pinning problem" : "", cl_errstr(err));
+      "[default_process_tiling_opencl_roi] couldn't run process_cl() for module '%s' in tiling mode:%s %i\n",
+      self->op, (pinning_error) ? " pinning problem" : "", err);
   if(pinning_error) darktable.opencl->dev[devid].runtime_error |= DT_OPENCL_TUNE_PINNED;
   return FALSE;
 }

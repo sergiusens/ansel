@@ -1575,7 +1575,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
             /* late opencl error */
             dt_print(
                 DT_DEBUG_OPENCL,
-                "[opencl_pixelpipe (a)] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
+                "[opencl_pixelpipe (a)] late opencl error detected while copying back to cpu buffer: %i\n", err);
             dt_opencl_release_mem_object(cl_mem_input);
             pipe->opencl_error = 1;
             return 1;
@@ -1700,7 +1700,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
           {
             /* late opencl error, not likely to happen here */
             dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe (e)] late opencl error detected while copying "
-                                      "back to cpu buffer: %s\n", cl_errstr(err));
+                                      "back to cpu buffer: %i\n", err);
             /* that's all we do here, we later make sure to invalidate cache line */
           }
           else
@@ -1748,7 +1748,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
             /* late opencl error */
             dt_print(
                 DT_DEBUG_OPENCL,
-                "[opencl_pixelpipe (b)] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
+                "[opencl_pixelpipe (b)] late opencl error detected while copying back to cpu buffer: %i\n", err);
             dt_opencl_release_mem_object(cl_mem_input);
             pipe->opencl_error = 1;
             return 1;
@@ -1786,7 +1786,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
           /* late opencl error */
           dt_print(
               DT_DEBUG_OPENCL,
-              "[opencl_pixelpipe (c)] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
+              "[opencl_pixelpipe (c)] late opencl error detected while copying back to cpu buffer: %i\n", err);
           dt_opencl_release_mem_object(cl_mem_input);
           pipe->opencl_error = 1;
           return 1;
@@ -2295,7 +2295,7 @@ static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, d
       {
         /* this indicates a opencl problem earlier in the pipeline */
         dt_print(DT_DEBUG_OPENCL,
-                 "[dt_dev_pixelpipe_process_rec_and_backcopy] late opencl error detected while copying back to cpu buffer: %s\n", cl_errstr(err));
+                 "[dt_dev_pixelpipe_process_rec_and_backcopy] late opencl error detected while copying back to cpu buffer: %i\n", err);
         pipe->opencl_error = 1;
         ret = 1;
       }
@@ -2828,7 +2828,7 @@ gboolean dt_dev_write_rawdetail_mask_cl(dt_dev_pixelpipe_iop_t *piece, cl_mem in
   return FALSE;
 
   error:
-  fprintf(stderr, "[dt_dev_write_rawdetail_mask_cl] couldn't write detail mask: %s\n", cl_errstr(err));
+  fprintf(stderr, "[dt_dev_write_rawdetail_mask_cl] couldn't write detail mask: %i\n", err);
   dt_dev_clear_rawdetail_mask(p);
   dt_opencl_release_mem_object(out);
   dt_opencl_release_mem_object(tmp);

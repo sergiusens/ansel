@@ -397,7 +397,7 @@ int process_cl(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece, cl_m
 
 error:
   dt_opencl_release_mem_object(dev_xtrans);
-  dt_print(DT_DEBUG_OPENCL, "[opencl_highlights] couldn't enqueue kernel! %s\n", cl_errstr(err));
+  dt_print(DT_DEBUG_OPENCL, "[opencl_highlights] couldn't enqueue kernel! %i\n", err);
   return FALSE;
 }
 #endif
@@ -1892,7 +1892,7 @@ error:
   if(LF_odd) dt_opencl_release_mem_object(LF_odd);
   if(HF) dt_opencl_release_mem_object(HF);
 
-  dt_print(DT_DEBUG_OPENCL, "[opencl_highlights] couldn't enqueue kernel! %s\n", cl_errstr(err));
+  dt_print(DT_DEBUG_OPENCL, "[opencl_highlights] couldn't enqueue kernel! %i\n", err);
   return err;
 }
 #endif
