@@ -637,6 +637,8 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
 }
 
 // can be called with imgid = -1, in that case we reload all mipmaps
+// reinit = FALSE should be called when the mipmap is ready to redraw,
+// reinit = TRUE should be called when a refreshed mipmap has been requested but we have nothing yet to draw
 void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboolean reinit)
 {
   dt_pthread_mutex_lock(&table->lock);
@@ -645,7 +647,6 @@ void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboo
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     if(thumb->imgid == imgid)
     {
-      fprintf(stdout, "refreshing mipmap for %i\n", imgid);
       if(reinit) thumb->image_inited = FALSE;
       dt_thumbnail_image_refresh(thumb);
       break;
