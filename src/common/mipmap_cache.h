@@ -165,9 +165,6 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(
 // only copies over the jpg backend on disk, doesn't directly affect the in-memory cache.
 void dt_mipmap_cache_copy_thumbnails(const dt_mipmap_cache_t *cache, const uint32_t dst_imgid, const uint32_t src_imgid);
 
-// return the mipmap corresponding to text value saved in prefs
-dt_mipmap_size_t dt_mipmap_cache_get_min_mip_from_pref(const char *value);
-
 #ifdef __cplusplus
 }
 #endif

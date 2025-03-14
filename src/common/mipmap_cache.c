@@ -970,19 +970,6 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(const dt_mipmap_cache_t *cach
   return best;
 }
 
-dt_mipmap_size_t dt_mipmap_cache_get_min_mip_from_pref(const char *value)
-{
-  if(strcmp(value, "always") == 0) return DT_MIPMAP_0;
-  if(strcmp(value, "small") == 0)  return DT_MIPMAP_1;
-  if(strcmp(value, "VGA") == 0)    return DT_MIPMAP_2;
-  if(strcmp(value, "720p") == 0)   return DT_MIPMAP_3;
-  if(strcmp(value, "1080p") == 0)  return DT_MIPMAP_4;
-  if(strcmp(value, "WQXGA") == 0)  return DT_MIPMAP_5;
-  if(strcmp(value, "4k") == 0)     return DT_MIPMAP_6;
-  if(strcmp(value, "5K") == 0)     return DT_MIPMAP_7;
-  return DT_MIPMAP_NONE;
-}
-
 void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip)
 {
   if(mip > DT_MIPMAP_7 || mip < DT_MIPMAP_0) return;
@@ -999,11 +986,9 @@ void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgi
     // due to DT_MIPMAP_BUFFER_DSC_FLAG_INVALIDATE, removes thumbnail from disc
     dt_cache_remove(&_get_cache(cache, mip)->cache, key);
   }
-  else
-  {
-    // ugly, but avoids alloc'ing thumb if it is not there.
-    dt_mipmap_cache_unlink_ondisk_thumbnail((&_get_cache(cache, mip)->cache)->cleanup_data, imgid, mip);
-  }
+
+  // ugly, but avoids alloc'ing thumb if it is not there.
+  dt_mipmap_cache_unlink_ondisk_thumbnail((&_get_cache(cache, mip)->cache)->cleanup_data, imgid, mip);
 }
 
 void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid)
