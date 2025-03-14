@@ -1517,7 +1517,7 @@ static GList *_view_map_get_imgs_at_pos(dt_view_t *self, const float x, const fl
     }
   }
 
-  if(imgid != -1 && !first_on && entry->group_count > 1 && lib->points)
+  if(imgid != UNKNOWN_IMAGE && !first_on && entry->group_count > 1 && lib->points)
   {
     dt_geo_position_t *p = lib->points;
     int count = 1;
@@ -1534,7 +1534,7 @@ static GList *_view_map_get_imgs_at_pos(dt_view_t *self, const float x, const fl
       }
     }
   }
-  if(imgid != -1)
+  if(imgid != UNKNOWN_IMAGE)
     // it's necessary to have the visible image as the first one of the list
     imgs = g_list_prepend(imgs, GINT_TO_POINTER(imgid));
   return imgs;

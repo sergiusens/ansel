@@ -242,7 +242,7 @@ void dt_selection_clear(dt_selection_t *selection)
 
 void dt_selection_select(dt_selection_t *selection, int32_t imgid)
 {
-  if(imgid == -1) return;
+  if(imgid == UNKNOWN_IMAGE) return;
   _selection_select(selection, imgid);
   _add_id_link(selection, imgid);
   _update_gui();
@@ -250,7 +250,7 @@ void dt_selection_select(dt_selection_t *selection, int32_t imgid)
 
 void dt_selection_deselect(dt_selection_t *selection, int32_t imgid)
 {
-  if(imgid == -1) return;
+  if(imgid == UNKNOWN_IMAGE) return;
   _selection_deselect(selection, imgid);
   _remove_id_link(selection, imgid);
   _update_gui();
@@ -258,14 +258,14 @@ void dt_selection_deselect(dt_selection_t *selection, int32_t imgid)
 
 void dt_selection_select_single(dt_selection_t *selection, int32_t imgid)
 {
-  if(imgid == -1) return;
+  if(imgid == UNKNOWN_IMAGE) return;
   dt_selection_clear(selection);
   dt_selection_select(selection, imgid);
 }
 
 void dt_selection_toggle(dt_selection_t *selection, int32_t imgid)
 {
-  if(imgid == -1) return;
+  if(imgid == UNKNOWN_IMAGE) return;
 
   if(g_list_find(selection->ids, GINT_TO_POINTER(imgid)))
     dt_selection_deselect(selection, imgid);

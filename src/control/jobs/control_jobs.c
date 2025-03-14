@@ -582,7 +582,7 @@ static int32_t dt_control_duplicate_images_job_run(dt_job_t *job)
   {
     const int32_t imgid = GPOINTER_TO_INT(t->data);
     const int newimgid = dt_image_duplicate(imgid);
-    if(newimgid != -1)
+    if(newimgid != UNKNOWN_IMAGE)
     {
       if(GPOINTER_TO_INT(params->data))
         dt_history_delete_on_image(newimgid);

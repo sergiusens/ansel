@@ -602,7 +602,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
     imgid = is_metadata_in_lib;
 
   char path[512];
-  if(imgid > -1)
+  if(imgid > UNKNOWN_IMAGE)
   {
     dt_image_t *lib_img = dt_image_cache_get(darktable.image_cache, imgid, 'r');
     if(lib_img)

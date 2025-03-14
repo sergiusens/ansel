@@ -948,7 +948,7 @@ fill_minuses:
 static void _jump_to()
 {
   int32_t imgid = dt_control_get_mouse_over_id();
-  if(imgid == -1)
+  if(imgid == UNKNOWN_IMAGE)
   {
     sqlite3_stmt *stmt;
 
@@ -958,7 +958,7 @@ static void _jump_to()
     if(sqlite3_step(stmt) == SQLITE_ROW) imgid = sqlite3_column_int(stmt, 0);
     sqlite3_finalize(stmt);
   }
-  if(imgid != -1)
+  if(imgid != UNKNOWN_IMAGE)
   {
     char path[512];
     const dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'r');

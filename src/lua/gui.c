@@ -318,7 +318,7 @@ static int _lua_job_valid(lua_State *L)
 static void _on_mouse_over_image_changed(gpointer instance, gpointer user_data)
 {
   int32_t imgid = dt_control_get_mouse_over_id();
-  if(imgid != -1)
+  if(imgid != UNKNOWN_IMAGE)
   {
     dt_lua_async_call_alien(dt_lua_event_trigger_wrapper,
         0, NULL, NULL,

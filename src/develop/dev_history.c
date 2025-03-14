@@ -365,7 +365,7 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
 {
   if(imgid == dest_imgid) return 1;
 
-  if(imgid == -1)
+  if(imgid == UNKNOWN_IMAGE)
   {
     dt_control_log(_("you need to copy history from an image before you paste it onto another"));
     return 1;

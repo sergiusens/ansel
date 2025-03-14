@@ -1954,7 +1954,7 @@ void dt_collection_hint_message(const dt_collection_t *collection)
 
 static int dt_collection_image_offset_with_collection(const dt_collection_t *collection, int32_t imgid)
 {
-  if(imgid == -1) return 0;
+  if(imgid == UNKNOWN_IMAGE) return 0;
   int offset = 0;
   sqlite3_stmt *stmt;
 
@@ -2073,7 +2073,7 @@ void dt_collection_load_filmroll(dt_collection_t *collection, const int32_t imgi
   fprintf(stdout,"Collection: view = %s\n", Collection_view ? "Tree" : "List");
   const char *path = g_strdup_printf("%s%s", dir, Collection_view ? "*" : "");
   fprintf(stdout,"Collection: path = %s\n", path);
-  
+
   dt_conf_set_string("plugins/lighttable/collect/string0", g_strdup_printf("%s*", dir));
   dt_conf_set_int("plugins/lighttable/collect/num_rules", 1);
 

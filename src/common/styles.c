@@ -247,7 +247,7 @@ static gboolean dt_styles_create_style_header(const char *name, const char *desc
 
 static void _dt_style_update_from_image(int id, int32_t imgid, GList *filter, GList *update)
 {
-  if(update && imgid != -1)
+  if(update && imgid != UNKNOWN_IMAGE)
   {
     GList *list = filter;
     GList *upd = update;
@@ -753,7 +753,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     if(duplicate)
     {
       newimgid = dt_image_duplicate(imgid);
-      if(newimgid != -1)
+      if(newimgid != UNKNOWN_IMAGE)
         dt_history_copy_and_paste_on_image(imgid, newimgid, NULL, TRUE, TRUE);
     }
     else
@@ -934,7 +934,7 @@ GList *dt_styles_get_item_list(const char *name, gboolean params, int32_t imgid)
                                   " WHERE styleid=?1 ORDER BY num DESC",
                                   -1, &stmt, NULL);
       // clang-format on
-    else if(imgid != -1)
+    else if(imgid != UNKNOWN_IMAGE)
     {
       // get all items from the style
       //    UNION
@@ -1033,7 +1033,7 @@ GList *dt_styles_get_item_list(const char *name, gboolean params, int32_t imgid)
         item->params_size = 0;
         item->blendop_params_size = 0;
         item->blendop_version = 0;
-        if(imgid != -1 && sqlite3_column_type(stmt, 5) != SQLITE_NULL)
+        if(imgid != UNKNOWN_IMAGE && sqlite3_column_type(stmt, 5) != SQLITE_NULL)
           item->selimg_num = sqlite3_column_int(stmt, 5);
       }
       item->name = g_strdup(iname);

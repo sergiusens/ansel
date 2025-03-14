@@ -64,7 +64,7 @@ static int _single_selected_imgid()
                               NULL);
   while(sqlite3_step(stmt) == SQLITE_ROW)
   {
-    if(imgid == -1)
+    if(imgid == UNKNOWN_IMAGE)
       imgid = sqlite3_column_int(stmt, 0);
     else
     {
@@ -501,7 +501,7 @@ static void _gui_styles_dialog_run(gboolean edit, const char *name, int32_t imgi
   }
 
   /* update */
-  if(edit && imgid != -1)
+  if(edit && imgid != UNKNOWN_IMAGE)
   {
     renderer = gtk_cell_renderer_toggle_new();
     gtk_cell_renderer_toggle_set_activatable(GTK_CELL_RENDERER_TOGGLE(renderer), TRUE);

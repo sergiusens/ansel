@@ -651,7 +651,7 @@ static gchar *_hash_history_to_string(guint8 *hash, const gsize checksum_len)
 // if the image has no history return 0
 static gsize _history_hash_compute_from_db(const int32_t imgid, guint8 **hash)
 {
-  if(imgid == -1) return 0;
+  if(imgid == UNKNOWN_IMAGE) return 0;
 
   GChecksum *checksum = g_checksum_new(G_CHECKSUM_MD5);
   gsize hash_len = 0;
@@ -744,7 +744,7 @@ static gsize _history_hash_compute_from_db(const int32_t imgid, guint8 **hash)
 
 void dt_history_hash_write_from_history(const int32_t imgid, const dt_history_hash_t type)
 {
-  if(imgid == -1) return;
+  if(imgid == UNKNOWN_IMAGE) return;
 
   guint8 *hash = NULL;
   gsize hash_len = _history_hash_compute_from_db(imgid, &hash);
@@ -897,7 +897,7 @@ void dt_history_hash_read(const int32_t imgid, dt_history_hash_values_t *hash)
 gboolean dt_history_hash_is_mipmap_synced(const int32_t imgid)
 {
   gboolean status = FALSE;
-  if(imgid == -1) return status;
+  if(imgid == UNKNOWN_IMAGE) return status;
   sqlite3_stmt *stmt;
   // clang-format off
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
@@ -919,7 +919,7 @@ gboolean dt_history_hash_is_mipmap_synced(const int32_t imgid)
 
 void dt_history_hash_set_mipmap(const int32_t imgid)
 {
-  if(imgid == -1) return;
+  if(imgid == UNKNOWN_IMAGE) return;
   sqlite3_stmt *stmt;
   // clang-format off
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
@@ -936,7 +936,7 @@ void dt_history_hash_set_mipmap(const int32_t imgid)
 dt_history_hash_t dt_history_hash_get_status(const int32_t imgid)
 {
   dt_history_hash_t status = 0;
-  if(imgid == -1) return status;
+  if(imgid == UNKNOWN_IMAGE) return status;
   sqlite3_stmt *stmt;
   // clang-format off
   char *query = g_strdup_printf("SELECT CASE"

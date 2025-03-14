@@ -453,7 +453,7 @@ gboolean dt_tag_attach_images(const guint tagid, const GList *img, const gboolea
 gboolean dt_tag_attach(const guint tagid, const int32_t imgid, const gboolean undo_on, const gboolean group_on)
 {
   gboolean res = FALSE;
-  if(imgid == -1)
+  if(imgid == UNKNOWN_IMAGE)
   {
     GList *imgs = dt_act_on_get_images();
     res = dt_tag_attach_images(tagid, imgs, undo_on);
@@ -557,7 +557,7 @@ gboolean dt_tag_detach_images(const guint tagid, const GList *img, const gboolea
 gboolean dt_tag_detach(const guint tagid, const int32_t imgid, const gboolean undo_on, const gboolean group_on)
 {
   GList *imgs = NULL;
-  if(imgid == -1)
+  if(imgid == UNKNOWN_IMAGE)
     imgs = dt_act_on_get_images();
   else
     imgs = g_list_prepend(imgs, GINT_TO_POINTER(imgid));

@@ -650,7 +650,7 @@ void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboo
       dt_thumbnail_image_refresh(thumb);
       break;
     }
-    else if(imgid == -1)
+    else if(imgid == UNKNOWN_IMAGE)
     {
       if(reinit) thumb->image_inited = FALSE;
       dt_thumbnail_image_refresh(thumb);

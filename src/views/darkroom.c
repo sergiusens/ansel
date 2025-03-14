@@ -660,7 +660,7 @@ static void _dev_change_image(dt_view_t *self, int32_t imgid)
 
 static void _view_darkroom_filmstrip_activate_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
-  if(imgid > -1)
+  if(imgid > UNKNOWN_IMAGE)
   {
     // switch images in darkroom mode:
     _dev_change_image(user_data, imgid);

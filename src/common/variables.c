@@ -163,7 +163,7 @@ static void _init_expansion(dt_variables_params_t *params, gboolean iterate)
   {
     img = (dt_image_t *)params->img;
   }
-  else if(params->imgid > -1)
+  else if(params->imgid > UNKNOWN_IMAGE)
   {
     img = dt_image_cache_get(darktable.image_cache, params->imgid, 'r');
     release = IMGID;

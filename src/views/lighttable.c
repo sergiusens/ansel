@@ -137,7 +137,7 @@ void cleanup(dt_view_t *self)
 
 static void _view_lighttable_activate_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
-  if(imgid > -1)
+  if(imgid > UNKNOWN_IMAGE)
   {
     dt_view_manager_switch(darktable.view_manager, "darkroom");
   }

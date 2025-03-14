@@ -598,7 +598,7 @@ void dt_metadata_set(const int32_t imgid, const char *key, const char *value, co
   if(keyid != -1) // known key
   {
     GList *imgs = NULL;
-    if(imgid == -1)
+    if(imgid == UNKNOWN_IMAGE)
       imgs = dt_act_on_get_images();
     else
       imgs = g_list_prepend(imgs, GINT_TO_POINTER(imgid));
@@ -628,7 +628,7 @@ void dt_metadata_set(const int32_t imgid, const char *key, const char *value, co
 
 void dt_metadata_set_import(const int32_t imgid, const char *key, const char *value)
 {
-  if(!key || !imgid || imgid == -1) return;
+  if(!key || !imgid || imgid == UNKNOWN_IMAGE) return;
 
   const int keyid = dt_metadata_get_keyid(key);
 

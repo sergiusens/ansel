@@ -416,7 +416,7 @@ static void _create_pdf(dt_job_t *job, dt_images_box imgs, const float width, co
     const int resolution = params->prt.printer.resolution;
     const dt_image_box *box = &imgs.box[k];
 
-    if(box->imgid > -1)
+    if(box->imgid > UNKNOWN_IMAGE)
     {
       pdf_image[count] =
         dt_pdf_add_image(pdf, (uint8_t *)box->buf, box->exp_width, box->exp_height,
@@ -512,9 +512,9 @@ static int _print_job_run(dt_job_t *job)
 
   for(int k=0; k<params->imgs.count; k++)
   {
-    if(params->imgs.box[k].imgid > -1)
+    if(params->imgs.box[k].imgid > UNKNOWN_IMAGE)
     {
-      if(imgid == -1) imgid = params->imgs.box[k].imgid;
+      if(imgid == UNKNOWN_IMAGE) imgid = params->imgs.box[k].imgid;
       if(_export_and_setup_pos(job, &params->imgs.box[k], k))
         return 1;
     }
@@ -557,7 +557,7 @@ static int _print_job_run(dt_job_t *job)
 
   for(int k=0; k<params->imgs.count; k++)
   {
-    if(params->imgs.box[k].imgid > -1)
+    if(params->imgs.box[k].imgid > UNKNOWN_IMAGE)
       if(dt_tag_attach(tagid, params->imgs.box[k].imgid, FALSE, FALSE))
         DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 
@@ -653,14 +653,14 @@ static void _print_button_clicked(GtkWidget *widget, gpointer user_data)
 
   for(int k=0; k<ps->imgs.count; k++)
   {
-    if(ps->imgs.box[k].imgid > -1)
+    if(ps->imgs.box[k].imgid > UNKNOWN_IMAGE)
     {
       imgid = ps->imgs.box[k].imgid;
       break;
     }
   }
 
-  if(imgid == -1)
+  if(imgid == UNKNOWN_IMAGE)
   {
     dt_control_log(_("cannot print until a picture is selected"));
     return;
@@ -832,7 +832,7 @@ _update_slider(dt_lib_print_settings_t *ps)
 
   // FIXME: why doesn't this update when units are changed?
   if(ps->selected != -1
-     && ps->imgs.box[ps->selected].imgid != -1
+     && ps->imgs.box[ps->selected].imgid != UNKNOWN_IMAGE
      && ps->width && ps->height
      && ps->info)
   {
@@ -1620,7 +1620,7 @@ int button_pressed(struct dt_lib_module_t *self, double x, double y, double pres
     dt_image_box *b = &ps->imgs.box[ps->selected];
 
     // if image present remove it, otherwise remove the box
-    if(b->imgid != -1)
+    if(b->imgid != UNKNOWN_IMAGE)
       b->imgid = UNKNOWN_IMAGE;
     else
       _page_delete_area(self, ps->selected);
@@ -1776,7 +1776,7 @@ void gui_post_expose(struct dt_lib_module_t *self, cairo_t *cr, int32_t width, i
   {
     dt_image_box *img = &ps->imgs.box[k];
 
-    if(img->imgid != -1)
+    if(img->imgid != UNKNOWN_IMAGE)
     {
       cairo_surface_t *surf = NULL;
 
@@ -1812,7 +1812,7 @@ void gui_post_expose(struct dt_lib_module_t *self, cairo_t *cr, int32_t width, i
       }
     }
 
-    if(k == ps->selected || img->imgid == -1)
+    if(k == ps->selected || img->imgid == UNKNOWN_IMAGE)
     {
       cairo_set_source_rgba(cr, .4, .4, .4, 1.0);
       _cairo_rectangle(cr, (k == ps->selected) ? ps->sel_controls : 0,

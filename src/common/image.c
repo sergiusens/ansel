@@ -657,7 +657,7 @@ void dt_image_set_locations(const GList *imgs, const dt_image_geoloc_t *geoloc, 
 void dt_image_set_location(const int32_t imgid, const dt_image_geoloc_t *geoloc, const gboolean undo_on, const gboolean group_on)
 {
   GList *imgs = NULL;
-  if(imgid == -1)
+  if(imgid == UNKNOWN_IMAGE)
     imgs = dt_act_on_get_images();
   else
     imgs = g_list_prepend(imgs, GINT_TO_POINTER(imgid));
@@ -2407,7 +2407,7 @@ void dt_image_synch_all_xmp(const gchar *pathname)
   if(dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER)
   {
     const int32_t imgid = dt_image_get_id_full_path(pathname);
-    if(imgid != -1)
+    if(imgid != UNKNOWN_IMAGE)
     {
       dt_image_write_sidecar_file(imgid);
     }
