@@ -433,11 +433,17 @@ void _for_each_accel(gpointer key, gpointer value, gpointer user_data)
 
   if(shortcut->accel_group == results->group
      && shortcut->key == results->key
-     && shortcut->mods == results->modifier
-     && !g_strcmp0(path, shortcut->path))
+     && shortcut->mods == results->modifier)
   {
-    results->results = g_list_prepend(results->results, shortcut->path);
-    dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] Found accel %s for typed keys\n", path);
+    if(!g_strcmp0(path, shortcut->path))
+    {
+      results->results = g_list_prepend(results->results, shortcut->path);
+      dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] Found accel %s for typed keys\n", path);
+    }
+    else
+    {
+      fprintf(stderr, "[shortcuts] ERROR: the shortcut path '%s' is known under the key '%s' in hashtable\n", shortcut->path, path);
+    }
   }
 }
 
