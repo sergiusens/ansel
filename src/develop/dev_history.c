@@ -649,12 +649,26 @@ const dt_dev_history_item_t *dt_dev_get_history_item(dt_develop_t *dev, struct d
 
 #define AUTO_SAVE_TIMEOUT 30000
 
-static int _auto_save_edit(gpointer data)
+uint64_t dt_dev_history_get_hash(GList *dev_history)
 {
-  // TODO: put that in a parallel job to not freeze GUI mainthread
-  // when writing XMP on remote storage ? But that will still lock history mutex...
+  uint64_t hash = 5381;
+
+  for(GList *hist = g_list_first(dev_history); hist; hist = g_list_next(hist))
+  {
+    dt_dev_history_item_t *item = (dt_dev_history_item_t *)hist->data;
+    hash = dt_hash(hash, (const char *)&item->hash, sizeof(uint64_t));
+  }
+  return hash;
+}
+
+int dt_dev_history_auto_save(gpointer data)
+{
   dt_develop_t *dev = (dt_develop_t *)data;
   dev->auto_save_timeout = 0;
+
+  const uint64_t new_hash = dt_dev_history_get_hash(dev->history);
+  if(new_hash == dev->history_hash) return G_SOURCE_REMOVE;
+  dev->history_hash = new_hash;
 
   dt_times_t start;
   dt_get_times(&start);
@@ -667,11 +681,12 @@ static int _auto_save_edit(gpointer data)
 
   dt_control_save_xmp(dev->image_storage.id);
 
-  dt_show_times(&start, "[_auto_save_edit] auto-saving history upon last change");
+  dt_show_times(&start, "[dt_dev_history_auto_save] auto-saving history upon last change");
 
   dt_times_t end;
   dt_get_times(&end);
   dt_toast_log("autosaving completed in %.3f s", end.clock - start.clock);
+
   return G_SOURCE_REMOVE;
 }
 
@@ -741,7 +756,7 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
       g_source_remove(dev->auto_save_timeout);
       dev->auto_save_timeout = 0;
     }
-    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, _auto_save_edit, dev);
+    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, dt_dev_history_auto_save, dev);
   }
 }
 
@@ -1799,6 +1814,9 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   dt_dev_masks_list_change(dev);
   dt_dev_masks_update_hash(dev);
+
+  // Init global history hash to track changes during runtime
+  dev->history_hash = dt_dev_history_get_hash(dev->history);
 
   dt_print(DT_DEBUG_HISTORY, "[history] dt_dev_read_history_ext completed\n");
 }

@@ -58,6 +58,7 @@ void dt_dev_init(dt_develop_t *dev, int32_t gui_attached)
   dt_pthread_mutex_init(&dev->pipe_mutex, NULL);
   dev->history_end = 0;
   dev->history = NULL; // empty list
+  dev->history_hash = 0;
 
   dev->gui_attached = gui_attached;
   dev->width = -1;

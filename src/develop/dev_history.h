@@ -66,6 +66,23 @@ void dt_dev_read_history(struct dt_develop_t *dev);
 void dt_dev_free_history_item(gpointer data);
 void dt_dev_invalidate_history_module(GList *list, struct dt_iop_module_t *module);
 
+/**
+ * @brief Get the integrity checksum of the whole history
+ *
+ * @param dev_history dev->history
+ * @return uint64_t
+ */
+uint64_t dt_dev_history_get_hash(GList *dev_history);
+
+/**
+ * @brief Callback function meant to be used with g_timeout, saving history if it changes since prior saving point.
+ *
+ * @param data actually, `struct dt_develop_t *dev`, but needs to be `void * (alias gpointer)` for `g_timeout_add` support
+ * @return int
+ */
+int dt_dev_history_auto_save(gpointer data);
+
+
 // We allow pipelines to run partial histories, up to a certain index
 // stored privately in dev->history_end. Use these getter/setters
 // that will check validity, instead of directly reading/writing the private data.

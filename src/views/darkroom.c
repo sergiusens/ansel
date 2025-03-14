@@ -2114,30 +2114,7 @@ void leave(dt_view_t *self)
   else
     dt_conf_set_string("plugins/darkroom/active", "");
 
-  // commit image ops to db
-  dt_dev_write_history(dev);
-
-  // be sure light table will regenerate the thumbnail:
-  if(!dt_history_hash_is_mipmap_synced(dev->image_storage.id))
-  {
-    dt_mipmap_cache_remove(darktable.mipmap_cache, dev->image_storage.id);
-
-    // possibly dump new xmp data
-    const dt_history_hash_t hash_status = dt_history_hash_get_status(dev->image_storage.id);
-    const gboolean fresh = (hash_status == DT_HISTORY_HASH_BASIC) || (hash_status == DT_HISTORY_HASH_AUTO);
-    if(!fresh)
-      dt_control_save_xmp(dev->image_storage.id);
-    dt_history_hash_set_mipmap(dev->image_storage.id);
-#ifdef USE_LUA
-    dt_lua_async_call_alien(dt_lua_event_trigger_wrapper,
-        0, NULL, NULL,
-        LUA_ASYNC_TYPENAME, "const char*", "darkroom-image-history-changed",
-        LUA_ASYNC_TYPENAME, "dt_lua_image_t", GINT_TO_POINTER(dev->image_storage.id),
-        LUA_ASYNC_DONE);
-#endif
-  }
-
-  dt_dev_append_changed_tag(dev->image_storage.id);
+  dt_dev_history_auto_save(darktable.develop);
 
   // clear gui.
   dt_pthread_mutex_lock(&dev->pipe->busy_mutex);
@@ -2147,7 +2124,6 @@ void leave(dt_view_t *self)
   dt_pthread_mutex_lock(&dev->preview_pipe->busy_mutex);
   dt_dev_pixelpipe_cleanup_nodes(dev->preview_pipe);
   dt_pthread_mutex_unlock(&dev->preview_pipe->busy_mutex);
-
 
   dt_pthread_mutex_lock(&dev->history_mutex);
   while(dev->history)

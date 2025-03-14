@@ -212,6 +212,9 @@ typedef struct dt_develop_t
   // if dev is GUI-attached, auto save history 15s after the last change is made.
   guint auto_save_timeout;
 
+  // Track history changes from C. Note: we have a DB variant.
+  uint64_t history_hash;
+
   /* proxy for communication between plugins and develop/darkroom */
   struct
   {
