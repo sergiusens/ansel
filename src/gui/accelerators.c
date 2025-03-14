@@ -170,14 +170,18 @@ gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key, gbool
   return changed;
 }
 
+/** For native Gtk widget accels, we create alternatives for numpad keys, in case we fail to decode
+ * them ourselves and defer to native Gtk. Otherwise, numpad keys are also converted at input event
+ * handling.
+*/
 
 void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
 {
   gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, key->accel_key,
                               key->accel_mods, GTK_ACCEL_VISIBLE);
 
-  // Keypad numbers register as different keys. Find the numpad equivalent key here, if any.
-  guint alt_char = dt_keys_keypad_alternatives(key->accel_key);
+  // Numpad numbers register as different keys. Find the numpad equivalent key here, if any.
+  guint alt_char = dt_keys_numpad_alternatives(key->accel_key);
   if(key->accel_key != alt_char)
     gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, alt_char,
                                 key->accel_mods, GTK_ACCEL_VISIBLE);
@@ -188,8 +192,8 @@ void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
 {
   gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, key->accel_key, key->accel_mods);
 
-  // Keypad numbers register as different keys. Find the numpad equivalent key here, if any.
-  guint alt_char = dt_keys_keypad_alternatives(key->accel_key);
+  // Numpad numbers register as different keys. Find the numpad equivalent key here, if any.
+  guint alt_char = dt_keys_numpad_alternatives(key->accel_key);
   if(key->accel_key != alt_char)
     gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, alt_char, key->accel_mods);
 }
@@ -404,6 +408,10 @@ void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, Gd
     *keyval = GDK_KEY_Tab;
     *mods |= GDK_SHIFT_MASK;
   }
+
+  // Convert numpad keys to usual ones, because we care about WHAT is typed,
+  // not WHERE it is typed.
+  *keyval = dt_keys_mainpad_alternatives(*keyval);
 
   // Hopefully no more heuristics required...
 }
