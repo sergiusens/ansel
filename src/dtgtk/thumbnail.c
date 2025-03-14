@@ -299,20 +299,19 @@ static void _free_image_surface(dt_thumbnail_t *thumb)
   }
 }
 
-static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+static int _get_image_buffer(dt_thumbnail_t *thumb)
 {
-  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, FALSE);
 
   // If image inited, it means we already have a cached image surface at the proper
   // size. The resizing handlers should reset this flag when size changes.
-  if(thumb->image_inited && thumb->img_surf) return TRUE;
+  if(thumb->image_inited && thumb->img_surf) return G_SOURCE_REMOVE;
 
   // If busy, it means we already sent a request to the mipmap cache to fetch or generate
   // the image for us. There is no need to re-ping it again until it finishes.
   // When the image is ready, it will raise the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal,
   // and its handler will reset thumb->busy = FALSE
-  if(thumb->busy) return FALSE;
+  if(thumb->busy) return G_SOURCE_REMOVE;
 
   _free_image_surface(thumb);
 
@@ -327,8 +326,6 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
     // The image is immediately available
     thumb->img_width = cairo_image_surface_get_width(thumb->img_surf);
     thumb->img_height = cairo_image_surface_get_height(thumb->img_surf);
-    thumb->busy = FALSE;
-    thumb->image_inited = TRUE;
   }
   else
   {
@@ -340,7 +337,7 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
     // once the export pipeline will be done generating our image,
     // the corresponding thumb will be set to thumb->busy = FALSE
     // by the signal handler.
-    return FALSE;
+    return G_SOURCE_REMOVE;
   }
 
   // if needed we compute and draw here the big rectangle to show focused areas
@@ -369,22 +366,26 @@ static gboolean _get_image_buffer(GtkWidget *widget, cairo_t *cr, gpointer user_
     dt_free_align(full_res_thumb);
   }
 
-  return TRUE;
+  thumb->busy = FALSE;
+  thumb->image_inited = TRUE;
+
+  return G_SOURCE_REMOVE;
 }
 
-static gboolean _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
+static gboolean
+_thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
   //fprintf(stdout, "calling draw on %i\n", thumb->imgid);
-  _get_image_buffer(widget, cr, user_data);
+  g_idle_add((GSourceFunc)_get_image_buffer, thumb);
 
   int w = 0;
   int h = 0;
   gtk_widget_get_size_request(thumb->w_image, &w, &h);
 
-  if(thumb->busy || !thumb->img_surf || cairo_surface_get_reference_count(thumb->img_surf) < 1)
+  if(thumb->busy || !thumb->image_inited || !thumb->img_surf || cairo_surface_get_reference_count(thumb->img_surf) < 1)
   {
     dt_control_draw_busy_msg(cr, w, h);
     return TRUE;

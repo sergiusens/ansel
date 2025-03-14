@@ -645,12 +645,6 @@ void dt_mipmap_cache_print(dt_mipmap_cache_t *cache)
   printf("\n\n");
 }
 
-static gboolean _raise_signal_mipmap_updated(gpointer user_data)
-{
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, GPOINTER_TO_INT(user_data));
-  return FALSE; // only call once
-}
-
 static dt_mipmap_cache_one_t *_get_cache(dt_mipmap_cache_t *cache, const dt_mipmap_size_t mip)
 {
   switch(mip)
@@ -887,7 +881,7 @@ void dt_mipmap_cache_get_with_caller(
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
 
         /* raise signal that mipmaps has been flushed to cache */
-        g_idle_add(_raise_signal_mipmap_updated, GINT_TO_POINTER(imgid));
+        DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
         return;
       }
       // didn't succeed the first time? prefetch for later!
@@ -900,7 +894,7 @@ void dt_mipmap_cache_get_with_caller(
     // Last chance: look for smaller sizes
     // never decrease mip level for float buffer or full image:
     dt_mipmap_size_t min_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_0;
-    for(int k = mip; k >= min_mip; k--)
+    for(int k = mip - 1; k >= min_mip; k--)
     {
       // already loaded?
       dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
@@ -909,7 +903,7 @@ void dt_mipmap_cache_get_with_caller(
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
 
         /* raise signal that mipmaps has been flushed to cache */
-        g_idle_add(_raise_signal_mipmap_updated, GINT_TO_POINTER(imgid));
+        DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
         return;
       }
     }

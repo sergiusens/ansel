@@ -423,7 +423,7 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
 // Remove invisible thumbs at current scrolling level, only when we have more than 210.
 // That's because freeing widgets slows down the scrolling and 210 is no issue to handle at once.
 // 210 = 2*3*5*7, so we ensure full rows up to 11 thumbs/row.
-void _garbage_collection(dt_thumbtable_t *table, int *num_thumb)
+int _garbage_collection(dt_thumbtable_t *table)
 {
   dt_pthread_mutex_lock(&table->lock);
   GList *link = g_list_first(table->list);
@@ -433,7 +433,7 @@ void _garbage_collection(dt_thumbtable_t *table, int *num_thumb)
     GList *l = link;
     link = g_list_next(link);
 
-    gboolean collect_garbage = (table->thumb_nb + *num_thumb > 210)
+    gboolean collect_garbage = (table->thumb_nb + table->thumb_nb > 210)
                                 && (thumb->rowid < table->min_row_id || thumb->rowid > table->max_row_id);
 
     // if current imgid stored at previously-known position in LUT doesn't match our imgid:
@@ -448,10 +448,11 @@ void _garbage_collection(dt_thumbtable_t *table, int *num_thumb)
     {
       dt_thumbnail_destroy(thumb);
       table->list = g_list_delete_link(table->list, l);
-      *num_thumb -= 1;
+      table->thumb_nb -= 1;
     }
   }
   dt_pthread_mutex_unlock(&table->lock);
+  return G_SOURCE_REMOVE;
 }
 
 dt_thumbnail_t *_find_thumb_by_imgid(dt_thumbtable_t *table, const int32_t imgid)
@@ -467,7 +468,7 @@ dt_thumbnail_t *_find_thumb_by_imgid(dt_thumbtable_t *table, const int32_t imgid
 }
 
 // Add and/or resize thumbnails within visible viewort at current scroll level
-void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
+void _populate_thumbnails(dt_thumbtable_t *table)
 {
   const int32_t mouse_over = dt_control_get_mouse_over_id();
 
@@ -508,7 +509,7 @@ void _populate_thumbnails(dt_thumbtable_t *table, int *num_thumb)
     {
       thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, rowid, groupid, table->overlays, table);
       table->list = g_list_prepend(table->list, thumb);
-      *num_thumb += 1;
+      table->thumb_nb += 1;
     }
 
     table->lut[rowid].thumb = thumb;
@@ -575,25 +576,24 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
     table->reset_collection = FALSE;
   }
 
-  int num_thumb = 0;
   const double start = dt_get_wtime();
   gboolean empty_list = (table->list == NULL);
 
-  _populate_thumbnails(table, &num_thumb);
+  _populate_thumbnails(table);
 
   // Remove unneeded thumbnails: out of viewport or out of current collection
   if(!empty_list && table->list)
   {
-    _garbage_collection(table, &num_thumb);
+    //
+    g_idle_add((GSourceFunc)_garbage_collection, table);
     _resize_thumbnails(table);
   }
 
   gtk_widget_queue_draw(table->grid);
 
-  table->thumb_nb += num_thumb;
   table->thumbs_inited = TRUE;
 
-  dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", num_thumb, table->min_row_id, table->max_row_id, dt_get_wtime() - start);
+  dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb, table->min_row_id, table->max_row_id, dt_get_wtime() - start);
 }
 
 
