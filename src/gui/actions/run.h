@@ -38,11 +38,19 @@ static int32_t preload_image_cache(dt_job_t *job)
   {
     const int32_t imgid = GPOINTER_TO_INT(collection->data);
 
-    for(int k = DT_MIPMAP_FULL; k >= 0; k--)
+    for(int k = DT_MIPMAP_7; k >= DT_MIPMAP_3; k--)
     {
+      char filename[PATH_MAX] = { 0 };
+      snprintf(filename, sizeof(filename), "%s.d/%d/%d.jpg", darktable.mipmap_cache->cachedir, k, imgid);
+
+      // if a valid thumbnail file is already on disc - do nothing
+      if(dt_util_test_image_file(filename)) continue;
+
+      // else, generate thumbnail and store in mipmap cache.
       dt_mipmap_buffer_t buf;
       dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, k, DT_MIPMAP_BLOCKING, 'r');
       dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+
       fprintf(stdout, "Processing mipmap %i for image %i\n", k, imgid);
     }
 
