@@ -123,7 +123,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: 'Exiv2/exiv2'
-          ref: 'v0.28.1'
+          ref: '0.28.x'
           path: 'exiv2-src'
           fetch-depth: 1
       # Install manually compiled dependencies into system, so ansel will link
