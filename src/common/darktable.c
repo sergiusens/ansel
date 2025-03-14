@@ -122,9 +122,9 @@ static int usage(const char *argv0)
   printf("  --cachedir <user cache directory>\n");
   printf("  --conf <key>=<value>\n");
   printf("  --configdir <user config directory>\n");
-  printf("  -d {all,act_on,cache,camctl,camsupport,control,demosaic,dev,history,imageio,\n");
+  printf("  -d {all,cache,camctl,camsupport,control,demosaic,dev,history,imageio,\n");
   printf("      input,ioporder,lighttable,lua,masks,memory,nan,opencl,params,\n");
-  printf("      perf,pipe,print,pwstorage,signal,sql,tiling,undo,verbose}\n");
+  printf("      perf,pipe,print,pwstorage,signal,sql,shortcuts,tiling,undo,verbose}\n");
   printf("  --d-signal <signal> \n");
   printf("  --d-signal-act <all,raise,connect,disconnect");
   // clang-format on
@@ -522,7 +522,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
                                       STR(LUA_API_VERSION_MINOR) "."
                                       STR(LUA_API_VERSION_PATCH);
 #endif
-        printf("this is %s\ncopyright (c) 2009-%s johannes hanika\n" PACKAGE_BUGREPORT "\n\ncompile options:\n"
+        printf("this is %s\ncopyright (c) 2009-2022 Johannes Hanika, (c) 2022-%s Aurélien Pierre\n" PACKAGE_BUGREPORT "\n\ncompile options:\n"
                "  bit depth is %zu bit\n"
 #ifdef _DEBUG
                "  debug build\n"
@@ -682,8 +682,8 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
           darktable.unmuted |= DT_DEBUG_PARAMS; // iop module params checks on console
         else if(!strcmp(argv[k + 1], "demosaic"))
           darktable.unmuted |= DT_DEBUG_DEMOSAIC;
-        else if(!strcmp(argv[k + 1], "act_on"))
-          darktable.unmuted |= DT_DEBUG_ACT_ON;
+        else if(!strcmp(argv[k + 1], "shortcuts"))
+          darktable.unmuted |= DT_DEBUG_SHORTCUTS;
         else if(!strcmp(argv[k + 1], "tiling"))
           darktable.unmuted |= DT_DEBUG_TILING;
         else if(!strcmp(argv[k + 1], "verbose"))

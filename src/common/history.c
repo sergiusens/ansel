@@ -1011,6 +1011,7 @@ gboolean dt_history_paste_on_list(const GList *list, gboolean undo)
   }
 
   if(undo) dt_undo_end_group(darktable.undo);
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy((GList *)list));
 
   return TRUE;
 }
@@ -1044,6 +1045,7 @@ gboolean dt_history_paste_parts_on_list(const GList *list, gboolean undo)
                                        darktable.view_manager->copy_paste.full_copy);
   }
   if(undo) dt_undo_end_group(darktable.undo);
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_copy((GList *)list));
 
   return TRUE;
 }

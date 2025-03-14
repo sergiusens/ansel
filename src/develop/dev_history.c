@@ -390,15 +390,14 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
                  dt_history_snapshot_undo_pop, dt_history_snapshot_undo_lt_history_data_free);
   dt_undo_end_group(darktable.undo);
 
+  dt_mipmap_cache_remove(darktable.mipmap_cache, dest_imgid);
+
   /* attach changed tag reflecting actual change */
   dt_dev_append_changed_tag(dest_imgid);
-
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
 
   /* update xmp file */
   dt_control_save_xmp(dest_imgid);
-
-  dt_mipmap_cache_remove(darktable.mipmap_cache, dest_imgid);
 
   // signal that the mipmap need to be updated
   dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);

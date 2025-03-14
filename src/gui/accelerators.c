@@ -1,4 +1,5 @@
 #include "accelerators.h"
+#include "common/darktable.h" // lots of garbage to include, only to get debug prints & flags
 #include "gui/gdkkeys.h"
 
 #include <assert.h>
@@ -379,6 +380,14 @@ void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, Gd
                                       event->key.group, // this ensures that numlock or shift are properly decoded
                                       keyval, NULL, NULL, &consumed);
 
+  if(darktable.unmuted & DT_DEBUG_SHORTCUTS)
+  {
+    gchar *accel_name = gtk_accelerator_name(*keyval, *mods);
+    dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] %s : %s\n",
+             (event->type == GDK_KEY_PRESS) ? "Key pressed" : "Key released", accel_name);
+    g_free(accel_name);
+  }
+
   // Remove the consumed Shift modifier for numbers.
   // For French keyboards, numbers are accessed through Shift, e.g Shift + & = 1.
   // Keeping Shift here would be meaningless and gets in the way.
@@ -399,6 +408,44 @@ void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, Gd
   // Hopefully no more heuristics required...
 }
 
+typedef struct _accel_lookup_t
+{
+  GList *results;
+  guint key;
+  GdkModifierType modifier;
+  GtkAccelGroup *group;
+} _accel_lookup_t;
+
+
+void _for_each_accel(gpointer key, gpointer value, gpointer user_data)
+{
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
+  const gchar *path = (const gchar *)key;
+  _accel_lookup_t *results = (_accel_lookup_t *)user_data;
+
+  if(shortcut->accel_group == results->group
+     && shortcut->key == results->key
+     && shortcut->mods == results->modifier
+     && !g_strcmp0(path, shortcut->path))
+  {
+    results->results = g_list_prepend(results->results, shortcut->path);
+    dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] Found accel %s for typed keys\n", path);
+  }
+}
+
+
+// Find the accel path for the matching key & modifier within the specified accel group.
+// Return the number of accels found (should be one).
+guint _find_path_for_keys(dt_accels_t *accels, guint key, GdkModifierType modifier, GtkAccelGroup *group)
+{
+  _accel_lookup_t result = { .results = NULL, key = key, .modifier = modifier, .group = group };
+  g_hash_table_foreach(accels->acceleratables, _for_each_accel, &result);
+  guint values = g_list_length(result.results);
+  g_list_free(result.results);
+  return values;
+}
+
+
 gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels, guint keyval, GdkModifierType mods)
 {
   gboolean found = FALSE;
@@ -406,16 +453,30 @@ gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels, guint 
   // Get the accelerator entry from the accel group
   gchar *accel_name = gtk_accelerator_name(keyval, mods);
   GQuark accel_quark = g_quark_from_string(accel_name);
-  //fprintf(stdout, "accel: %s\n", accel_name);
+  dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] Combination of keys decoded: %s\n", accel_name);
   g_free(accel_name);
 
   // Look into the active group first, aka darkroom, lighttable, etc.
   if(gtk_accel_group_activate(accels->active_group, accel_quark, G_OBJECT(w), keyval, mods))
+  {
     found = TRUE;
+    if(darktable.unmuted & DT_DEBUG_SHORTCUTS)
+    {
+      dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] Action found in active accels group:\n");
+      _find_path_for_keys(accels, keyval, mods, accels->active_group);
+    }
+  }
 
   // If nothing found, try again with global accels.
   if(!found && gtk_accel_group_activate(accels->global_accels, accel_quark, G_OBJECT(w), keyval, mods))
+  {
     found = TRUE;
+    if(darktable.unmuted & DT_DEBUG_SHORTCUTS)
+    {
+      dt_print(DT_DEBUG_SHORTCUTS, "[shortcuts] Action found in global accels group:\n");
+      _find_path_for_keys(accels, keyval, mods, accels->global_accels);
+    }
+  }
 
   return found;
 }
@@ -427,8 +488,8 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
 
   // Ditch everything that is not a key stroke or key strokes that are modifiers alone
   // Abort early for performance.
-  if(event->key.is_modifier || accels->active_group == NULL || accels->reset > 0) return FALSE;
-
+  if(event->key.is_modifier || accels->active_group == NULL || accels->reset > 0)
+    return FALSE;
 
   if(!(event->type == GDK_KEY_PRESS || event->type == GDK_KEY_RELEASE || event->type == GDK_SCROLL))
     return FALSE;
