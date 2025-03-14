@@ -843,6 +843,7 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
     dt_thumbtable_configure(table);
     dt_thumbtable_update(table);
+    gtk_widget_queue_draw(table->grid);
     g_idle_add((GSourceFunc) _grab_focus, table);
     g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
   }
@@ -1574,11 +1575,10 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   dt_pthread_mutex_unlock(&table->lock);
 
   dt_thumbtable_configure(table);
-  g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_selection, table);
   dt_thumbtable_update(table);
-  g_idle_add((GSourceFunc) _grab_focus, table);
-
   gtk_widget_queue_draw(table->grid);
+  g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_selection, table);
+  g_idle_add((GSourceFunc) _grab_focus, table);
 }
 
 void dt_thumbtable_select_all(dt_thumbtable_t *table)
