@@ -768,7 +768,7 @@ static void _lib_filter_set_tag_order(dt_lib_module_t *self)
   dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
   if(darktable.collection->tagid)
   {
-    const uint32_t sort = items[dt_bauhaus_combobox_get(d->sort)];
+    const uint32_t sort = items[gtk_combo_box_get_active(GTK_COMBO_BOX(d->sort))];
     const gboolean descending = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(d->reverse));
     dt_tag_set_tag_order_by_id(darktable.collection->tagid, sort, descending);
   }
@@ -777,7 +777,7 @@ static void _lib_filter_set_tag_order(dt_lib_module_t *self)
 static void _lib_filter_images_order_change(gpointer instance, const int order, dt_lib_module_t *self)
 {
   dt_lib_tool_filter_t *d = (dt_lib_tool_filter_t *)self->data;
-  dt_bauhaus_combobox_set(d->sort, _filter_get_items(order & ~DT_COLLECTION_ORDER_FLAG));
+  gtk_combo_box_set_active(GTK_COMBO_BOX(d->sort), _filter_get_items(order & ~DT_COLLECTION_ORDER_FLAG));
   gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(d->reverse), order & DT_COLLECTION_ORDER_FLAG);
 }
 
