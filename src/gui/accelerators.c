@@ -446,7 +446,7 @@ void _for_each_accel(gpointer key, gpointer value, gpointer user_data)
 // Return the number of accels found (should be one).
 guint _find_path_for_keys(dt_accels_t *accels, guint key, GdkModifierType modifier, GtkAccelGroup *group)
 {
-  _accel_lookup_t result = { .results = NULL, key = key, .modifier = modifier, .group = group };
+  _accel_lookup_t result = { .results = NULL, .key = key, .modifier = modifier, .group = group };
   g_hash_table_foreach(accels->acceleratables, _for_each_accel, &result);
   guint values = g_list_length(result.results);
   g_list_free(result.results);
