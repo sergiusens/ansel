@@ -2529,7 +2529,6 @@ static void row_activated_with_event(GtkTreeView *view, GtkTreePath *path, GtkTr
   }
 
   gchar *text;
-  gboolean order_request = FALSE;
   int order;
 
   get_number_of_rules(d);
@@ -2543,22 +2542,7 @@ static void row_activated_with_event(GtkTreeView *view, GtkTreePath *path, GtkTr
 
   if(text && strlen(text) > 0)
   {
-    if(dt_modifier_is(event->state, GDK_SHIFT_MASK | GDK_CONTROL_MASK))
-    {
-      if(item == DT_COLLECTION_PROP_FILMROLL)
-      {
-        // go to corresponding folder collection
-        _combo_set_active_collection(active_rule->combo, DT_COLLECTION_PROP_FOLDERS);
-      }
-      else if(item == DT_COLLECTION_PROP_FOLDERS)
-      {
-        // go to corresponding filmroll collection
-        _combo_set_active_collection(active_rule->combo, DT_COLLECTION_PROP_FILMROLL);
-        force_update_view = TRUE;
-      }
-    }
-    else if(n_selected > 1
-            && item_is_numeric_collection(item))
+    if(n_selected > 1 && item_is_numeric_collection(item))
     {
       /* this is a range selection */
       GtkTreeIter iter2;
@@ -2625,6 +2609,8 @@ static void row_activated_with_event(GtkTreeView *view, GtkTreePath *path, GtkTr
         else dt_collection_set_tag_id((dt_collection_t *)darktable.collection, 0);
       }
     }
+    else
+      _combo_set_active_collection(active_rule->combo, item);
   }
   g_list_free_full(sels, (GDestroyNotify)gtk_tree_path_free);
 
@@ -2635,7 +2621,8 @@ static void row_activated_with_event(GtkTreeView *view, GtkTreePath *path, GtkTr
   g_free(text);
 
   if(item == DT_COLLECTION_PROP_TAG
-     || (item == DT_COLLECTION_PROP_FOLDERS && !force_update_view)
+     || item == DT_COLLECTION_PROP_FOLDERS
+     || item == DT_COLLECTION_PROP_FILMROLL
      || item == DT_COLLECTION_PROP_DAY
      || is_time_property(item)
      || item == DT_COLLECTION_PROP_COLORLABEL
