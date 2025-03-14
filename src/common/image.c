@@ -952,7 +952,6 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
 
-#ifdef HAVE_SQLITE_324_OR_NEWER
     // clang-format off
     DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
                                 "INSERT INTO main.tagged_images (imgid, tagid, position)"
@@ -968,26 +967,6 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
     DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
-#else // break down the tagged_images insert per tag
-    GList *tags = dt_tag_get_tags(imgid, FALSE);
-    for(GList *tag = tags; tag; tag = g_list_next(tag))
-    {
-      // clang-format off
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "INSERT INTO main.tagged_images (imgid, tagid, position)"
-                                  "  VALUES (?1, ?2, "
-                                  "   (SELECT (IFNULL(MAX(position),0) & 0xFFFFFFFF00000000)"
-                                  "     + (1 << 32)"
-                                  "   FROM main.tagged_images))",
-                                  -1, &stmt, NULL);
-      // clang-format on
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, newid);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, GPOINTER_TO_INT(tag->data));
-      sqlite3_step(stmt);
-      sqlite3_finalize(stmt);
-    }
-    g_list_free(tags);
-#endif
 
     if(darktable.develop->image_storage.id == imgid)
     {
@@ -2028,7 +2007,7 @@ int32_t dt_image_copy_rename(const int32_t imgid, const int32_t filmid, const gc
         DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
-#ifdef HAVE_SQLITE_324_OR_NEWER
+
         // clang-format off
         DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
                                     "INSERT INTO main.tagged_images (imgid, tagid, position)"
@@ -2044,26 +2023,7 @@ int32_t dt_image_copy_rename(const int32_t imgid, const int32_t filmid, const gc
         DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
         sqlite3_step(stmt);
         sqlite3_finalize(stmt);
-#else   // break down the tagged_images insert per tag
-        GList *tags = dt_tag_get_tags(imgid, FALSE);
-        for(GList *tag = tags; tag; tag = g_list_next(tag))
-        {
-          // clang-format off
-          DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                      "INSERT INTO main.tagged_images (imgid, tagid, position)"
-                                      "  VALUES (?1, ?2, "
-                                      "   (SELECT (IFNULL(MAX(position),0) & 0xFFFFFFFF00000000)"
-                                      "     + (1 << 32)"
-                                      "   FROM main.tagged_images))",
-                                      -1, &stmt, NULL);
-          // clang-format on
-          DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, newid);
-          DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, GPOINTER_TO_INT(tag->data));
-          sqlite3_step(stmt);
-          sqlite3_finalize(stmt);
-        }
-        g_list_free(tags);
-#endif
+
         // get max_version of image duplicates in destination filmroll
         int32_t max_version = -1;
         // clang-format off
