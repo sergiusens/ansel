@@ -1131,7 +1131,7 @@ static int32_t dt_control_gpx_apply_job_run(dt_job_t *job)
     goto bail_out;
   }
 
-  GTimeZone *tz_camera = (tz == NULL) ? g_time_zone_new_utc() : g_time_zone_new(tz);
+  GTimeZone *tz_camera = (tz == NULL) ? g_time_zone_new_utc() : g_time_zone_new_identifier(tz);
   if(!tz_camera) goto bail_out;
 
   GList *imgs = NULL;
