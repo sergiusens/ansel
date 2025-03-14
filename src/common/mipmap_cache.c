@@ -897,7 +897,7 @@ void dt_mipmap_cache_get_with_caller(
     // Last chance: look for smaller sizes
     // never decrease mip level for float buffer or full image:
     dt_mipmap_size_t min_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_0;
-    for(int k = mip - 1; k >= min_mip && k >= 0; k--)
+    for(int k = mip; k >= min_mip; k--)
     {
       // already loaded?
       dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
