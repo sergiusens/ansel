@@ -625,7 +625,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
     _exif_text_set_and_free(d, EXIF_LENS_FIELD,  g_strdup_printf(" %s", (img->exif_lens[0]  != '\0') ? img->exif_lens  : "-"));
     _exif_text_set_and_free(d, EXIF_FOCAL_LENS_FIELD, g_strdup_printf(" %0.f mm", img->exif_focal_length));
     _exif_text_set_and_free(d, EXIF_EXPOSURE_FIELD, exposure_field);
-    _exif_text_set_and_free(d, EXIF_INLIB_FIELD, (is_in_lib) ? g_strdup_printf(_(" Yes (ID %i), in"), imgid) : _(" No"));
+    _exif_text_set_and_free(d, EXIF_INLIB_FIELD, (is_in_lib) ? g_strdup_printf(_(" Yes (ID %i), in"), imgid) : g_strdup_printf(_(" No")));
 
     if(is_in_lib) _exif_text_set_and_free(d, EXIF_PATH_FIELD, g_strdup_printf(_("%s"), path));
   }
