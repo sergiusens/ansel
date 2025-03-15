@@ -20,7 +20,7 @@
 #include "control/control.h"
 
 #define DT_CONTROL_FG_PRIORITY 4
-#define DT_CONTROL_MAX_JOBS 30
+#define DT_CONTROL_MAX_JOBS 128
 
 /* the queue can have scheduled jobs but all
     the workers are sleeping, so this kicks the workers
