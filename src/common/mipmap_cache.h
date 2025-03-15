@@ -165,6 +165,11 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(
 // only copies over the jpg backend on disk, doesn't directly affect the in-memory cache.
 void dt_mipmap_cache_copy_thumbnails(const dt_mipmap_cache_t *cache, const uint32_t dst_imgid, const uint32_t src_imgid);
 
+
+// Wrapper to send a delayed DT_SIGNAL_DEVELOP_MIPMAP_UPDATED from g_idle_add
+// data is GINT_TO_POINTER(imgid)
+int dt_mipmap_ready_idle_signal(gpointer data);
+
 #ifdef __cplusplus
 }
 #endif

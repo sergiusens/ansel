@@ -648,13 +648,13 @@ void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboo
     if(thumb->imgid == imgid)
     {
       if(reinit) thumb->image_inited = FALSE;
-      dt_thumbnail_image_refresh(thumb);
+      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh, thumb);
       break;
     }
     else if(imgid == UNKNOWN_IMAGE)
     {
       if(reinit) thumb->image_inited = FALSE;
-      dt_thumbnail_image_refresh(thumb);
+      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh, thumb);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);

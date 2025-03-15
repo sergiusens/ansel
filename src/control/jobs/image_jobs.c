@@ -39,7 +39,7 @@ static int32_t dt_image_load_job_run(dt_job_t *job)
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
 
   // Signal we need to reload the mipmap in thumbtable
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, params->imgid);
+  dt_mipmap_ready_idle_signal(GINT_TO_POINTER(params->imgid));
   return 0;
 }
 

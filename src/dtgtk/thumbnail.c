@@ -378,7 +378,6 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
-  //fprintf(stdout, "calling draw on %i\n", thumb->imgid);
   g_idle_add((GSourceFunc)_get_image_buffer, thumb);
 
   int w = 0;
@@ -1182,12 +1181,13 @@ void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop)
 }
 
 // Apply new mipmap on thumbnail
-void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
+int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
 {
-  thumb_return_if_fails(thumb);
+  thumb_return_if_fails(thumb, G_SOURCE_REMOVE);
   _thumb_update_icons(thumb);
   thumb->busy = FALSE;
   gtk_widget_queue_draw(thumb->w_image);
+  return G_SOURCE_REMOVE;
 }
 
 

@@ -161,7 +161,7 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb);
 void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected);
 
 // force image recomputing
-void dt_thumbnail_image_refresh(dt_thumbnail_t *thumb);
+int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb);
 
 // force reloading image infos
 void dt_thumbnail_reload_infos(dt_thumbnail_t *thumb);

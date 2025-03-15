@@ -106,6 +106,12 @@ static const size_t dt_mipmap_buffer_dsc_size __attribute__((unused))
 static const size_t dt_mipmap_buffer_dsc_size __attribute__((unused)) = sizeof(struct dt_mipmap_buffer_dsc);
 #endif
 
+int dt_mipmap_ready_idle_signal(gpointer data)
+{
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, GPOINTER_TO_INT(data));
+  return G_SOURCE_REMOVE;
+}
+
 // last resort mem alloc for dead images. sizeof(dt_mipmap_buffer_dsc) + dead image pixels (8x8)
 // Must be alignment to 4 * sizeof(float).
 static float dt_mipmap_cache_static_dead_image[sizeof(struct dt_mipmap_buffer_dsc) / sizeof(float) + 64 * 4]
@@ -881,7 +887,7 @@ void dt_mipmap_cache_get_with_caller(
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
 
         /* raise signal that mipmaps has been flushed to cache */
-        DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
+        dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
         return;
       }
       // didn't succeed the first time? prefetch for later!
@@ -903,7 +909,7 @@ void dt_mipmap_cache_get_with_caller(
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
 
         /* raise signal that mipmaps has been flushed to cache */
-        DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, imgid);
+        dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
         return;
       }
     }
