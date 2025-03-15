@@ -372,20 +372,30 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 {
   dt_dev_pixelpipe_t *pipe = dev->preview_pipe;
   pipe->running = 1;
+  float *image_buffer = NULL;
 
   dt_pthread_mutex_lock(&pipe->busy_mutex);
 
   // init pixel pipeline for preview.
   // always process the whole downsampled mipf buffer, to allow for fast scrolling and mip4 write-through.
   dt_mipmap_buffer_t buf;
+  dt_mipmap_cache_t *cache = darktable.mipmap_cache;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
 
   gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
 
+  // Take a local copy of the buffer so we can release the mipmap cache lock immediately
+  const size_t buf_width = buf.width;
+  const size_t buf_height = buf.height;
+  const float buf_iscale = buf.iscale;
+
   if(!finish_on_error)
   {
-    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, buf.width, buf.height, buf.iscale);
-    dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %i×%i px\n", buf.width, buf.height);
+    image_buffer = dt_alloc_align(buf.cache_entry->data_size);
+    memcpy(image_buffer, buf.buf, buf.cache_entry->data_size);
+    dt_mipmap_cache_release(cache, &buf);
+    dt_dev_pixelpipe_set_input(pipe, dev, image_buffer, buf_width, buf_height, buf_iscale);
+    dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %lu×%lu px\n", buf_width, buf_height);
   }
 
   pipe->processing = 1;
@@ -435,9 +445,9 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   }
   pipe->processing = 0;
 
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-
   dt_pthread_mutex_unlock(&pipe->busy_mutex);
+
+  if(image_buffer) dt_free_align(image_buffer);
 
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
@@ -458,16 +468,26 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
   dt_dev_pixelpipe_t *pipe = dev->pipe;
   pipe->running = 1;
+  float *image_buffer = NULL;
 
   dt_pthread_mutex_lock(&pipe->busy_mutex);
 
   dt_mipmap_buffer_t buf;
-  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
+  dt_mipmap_cache_t *cache = darktable.mipmap_cache;
+  dt_mipmap_cache_get(cache, &buf, dev->image_storage.id, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
 
   gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
 
+  // Take a local copy of the buffer so we can release the mipmap cache lock immediately
+  const size_t buf_width = buf.width;
+  const size_t buf_height = buf.height;
   if(!finish_on_error)
-    dt_dev_pixelpipe_set_input(pipe, dev, (float *)buf.buf, buf.width, buf.height, 1.0);
+  {
+    image_buffer = dt_alloc_align(buf.cache_entry->data_size);
+    memcpy(image_buffer, buf.buf, buf.cache_entry->data_size);
+    dt_mipmap_cache_release(cache, &buf);
+    dt_dev_pixelpipe_set_input(pipe, dev, image_buffer, buf_width, buf_height, 1.0);
+  }
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
   pipe->processing = 1;
@@ -556,9 +576,9 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   }
   pipe->processing = 0;
 
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-
   dt_pthread_mutex_unlock(&pipe->busy_mutex);
+
+  if(image_buffer) dt_free_align(image_buffer);
 
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting main image pipe thread\n");
