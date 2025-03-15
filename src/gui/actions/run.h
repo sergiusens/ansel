@@ -29,16 +29,16 @@ static void crawl_xmp_changes(GtkWidget *widget)
 static int32_t preload_image_cache(dt_job_t *job)
 {
   // Load the mipmap cache sizes 0 to 4 of the current selection
-  GList *collection = dt_collection_get_all(darktable.collection, -1);
-  collection = g_list_first(collection);
-  float i = 0.f;
-  float imgs = (float)g_list_length(collection);
+  GList *selection = dt_selection_get_list(darktable.selection);
+  int i = 0;
+  float imgs = (float)dt_selection_get_length(darktable.selection);
+  GList *img = g_list_first(selection);
 
-  while(collection && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED)
+  while(img && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED)
   {
-    const int32_t imgid = GPOINTER_TO_INT(collection->data);
+    const int32_t imgid = GPOINTER_TO_INT(img->data);
 
-    for(int k = DT_MIPMAP_7; k >= DT_MIPMAP_3; k--)
+    for(int k = DT_MIPMAP_6; k >= DT_MIPMAP_0 && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED; k--)
     {
       char filename[PATH_MAX] = { 0 };
       snprintf(filename, sizeof(filename), "%s.d/%d/%d.jpg", darktable.mipmap_cache->cachedir, k, imgid);
@@ -50,17 +50,15 @@ static int32_t preload_image_cache(dt_job_t *job)
       dt_mipmap_buffer_t buf;
       dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, k, DT_MIPMAP_BLOCKING, 'r');
       dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-
-      fprintf(stdout, "Processing mipmap %i for image %i\n", k, imgid);
     }
 
     dt_history_hash_set_mipmap(imgid);
-    i += 1.f;
-    dt_control_job_set_progress(job, i / imgs);
-    collection = g_list_next(collection);
+    i++;
+    dt_control_job_set_progress(job, (float)i / imgs);
+    img = g_list_next(img);
   }
 
-  g_list_free(collection);
+  g_list_free(selection);
   return 0;
 }
 
@@ -71,6 +69,21 @@ static void preload_image_cache_callback(GtkWidget *widget)
   dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_BG, job);
 }
 
+static void clear_image_cache(GtkWidget *widget)
+{
+  // Load the mipmap cache sizes 0 to 4 of the current selection
+  GList *selection = dt_selection_get_list(darktable.selection);
+
+  for(GList *img = g_list_first(selection); img; img = g_list_next(img))
+  {
+    const int32_t imgid = GPOINTER_TO_INT(img->data);
+    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  }
+
+  g_list_free(selection);
+}
+
+
 static void write_XMP()
 {
   dt_control_write_sidecar_files();
@@ -80,7 +93,8 @@ static void write_XMP()
 void append_run(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   add_sub_menu_entry(menus, lists, _("Clear darkroom pipeline caches"), index, NULL, clear_caches_callback, NULL, NULL, NULL, 0, 0);
-  add_sub_menu_entry(menus, lists, _("Preload collection thumbnails"), index, NULL, preload_image_cache_callback, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Preload thumbnails in cache"), index, NULL, preload_image_cache_callback, NULL, NULL, has_active_images, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Purge thumbnails from cache"), index, NULL, clear_image_cache, NULL, NULL, has_active_images, 0, 0);
   add_menu_separator(menus[index]);
   add_sub_menu_entry(menus, lists, _("Defragment the library"), index, NULL, optimize_database_callback, NULL, NULL, NULL, 0, 0);
   add_sub_menu_entry(menus, lists, _("Backup the library"), index, NULL, backup_database_callback, NULL, NULL, NULL, 0, 0);
@@ -88,7 +102,5 @@ void append_run(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_menu_entry(menus, lists, _("Resynchronize library and XMP"), index, NULL, crawl_xmp_changes, NULL, NULL, NULL, 0, 0);
   add_sub_menu_entry(menus, lists, _("Save selected developments to XMP"), index, NULL, write_XMP, NULL, NULL, has_active_images, 0, 0);
   add_menu_separator(menus[index]);
-  add_sub_menu_entry(menus, lists, _("Resynchronize locally copied images with distant XMP"), index, NULL, dt_image_local_copy_synch, NULL, NULL, NULL, 0, 0);
-  add_sub_menu_entry(menus, lists, _("Copy selected images locally"), index, NULL, dt_control_set_local_copy_images, NULL, NULL, has_active_images, 0, 0);
-  add_sub_menu_entry(menus, lists, _("Remove locally copied images"), index, NULL, dt_control_reset_local_copy_images, NULL, NULL, has_active_images, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Resynchronize database with distant XMP for local copies"), index, NULL, dt_image_local_copy_synch, NULL, NULL, NULL, 0, 0);
 }
