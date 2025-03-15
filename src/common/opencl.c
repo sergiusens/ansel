@@ -137,7 +137,7 @@ gboolean dt_opencl_use_pinned_memory(const int devid)
 {
   dt_opencl_t *cl = darktable.opencl;
   if(!cl->inited || devid < 0) return FALSE;
-  return (cl->dev[devid].tuneactive & DT_OPENCL_TUNE_PINNED);
+  return cl->dev[devid].pinned_memory;
 }
 
 void dt_opencl_write_device_config(const int devid)
@@ -281,7 +281,6 @@ static int dt_opencl_device_init(dt_opencl_t *cl, const int dev, cl_device_id *d
   cl->dev[dev].options = NULL;
   cl->dev[dev].memory_in_use = 0;
   cl->dev[dev].peak_memory = 0;
-  cl->dev[dev].tuned_available = 0;
   cl->dev[dev].used_available = 0;
   // setting sane/conservative defaults at first
   cl->dev[dev].avoid_atomics = 0;
@@ -295,7 +294,6 @@ static int dt_opencl_device_init(dt_opencl_t *cl, const int dev, cl_device_id *d
   cl->dev[dev].asyncmode = 0;
   cl->dev[dev].disabled = 0;
   cl->dev[dev].forced_headroom = 0;
-  cl->dev[dev].tuneactive = 0;
   cl->dev[dev].runtime_error = 0;
   cl_device_id devid = cl->dev[dev].devid = devices[k];
 
@@ -535,12 +533,9 @@ static int dt_opencl_device_init(dt_opencl_t *cl, const int dev, cl_device_id *d
     goto end;
   }
 
-  dt_sys_resources_t *resrc = &darktable.dtresources;
-  const gboolean pinning = (cl->dev[dev].pinned_memory & DT_OPENCL_PINNING_ON) || (resrc->tunemode & DT_OPENCL_TUNE_PINNED);
-  const gboolean tuning = resrc->tunemode & DT_OPENCL_TUNE_MEMSIZE;
+  const gboolean pinning = (cl->dev[dev].pinned_memory & DT_OPENCL_PINNING_ON);
   dt_print_nts(DT_DEBUG_OPENCL, "   ASYNC PIXELPIPE:          %s\n", (cl->dev[dev].asyncmode) ? "YES" : "NO");
   dt_print_nts(DT_DEBUG_OPENCL, "   PINNED MEMORY TRANSFER:   %s\n", pinning ? "WANTED" : "NO");
-  dt_print_nts(DT_DEBUG_OPENCL, "   MEMORY TUNING:            %s\n", tuning ? "WANTED" : "NO");
   dt_print_nts(DT_DEBUG_OPENCL, "   FORCED HEADROOM:          %i\n", cl->dev[dev].forced_headroom);
   dt_print_nts(DT_DEBUG_OPENCL, "   AVOID ATOMICS:            %s\n", (cl->dev[dev].avoid_atomics) ? "YES" : "NO");
   dt_print_nts(DT_DEBUG_OPENCL, "   MICRO NAP:                %i\n", cl->dev[dev].micro_nap);
@@ -2769,81 +2764,6 @@ void dt_opencl_memory_statistics(int devid, cl_mem mem, dt_opencl_memory_t actio
                                       (float)darktable.opencl->dev[devid].memory_in_use/(1024*1024));
 }
 
-/* As there is no portable way to get the unused memory of a cl device we check for memory by testing.
-   clCreateBuffer does not tell an error condition if there is no memory available (this
-   is according to standard), to make sure the buffer is really allocated in graphics mem we
-   force a small memory access.
-   Note: This code seems to be bad at least for nvidia 515/16 drivers, the reason is not understood yet.
-*/
-void _opencl_get_unused_device_mem(const int devid)
-{
-  dt_opencl_t *cl = darktable.opencl;
-  if(cl->dev[devid].tuned_available) return;
-
-  size_t available = 0;
-  size_t x_buff = dt_opencl_get_device_memalloc(devid);
-  const size_t allmem = cl->dev[devid].max_global_mem;
-  const size_t maxmem = allmem - 200lu * 1024lu * 1024lu;
-  const size_t low_limit = 32lu * 1024lu * 1024lu;
-  int checked = 0;
-  float *tmp = dt_calloc_align_float(4);
-
-  dt_times_t start_time = { 0 }, end_time = { 0 };
-  const gboolean timing = darktable.unmuted & (DT_DEBUG_OPENCL | DT_DEBUG_MEMORY);
-  if(timing) dt_get_times(&start_time);
-
-  cl_mem tbuf[128];
-  cl_int err = CL_SUCCESS;
-
-  // check for all memory except a safety margin that might be used by the driver itself.
-  while((available < (maxmem - x_buff)) && (checked < 128) && (err == CL_SUCCESS))
-  {
-    tbuf[checked] = (cl->dlocl->symbols->dt_clCreateBuffer)(cl->dev[devid].context, CL_MEM_READ_WRITE, x_buff, NULL, &err);
-    if(err == CL_SUCCESS)
-    {
-      err = (cl->dlocl->symbols->dt_clEnqueueWriteBuffer)(cl->dev[devid].cmd_queue, tbuf[checked], CL_TRUE, 0, 16, tmp, 0, NULL, NULL);
-      if(err == CL_SUCCESS)
-      {
-        checked++;
-        available += x_buff;
-      }
-      else
-        if(tbuf[checked]) (cl->dlocl->symbols->dt_clReleaseMemObject)(tbuf[checked]);
-    }
-  }
-
-  x_buff = maxmem - available; // check only what is left
-  while((available <= (maxmem - low_limit)) && (checked < 128) && (x_buff >= low_limit))
-  {
-    x_buff /= 2;
-    tbuf[checked] = (cl->dlocl->symbols->dt_clCreateBuffer)(cl->dev[devid].context, CL_MEM_READ_WRITE, x_buff, NULL, &err);
-    if(err == CL_SUCCESS)
-    {
-      err = (cl->dlocl->symbols->dt_clEnqueueWriteBuffer)(cl->dev[devid].cmd_queue, tbuf[checked], CL_TRUE, 0, 16, tmp, 0, NULL, NULL);
-      if(err == CL_SUCCESS)
-      {
-        checked++;
-        available += x_buff;
-      }
-      else
-        if(tbuf[checked]) (cl->dlocl->symbols->dt_clReleaseMemObject)(tbuf[checked]);
-    }
-  }
-
-  for(int i = 0; i < checked; i++)
-    if(tbuf[i]) (cl->dlocl->symbols->dt_clReleaseMemObject)(tbuf[i]);
-
-  if(timing) dt_get_times(&end_time);
-
-  dt_print(DT_DEBUG_OPENCL | DT_DEBUG_MEMORY,
-     "[_opencl_get_unused_device_mem] took %.4f secs on `%s` id=%i, %luMB available, %luMB of %luMB reserved\n",
-     end_time.clock - start_time.clock, cl->dev[devid].name, devid,
-     available / 1024lu / 1024lu, (allmem - available) / 1024lu / 1024lu, allmem / 1024lu / 1024lu);
-
-  dt_free_align(tmp);
-  cl->dev[devid].tuned_available = MAX(0, available - 100lu * 1024lu * 1024lu);
-}
-
 /* amount of graphics memory declared as available depends on max_global_mem and "resourcelevel". We garantee
    - a headroom of 400MB in all cases not using tuned cl
    - 256MB to simulate a minimum system
@@ -2855,69 +2775,16 @@ void _opencl_get_unused_device_mem(const int devid)
 */
 void dt_opencl_check_tuning(const int devid)
 {
-  dt_sys_resources_t *res = &darktable.dtresources;
   dt_opencl_t *cl = darktable.opencl;
   if(!cl->inited || devid < 0) return;
 
-  static int oldlevel = -999;
-  static int oldtuned = -999;
+  cl->dev[devid].used_available = MAX(0ul, cl->dev[devid].max_global_mem - ((size_t)cl->dev[devid].forced_headroom * 1024ul * 1024ul));
 
-  const int tunemode = res->tunemode;
-  const int pinmode = cl->dev[devid].pinned_memory;
-
-  cl->dev[devid].tuneactive = tunemode & DT_OPENCL_TUNE_MEMSIZE;
-  if(!(tunemode & DT_OPENCL_TUNE_MEMSIZE))
-    cl->dev[devid].tuned_available = 0;
-
-  if(((pinmode & DT_OPENCL_PINNING_DISABLED) == 0) &&
-     ((cl->dev[devid].runtime_error & DT_OPENCL_TUNE_PINNED) == 0) &&
-     ((pinmode & DT_OPENCL_PINNING_ON) || (tunemode & DT_OPENCL_TUNE_PINNED)))
-    cl->dev[devid].tuneactive |= DT_OPENCL_TUNE_PINNED;
-
-  int level = res->level;
-  const gboolean info = ((oldlevel != level) || (oldtuned != tunemode) || (darktable.unmuted & DT_DEBUG_VERBOSE));
-  oldlevel = level;
-  oldtuned = tunemode;
-
-  if(level < 0)
-  {
-    cl->dev[devid].used_available = res->refresource[4*(-level-1) + 3] * 1024lu * 1024lu;
-    if(info)
-      dt_print(DT_DEBUG_OPENCL | DT_DEBUG_MEMORY,
-         "[dt_opencl_check_tuning] reference mode %i, use %luMB (pinning=%s) on device `%s' id=%i\n",
-         level, cl->dev[devid].used_available / 1024lu / 1024lu,
-         (cl->dev[devid].tuneactive & DT_OPENCL_TUNE_PINNED) ? "ON" : "OFF",
-         cl->dev[devid].name, devid);
-    return;
-  }
-
-  const size_t allmem = cl->dev[devid].max_global_mem;
-  if(cl->dev[devid].tuneactive & DT_OPENCL_TUNE_MEMSIZE)
-  {
-    if(cl->dev[devid].forced_headroom)
-       cl->dev[devid].used_available = MAX(0ul, cl->dev[devid].max_global_mem - ((size_t)cl->dev[devid].forced_headroom * 1024ul * 1024ul));
-    else
-    {
-      // we always leave a safety margin, at least 200MB for level large
-      _opencl_get_unused_device_mem(devid);
-      cl->dev[devid].used_available = cl->dev[devid].tuned_available * (32 - MAX(0, 2 - level)) / 32;
-    }
-  }
-  else
-  {
-    // calculate data from fractions
-    const size_t disposable = allmem - 400ul * 1024ul * 1024ul;
-    const int fraction = MIN(1024lu, MAX(0, res->fractions[res->group + 3]));
-    cl->dev[devid].used_available = MAX(256ul * 1024ul * 1024ul, disposable / 1024ul * fraction);
-  }
-
-  if(info)
-    dt_print(DT_DEBUG_OPENCL | DT_DEBUG_MEMORY,
-       "[dt_opencl_check_tuning] use %luMB (tunemem=%s, pinning=%s) on device `%s' id=%i\n",
-       cl->dev[devid].used_available / 1024lu / 1024lu,
-       (cl->dev[devid].tuneactive & DT_OPENCL_TUNE_MEMSIZE) ? "ON" : "OFF",
-       (cl->dev[devid].tuneactive & DT_OPENCL_TUNE_PINNED)  ? "ON" : "OFF",
-       cl->dev[devid].name, devid);
+  dt_print(DT_DEBUG_OPENCL | DT_DEBUG_MEMORY,
+      "[dt_opencl_check_tuning] use %luMB (pinning=%i) on device `%s' id=%i\n",
+      cl->dev[devid].used_available / 1024lu / 1024lu,
+      cl->dev[devid].pinned_memory,
+      cl->dev[devid].name, devid);
 }
 
 cl_ulong dt_opencl_get_device_available(const int devid)
@@ -3012,18 +2879,6 @@ int dt_opencl_update_settings(void)
   return (cl->enabled && !cl->stopped);
 }
 
-int dt_opencl_get_tuning_mode(void)
-{
-  int res = DT_OPENCL_TUNE_NOTHING;
-  const char *pstr = dt_conf_get_string_const("opencl_tuning_mode");
-  if(pstr)
-  {
-    if(!strcmp(pstr, "memory size"))                   res = DT_OPENCL_TUNE_MEMSIZE;
-    else if(!strcmp(pstr, "memory transfer"))          res = DT_OPENCL_TUNE_PINNED;
-    else if(!strcmp(pstr, "memory size and transfer")) res = DT_OPENCL_TUNE_MEMSIZE | DT_OPENCL_TUNE_PINNED;
-  }
-  return res;
-}
 
 /** set opencl specific synchronization timeout */
 static void dt_opencl_set_synchronization_timeout(int value)

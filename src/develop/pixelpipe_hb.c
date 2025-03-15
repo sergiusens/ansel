@@ -159,8 +159,7 @@ int dt_dev_pixelpipe_init_dummy(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t
 int dt_dev_pixelpipe_init_preview(dt_dev_pixelpipe_t *pipe)
 {
   // Init with the size of MIPMAP_F
-  int32_t cachelines = MAX(dt_conf_get_int("cachelines"), 8);
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * 720 * 450, cachelines);
+  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * 720 * 450, dt_conf_get_int("cachelines"));
   pipe->type = DT_DEV_PIXELPIPE_PREVIEW;
 
   // Needed for caching
@@ -170,19 +169,7 @@ int dt_dev_pixelpipe_init_preview(dt_dev_pixelpipe_t *pipe)
 
 int dt_dev_pixelpipe_init(dt_dev_pixelpipe_t *pipe)
 {
-  // Init with the max size of a screen.
-  int32_t cachelines = MAX(dt_conf_get_int("cachelines"), 8);
-  gint width = 1920;
-  gint height = 1080;
-
-  if(darktable.gui)
-  {
-    gtk_window_get_size(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), &width, &height);
-    width *= darktable.gui->ppd;
-    height *= darktable.gui->ppd;
-  }
-
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * width * height, cachelines);
+  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * darktable.dtresources.darkroom_cache, dt_conf_get_int("cachelines"));
   pipe->type = DT_DEV_PIXELPIPE_FULL;
 
   // Needed for caching
@@ -2267,8 +2254,6 @@ static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, d
                                                      const dt_iop_roi_t *roi_out, GList *modules, GList *pieces,
                                                      int pos)
 {
-  darktable.dtresources.group = 4 * darktable.dtresources.level;
-
 #ifdef HAVE_OPENCL
   dt_opencl_check_tuning(pipe->devid);
 #endif

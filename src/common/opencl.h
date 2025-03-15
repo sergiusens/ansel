@@ -84,13 +84,6 @@ typedef struct dt_opencl_eventtag_t
   char tag[DT_OPENCL_EVENTNAMELENGTH];
 } dt_opencl_eventtag_t;
 
-typedef enum dt_opencl_tunemode_t
-{
-  DT_OPENCL_TUNE_NOTHING = 0,
-  DT_OPENCL_TUNE_MEMSIZE = 1,
-  DT_OPENCL_TUNE_PINNED  = 2
-} dt_opencl_tunemode_t;
-
 typedef enum dt_opencl_pinmode_t
 {
   DT_OPENCL_PINNING_OFF = 0,
@@ -137,10 +130,8 @@ typedef struct dt_opencl_device_t
   float benchmark;
   size_t memory_in_use;
   size_t peak_memory;
-  size_t tuned_available;
   size_t used_available;
-  // flags what tuning modes should be used
-  int tuneactive;
+
   // flags detected errors
   int runtime_error;
   // if set to TRUE darktable will not use OpenCL kernels which contain atomic operations (example bilateral).
@@ -355,9 +346,6 @@ int dt_opencl_is_enabled(void);
 
 /** disable opencl */
 void dt_opencl_disable(void);
-
-/** get OpenCL tuning mode flags */
-int dt_opencl_get_tuning_mode(void);
 
 /** update enabled flag and profile with value from preferences, returns enabled flag */
 int dt_opencl_update_settings(void);
@@ -598,11 +586,6 @@ static inline int dt_opencl_is_enabled(void)
 }
 static inline void dt_opencl_disable(void)
 {
-}
-/** get OpenCL tuning mode flags */
-static inline int dt_opencl_get_tuning_mode(void)
-{
-  return 0;
 }
 static inline int dt_opencl_update_settings(void)
 {

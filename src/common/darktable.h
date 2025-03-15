@@ -508,13 +508,15 @@ typedef struct dt_codepath_t
 
 typedef struct dt_sys_resources_t
 {
-  size_t total_memory;
-  size_t mipmap_memory;
-  int *fractions;   // fractions are calculated as res=input / 1024  * fraction
-  int *refresource; // for the debug resource modes we use fixed settings
-  int group;
-  int level;
-  int tunemode;
+  size_t total_memory;     // All RAM on system
+  size_t mipmap_memory;    // RAM allocated to mipmap cache
+  size_t headroom_memory;  // RAM left to OS & other Apps
+  size_t pixelpipe_memory; // RAM used by the pixelpipe cache (approx.)
+  size_t available_memory; // All RAM available minus all the others
+  size_t buffer_memory;    // Max size of a single image buffer, fraction of available_memory
+
+  // pixel size of a main darkroom image cache line
+  size_t darkroom_cache;
 } dt_sys_resources_t;
 
 typedef struct darktable_t
@@ -584,16 +586,39 @@ typedef struct
 extern darktable_t darktable;
 
 int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load_data, lua_State *L);
-void dt_get_sysresource_level();
 void dt_cleanup();
 void dt_print(dt_debug_thread_t thread, const char *msg, ...) __attribute__((format(printf, 2, 3)));
 /* same as above but without time stamp : nts = no time stamp */
 void dt_print_nts(dt_debug_thread_t thread, const char *msg, ...) __attribute__((format(printf, 2, 3)));
 /* same as above but requires additional DT_DEBUG_VERBOSE flag to be true */
 void dt_vprint(dt_debug_thread_t thread, const char *msg, ...) __attribute__((format(printf, 2, 3)));
+
+// Maximum number of workers for background threads, depending on
+// CPU number of cores and available memory.
+// Note that we allow at most 2 pixelpipes running concurrently
+// (when in darkroom: (preview or main) and export),
+// because all pipelines share the CPU at some point, so parallelizing
+// pipelines only increases memory contention at the CPU bottleneck,
+// and leads to no performance increase (quite the opposite).
+// There is also the issue of SQL database locking: SQLite errors
+// when trying to write several image histories at once, which happens
+// on refreshing the thumbnails when entering a newly imported lighttable collection. So we allow
+// only one thumbnail export to run at a time (and again, pixel ops don't go faster
+// with parallel pipelines anyway).
+// Parallel workers are mostly useful to defer expensive I/O, like writing XMP
+// or copying files on remote storages, where the bottleneck is filesystem or network I/O
+// rather than CPU or RAM I/O.
 int dt_worker_threads();
+
+// Get the remaining memory available for pipeline allocations,
+// once we subtracted caches memory and headroom from system memory
 size_t dt_get_available_mem();
+
+// Get the maximum size of allocation of a single image buffer
 size_t dt_get_singlebuffer_mem();
+
+// Get the maximum size for the whole mipmap cache
+size_t dt_get_mipmap_mem();
 
 /**
  * @brief Set the memory buffer to zero as a pack of unsigned char
@@ -691,7 +716,8 @@ static inline const GList *g_list_prev_wraparound(const GList *list)
 
 void dt_print_mem_usage();
 
-void dt_configure_runtime_performance(const int version, char *config_info);
+void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean init_gui);
+
 // helper function which loads whatever image_to_load points to: single image files or whole directories
 // it tells you if it was a single image or a directory in single_image (when it's not NULL)
 int dt_load_from_string(const gchar *image_to_load, gboolean open_image_in_dr, gboolean *single_image);

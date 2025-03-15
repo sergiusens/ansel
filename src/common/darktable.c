@@ -340,6 +340,7 @@ static void dt_codepaths_init()
 #endif
 }
 
+// Returns total system memory in kiloBytes
 static inline size_t _get_total_memory()
 {
 #if defined(__linux__)
@@ -384,32 +385,6 @@ static inline size_t _get_total_memory()
   fprintf(stderr, "Unknown memory size. Assuming 2GB\n");
   return 2097152;
 #endif
-}
-
-static size_t _get_mipmap_size()
-{
-  dt_sys_resources_t *res = &darktable.dtresources;
-  const int level = res->level;
-  if(level < 0)
-    return res->refresource[4*(-level-1) + 2] * 1024lu * 1024lu;
-  const int fraction = res->fractions[res->group + 2];
-  return res->total_memory / 1024lu * fraction;
-}
-
-void check_resourcelevel(const char *key, int *fractions, const int level)
-{
-  const int g = level * 4;
-  gchar out[128] = { 0 };
-  if(!dt_conf_key_exists(key))
-  {
-    g_snprintf(out, 126, "%i %i %i %i", fractions[g], fractions[g+1], fractions[g+2], fractions[g+3]);
-    dt_conf_set_string(key, out);
-  }
-  else
-  {
-    const gchar *in = dt_conf_get_string_const(key);
-    sscanf(in, "%i %i %i %i", &fractions[g], &fractions[g+1], &fractions[g+2], &fractions[g+3]);
-  }
 }
 
 int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load_data, lua_State *L)
@@ -1071,50 +1046,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     dt_film_set_folder_status();
   }
 
-  /* for every resourcelevel we have 4 ints defined, either absolute or a fraction
-     0 cpu available
-     1 cpu singlebuffer
-     2 mipmap size
-     3 opencl available
-  */
-  /* special modes are meant to be used for debugging & testing,
-     they are hidden in the ui menu and must be activated via --conf resourcelevel="xxx"
-     here all values are absolutes in MB as we require fixed settings.
-     reference, mini and notebook require a cl capable system with 16GB of ram and 2GB of free video ram
-  */
-  static int ref_resources[12] = {
-      8192,  32,  512, 2048,   // reference
-      1024,   2,  128,  200,   // mini system
-      4096,  32,  512, 1024,   // simple notebook with integrated graphics
-  };
-
-  /* This is where the sync is to be done if the enum for pref resourcelevel in anselconfig.xml.in is changed.
-     all values are fractions val/1024 of total memory (0-2) or available OpenCL memory
-  */
-  static int fractions[16] = {
-      128,    4,  64,  400, // small
-      512,    8, 128,  700, // default
-      700,   16, 128,  900, // large
-    16384, 1024, 128,  900, // unrestricted
-  };
-
-  // Allow the settings for each UI performance level to be changed via anselrc
-  check_resourcelevel("resource_small", fractions, 0);
-  check_resourcelevel("resource_default", fractions, 1);
-  check_resourcelevel("resource_large", fractions, 2);
-  check_resourcelevel("resource_unrestricted", fractions, 3);
-
-  dt_sys_resources_t *res = &darktable.dtresources;
-  res->fractions = fractions;
-  res->refresource = ref_resources;
-  res->total_memory = _get_total_memory() * 1024lu;
-
-  char *config_info = calloc(1, DT_PERF_INFOSIZE);
-  if(last_configure_version != DT_CURRENT_PERFORMANCE_CONFIGURE_VERSION)
-    dt_configure_runtime_performance(last_configure_version, config_info);
-
-  dt_get_sysresource_level();
-  res->mipmap_memory = _get_mipmap_size();
   // initialize collection query
   darktable.collection = dt_collection_new();
 
@@ -1148,14 +1079,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 
   darktable.noiseprofile_parser = dt_noiseprofile_init(noiseprofiles_from_command);
 
-  // must come before mipmap_cache, because that one will need to access
-  // image dimensions stored in here:
-  darktable.image_cache = (dt_image_cache_t *)calloc(1, sizeof(dt_image_cache_t));
-  dt_image_cache_init(darktable.image_cache);
-
-  darktable.mipmap_cache = (dt_mipmap_cache_t *)calloc(1, sizeof(dt_mipmap_cache_t));
-  dt_mipmap_cache_init(darktable.mipmap_cache);
-
   // The GUI must be initialized before the views, because the init()
   // functions of the views depend on darktable.control->accels_* to register
   // their keyboard accelerators
@@ -1185,11 +1108,22 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     return 1;
   }
 
+  // This needs to run after gui init because we init cache lines size with window size
+  // but before image cache init because we init its size here
+  dt_configure_runtime_performance(&darktable.dtresources, init_gui);
+
+  // must come before mipmap_cache, because that one will need to access
+  // image dimensions stored in here:
+  darktable.image_cache = (dt_image_cache_t *)calloc(1, sizeof(dt_image_cache_t));
+  dt_image_cache_init(darktable.image_cache);
+
+  darktable.mipmap_cache = (dt_mipmap_cache_t *)calloc(1, sizeof(dt_mipmap_cache_t));
+  dt_mipmap_cache_init(darktable.mipmap_cache);
+
   darktable.opencl = (dt_opencl_t *)calloc(1, sizeof(dt_opencl_t));
   #ifdef HAVE_OPENCL
     dt_opencl_init(darktable.opencl, exclude_opencl, print_statistics);
   #endif
-
 
   darktable.imageio = (dt_imageio_t *)calloc(1, sizeof(dt_imageio_t));
   dt_imageio_init(darktable.imageio);
@@ -1266,19 +1200,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
       dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_BG, dt_pathlist_import_create(argc,argv));
     }
 #endif
-
-    // there might be some info created in dt_configure_runtime_performance() for feedback
-    gboolean not_again = TRUE;
-    if(last_configure_version && config_info[0])
-      not_again = dt_gui_show_standalone_yes_no_dialog
-        (_("configuration information"),
-         config_info,
-         _("show this information again"), _("understood"));
-
-    if(not_again || (last_configure_version == 0))
-      dt_conf_set_int("performance_configuration_version_completed", DT_CURRENT_PERFORMANCE_CONFIGURE_VERSION);
   }
-  free(config_info);
 
   // last but not least construct the popup that asks the user about images whose xmp files are newer than the
   // db entry
@@ -1297,54 +1219,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   dt_print(DT_DEBUG_CONTROL, "[init] startup took %f seconds\n", dt_get_wtime() - start_wtime);
 
   return 0;
-}
-
-void dt_get_sysresource_level()
-{
-  static int oldlevel = -999;
-  static int oldtunecl = -999;
-
-  dt_sys_resources_t *res = &darktable.dtresources;
-  const int tunecl = dt_opencl_get_tuning_mode();
-  int level = 1;
-  const char *config = dt_conf_get_string_const("resourcelevel");
-  /** These levels must correspond with preferences in xml.in
-      modes available in the ui have levsls >= 0 **and** fractions
-      modes available for debugging / reference have negative levels and **and** ref_resources
-      If we want a new setting here, we must
-        - add a string->level conversion here
-        - add a line of fraction in int fractions[] or ref_resources[] above
-        - add a line in anselconfig.xml.in if available via UI
-  */
-  if(config)
-  {
-         if(!strcmp(config, "default"))      level = 1;
-    else if(!strcmp(config, "small"))        level = 0;
-    else if(!strcmp(config, "large"))        level = 2;
-    else if(!strcmp(config, "unrestricted")) level = 3;
-    else if(!strcmp(config, "reference"))    level = -1;
-    else if(!strcmp(config, "mini"))         level = -2;
-    else if(!strcmp(config, "notebook"))     level = -3;
-  }
-  const gboolean mod = ((level != oldlevel) || (oldtunecl != tunecl));
-  res->level = oldlevel = level;
-  oldtunecl = tunecl;
-  res->tunemode = tunecl;
-  if(mod && (darktable.unmuted & (DT_DEBUG_MEMORY | DT_DEBUG_OPENCL)))
-  {
-    const int oldgrp = res->group;
-    res->group = 4 * level;
-    fprintf(stderr,"[dt_get_sysresource_level] switched to %i as `%s'\n", level, config);
-    fprintf(stderr,"  total mem:       %luMB\n", res->total_memory / 1024lu / 1024lu);
-    fprintf(stderr,"  mipmap cache:    %luMB\n", _get_mipmap_size() / 1024lu / 1024lu);
-    fprintf(stderr,"  available mem:   %luMB\n", dt_get_available_mem() / 1024lu / 1024lu);
-    fprintf(stderr,"  singlebuff:      %luMB\n", dt_get_singlebuffer_mem() / 1024lu / 1024lu);
-#ifdef HAVE_OPENCL
-    fprintf(stderr,"  OpenCL tune mem: %s\n", ((tunecl & DT_OPENCL_TUNE_MEMSIZE) && (level >= 0)) ? "WANTED" : "OFF");
-    fprintf(stderr,"  OpenCL pinned:   %s\n", ((tunecl & DT_OPENCL_TUNE_PINNED) && (level >= 0)) ? "WANTED" : "OFF");
-#endif
-    res->group = oldgrp;
-  }
 }
 
 void dt_cleanup()
@@ -1559,6 +1433,8 @@ void dt_show_times_f(const dt_times_t *start, const char *prefix, const char *su
   }
 }
 
+// FIXME: this returns either 4 or 2 depending on how old is the captain
+// You are kidding me ???
 int dt_worker_threads()
 {
   const size_t threads = darktable.num_openmp_threads;
@@ -1570,85 +1446,104 @@ int dt_worker_threads()
 
 size_t dt_get_available_mem()
 {
-  dt_sys_resources_t *res = &darktable.dtresources;
-  const int level = res->level;
-  const size_t total_mem = res->total_memory;
-  if(level < 0)
-    return res->refresource[4*(-level-1)] * 1024lu * 1024lu;
-
-  const int fraction = res->fractions[darktable.dtresources.group];
-  return MAX(512lu * 1024lu * 1024lu, total_mem / 1024lu * fraction);
+  return darktable.dtresources.available_memory;
 }
 
 size_t dt_get_singlebuffer_mem()
 {
-  dt_sys_resources_t *res = &darktable.dtresources;
-  const int level = res->level;
-  const size_t total_mem = res->total_memory;
-  if(level < 0)
-    return res->refresource[4*(-level-1) + 1] * 1024lu * 1024lu;
-
-  const int fraction = res->fractions[res->group + 1];
-  return MAX(2lu * 1024lu * 1024lu, total_mem / 1024lu * fraction);
+  return darktable.dtresources.buffer_memory;
 }
 
-void dt_configure_runtime_performance(const int old, char *info)
+size_t dt_get_mipmap_mem()
 {
-  const size_t threads = darktable.num_openmp_threads;
-  const size_t mem = darktable.dtresources.total_memory / 1024lu / 1024lu;
-  const size_t bits = CHAR_BIT * sizeof(void *);
-  const gboolean sufficient = mem >= 4096 && threads >= 2;
+  return darktable.dtresources.mipmap_memory;
+}
 
-  dt_print(DT_DEBUG_DEV, "[dt_configure_runtime_performance] found a %s %zu-bit system with %zu Mb ram and %zu cores\n",
+void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean init_gui)
+{
+  resources->total_memory = _get_total_memory() * 1000;
+
+  const size_t threads = darktable.num_openmp_threads;
+  const size_t mem = floorf((float)resources->total_memory / (float)(1024 * 1024));
+  const size_t bits = CHAR_BIT * sizeof(void *);
+  const gboolean sufficient = (mem >= 4096 && threads >= 2);
+
+  dt_print(DT_DEBUG_MEMORY, "[MEMORY CONFIGURATION] found a %s %zu-bit system with %zu MiB RAM and %zu cores\n",
     (sufficient) ? "sufficient" : "low performance", bits, mem, threads);
 
-  // All runtime conf settings only write data if there is no valid data found in conf
-  if(!dt_conf_key_not_empty("resourcelevel"))
+  // Keep OS headroom between 1 GB and a third of the system RAM
+  resources->headroom_memory = dt_conf_get_int64("memory_os_headroom") * 1024 * 1024;
+  resources->headroom_memory
+      = CLAMP(resources->headroom_memory, 1024 * 1024 * 1024, resources->total_memory / 3);
+
+  // Keep mipmap cache between 256 MB and a sixth of the system RAM
+  resources->mipmap_memory = dt_conf_get_int64("memory_mipmap_cache") * 1024 * 1024;
+  resources->mipmap_memory
+      = CLAMP(resources->mipmap_memory, 256 * 1024 * 1024, resources->total_memory / 6);
+
+  // Keep pixelpipe cache between 256 MB and a sixth of the system RAM
+  resources->pixelpipe_memory = 0;
+  int cache_lines = 0;
+  if(init_gui)
   {
-    dt_conf_set_string("resourcelevel", (sufficient) ? "default" : "small");
-    dt_print(DT_DEBUG_DEV, "[dt_configure_runtime_performance] resourcelevel=%s\n", (sufficient) ? "default" : "small");
+    resources->pixelpipe_memory = dt_conf_get_int64("memory_pixelpipe_cache") * 1024 * 1024;
+    resources->pixelpipe_memory
+        = CLAMP(resources->pixelpipe_memory, 256 * 1024 * 1024, resources->total_memory / 6);
+
+    // Init the cache size with the max size of a main darkroom image preview in full screen
+    gint width = 1920;
+    gint height = 1080;
+    gtk_window_get_size(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), &width, &height);
+    width *= darktable.gui->ppd;
+    height *= darktable.gui->ppd;
+
+    // Window size includes title bar and images are typically 3:2, while displays are 16:9 or 16:10,
+    // so it's fair to assume that the image fitting in there will be smaller.
+    resources->darkroom_cache = width * height * 80 / 100;
+
+    const size_t preview_pipe_size = 720 * 450;
+    size_t cache_line_size = 4 * sizeof(float) * (preview_pipe_size + resources->darkroom_cache);
+
+    // For each module, we need at least 2 cache lines: input/output
+    // Note that only preview and image pipeline (darkroom) have fixed-sized (max) sizes.
+    // For export and thumbnails pipe, it's whatever the output requests (dynamic).
+    cache_lines = MAX(resources->pixelpipe_memory / cache_line_size, 2);
+
+    // Update actual size after cache lines rounding
+    resources->pixelpipe_memory = cache_line_size * cache_lines;
+
+    // Only preview and image pipelines use an user-configured cache lines number
+    // Those pipes don't exist if we don't have a GUI (ansel-cli)
+    dt_conf_set_int("cachelines", cache_lines);
   }
 
-  // we might add some info now but only for non-fresh installs
-  if(old == 0) return;
+  // Technically, the available memory is therefore at least a third of the system RAM
+  resources->available_memory
+      = resources->total_memory - resources->headroom_memory - resources->mipmap_memory - resources->pixelpipe_memory;
 
-  #define INFO_HEADER "> "
+  // Module in/out/temp buffers: split available memory in 3
+  resources->buffer_memory = resources->available_memory / 3;
 
-  if(old < 2) // we introduced RCD as the default demosaicer in 2
-  {
-    g_strlcat(info, INFO_HEADER, DT_PERF_INFOSIZE);
-    g_strlcat(info, _("the RCD demosaicer has been defined as default instead of PPG because of better quality and performance."), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n", DT_PERF_INFOSIZE);
-    g_strlcat(info, _("see preferences/darkroom/demosaicing for zoomed out darkroom mode"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n\n", DT_PERF_INFOSIZE);
-  }
-  if(old < 5)
-  {
-    g_strlcat(info, INFO_HEADER, DT_PERF_INFOSIZE);
-    g_strlcat(info, _("the user interface and the underlying internals for tuning Ansel performance have changed."), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n", DT_PERF_INFOSIZE);
-    g_strlcat(info, _("you won't find headroom and friends any longer, instead in preferences/processing use:"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n  ", DT_PERF_INFOSIZE);
-    g_strlcat(info, _("1) Ansel resources"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n  ", DT_PERF_INFOSIZE);
-    g_strlcat(info, _("2) tune OpenCL performance"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n\n", DT_PERF_INFOSIZE);
-  }
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Total system RAM: %.3f GiB\n"),
+           (float)resources->total_memory / (float)(1024 * 1024 * 1024));
 
-  if(old < 11)
-  {
-    g_strlcat(info, INFO_HEADER, DT_PERF_INFOSIZE);
-    g_strlcat(info, _("some global config values relevant for OpenCL performance are not used any longer."), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n", DT_PERF_INFOSIZE);
-    g_strlcat(info, _("instead you will find 'per device' data in 'cl_device_v4_canonical-name'. content is:"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n  ", DT_PERF_INFOSIZE);
-    g_strlcat(info, _(" 'avoid_atomics' 'micro_nap' 'pinned_memory' 'roundupwd' 'roundupht' 'eventhandles' 'async' 'disable' 'magic'"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n", DT_PERF_INFOSIZE);
-    g_strlcat(info, _("you may tune as before except 'magic'"), DT_PERF_INFOSIZE);
-    g_strlcat(info, "\n\n", DT_PERF_INFOSIZE);
-  }
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] OS & Apps RAM headroom: %.3f GiB\n"),
+           (float)resources->headroom_memory / (float)(1024 * 1024 * 1024));
 
-  #undef INFO_HEADER
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Lightable thumbnails cache size: %.3f GiB\n"),
+           (float)resources->mipmap_memory / (float)(1024 * 1024 * 1024));
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache size: %.3f GiB\n"),
+           (float)resources->pixelpipe_memory / (float)(1024 * 1024 * 1024));
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache lines: %i\n"),
+           cache_lines);
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Available RAM for pixel processing: %.3f GiB\n"),
+           (float)resources->available_memory / (float)(1024 * 1024 * 1024));
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Max pixel buffer size: %.3f GiB\n"),
+           (float)resources->buffer_memory / (float)(1024 * 1024 * 1024));
 }
 
 int dt_capabilities_check(char *capability)

@@ -90,15 +90,11 @@ static inline int _align_close(int n, int a)
 }
 
 /*
-  _maximum_number_tiles is the assumed maximum sane number of tiles
-  if during tiling this number is exceeded darktable assumes that tiling is not possible and falls back
-  to untiled processing - with all system memory limits taking full effect.
-  For huge images like stitched panos the user might choose resourcelevel="unrestricted", in that
-  case the allowed number of tiles is practically unlimited
+  Completely arbitrary... Make that a pref ?
 */
 static inline int _maximum_number_tiles()
 {
-  return (darktable.dtresources.level == 3) ? 0x40000000 : 10000;
+  return 10000;
 }
 
 static inline void _print_roi(const dt_iop_roi_t *roi, const char *label)
@@ -1532,7 +1528,7 @@ error:
   dt_print(DT_DEBUG_TILING | DT_DEBUG_OPENCL,
       "[default_process_tiling_opencl_ptp] couldn't run process_cl() for module '%s' in tiling mode:%s %i\n",
       self->op, (pinning_error) ? " pinning problem" : "", err);
-  if(pinning_error) darktable.opencl->dev[devid].runtime_error |= DT_OPENCL_TUNE_PINNED;
+  if(pinning_error) darktable.opencl->dev[devid].runtime_error |= 1;
   return FALSE;
 }
 
@@ -1971,7 +1967,7 @@ error:
   dt_print(DT_DEBUG_OPENCL | DT_DEBUG_TILING,
       "[default_process_tiling_opencl_roi] couldn't run process_cl() for module '%s' in tiling mode:%s %i\n",
       self->op, (pinning_error) ? " pinning problem" : "", err);
-  if(pinning_error) darktable.opencl->dev[devid].runtime_error |= DT_OPENCL_TUNE_PINNED;
+  if(pinning_error) darktable.opencl->dev[devid].runtime_error |= 1;
   return FALSE;
 }
 

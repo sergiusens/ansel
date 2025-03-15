@@ -397,8 +397,8 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
                   get_imgid(entry->key), filename);
           goto read_error;
         }
-        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " from disk cache\n", mip,
-                 get_imgid(entry->key));
+        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from disk cache\n", mip,
+                 get_imgid(entry->key), jpg.width, jpg.height);
         dsc->width = jpg.width;
         dsc->height = jpg.height;
         dsc->iscale = 1.0f;
@@ -528,11 +528,8 @@ void dt_mipmap_cache_init(dt_mipmap_cache_t *cache)
   struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)dt_mipmap_cache_static_dead_image;
   dead_image_f((dt_mipmap_buffer_t *)(dsc + 1));
 
-  // adjust numbers to be large enough to hold what mem limit suggests.
-  // we want at least 100MB, and consider 8G just still reasonable.
-  const size_t max_mem = CLAMPS(darktable.dtresources.mipmap_memory, 100u << 20, ((size_t)8) << 30);
   // Fixed sizes for the thumbnail mip levels, selected for coverage of most screen sizes
-  int32_t mipsizes[DT_MIPMAP_F][2] = {
+  size_t mipsizes[DT_MIPMAP_F][2] = {
     { 180, 110 },             // mip0 - ~1/2 size previous one
     { 360, 225 },             // mip1 - 1/2 size previous one
     { 720, 450 },             // mip2 - 1/2 size previous one
@@ -554,7 +551,7 @@ void dt_mipmap_cache_init(dt_mipmap_cache_t *cache)
     // header + buffer
   for(int k = DT_MIPMAP_F-1; k >= 0; k--)
     cache->buffer_size[k] = sizeof(struct dt_mipmap_buffer_dsc)
-                                + (size_t)cache->max_width[k] * cache->max_height[k] * 4;
+                                + cache->max_width[k] * cache->max_height[k] * 4;
 
   // clear stats:
   cache->mip_thumbs.stats_requests = 0;
@@ -573,14 +570,15 @@ void dt_mipmap_cache_init(dt_mipmap_cache_t *cache)
   cache->mip_full.stats_fetches = 0;
   cache->mip_full.stats_standin = 0;
 
-  dt_cache_init(&cache->mip_thumbs.cache, 0, max_mem);
+  dt_cache_init(&cache->mip_thumbs.cache, 0, dt_get_mipmap_mem());
   dt_cache_set_allocate_callback(&cache->mip_thumbs.cache, dt_mipmap_cache_allocate_dynamic, cache);
   dt_cache_set_cleanup_callback(&cache->mip_thumbs.cache, dt_mipmap_cache_deallocate_dynamic, cache);
 
-  // even with one thread you want two buffers. one for dr one for thumbs.
-  // Also have the nr of cache entries larger than worker threads
-  const int full_entries = 2 * dt_worker_threads();
-  const int32_t max_mem_bufs = nearest_power_of_two(full_entries);
+  // 2 buffers (in/out) per thread.
+  // We don't allow more than 2 pixel pipelines concurrent renderings, because
+  // more than 1 already increases memory contention and degrades performance.
+  // That's 4 buffers total.
+  const int32_t max_mem_bufs = nearest_power_of_two(4);
 
   // for this buffer, because it can be very busy during import
   dt_cache_init(&cache->mip_full.cache, 0, max_mem_bufs);
@@ -966,7 +964,7 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(const dt_mipmap_cache_t *cach
     best = k;
     if((cache->max_width[k] >= width) && (cache->max_height[k] >= height))
     {
-      dt_print(DT_DEBUG_IMAGEIO, "[dt_mipmap_cache_get_matching_size] will load a mipmap of size %ix%i px\n", cache->max_width[k], cache->max_height[k]);
+      dt_print(DT_DEBUG_IMAGEIO, "[dt_mipmap_cache_get_matching_size] will load a mipmap of size %lux%lu px\n", cache->max_width[k], cache->max_height[k]);
       break;
     }
   }

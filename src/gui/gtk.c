@@ -445,6 +445,11 @@ static gboolean _window_configure(GtkWidget *da, GdkEvent *event, gpointer user_
     oldx = event->configure.x;
     oldy = event->configure.y;
   }
+
+  // In case window size changed, we need to resize the darkroom cache lines size too.
+  // Note that it will not affect running pipelines though.
+  dt_configure_runtime_performance(&darktable.dtresources, TRUE);
+
   return FALSE;
 }
 
