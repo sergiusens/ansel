@@ -1660,6 +1660,7 @@ void dt_iop_compute_module_hash(dt_iop_module_t *module)
   // WARNING: doesn't take into account parameters dynamically set at runtime.
 
   uint64_t hash = dt_hash(5381, (char *)module->op, sizeof(dt_dev_operation_t));
+  hash = dt_hash(hash, (char *)&module->enabled, sizeof(gboolean));
   hash = dt_hash(hash, (char *)module->params, module->params_size);
   hash = dt_hash(hash, (char *)&module->instance, sizeof(int32_t));
   hash = dt_hash(hash, (char *)&module->multi_priority, sizeof(int));
