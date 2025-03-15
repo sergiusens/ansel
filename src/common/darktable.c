@@ -469,7 +469,10 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 #ifdef _OPENMP
   darktable.num_openmp_threads = omp_get_max_threads();
 #endif
+
   darktable.unmuted = 0;
+  gboolean cpu_threads_from_cli = FALSE;
+
   GSList *config_override = NULL;
   for(int k = 1; k < argc; k++)
   {
@@ -760,6 +763,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
         k++;
         argv[k-1] = NULL;
         argv[k] = NULL;
+        cpu_threads_from_cli = TRUE;
       }
       else if(!strcmp(argv[k], "--conf") && argc > k + 1)
       {
@@ -912,10 +916,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     dt_control_progress_init(darktable.control);
   }
 
-#ifdef _OPENMP
-  omp_set_num_threads(darktable.num_openmp_threads);
-#endif
-
 #ifdef USE_LUA
   dt_lua_init_early(L);
 #endif
@@ -936,7 +936,18 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   darktable.l10n = dt_l10n_init(init_gui);
 
   dt_confgen_init();
-  const int last_configure_version = dt_conf_get_int("performance_configuration_version_completed");
+
+  // Needs to run after dt_confgen_init()
+  // Don't override cli argument if any
+  if(!cpu_threads_from_cli)
+  {
+    const int user_threads = dt_conf_get_int("cpu_threads");
+    if(user_threads > 0) darktable.num_openmp_threads = user_threads;
+  }
+
+#ifdef _OPENMP
+  omp_set_num_threads(darktable.num_openmp_threads);
+#endif
 
   // we need this REALLY early so that error messages can be shown, however after gtk_disable_setlocale
   if(init_gui)
@@ -1433,15 +1444,10 @@ void dt_show_times_f(const dt_times_t *start, const char *prefix, const char *su
   }
 }
 
-// FIXME: this returns either 4 or 2 depending on how old is the captain
-// You are kidding me ???
+
 int dt_worker_threads()
 {
-  const size_t threads = darktable.num_openmp_threads;
-  const size_t mem = _get_total_memory();
-  const int wthreads = (mem >= (8lu << 20) && threads >= 4) ? 4 : MIN(2, threads);
-  dt_print(DT_DEBUG_DEV, "[dt_worker_threads] using %i worker threads\n", wthreads);
-  return wthreads;
+  return dt_conf_get_int("workers");
 }
 
 size_t dt_get_available_mem()

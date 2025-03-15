@@ -144,6 +144,20 @@
     <longdescription>Module outputs are cached for improved performance, until the cache is full. For modules which parameters did not change between two pipeline recomputations, we can then fetch the cached output instead of recomputing it.\nThe actual size of each cache entry depends on what module is cached (some use the full-resolution image, some only the part that is visible on screen).\n Increase with care and monitor your RAM use.</longdescription>
   </dtconfig>
   <dtconfig prefs="processing" section="cpugpu" restart="true">
+    <name>cpu_threads</name>
+    <type min="-1">int</type>
+    <default>-1</default>
+    <shortdescription>CPU cores</shortdescription>
+    <longdescription>Number of CPU cores to use for image processing, including virtual cores (hyperthreading). -1 or 0 uses all available/detected cores.</longdescription>
+  </dtconfig>
+  <dtconfig prefs="processing" section="cpugpu" restart="true">
+    <name>workers</name>
+    <type min="2">int</type>
+    <default>8</default>
+    <shortdescription>Background workers</shortdescription>
+    <longdescription>Number of concurrent background threads that can run in parallel, for example to export images, resynchronize XMP, fetch thumbnails, etc. Increasing this number will increase the memory consumption.</longdescription>
+  </dtconfig>
+  <dtconfig prefs="processing" section="cpugpu" restart="true">
     <name>memory_os_headroom</name>
     <type min="500">int</type>
     <default>3000</default>
@@ -2684,13 +2698,6 @@
     <default>0.1</default>
     <shortdescription>the multiplier that is applied to any slider precise value change</shortdescription>
     <longdescription>any slider value change will be multiplied by this number, when changing slider while holding CTRL modifier</longdescription>
-  </dtconfig>
-  <dtconfig>
-    <name>performance_configuration_version_completed</name>
-    <type>int</type>
-    <default>0</default>
-    <shortdescription>version of the last completed performance configuration</shortdescription>
-    <longdescription>what was the last performance configuration which has been completed</longdescription>
   </dtconfig>
   <dtconfig>
     <name>plugins/darkroom/duplicate/windowheight</name>
