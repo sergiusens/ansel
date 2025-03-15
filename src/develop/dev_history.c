@@ -647,13 +647,14 @@ const dt_dev_history_item_t *dt_dev_get_history_item(dt_develop_t *dev, struct d
 }
 
 
-#define AUTO_SAVE_TIMEOUT 30000
+#define AUTO_SAVE_TIMEOUT 15000
 
-uint64_t dt_dev_history_get_hash(GList *dev_history)
+uint64_t dt_dev_history_get_hash(dt_develop_t *dev)
 {
   uint64_t hash = 5381;
-
-  for(GList *hist = g_list_first(dev_history); hist; hist = g_list_next(hist))
+  for(GList *hist = g_list_nth(dev->history, dt_dev_get_history_end(dev) - 1);
+      hist;
+      hist = g_list_previous(hist))
   {
     dt_dev_history_item_t *item = (dt_dev_history_item_t *)hist->data;
     hash = dt_hash(hash, (const char *)&item->hash, sizeof(uint64_t));
@@ -664,17 +665,27 @@ uint64_t dt_dev_history_get_hash(GList *dev_history)
 int dt_dev_history_auto_save(gpointer data)
 {
   dt_develop_t *dev = (dt_develop_t *)data;
+  g_source_remove(dev->auto_save_timeout);
   dev->auto_save_timeout = 0;
 
-  const uint64_t new_hash = dt_dev_history_get_hash(dev->history);
-  if(new_hash == dev->history_hash) return G_SOURCE_REMOVE;
-  dev->history_hash = new_hash;
+  dt_pthread_mutex_lock(&dev->history_mutex);
+  const uint64_t new_hash = dt_dev_history_get_hash(dev);
+  if(new_hash == dev->history_hash)
+  {
+    //fprintf(stdout, "hash has NOT changed: %lu - %lu\n", dev->history_hash, new_hash);
+    dt_pthread_mutex_unlock(&dev->history_mutex);
+    return G_SOURCE_REMOVE;
+  }
+  else
+  {
+    //fprintf(stdout, "hash has changed %lu - %lu\n", dev->history_hash, new_hash);
+    dev->history_hash = new_hash;
+  }
 
   dt_times_t start;
   dt_get_times(&start);
   dt_toast_log(_("autosaving changes..."));
 
-  dt_pthread_mutex_lock(&dev->history_mutex);
   dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
   dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
   dt_pthread_mutex_unlock(&dev->history_mutex);
@@ -1063,6 +1074,9 @@ void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const i
   // fetches history MD5 hash from DB
   //if(!dt_history_hash_is_mipmap_synced(imgid))
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_append(NULL, GINT_TO_POINTER(imgid)));
 }
 
 void dt_dev_write_history(dt_develop_t *dev)
@@ -1816,7 +1830,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   dt_dev_masks_update_hash(dev);
 
   // Init global history hash to track changes during runtime
-  dev->history_hash = dt_dev_history_get_hash(dev->history);
+  dev->history_hash = dt_dev_history_get_hash(dev);
 
   dt_print(DT_DEBUG_HISTORY, "[history] dt_dev_read_history_ext completed\n");
 }

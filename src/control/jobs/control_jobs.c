@@ -1498,6 +1498,7 @@ static int32_t dt_dev_save_xmp_job_run(dt_job_t *job)
   const int32_t imgid = GPOINTER_TO_INT(params->data);
   if(dt_image_write_sidecar_file(imgid))
     fprintf(stdout, "cannot write XMP file for image %i. The target storage may be unavailable or read-only.\n", imgid);
+
   return 0;
 }
 

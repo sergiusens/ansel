@@ -69,10 +69,10 @@ void dt_dev_invalidate_history_module(GList *list, struct dt_iop_module_t *modul
 /**
  * @brief Get the integrity checksum of the whole history
  *
- * @param dev_history dev->history
+ * @param dev
  * @return uint64_t
  */
-uint64_t dt_dev_history_get_hash(GList *dev_history);
+uint64_t dt_dev_history_get_hash(struct dt_develop_t *dev);
 
 /**
  * @brief Callback function meant to be used with g_timeout, saving history if it changes since prior saving point.
