@@ -981,8 +981,8 @@ static gboolean _filmroll_clicked(GtkWidget *widget, GdkEventButton *event, gpoi
 static void _mouse_over_image_callback(gpointer instance, gpointer user_data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
-  if(dt_control_running() && dt_lib_gui_get_expanded(self))
-    _metadata_view_update_values(self);
+  //if(dt_lib_gui_get_expanded(self))
+  _metadata_view_update_values(self);
 }
 
 static char *_get_current_configuration(dt_lib_module_t *self)
