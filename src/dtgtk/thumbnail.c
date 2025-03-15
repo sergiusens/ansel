@@ -431,14 +431,18 @@ static void _thumb_update_icons(dt_thumbnail_t *thumb)
   gtk_widget_set_visible(thumb->w_reject, !show_nowhere);
   gtk_widget_set_visible(thumb->w_ext, !show_nowhere);
   gtk_widget_show(thumb->w_cursor);
-  for(int i = 0; i < MAX_STARS; i++) gtk_widget_set_visible(thumb->w_stars[i], !show_nowhere);
 
   _set_flag(thumb->w_main, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
   _set_flag(thumb->widget, GTK_STATE_FLAG_PRELIGHT, thumb->mouse_over);
 
   _set_flag(thumb->w_reject, GTK_STATE_FLAG_ACTIVE, (thumb->rating == DT_VIEW_REJECT));
+
   for(int i = 0; i < MAX_STARS; i++)
+  {
+    gtk_widget_set_visible(thumb->w_stars[i], !show_nowhere);
     _set_flag(thumb->w_stars[i], GTK_STATE_FLAG_ACTIVE, (thumb->rating > i && thumb->rating < DT_VIEW_REJECT));
+  }
+
   _set_flag(thumb->w_group, GTK_STATE_FLAG_ACTIVE, (thumb->imgid == thumb->groupid));
 
   _set_flag(thumb->w_main, GTK_STATE_FLAG_SELECTED, thumb->selected);
