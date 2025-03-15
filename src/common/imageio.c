@@ -1000,6 +1000,8 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
+  float *image_buffer = NULL;
+  const dt_image_t *img = &dev.image_storage;
 
   // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
   // aka 720x450 px currently. Though it's a nice speed-up to generate small thumbnails,
@@ -1012,8 +1014,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   else
     dt_mipmap_cache_get(cache, &buf, imgid, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
 
-  const dt_image_t *img = &dev.image_storage;
-
   if(!buf.buf || !buf.width || !buf.height)
   {
     fprintf(stderr, "[dt_imageio_export_with_flags] mipmap allocation for `%s' failed\n", filename);
@@ -1021,14 +1021,22 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     goto error_early;
   }
 
+  // Take a local copy of the buffer so we can release the mipmap cache lock immediately
+  image_buffer = dt_alloc_align(buf.cache_entry->data_size);
+  memcpy(image_buffer, buf.buf, buf.cache_entry->data_size);
+  const size_t buf_width = buf.width;
+  const size_t buf_height = buf.height;
+  const float buf_iscale = buf.iscale;
+  dt_mipmap_cache_release(cache, &buf);
+
   int res = 0;
   dt_times_t start;
   dt_get_times(&start);
   dt_dev_pixelpipe_t pipe;
   if(thumbnail_export)
-    res = dt_dev_pixelpipe_init_thumbnail(&pipe, buf.width, buf.height);
+    res = dt_dev_pixelpipe_init_thumbnail(&pipe, buf_width, buf_height);
   else
-    res = dt_dev_pixelpipe_init_export(&pipe, buf.width, buf.height, format->levels(format_params), export_masks);
+    res = dt_dev_pixelpipe_init_export(&pipe, buf_width, buf_height, format->levels(format_params), export_masks);
 
   if(!res)
   {
@@ -1048,7 +1056,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   // Update the ICC type if DT_COLORSPACE_NONE is passed
   dt_colorspaces_get_output_profile(imgid, &icc_type, icc_filename);
   dt_dev_pixelpipe_set_icc(&pipe, icc_type, icc_filename, icc_intent);
-  dt_dev_pixelpipe_set_input(&pipe, &dev, (float *)buf.buf, buf.width, buf.height, buf.iscale);
+  dt_dev_pixelpipe_set_input(&pipe, &dev, image_buffer, buf_width, buf_height, buf_iscale);
   dt_dev_pixelpipe_create_nodes(&pipe, &dev);
   dt_dev_pixelpipe_synch_all(&pipe, &dev);
 
@@ -1147,7 +1155,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   if(exif_profile) free(exif_profile);
   if(res) goto error;
 
-  dt_mipmap_cache_release(cache, &buf);
   dt_dev_pixelpipe_cleanup(&pipe);
   dt_dev_cleanup(&dev);
 
@@ -1174,7 +1181,7 @@ error:
 error_early:
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_cleanup(&dev);
-  dt_mipmap_cache_release(cache, &buf);
+  if(image_buffer) dt_free_align(image_buffer);
   return 1;
 }
 

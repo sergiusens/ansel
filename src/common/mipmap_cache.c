@@ -672,7 +672,7 @@ void dt_mipmap_cache_get_with_caller(
     const char *file,
     int line)
 {
-  assert(mip <= DT_MIPMAP_FULL && mip >= DT_MIPMAP_0);
+  assert(mip <= DT_MIPMAP_NONE && mip >= DT_MIPMAP_0);
 
   const int32_t key = get_key(imgid, mip);
   if(flags == DT_MIPMAP_TESTLOCK)
@@ -907,7 +907,7 @@ void dt_mipmap_cache_get_with_caller(
     // Last chance: look for smaller sizes
     // never decrease mip level for float buffer or full image:
     dt_mipmap_size_t min_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_0;
-    for(int k = mip - 1; k >= min_mip; k--)
+    for(int k = mip; k > min_mip; k--)
     {
       // already loaded?
       dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
