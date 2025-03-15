@@ -665,8 +665,11 @@ uint64_t dt_dev_history_get_hash(dt_develop_t *dev)
 int dt_dev_history_auto_save(gpointer data)
 {
   dt_develop_t *dev = (dt_develop_t *)data;
-  g_source_remove(dev->auto_save_timeout);
-  dev->auto_save_timeout = 0;
+  if(dev->auto_save_timeout)
+  {
+    g_source_remove(dev->auto_save_timeout);
+    dev->auto_save_timeout = 0;
+  }
 
   dt_pthread_mutex_lock(&dev->history_mutex);
   const uint64_t new_hash = dt_dev_history_get_hash(dev);
