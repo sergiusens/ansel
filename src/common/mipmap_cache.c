@@ -808,12 +808,18 @@ void dt_mipmap_cache_get_with_caller(
       else if(mip == DT_MIPMAP_F)
       {
         ASAN_UNPOISON_MEMORY_REGION(dsc + 1, dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
+        dt_print(DT_DEBUG_CACHE,
+                 "[mipmap_cache] compute mip %d for image %" PRIu32 " (%ix%i) from original file \n", mip,
+                 get_imgid(entry->key), dsc->width, dsc->height);
         _init_f(buf, (float *)(dsc + 1), &dsc->width, &dsc->height, &dsc->iscale, imgid);
       }
       else
       {
         // 8-bit thumbs
         ASAN_UNPOISON_MEMORY_REGION(dsc + 1, dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
+        dt_print(DT_DEBUG_CACHE,
+                 "[mipmap_cache] compute mip %d for image %" PRIu32 " (%ix%i) from original file \n", mip,
+                 get_imgid(entry->key), dsc->width, dsc->height);
         _init_8((uint8_t *)(dsc + 1), &dsc->width, &dsc->height, &dsc->iscale, &buf->color_space, imgid, mip);
       }
       dsc->color_space = buf->color_space;
@@ -884,6 +890,9 @@ void dt_mipmap_cache_get_with_caller(
       {
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
 
+        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
+                 imgid, buf->width, buf->height);
+
         /* raise signal that mipmaps has been flushed to cache */
         dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
         return;
@@ -905,6 +914,9 @@ void dt_mipmap_cache_get_with_caller(
       if(buf->buf && buf->width > 0 && buf->height > 0)
       {
         __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
+
+        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
+                 imgid, buf->width, buf->height);
 
         /* raise signal that mipmaps has been flushed to cache */
         dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
