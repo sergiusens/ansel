@@ -589,8 +589,6 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
     _resize_thumbnails(table);
   }
 
-  gtk_widget_queue_draw(table->grid);
-
   table->thumbs_inited = TRUE;
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb, table->min_row_id, table->max_row_id, dt_get_wtime() - start);
