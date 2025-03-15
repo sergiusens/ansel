@@ -163,7 +163,7 @@ void dt_opencl_write_device_config(const int devid)
   // Also take care of extended device data, these are not only device specific but also depend on the devid
   // to support systems with two similar cards.
   g_snprintf(key, 254, "%s%s_id%i", DT_CLDEVICE_HEAD, cl->dev[devid].cname, devid);
-  g_snprintf(dat, 510, "%i", cl->dev[devid].forced_headroom);
+  g_snprintf(dat, 510, "%lu", cl->dev[devid].forced_headroom);
   dt_vprint(DT_DEBUG_OPENCL, "[dt_opencl_write_device_config] writing data '%s' for '%s'\n", dat, key);
   dt_conf_set_string(key, dat);
 }
@@ -238,7 +238,8 @@ gboolean dt_opencl_read_device_config(const int devid)
     if(forced_headroom > 0) cl->dev[devid].forced_headroom = forced_headroom;
   }
   else // this is used if updating to 4.0 or fresh installs; see commenting _opencl_get_unused_device_mem()
-    cl->dev[devid].forced_headroom = 400;
+    cl->dev[devid].forced_headroom = dt_conf_get_int64("memory_opencl_headroom");
+
   dt_opencl_write_device_config(devid);
   return !existing_device || !safety_ok;
 }
@@ -536,7 +537,7 @@ static int dt_opencl_device_init(dt_opencl_t *cl, const int dev, cl_device_id *d
   const gboolean pinning = (cl->dev[dev].pinned_memory & DT_OPENCL_PINNING_ON);
   dt_print_nts(DT_DEBUG_OPENCL, "   ASYNC PIXELPIPE:          %s\n", (cl->dev[dev].asyncmode) ? "YES" : "NO");
   dt_print_nts(DT_DEBUG_OPENCL, "   PINNED MEMORY TRANSFER:   %s\n", pinning ? "WANTED" : "NO");
-  dt_print_nts(DT_DEBUG_OPENCL, "   FORCED HEADROOM:          %i\n", cl->dev[dev].forced_headroom);
+  dt_print_nts(DT_DEBUG_OPENCL, "   FORCED HEADROOM:          %lu\n", cl->dev[dev].forced_headroom);
   dt_print_nts(DT_DEBUG_OPENCL, "   AVOID ATOMICS:            %s\n", (cl->dev[dev].avoid_atomics) ? "YES" : "NO");
   dt_print_nts(DT_DEBUG_OPENCL, "   MICRO NAP:                %i\n", cl->dev[dev].micro_nap);
   dt_print_nts(DT_DEBUG_OPENCL, "   ROUNDUP WIDTH:            %i\n", cl->dev[dev].clroundup_wd);
@@ -2764,25 +2765,19 @@ void dt_opencl_memory_statistics(int devid, cl_mem mem, dt_opencl_memory_t actio
                                       (float)darktable.opencl->dev[devid].memory_in_use/(1024*1024));
 }
 
-/* amount of graphics memory declared as available depends on max_global_mem and "resourcelevel". We garantee
-   - a headroom of 400MB in all cases not using tuned cl
-   - 256MB to simulate a minimum system
-   - 2GB to simalate a reference system
-
-  Please note, the tuning mode and resourcelevel is set via gui and must *never* change settings valid
-  while processing the pipeline.
-  Thus we have to get level & tune mode and set appropriate data before pipeline is processed.
-*/
 void dt_opencl_check_tuning(const int devid)
 {
   dt_opencl_t *cl = darktable.opencl;
   if(!cl->inited || devid < 0) return;
 
-  cl->dev[devid].used_available = MAX(0ul, cl->dev[devid].max_global_mem - ((size_t)cl->dev[devid].forced_headroom * 1024ul * 1024ul));
+  // Take the max of the device-specific and global param
+  size_t headroom = MAX(dt_conf_get_int64("memory_opencl_headroom"), cl->dev[devid].forced_headroom);
+
+  cl->dev[devid].used_available = MAX(0ul, cl->dev[devid].max_global_mem - headroom * 1024 * 1024);
 
   dt_print(DT_DEBUG_OPENCL | DT_DEBUG_MEMORY,
-      "[dt_opencl_check_tuning] use %luMB (pinning=%i) on device `%s' id=%i\n",
-      cl->dev[devid].used_available / 1024lu / 1024lu,
+      "[dt_opencl_check_tuning] use %lu MiB (pinning=%i) on device `%s' id=%i\n",
+      cl->dev[devid].used_available / (1024 * 1024),
       cl->dev[devid].pinned_memory,
       cl->dev[devid].name, devid);
 }

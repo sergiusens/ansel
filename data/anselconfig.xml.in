@@ -271,20 +271,13 @@
     <longdescription>if found, use OpenCL runtime on your system for improved processing speed. can be switched on and off at any time.</longdescription>
   </dtconfig>
   <dtconfig prefs="processing" section="cpugpu" capability="opencl">
-    <name>opencl_tuning_mode</name>
-    <type>
-      <enum>
-        <option>nothing</option>
-        <option>memory size</option>
-        <option>memory transfer</option>
-        <option>memory size and transfer</option>
-      </enum>
-    </type>
-    <default>nothing</default>
-    <shortdescription>tune OpenCL performance</shortdescription>
-    <longdescription>allows runtime tuning of OpenCL devices. 'memory size' tests for available graphics ram, 'memory transfer' tries a faster memory access mode (pinned memory) used for tiling.</longdescription>
+    <name>memory_opencl_headroom</name>
+    <type>int</type>
+    <default>200</default>
+    <shortdescription>GPU vRAM headroom (MiB)</shortdescription>
+    <longdescription>This is the amount of GPU memory that Ansel will leave to other GPU-accelerated applications, OpenGL, X server, etc.</longdescription>
   </dtconfig>
-  <dtconfig>
+  <dtconfig prefs="processing" section="cpugpu" capability="opencl">
     <name>opencl_library</name>
     <type>string</type>
     <default/>
