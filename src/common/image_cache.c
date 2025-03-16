@@ -192,13 +192,14 @@ void dt_image_cache_init(dt_image_cache_t *cache)
   // TODO: actually an independent conf var?
   //       too large: dangerous and wasteful?
   //       can we get away with a fixed size?
-  const uint32_t max_mem = 50 * 1024 * 1024;
+  const uint32_t size = 50;
+  const uint32_t max_mem = size * 1024 * 1024;
   const uint32_t num = (uint32_t)(1.5f * max_mem / sizeof(dt_image_t));
   dt_cache_init(&cache->cache, sizeof(dt_image_t), max_mem);
   dt_cache_set_allocate_callback(&cache->cache, &dt_image_cache_allocate, cache);
   dt_cache_set_cleanup_callback(&cache->cache, &dt_image_cache_deallocate, cache);
 
-  dt_print(DT_DEBUG_CACHE, "[image_cache] has %d entries\n", num);
+  dt_print(DT_DEBUG_CACHE, "[image_cache] has %d entries (%u MiB)\n", num, size);
 }
 
 void dt_image_cache_cleanup(dt_image_cache_t *cache)
