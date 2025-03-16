@@ -449,33 +449,12 @@ void expose(
   else if(dev->preview_pipe->output_imgid != dev->image_storage.id)
   {
     gchar *load_txt;
-    float fontsize;
+    float fontsize = DT_PIXEL_APPLY_DPI(14);
 
-    if(dev->image_invalid_cnt)
-    {
-      fontsize = DT_PIXEL_APPLY_DPI(16);
-      load_txt = g_strdup_printf(
-          _("Ansel could not load `%s', switching to lighttable now.\n\n"
-            "please check that the camera model that produced the image is supported in Ansel\n"
-            "(list of supported cameras is at https://www.darktable.org/resources/camera-support/).\n"
-            "if you are sure that the camera model is supported, please consider opening an issue\n"
-            "at https://github.com/darktable-org/darktable"),
-          dev->image_storage.filename);
-      if(dev->image_invalid_cnt > 400)
-      {
-        dev->image_invalid_cnt = 0;
-        dt_view_manager_switch(darktable.view_manager, "lighttable");
-        return;
-      }
-    }
+    if(dt_conf_get_bool("darkroom/ui/loading_screen"))
+      load_txt = g_strdup_printf(C_("darkroom", "loading `%s' ..."), dev->image_storage.filename);
     else
-    {
-      fontsize = DT_PIXEL_APPLY_DPI(14);
-      if(dt_conf_get_bool("darkroom/ui/loading_screen"))
-        load_txt = g_strdup_printf(C_("darkroom", "loading `%s' ..."), dev->image_storage.filename);
-      else
-        load_txt = g_strdup(dev->image_storage.filename);
-    }
+      load_txt = g_strdup(dev->image_storage.filename);
 
     if(dt_conf_get_bool("darkroom/ui/loading_screen"))
     {
