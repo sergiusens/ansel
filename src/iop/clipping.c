@@ -1650,6 +1650,14 @@ void reload_defaults(dt_iop_module_t *self)
   d->ch = img->usercrop[2];
 }
 
+gboolean has_defaults(struct dt_iop_module_t *self)
+{
+  dt_iop_clipping_params_t *d = (dt_iop_clipping_params_t *)self->default_params;
+  dt_iop_clipping_params_t *p = (dt_iop_clipping_params_t *)self->params;
+  // p->ratio_d and p->ratio_n are inited in GUI, so they are unset in d.
+  return d->cx == p->cx && d->cy == p->cy && d->cw == p->cw && d->ch && p->cw;
+}
+
 static void _float_to_fract(const char *num, int *n, int *d)
 {
   char tnum[100];

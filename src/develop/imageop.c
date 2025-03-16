@@ -132,6 +132,11 @@ static const char *default_deprecated_msg(void)
   return NULL;
 }
 
+static gboolean default_has_defaults(struct dt_iop_module_t *self)
+{
+  return memcmp(self->params, self->default_params, self->params_size) == 0;
+}
+
 static void default_commit_params(struct dt_iop_module_t *self, dt_iop_params_t *params,
                                    dt_dev_pixelpipe_t *pipe, dt_dev_pixelpipe_iop_t *piece)
 {

@@ -154,6 +154,14 @@ DEFAULT(void, commit_params, struct dt_iop_module_t *self, dt_iop_params_t *para
                               struct dt_dev_pixelpipe_iop_t *piece);
 /** this is the chance to update default parameters, after the full raw is loaded. */
 OPTIONAL(void, reload_defaults, struct dt_iop_module_t *self);
+
+/** check if params are set to defaults.
+ * Modules where defaults are partially or totally inited at runtime
+ * and where memcmp() wouldn't work can implement their own custom checks.
+ * Return TRUE if params are set to defaults.
+ */
+DEFAULT(gboolean, has_defaults, struct dt_iop_module_t *self);
+
 /** called after the image has changed in darkroom */
 OPTIONAL(void, change_image, struct dt_iop_module_t *self);
 
