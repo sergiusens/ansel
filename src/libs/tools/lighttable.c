@@ -46,7 +46,7 @@ static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom);
 static gint _lib_lighttable_get_zoom(dt_lib_module_t *self);
 
 /* zoom slider change callback */
-static void _lib_lighttable_zoom_slider_changed(GtkRange *range, gpointer user_data);
+static void _lib_lighttable_zoom_slider_changed(GtkWidget *widget, gpointer user_data);
 
 static void _set_zoom(dt_lib_module_t *self, int zoom);
 
@@ -111,27 +111,24 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(label, "quickfilter-label");
 
   /* create horizontal zoom slider */
-  d->zoom = gtk_scale_new_with_range(GTK_ORIENTATION_HORIZONTAL, 1, DT_LIGHTTABLE_MAX_ZOOM, 1);
-  gtk_widget_set_size_request(GTK_WIDGET(d->zoom), DT_PIXEL_APPLY_DPI(140), -1);
-  gtk_scale_set_draw_value(GTK_SCALE(d->zoom), FALSE);
-  gtk_range_set_increments(GTK_RANGE(d->zoom), 1, 1);
+  d->zoom = gtk_spin_button_new_with_range(1., 12., 1.);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->zoom), FALSE, FALSE, 0);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->zoom), d->current_zoom);
 
   // Capturing focus collides with lighttable key navigation, and it is useless
   // because we already have zoom in/out global shortcuts
   gtk_widget_set_can_focus(d->zoom, FALSE);
 
   g_signal_connect(G_OBJECT(d->zoom), "value-changed", G_CALLBACK(_lib_lighttable_zoom_slider_changed), self);
-  gtk_range_set_value(GTK_RANGE(d->zoom), d->current_zoom);
 
   dt_accels_new_lighttable_action(_zoom_in_action, self, N_("Lighttable/Actions"), N_("Zoom in the thumbtable grid"),
                                   GDK_KEY_plus, GDK_CONTROL_MASK);
   dt_accels_new_lighttable_action(_zoom_out_action, self, N_("Lighttable/Actions"), N_("Zoom out the thumbtable grid"),
                                   GDK_KEY_minus, GDK_CONTROL_MASK);
 
-  _lib_lighttable_zoom_slider_changed(GTK_RANGE(d->zoom), self); // the slider defaults to 1 and GTK doesn't
-                                                                 // fire a value-changed signal when setting
-                                                                 // it to 1 => empty text box
+  _lib_lighttable_zoom_slider_changed(d->zoom, self); // the slider defaults to 1 and GTK doesn't
+                                                      // fire a value-changed signal when setting
+                                                      // it to 1 => empty text box
 }
 
 void gui_cleanup(dt_lib_module_t *self)
@@ -152,17 +149,17 @@ static void _set_zoom(dt_lib_module_t *self, int zoom)
   }
 }
 
-static void _lib_lighttable_zoom_slider_changed(GtkRange *range, gpointer user_data)
+static void _lib_lighttable_zoom_slider_changed(GtkWidget *widget, gpointer user_data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  _set_zoom(self, gtk_range_get_value(GTK_RANGE(d->zoom)));
+  _set_zoom(self, gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->zoom)));
 }
 
 static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  gtk_range_set_value(GTK_RANGE(d->zoom), zoom);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->zoom), zoom);
   _set_zoom(self, zoom);
 }
 
