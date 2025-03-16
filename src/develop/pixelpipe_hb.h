@@ -217,6 +217,25 @@ typedef struct dt_dev_pixelpipe_t
   // that's because the sync_top option can't assume only one history
   // item was added since the last synchronization.
   uint64_t last_history_hash;
+
+  // Modules can set this to TRUE internally so the pipeline will
+  // restart right away, in the same thread.
+  // The reentry flag can only be reset (to FALSE) by the same object that captured it.
+  // DO NOT SET THAT DIRECTLY, use the setter/getter functions
+  gboolean reentry;
+
+  // Unique identifier of the object capturing the reentry flag.
+  // This can be a mask or module hash, or anything that stays constant
+  // across 2 pipeline runs from a same thread (aka as long as we don't reinit).
+  // DO NOT SET THAT DIRECTLY, use the setter/getter functions
+  uint64_t reentry_hash;
+
+  // Can be set arbitrarily by pixelpipe modules at runtime
+  // to invalidate downstream module cache lines.
+  // This always gets reset to FALSE when a pipeline finishes,
+  // whether on success or on error.
+  gboolean flush_cache;
+
 } dt_dev_pixelpipe_t;
 
 struct dt_develop_t;
@@ -296,9 +315,14 @@ void dt_dev_pixelpipe_add_node(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *de
 void dt_dev_pixelpipe_remove_node(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev, int n);
 
 // helper function to pass a raster mask through a (so far) processed pipe
+// `*error` will be set to 1 if the raster mask reference couldn't be found while it should have been,
+// aka not if user has forgotten to input what module should provide its mask, but only
+// if the mask reference has been lost by the pipeline. This should lead to a pipeline cache flushing.
+// `*error` can be NULL, e.g. for non-cached pipelines (export, thumbnail).
 float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const struct dt_iop_module_t *raster_mask_source,
                               const int raster_mask_id, const struct dt_iop_module_t *target_module,
-                              gboolean *free_mask);
+                              gboolean *free_mask, int *error);
+
 // some helper functions related to the details mask interface
 void dt_dev_clear_rawdetail_mask(dt_dev_pixelpipe_t *pipe);
 
@@ -313,6 +337,46 @@ float *dt_dev_distort_detail_mask(const dt_dev_pixelpipe_t *pipe, float *src, co
 // Compute the sequential hash over the pipeline for each module.
 // Need to run after dt_dev_pixelpipe_get_roi_in() has updated processed ROI in/out
 void dt_pixelpipe_get_global_hash(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev);
+
+
+/**
+ * @brief Set the re-entry pipeline flag, only if no object is already capturing it.
+ * Re-entered pipelines run with cache disabled, but without flushing the whole cache.
+ * This was designed for cases where raster masks references are lost on pipeline,
+ * for example when going to lighttable and re-entering darkroom (pipe caches are not flushed
+ * for performance, if re-entering the same image), as to trigger a full pipe run
+ * and reinit references.
+ *
+ * It can be used for any case where a full pipeline recompute is needed once,
+ * based on runtime module requirements, but a full cache flush would be overkill.
+ *
+ * NOTE: in main darkroom pipe, the coordinates of the ROI can change between
+ * runs from the same thread.
+ *
+ * @param pipe
+ * @param hash Unique ID of the object attempting capture the re-entry flag.
+ * This should stay constant between 2 pipeline runs from the same thread.
+ * @return gboolean TRUE if the object could capture the flag
+ */
+gboolean dt_dev_pixelpipe_set_reentry(dt_dev_pixelpipe_t *pipe, uint64_t hash);
+
+/**
+ * @brief Remove the re-entry pipeline flag, only if the object identifier is the one that set it.
+ * See `dt_dev_pixelpipe_set_reentry`.
+ *
+ * @param pipe
+ * @param hash Unique ID of the object attempting capture the re-entry flag.
+ * This should stay constant between 2 pipeline runs from the same thread.
+ * @return gboolean TRUE if the object could capture the flag
+ */
+gboolean dt_dev_pixelpipe_unset_reentry(dt_dev_pixelpipe_t *pipe, uint64_t hash);
+
+// check if pipeline should re-entry after it completes
+gboolean dt_dev_pixelpipe_has_reentry(dt_dev_pixelpipe_t *pipe);
+
+// Force-reset pipeline re-entry flag, for example if we lost the unique ID of the object
+// in a re-entry loop.
+void dt_dev_pixelpipe_reset_reentry(dt_dev_pixelpipe_t *pipe);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

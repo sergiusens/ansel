@@ -396,13 +396,25 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   }
 
   pipe->processing = 1;
-  while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY))
+
+  // Count the number of pipe re-entries and limit it to 2 to avoid infinite loops
+  int reentries = 0;
+  while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY) && reentries < 2)
   {
     dt_times_t thread_start;
     dt_get_times(&thread_start);
 
     // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
+
+    // In case of re-entry, we will rerun the whole pipe, so we need
+    // to resynch it in full too before.
+    // Need to be before dt_dev_pixelpipe_change()
+    if(dt_dev_pixelpipe_has_reentry(pipe))
+    {
+      pipe->changed |= DT_DEV_PIPE_REMOVE;
+      dt_dev_pixelpipe_cache_flush(&(pipe->cache));
+    }
 
     // this locks dev->history_mutex.
     dt_dev_pixelpipe_change(pipe, dev);
@@ -421,6 +433,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_times_t start;
     dt_get_times(&start);
 
+    // NOTE: preview size is constant: 720x450 px
     int ret = dt_dev_pixelpipe_process(pipe, dev, 0, 0, pipe->processed_width,
                                        pipe->processed_height, 1.f);
 
@@ -433,7 +446,14 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_preview] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->preview_average_delay);
 
-    _flag_pipe(pipe, ret);
+    // If pipe is flagged for re-entry, we need to restart it right away
+    if(dt_dev_pixelpipe_has_reentry(pipe))
+    {
+      reentries++;
+      pipe->status = DT_DEV_PIXELPIPE_DIRTY;
+    }
+    else
+      _flag_pipe(pipe, ret);
 
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
@@ -447,6 +467,54 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
   dt_control_queue_redraw();
+}
+
+// Return TRUE if ROI changed since previous computation
+gboolean _update_darkroom_roi(dt_develop_t *dev, dt_dev_pixelpipe_t *pipe, int *x, int *y, int *wd, int *ht,
+                              float *scale, float *zoom_x, float *zoom_y)
+{
+  // Store previous values
+  int x_old = *x;
+  int y_old = *y;
+  int wd_old = *wd;
+  int ht_old = *ht;
+
+  // determine scale according to new dimensions
+  dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
+  int closeup = dt_control_get_dev_closeup();
+  *zoom_x = dt_control_get_dev_zoom_x();
+  *zoom_y = dt_control_get_dev_zoom_y();
+
+  // if just changed to an image with a different aspect ratio or
+  // altered image orientation, the prior zoom xy could now be beyond
+  // the image boundary
+  // FIXME: That belongs to darkroom GUI code if it's even needed
+
+  /*
+  dt_dev_pixelpipe_change_t pipe_changed = pipe->changed;
+
+  if(pipe_changed != DT_DEV_PIPE_UNCHANGED)
+  {
+    dt_dev_check_zoom_bounds(dev, &zoom_x, &zoom_y, zoom, closeup, NULL, NULL);
+    dt_control_set_dev_zoom_x(zoom_x);
+    dt_control_set_dev_zoom_y(zoom_y);
+  }
+  */
+
+  *scale = dt_dev_get_zoom_scale(dev, zoom, 1.0f, 0) * darktable.gui->ppd;
+  int window_width = dev->width * darktable.gui->ppd;
+  int window_height = dev->height * darktable.gui->ppd;
+  if(closeup)
+  {
+    window_width /= 1 << closeup;
+    window_height /= 1 << closeup;
+  }
+  *wd = MIN(window_width, roundf((float)pipe->processed_width * *scale));
+  *ht = MIN(window_height, roundf((float)pipe->processed_height * *scale));
+  *x = MAX(0, roundf(*scale * (float)pipe->processed_width  * (.5f + *zoom_x) - (float)*wd / 2.f));
+  *y = MAX(0, roundf(*scale * (float)pipe->processed_height * (.5f + *zoom_y) - (float)*ht / 2.f));
+
+  return x_old != *x || y_old != *y || wd_old != *wd || ht_old != *ht;
 }
 
 
@@ -481,9 +549,16 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_dev_pixelpipe_set_input(pipe, dev, dev->image_storage.id, buf_width, buf_height, 1.0, DT_MIPMAP_FULL);
   }
 
-  float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
   pipe->processing = 1;
-  while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY))
+
+  // Count the number of pipe re-entries and limit it to 2 to avoid infinite loops
+  int reentries = 0;
+
+  // Keep track of ROI changes out of the loop
+  float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
+  int x = 0, y = 0, wd = 0, ht = 0;
+
+  while(!dev->exit && !finish_on_error && (pipe->status == DT_DEV_PIXELPIPE_DIRTY) && reentries < 2)
   {
     dt_times_t thread_start;
     dt_get_times(&thread_start);
@@ -491,41 +566,31 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
-    dt_dev_pixelpipe_change_t pipe_changed = pipe->changed;
+    // In case of re-entry, we will rerun the whole pipe, so we need
+    // too resynch it in full too before.
+    // Need to be before dt_dev_pixelpipe_change()
+    if(dt_dev_pixelpipe_has_reentry(pipe))
+    {
+      pipe->changed |= DT_DEV_PIPE_REMOVE;
+      dt_dev_pixelpipe_cache_flush(&(pipe->cache));
+    }
 
     // this locks dev->history_mutex
     dt_dev_pixelpipe_change(pipe, dev);
 
-    // determine scale according to new dimensions
-    dt_dev_zoom_t zoom = dt_control_get_dev_zoom();
-    int closeup = dt_control_get_dev_closeup();
-    zoom_x = dt_control_get_dev_zoom_x();
-    zoom_y = dt_control_get_dev_zoom_y();
-    // if just changed to an image with a different aspect ratio or
-    // altered image orientation, the prior zoom xy could now be beyond
-    // the image boundary
-    if(pipe_changed != DT_DEV_PIPE_UNCHANGED)
-    {
-      dt_dev_check_zoom_bounds(dev, &zoom_x, &zoom_y, zoom, closeup, NULL, NULL);
-      dt_control_set_dev_zoom_x(zoom_x);
-      dt_control_set_dev_zoom_y(zoom_y);
-    }
-
-    scale = dt_dev_get_zoom_scale(dev, zoom, 1.0f, 0) * darktable.gui->ppd;
-    int window_width = dev->width * darktable.gui->ppd;
-    int window_height = dev->height * darktable.gui->ppd;
-    if(closeup)
-    {
-      window_width /= 1<<closeup;
-      window_height /= 1<<closeup;
-    }
-    const int wd = MIN(window_width, pipe->processed_width * scale);
-    const int ht = MIN(window_height, pipe->processed_height * scale);
-    int x = MAX(0, scale * pipe->processed_width  * (.5 + zoom_x) - wd / 2);
-    int y = MAX(0, scale * pipe->processed_height * (.5 + zoom_y) - ht / 2);
-
     dt_control_log_busy_enter();
     dt_control_toast_busy_enter();
+
+    // If user zoomed/panned in darkroom during the previous loop of recomputation,
+    // the kill-switch event was sent, which terminated the pipeline before completion in the previous run,
+    // but the coordinates of the ROI changed since then, and we will handle the new coordinates right away,
+    // without exiting the thread to avoid the overhead of restarting a new one.
+    // However, if the pipe re-entry flag was set, now the hash ID of the object (mask or module)
+    // that captured it has changed too (because all hashes depend on ROI size & position too).
+    // Since only the object that locked the re-entry flag can unlock it, and we now lost its reference,
+    // nothing will unset it anymore, so we simply hard-reset it.
+    if(_update_darkroom_roi(dev, pipe, &x, &y, &wd, &ht, &scale, &zoom_x, &zoom_y))
+      dt_dev_pixelpipe_reset_reentry(pipe);
 
     // Signal that we are starting
     pipe->status = DT_DEV_PIXELPIPE_UNDEF;
@@ -550,7 +615,14 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_show_times(&thread_start, "[dev_process_image] pixel pipeline thread");
     dt_dev_average_delay_update(&thread_start, &dev->average_delay);
 
-    _flag_pipe(pipe, ret);
+    // If pipe is flagged for re-entry, we need to restart it right away
+    if(dt_dev_pixelpipe_has_reentry(pipe))
+    {
+      reentries++;
+      pipe->status = DT_DEV_PIXELPIPE_DIRTY;
+    }
+    else
+      _flag_pipe(pipe, ret);
 
     // cool, we got a new image!
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)

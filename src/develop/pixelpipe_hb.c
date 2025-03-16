@@ -223,6 +223,10 @@ int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t 
 
   pipe->status = DT_DEV_PIXELPIPE_DIRTY;
   pipe->last_history_hash = 0;
+  pipe->flush_cache = FALSE;
+
+  dt_dev_pixelpipe_reset_reentry(pipe);
+
   return 1;
 }
 
@@ -235,6 +239,8 @@ void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int
   pipe->imgid = imgid;
   pipe->image = dev->image_storage;
   pipe->size = size;
+
+  dt_dev_pixelpipe_reset_reentry(pipe);
   get_output_format(NULL, pipe, NULL, dev, &pipe->dsc);
 }
 
@@ -275,6 +281,47 @@ void dt_dev_pixelpipe_cleanup(dt_dev_pixelpipe_t *pipe)
     g_list_free_full(pipe->forms, (void (*)(void *))dt_masks_free_form);
     pipe->forms = NULL;
   }
+}
+
+
+gboolean dt_dev_pixelpipe_set_reentry(dt_dev_pixelpipe_t *pipe, uint64_t hash)
+{
+  if(pipe->reentry_hash == 0)
+  {
+    pipe->reentry = TRUE;
+    pipe->reentry_hash = hash;
+    dt_print(DT_DEBUG_DEV, "[dev_pixelpipe] re-entry flag set for %lu\n", hash);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+
+gboolean dt_dev_pixelpipe_unset_reentry(dt_dev_pixelpipe_t *pipe, uint64_t hash)
+{
+  if(pipe->reentry_hash == hash)
+  {
+    pipe->reentry = FALSE;
+    pipe->reentry_hash = 0;
+    dt_print(DT_DEBUG_DEV, "[dev_pixelpipe] re-entry flag unset for %lu\n", hash);
+    return TRUE;
+  }
+
+  return FALSE;
+}
+
+gboolean dt_dev_pixelpipe_has_reentry(dt_dev_pixelpipe_t *pipe)
+{
+  return pipe->reentry;
+}
+
+void dt_dev_pixelpipe_reset_reentry(dt_dev_pixelpipe_t *pipe)
+{
+  pipe->reentry = FALSE;
+  pipe->reentry_hash = 0;
+  pipe->flush_cache = FALSE;
+  dt_print(DT_DEBUG_DEV, "[dev_pixelpipe] re-entry flag reset\n");
 }
 
 void dt_dev_pixelpipe_cleanup_nodes(dt_dev_pixelpipe_t *pipe)
@@ -624,7 +671,6 @@ void dt_dev_pixelpipe_change(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev)
   else if(status & DT_DEV_PIPE_TOP_CHANGED)
   {
     // only top history item changed.
-    // FIXME: this seems to never be called.
     dt_dev_pixelpipe_synch_top(pipe, dev);
   }
   dt_pthread_mutex_unlock(&dev->history_mutex);
@@ -1319,11 +1365,11 @@ static int pixelpipe_process_on_CPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   }
 
   /* process blending on CPU */
-  dt_develop_blend_process(module, piece, input, *output, roi_in, roi_out);
+  int err = dt_develop_blend_process(module, piece, input, *output, roi_in, roi_out);
   *pixelpipe_flow |= (PIXELPIPE_FLOW_BLENDED_ON_CPU);
   *pixelpipe_flow &= ~(PIXELPIPE_FLOW_BLENDED_ON_GPU);
 
-  return 0; //no errors
+  return err; //no errors
 }
 
 static dt_dev_pixelpipe_iop_t *_last_node_in_pipe(dt_dev_pixelpipe_t *pipe)
@@ -1536,7 +1582,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
         if(success_opencl)
         {
           success_opencl
-              = dt_develop_blend_process_cl(module, piece, cl_mem_input, *cl_mem_output, roi_in, roi_out);
+              = !dt_develop_blend_process_cl(module, piece, cl_mem_input, *cl_mem_output, roi_in, roi_out);
           *pixelpipe_flow |= (PIXELPIPE_FLOW_BLENDED_ON_GPU);
           *pixelpipe_flow &= ~(PIXELPIPE_FLOW_BLENDED_ON_CPU);
         }
@@ -2042,7 +2088,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
 
   dt_iop_roi_t roi_in = *roi_out;
 
-  char module_name[256] = { 0 };
   void *input = NULL;
   void *cl_mem_input = NULL;
   *cl_mem_output = NULL;
@@ -2061,7 +2106,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
 
   KILL_SWITCH_ABORT;
 
-  if(module) g_strlcpy(module_name, module->op, MIN(sizeof(module_name), sizeof(module->op)));
   get_output_format(module, pipe, piece, dev, *out_format);
   const size_t bpp = dt_iop_buffer_dsc_to_bpp(*out_format);
   const size_t bufsize = (size_t)bpp * roi_out->width * roi_out->height;
@@ -2069,7 +2113,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   // 1) if cached buffer is still available, return data.
   uint64_t hash = _node_hash(pipe, piece, roi_out, pos);
   const gboolean bypass_cache = (module) ? piece->bypass_cache : FALSE;
-  if(!bypass_cache && dt_dev_pixelpipe_cache_available(&(pipe->cache), hash))
+  if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_available(&(pipe->cache), hash))
   {
     if(module)
       dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache available for pipe %i and module %s (%s) with hash %lu\n",
@@ -2194,8 +2238,10 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   // Note that GPU is forced to write its output to RAM cache, so we don't use the cl_mem_output anymore.
   pixelpipe_get_histogram_backbuf(pipe, dev, *output, *cl_mem_output, *out_format, roi_out, module, piece, hash, bpp);
 
-  // Don't cache outputs if we requested to bypass the cache
-  if(bypass_cache) dt_dev_pixelpipe_cache_invalidate(&(pipe->cache), *output);
+  // Don't cache outputs if we requested to bypass the cache,
+  // it's assumed to be temporary view (mask display, etc.),
+  if(bypass_cache || pipe->flush_cache)
+    dt_dev_pixelpipe_cache_invalidate(&(pipe->cache), *output);
 
   KILL_SWITCH_AND_FLUSH_CACHE;
 
@@ -2440,10 +2486,15 @@ restart:;
   {
     // If the pipe returned because the killswitch was triggered, consir it unfinished.
     // Then the main loop will attempt it again.
+    pipe->flush_cache = FALSE;
     return 1;
   }
 
   // terminate
+
+  // If an intermediate module set that, be sure to reset it at the end
+  pipe->flush_cache = FALSE;
+
   dt_pthread_mutex_lock(&pipe->backbuf_mutex);
   const dt_dev_pixelpipe_iop_t *last_module = _last_node_in_pipe(pipe);
   pipe->backbuf_hash = _node_hash(pipe, last_module, &roi, pos);
@@ -2562,9 +2613,11 @@ void dt_dev_pixelpipe_get_roi_in(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *
 
 float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *raster_mask_source,
                               const int raster_mask_id, const dt_iop_module_t *target_module,
-                              gboolean *free_mask)
+                              gboolean *free_mask, int *error)
 {
   // TODO: refactor this mess to limit for/if nesting
+  if(error) *error = 0;
+
   if(!raster_mask_source)
   {
     fprintf(stderr, "[raster masks] The source module of the mask for %s (%s) was not found\n", target_module->op, target_module->multi_name);
@@ -2589,7 +2642,6 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
       source_piece = candidate;
       break;
     }
-
   }
 
   if(source_piece)
@@ -2636,19 +2688,26 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
           raster_mask_id, source_piece->module->op, source_piece->module->multi_name, target_module->op,
           target_module->multi_name, pipe->type, raster_hash);
 
+        // Disable re-entry if any
+        dt_dev_pixelpipe_unset_reentry(pipe, raster_hash);
+
         // cached masks are already distorted
         if(cache) return raster_mask;
+        // else : carry on with geometric distortions below
       }
       else
       {
         fprintf(stderr,
-          "[raster masks] mask id %i from %s (%s) for module %s (%s) could not be found in pipe %i\n",
+          "[raster masks] mask id %i from %s (%s) for module %s (%s) could not be found in pipe %i. Pipe re-entry will be attempted.\n",
           raster_mask_id, source_piece->module->op, source_piece->module->multi_name, target_module->op,
           target_module->multi_name, pipe->type);
-        dt_control_log(_("The mask reused by module `%s` from module `%s`\n"
-                          "cannot be found in the pipeline. Please force a full recomputing\n"
-                          "using the global menu `Run -> Clear all pipeline caches`."),
-                        target_module->name(), source_piece->module->name());
+
+        // Ask for a pipeline re-entry and flush all cache
+        if(dt_dev_pixelpipe_set_reentry(pipe, raster_hash))
+          pipe->flush_cache = TRUE;
+
+        // This should terminate the pipeline now:
+        if(error) *error = 1;
         return NULL;
       }
 

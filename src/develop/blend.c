@@ -422,18 +422,18 @@ static void _develop_blend_process_mask_tone_curve(float *const restrict mask, c
 }
 
 
-void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
+int dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
                               const void *const ivoid, void *const ovoid, const struct dt_iop_roi_t *const roi_in,
                               const struct dt_iop_roi_t *const roi_out)
 {
-  if(piece->pipe->bypass_blendif && self->dev->gui_attached && (self == self->dev->gui_module)) return;
+  if(piece->pipe->bypass_blendif && self->dev->gui_attached && (self == self->dev->gui_module)) return 0;
 
   const dt_develop_blend_params_t *const d = (const dt_develop_blend_params_t *const)piece->blendop_data;
-  if(!d) return;
+  if(!d) return 0;
 
   const unsigned int mask_mode = d->mask_mode;
   // check if blend is disabled
-  if(!(mask_mode & DEVELOP_MASK_ENABLED)) return;
+  if(!(mask_mode & DEVELOP_MASK_ENABLED)) return 0;
 
   const size_t ch = piece->colors;           // the number of channels in the buffer
   const int xoffs = roi_out->x - roi_in->x;
@@ -458,7 +458,7 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
      || ((xoffs > 0 || yoffs > 0) && (owidth + xoffs > iwidth || oheight + yoffs > iheight)))
   {
     dt_control_log(_("skipped blending in module '%s': roi's do not match"), self->op);
-    return;
+    return 0;
   }
 
   // does user want us to display a specific channel?
@@ -489,8 +489,9 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
   if(!_mask)
   {
     dt_control_log(_("could not allocate buffer for blending"));
-    return;
+    return 1;
   }
+  int raster_error = 0;
   float *const restrict mask = _mask;
 
   if(mask_mode == DEVELOP_MASK_ENABLED || suppress_mask)
@@ -502,8 +503,8 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
   {
     /* use a raster mask from another module earlier in the pipe */
     gboolean free_mask = FALSE; // if no transformations were applied we get the cached original back
-    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source, self->raster_mask.sink.id,
-                                                self, &free_mask);
+    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source,
+                                                self->raster_mask.sink.id, self, &free_mask, &raster_error);
 
     if(raster_mask)
     {
@@ -524,6 +525,7 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
     else
     {
       // fallback for when the raster mask couldn't be applied
+      // This is valid if user just enabled raster mask but didn't define a mask yet
       const float value = d->raster_mask_invert ? 0.0 : 1.0;
       dt_iop_image_fill(mask, value, owidth, oheight, 1);  //mask[k] = value;
     }
@@ -681,6 +683,8 @@ void dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelp
     g_hash_table_remove(piece->raster_masks, GINT_TO_POINTER(0));
     dt_free_align(_mask);
   }
+  // raster error is the only one we catch
+  return raster_error;
 }
 
 #ifdef HAVE_OPENCL
@@ -828,14 +832,14 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
                                 cl_mem dev_in, cl_mem dev_out, const struct dt_iop_roi_t *roi_in,
                                 const struct dt_iop_roi_t *roi_out)
 {
-  if(piece->pipe->bypass_blendif && self->dev->gui_attached && (self == self->dev->gui_module)) return TRUE;
+  if(piece->pipe->bypass_blendif && self->dev->gui_attached && (self == self->dev->gui_module)) return 0;
 
   dt_develop_blend_params_t *const d = (dt_develop_blend_params_t *const)piece->blendop_data;
-  if(!d) return TRUE;
+  if(!d) return 0;
 
   const unsigned int mask_mode = d->mask_mode;
   // check if blend is disabled: just return, output is already in dev_out
-  if(!(mask_mode & DEVELOP_MASK_ENABLED)) return TRUE;
+  if(!(mask_mode & DEVELOP_MASK_ENABLED)) return 0;
 
   const int ch = piece->colors; // the number of channels in the buffer
   const int xoffs = roi_out->x - roi_in->x;
@@ -860,7 +864,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
      || ((xoffs > 0 || yoffs > 0) && (owidth + xoffs > iwidth || oheight + yoffs > iheight)))
   {
     dt_control_log(_("skipped blending in module '%s': roi's do not match"), self->op);
-    return TRUE;
+    return 0;
   }
 
   // only non-zero if mask_display was set by an _earlier_ module
@@ -895,7 +899,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
   if(!_mask)
   {
     dt_control_log(_("could not allocate buffer for blending"));
-    return FALSE;
+    return 1;
   }
   float *const mask = _mask;
 
@@ -988,8 +992,9 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
   {
     /* use a raster mask from another module earlier in the pipe */
     gboolean free_mask = FALSE; // if no transformations were applied we get the cached original back
-    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source, self->raster_mask.sink.id,
-                                                self, &free_mask);
+    int raster_error = 0;
+    float *raster_mask = dt_dev_get_raster_mask(piece->pipe, self->raster_mask.sink.source,
+                                                self->raster_mask.sink.id, self, &free_mask, &raster_error);
 
     if(raster_mask)
     {
@@ -1009,7 +1014,11 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
     }
     else
     {
+      // We found an user-param for raster mask but the pipeline lost its reference
+      if(raster_error) goto error;
+
       // fallback for when the raster mask couldn't be applied
+      // that's valid if user just enabled raster mask without defining a source module
       const float value = d->raster_mask_invert ? 0.0 : 1.0;
       dt_iop_image_fill(mask, value, owidth, oheight, 1); //mask[k] = value;
     }
@@ -1281,7 +1290,7 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
   dt_ioppr_free_iccprofile_params_cl(&profile_info_cl, &profile_lut_cl, &dev_profile_info, &dev_profile_lut);
   dt_ioppr_free_iccprofile_params_cl(&work_profile_info_cl, &work_profile_lut_cl, &dev_work_profile_info,
                                      &dev_work_profile_lut);
-  return TRUE;
+  return 0;
 
 error:
   dt_free_align(_mask);
@@ -1295,7 +1304,7 @@ error:
   dt_ioppr_free_iccprofile_params_cl(&work_profile_info_cl, &work_profile_lut_cl, &dev_work_profile_info,
                                      &dev_work_profile_lut);
   dt_print(DT_DEBUG_OPENCL, "[opencl_blendop] couldn't enqueue kernel! %d\n", err);
-  return FALSE;
+  return 1;
 }
 #endif
 
