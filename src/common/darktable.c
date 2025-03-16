@@ -1552,7 +1552,7 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   remaining_memory -= resources->available_memory;
 
   // Sanitize buffer memory in case min_pipeline_memory was already > remaining_memory
-  resources->buffer_memory = MIN(resources->buffer_memory, resources->available_memory / 3);
+  resources->buffer_memory = MIN(resources->buffer_memory, resources->available_memory / 4);
 
   // So, now, split all remaining memory between caches lines
   resources->pixelpipe_memory = MAX(remaining_memory, 0);
