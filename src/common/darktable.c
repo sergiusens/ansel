@@ -1470,12 +1470,12 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   resources->total_memory = _get_total_memory() * 1000;
 
   const size_t threads = darktable.num_openmp_threads;
-  const size_t mem = floorf((float)resources->total_memory / (float)(1024 * 1024));
+  const size_t mem = resources->total_memory / (1024 * 1024);
   const size_t bits = CHAR_BIT * sizeof(void *);
   const gboolean sufficient = (mem >= 4096 && threads >= 2);
 
-  dt_print(DT_DEBUG_MEMORY, "[MEMORY CONFIGURATION] found a %s %zu-bit system with %zu MiB RAM and %zu cores\n",
-    (sufficient) ? "sufficient" : "low performance", bits, mem, threads);
+  dt_print(DT_DEBUG_MEMORY, "[MEMORY CONFIGURATION] found a %s %zu-bit system with %zu cores\n",
+    (sufficient) ? "sufficient" : "low performance", bits, threads);
 
   // Keep OS headroom between 1 GB and a third of the system RAM
   resources->headroom_memory = dt_conf_get_int64("memory_os_headroom") * 1024 * 1024;
@@ -1487,69 +1487,103 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   resources->mipmap_memory
       = CLAMP(resources->mipmap_memory, 256 * 1024 * 1024, resources->total_memory / 6);
 
-  // Keep pixelpipe cache between 256 MB and a sixth of the system RAM
-  resources->pixelpipe_memory = 0;
-  int cache_lines = 0;
+  // Export pipeline at full resolution memory allocs
+  gchar *resolution_str = dt_conf_get_string("raw_resolution");
+  size_t resolution = 2 * 1000 * 1000;
+  if(g_strcmp0(resolution_str, "12 Mpx") == 0) resolution = 12 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "16 Mpx") == 0) resolution = 16 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "24 Mpx") == 0) resolution = 24 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "36 Mpx") == 0) resolution = 36 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "46 Mpx") == 0) resolution = 46 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "52 Mpx") == 0) resolution = 52 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "72 Mpx") == 0) resolution = 72 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "100 Mpx") == 0) resolution = 100 * 1000 * 1000;
+  else if(g_strcmp0(resolution_str, "150 Mpx") == 0) resolution = 150 * 1000 * 1000;
+
+  // RGBA float32 image:
+  size_t export_pipe_size = resolution * 4 * sizeof(float);
+
+  // Darkroom preview pipeline at 720x450 px (fixed)
+  // only in GUI mode
+  size_t preview_pipe_size = 0;
+
+  // Darkroom main image pipeline at screen resolution-ish
+  size_t darkroom_pipe_size = 0;
+
   if(init_gui)
   {
-    resources->pixelpipe_memory = dt_conf_get_int64("memory_pixelpipe_cache") * 1024 * 1024;
-    resources->pixelpipe_memory
-        = CLAMP(resources->pixelpipe_memory, 256 * 1024 * 1024, resources->total_memory / 6);
-
-    // Init the cache size with the max size of a main darkroom image preview in full screen
     gint width = 1920;
     gint height = 1080;
     gtk_window_get_size(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), &width, &height);
+
+    // High-DPI scalings
     width *= darktable.gui->ppd;
     height *= darktable.gui->ppd;
 
-    // Window size includes title bar and images are typically 3:2, while displays are 16:9 or 16:10,
-    // so it's fair to assume that the image fitting in there will be smaller.
-    resources->darkroom_cache = width * height * 80 / 100;
-
-    const size_t preview_pipe_size = 720 * 450;
-    size_t cache_line_size = 4 * sizeof(float) * (preview_pipe_size + resources->darkroom_cache);
-
-    // For each module, we need at least 2 cache lines: input/output
-    // Note that only preview and image pipeline (darkroom) have fixed-sized (max) sizes.
-    // For export and thumbnails pipe, it's whatever the output requests (dynamic).
-    cache_lines = MAX(resources->pixelpipe_memory / cache_line_size, 2);
-
-    // Update actual size after cache lines rounding
-    resources->pixelpipe_memory = cache_line_size * cache_lines;
-
-    // Only preview and image pipelines use an user-configured cache lines number
-    // Those pipes don't exist if we don't have a GUI (ansel-cli)
-    dt_conf_set_int("cachelines", cache_lines);
+    // The main darkroom image fits within window, meaning it's almost never fully covering it.
+    // RGBA float32 images:
+    darkroom_pipe_size = width * height * 4 * sizeof(float) * 90 / 100;
+    preview_pipe_size = 720 * 450 * 4 * sizeof(float);
   }
 
-  // Technically, the available memory is therefore at least a third of the system RAM
-  resources->available_memory
-      = resources->total_memory - resources->headroom_memory - resources->mipmap_memory - resources->pixelpipe_memory;
+  // Get the minimal memory size needed at ANY time for ANY running pipeline
+  // to be guaranteed workable.
+  // That is 4 buffers: in/out and 1 in-module temporary alloc and 1 mask.
+  // Note: preview pipe and main pipe in darkroom don't run at the same time,
+  // and if users want to run export from darkroom, it's their own responsibility.
+  resources->buffer_memory = MAX(MAX(darkroom_pipe_size, preview_pipe_size), export_pipe_size);
+  const size_t min_pipeline_memory = 4 * resources->buffer_memory;
 
-  // Module in/out/temp buffers: split available memory in 3
-  resources->buffer_memory = resources->available_memory / 3;
+  // Thumbnail and export pipes have a static pixel cache size : 4 entries (in/out + mask + raster). Done !
 
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Total system RAM: %.3f GiB\n"),
-           (float)resources->total_memory / (float)(1024 * 1024 * 1024));
+  // But darkroom pipes have a pixelpipe cache that can save intermediate module outputs
+  // to restart computing from the last unchanged module.
+  // Estimate the max temporary memory used in darkroom at runtime for 10 buffers
+  // (wavelets separation, local laplacian) such that we avoid tiling.
+  const size_t ideal_pipeline_memory = MAX(min_pipeline_memory, 10 * MAX(darkroom_pipe_size, preview_pipe_size));
 
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] OS & Apps RAM headroom: %.3f GiB\n"),
-           (float)resources->headroom_memory / (float)(1024 * 1024 * 1024));
+  // Now, assign our final pipeline memory.
+  // Remaining memory so far is at least 50% of total system memory.
+  size_t remaining_memory = resources->total_memory - resources->mipmap_memory - resources->headroom_memory;
+  resources->available_memory = MAX(ideal_pipeline_memory, min_pipeline_memory);
+  resources->available_memory = MIN(resources->available_memory, remaining_memory);
+  // don't use CLAMP, because we have no guaranty that min_pipeline_memory < remaining_memory
+  // and remaining_memory gets the last say since we can't stretch it
+  remaining_memory -= resources->available_memory;
 
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Lightable thumbnails cache size: %.3f GiB\n"),
-           (float)resources->mipmap_memory / (float)(1024 * 1024 * 1024));
+  // Sanitize buffer memory in case min_pipeline_memory was already > remaining_memory
+  resources->buffer_memory = MIN(resources->buffer_memory, resources->available_memory / 3);
 
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache size: %.3f GiB\n"),
-           (float)resources->pixelpipe_memory / (float)(1024 * 1024 * 1024));
+  // So, now, split all remaining memory between caches lines
+  resources->pixelpipe_memory = MAX(remaining_memory, 0);
+
+  // Can't work with fewer than 4 cachelines, we need at least in/out + mask + raster
+  const int cache_lines = MAX(remaining_memory / (darkroom_pipe_size + preview_pipe_size), 4);
+  dt_conf_set_int("cachelines", cache_lines);
+
+  // Print
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Total system RAM: %lu MiB\n"),
+           resources->total_memory / (1024 * 1024));
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] OS & Apps RAM headroom: %lu MiB\n"),
+           resources->headroom_memory / (1024 * 1024));
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Lightable thumbnails cache size: %lu MiB\n"),
+           resources->mipmap_memory / (1024 * 1024));
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache size: %lu MiB\n"),
+           resources->pixelpipe_memory / (1024 * 1024));
 
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache lines: %i\n"),
            cache_lines);
 
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Available RAM for pixel processing: %.3f GiB\n"),
-           (float)resources->available_memory / (float)(1024 * 1024 * 1024));
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Available RAM for pixel processing: %lu MiB\n"),
+           resources->available_memory / (1024 * 1024));
 
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Max pixel buffer size: %.3f GiB\n"),
-           (float)resources->buffer_memory / (float)(1024 * 1024 * 1024));
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Max pixel buffer size: %lu MiB (%s RGBA float32)\n"),
+           resources->buffer_memory / (1024 * 1024), resolution_str);
+
+  g_free(resolution_str);
 }
 
 int dt_capabilities_check(char *capability)
