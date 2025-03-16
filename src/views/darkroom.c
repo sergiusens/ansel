@@ -923,6 +923,9 @@ static void _iso_12646_quickbutton_clicked(GtkWidget *w, gpointer user_data)
 
   d->iso_12646.enabled = !d->iso_12646.enabled;
   _get_final_size_with_iso_12646(d);
+
+  // This is already called in _get_final_size_... but it's not enough
+  dt_control_queue_redraw_center();
 }
 
 /* overlay color */
