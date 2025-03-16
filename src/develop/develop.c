@@ -372,7 +372,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 {
   dt_dev_pixelpipe_t *pipe = dev->preview_pipe;
   pipe->running = 1;
-  float *image_buffer = NULL;
 
   dt_pthread_mutex_lock(&pipe->busy_mutex);
 
@@ -391,10 +390,8 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
   if(!finish_on_error)
   {
-    image_buffer = dt_alloc_align(buf.cache_entry->data_size);
-    memcpy(image_buffer, buf.buf, buf.cache_entry->data_size);
     dt_mipmap_cache_release(cache, &buf);
-    dt_dev_pixelpipe_set_input(pipe, dev, image_buffer, buf_width, buf_height, buf_iscale);
+    dt_dev_pixelpipe_set_input(pipe, dev, dev->image_storage.id, buf_width, buf_height, buf_iscale, DT_MIPMAP_F);
     dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %lu×%lu px\n", buf_width, buf_height);
   }
 
@@ -447,8 +444,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
   dt_pthread_mutex_unlock(&pipe->busy_mutex);
 
-  if(image_buffer) dt_free_align(image_buffer);
-
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting preview pipe thread\n");
   dt_control_queue_redraw();
@@ -468,7 +463,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
   dt_dev_pixelpipe_t *pipe = dev->pipe;
   pipe->running = 1;
-  float *image_buffer = NULL;
 
   dt_pthread_mutex_lock(&pipe->busy_mutex);
 
@@ -483,10 +477,8 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   const size_t buf_height = buf.height;
   if(!finish_on_error)
   {
-    image_buffer = dt_alloc_align(buf.cache_entry->data_size);
-    memcpy(image_buffer, buf.buf, buf.cache_entry->data_size);
     dt_mipmap_cache_release(cache, &buf);
-    dt_dev_pixelpipe_set_input(pipe, dev, image_buffer, buf_width, buf_height, 1.0);
+    dt_dev_pixelpipe_set_input(pipe, dev, dev->image_storage.id, buf_width, buf_height, 1.0, DT_MIPMAP_FULL);
   }
 
   float scale = 1.f, zoom_x = 1.f, zoom_y = 1.f;
@@ -577,8 +569,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   pipe->processing = 0;
 
   dt_pthread_mutex_unlock(&pipe->busy_mutex);
-
-  if(image_buffer) dt_free_align(image_buffer);
 
   pipe->running = 0;
   dt_print(DT_DEBUG_DEV, "[pixelpipe] exiting main image pipe thread\n");

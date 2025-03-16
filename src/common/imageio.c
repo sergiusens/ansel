@@ -1000,7 +1000,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
-  float *image_buffer = NULL;
   const dt_image_t *img = &dev.image_storage;
 
   // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
@@ -1008,11 +1007,15 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   // we can't use it as input for larger thumbnails, for obvious reasons.
   // WARNING: if the editing pipeline applies cropping and the final requested image
   // is less than 720x450 px, we will still produce an undersampled thumnbail.
+  dt_mipmap_size_t size = DT_MIPMAP_NONE;
+
   if(thumbnail_export && format_params->max_width <= cache->max_width[DT_MIPMAP_F]
      && format_params->max_height <= cache->max_height[DT_MIPMAP_F])
-    dt_mipmap_cache_get(cache, &buf, imgid, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
+    size = DT_MIPMAP_F;
   else
-    dt_mipmap_cache_get(cache, &buf, imgid, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
+    size = DT_MIPMAP_FULL;
+
+  dt_mipmap_cache_get(cache, &buf, imgid, size, DT_MIPMAP_BLOCKING, 'r');
 
   if(!buf.buf || !buf.width || !buf.height)
   {
@@ -1022,8 +1025,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   }
 
   // Take a local copy of the buffer so we can release the mipmap cache lock immediately
-  image_buffer = dt_alloc_align(buf.cache_entry->data_size);
-  memcpy(image_buffer, buf.buf, buf.cache_entry->data_size);
   const size_t buf_width = buf.width;
   const size_t buf_height = buf.height;
   const float buf_iscale = buf.iscale;
@@ -1056,7 +1057,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   // Update the ICC type if DT_COLORSPACE_NONE is passed
   dt_colorspaces_get_output_profile(imgid, &icc_type, icc_filename);
   dt_dev_pixelpipe_set_icc(&pipe, icc_type, icc_filename, icc_intent);
-  dt_dev_pixelpipe_set_input(&pipe, &dev, image_buffer, buf_width, buf_height, buf_iscale);
+  dt_dev_pixelpipe_set_input(&pipe, &dev, imgid, buf_width, buf_height, buf_iscale, size);
   dt_dev_pixelpipe_create_nodes(&pipe, &dev);
   dt_dev_pixelpipe_synch_all(&pipe, &dev);
 
@@ -1181,7 +1182,6 @@ error:
 error_early:
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_cleanup(&dev);
-  if(image_buffer) dt_free_align(image_buffer);
   return 1;
 }
 

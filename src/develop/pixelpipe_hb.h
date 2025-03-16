@@ -127,8 +127,11 @@ typedef struct dt_dev_pixelpipe_t
 {
   // store history/zoom caches
   dt_dev_pixelpipe_cache_t cache;
-  // input buffer
-  float *input;
+
+  // input image. Will be fetched directly from mipmap cache
+  int32_t imgid;
+  dt_mipmap_size_t size;
+
   // width and height of input buffer
   int iwidth, iheight;
   // input actually just downscaled buffer? iscale*iwidth = actual width
@@ -234,8 +237,8 @@ int dt_dev_pixelpipe_init_dummy(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t
 // inits the pixelpipe with given cacheline size and number of entries.
 int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t entries);
 // constructs a new input buffer from given RGB float array.
-void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev, float *input, int width,
-                                int height, float iscale);
+void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev, int32_t imgid, int width,
+                                int height, float iscale, dt_mipmap_size_t size);
 // set some metadata for colorout to avoid race conditions.
 void dt_dev_pixelpipe_set_icc(dt_dev_pixelpipe_t *pipe, dt_colorspaces_color_profile_type_t icc_type,
                               const gchar *icc_filename, dt_iop_color_intent_t icc_intent);

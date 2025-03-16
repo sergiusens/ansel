@@ -94,10 +94,10 @@ static char *_pipe_type_to_str(int pipe_type)
   return r;
 }
 
-inline static void _copy_buffer(const char *const input, char *const output,
-                           const size_t height, const size_t o_width, const size_t i_width,
-                           const size_t x_offset, const size_t y_offset,
-                           const size_t stride, const size_t bpp)
+inline static void _copy_buffer(const char *const restrict input, char *const restrict output,
+                                const size_t height, const size_t o_width, const size_t i_width,
+                                const size_t x_offset, const size_t y_offset,
+                                const size_t stride, const size_t bpp)
 {
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
@@ -226,14 +226,15 @@ int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t 
   return 1;
 }
 
-void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, float *input, int width, int height,
-                                float iscale)
+void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int32_t imgid, int width, int height,
+                                float iscale, dt_mipmap_size_t size)
 {
   pipe->iwidth = width;
   pipe->iheight = height;
   pipe->iscale = iscale;
-  pipe->input = input;
+  pipe->imgid = imgid;
   pipe->image = dev->image_storage;
+  pipe->size = size;
   get_output_format(NULL, pipe, NULL, dev, &pipe->dsc);
 }
 
@@ -1921,33 +1922,48 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
                              const gboolean bypass_cache,
                              const size_t bufsize, const size_t bpp)
 {
-// we're looking for the full buffer
-  if(roi_out->scale == 1.0 && roi_out->x == 0 && roi_out->y == 0 && pipe->iwidth == roi_out->width
-      && pipe->iheight == roi_out->height)
+  // Note: dt_dev_pixelpipe_cache_get actually init/alloc *output
+  if(bypass_cache || dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, output, out_format))
   {
-    *output = pipe->input;
-    return 0;
-  }
-  else if(bypass_cache || dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, output, out_format))
-  {
+    // Grab input buffer from mipmap cache.
+    // We will have to copy it here and in pixelpipe cache because it can get evicted from mipmap cache
+    // anytime after we release the lock, so it would not be thread-safe to just use a reference
+    // to full-sized buffer. Otherwise, skip dt_dev_pixelpipe_cache_get and
+    // *output = buf.buf for 1:1 at full resolution.
+    dt_mipmap_buffer_t buf;
+    dt_mipmap_cache_get(darktable.mipmap_cache, &buf, pipe->imgid, pipe->size, DT_MIPMAP_BLOCKING, 'r');
+
+    // Cache size has changed since we inited pipe input ?
+    // Note: we know pipe->iwidth/iheight are non-zero or we would have not launched a pipe.
+    // Note 2: there is no valid reason for a cacheline to change size during runtime.
+    if(!buf.buf || buf.height != pipe->iheight || buf.width != pipe->iwidth)
+    {
+      // Nothing we can do, we need to recompute roi_in and roi_out from scratch
+      // for all modules with new sizes. Exit on error and catch that in develop.
+      dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+      return 1;
+    }
+
     if(roi_in->scale == 1.0f)
     {
       // fast branch for 1:1 pixel copies.
       // last minute clamping to catch potential out-of-bounds in roi_in and roi_out
       const int in_x = MAX(roi_in->x, 0);
       const int in_y = MAX(roi_in->y, 0);
-      const int cp_width = MAX(0, MIN(roi_out->width, pipe->iwidth - in_x));
+      const int cp_width = MIN(roi_out->width, pipe->iwidth - in_x);
       const int cp_height = MIN(roi_out->height, pipe->iheight - in_y);
 
       if(cp_width > 0 && cp_height > 0)
       {
-        _copy_buffer((const char *const)pipe->input, (char *const)*output, cp_height, roi_out->width,
+        _copy_buffer((const char *const)buf.buf, (char *const)*output, cp_height, roi_out->width,
                       pipe->iwidth, in_x, in_y, bpp * cp_width, bpp);
+        dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
         return 0;
       }
       else
       {
         // Invalid dimensions
+        dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
         return 1;
       }
     }
@@ -1959,7 +1975,8 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
       roi_in->width = pipe->iwidth;
       roi_in->height = pipe->iheight;
       roi_in->scale = 1.0f;
-      dt_iop_clip_and_zoom(*output, pipe->input, roi_out, roi_in, roi_out->width, pipe->iwidth);
+      dt_iop_clip_and_zoom(*output, (const float *const)buf.buf, roi_out, roi_in, roi_out->width, pipe->iwidth);
+      dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
       return 0;
     }
     else
@@ -1968,6 +1985,8 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
                 "Base buffer init: scale %f != 1.0 but the input has %li bytes per pixel. This case is not "
                 "covered by the pipeline, please report the bug.\n",
                 roi_out->scale, bpp);
+
+      dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
       return 1;
     }
   }
