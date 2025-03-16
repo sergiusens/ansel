@@ -257,7 +257,7 @@ static gboolean _get_row_ids(dt_thumbtable_t *table, int *rowid_min, int *rowid_
     // what is currently visible lies between position and position + page_size.
     // don't preload next/previous rows because, when in 1 thumb/column,
     // that can be quite slow
-    int row_min = (position) / table->thumb_height;
+    int row_min = floorf((float)position / (float)table->thumb_height);
     int row_max = (position + page_size) / table->thumb_height + 1;
 
     // rowid is the positional ID of the image in the SQLite collection, indexed from 0.
