@@ -272,9 +272,11 @@ char *dt_history_get_items_as_string(const int32_t imgid)
        sqlite3_column_int(stmt, 1));
 
     char *name = g_strconcat(iname, multi_name ? multi_name : "", NULL);
-    items = g_list_prepend(items, name);
+    char *clean_name = delete_underscore(name);
+    items = g_list_prepend(items, clean_name);
 
     g_free(iname);
+    g_free(name);
     g_free(multi_name);
   }
   sqlite3_finalize(stmt);
