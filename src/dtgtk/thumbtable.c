@@ -255,8 +255,10 @@ static gboolean _get_row_ids(dt_thumbtable_t *table, int *rowid_min, int *rowid_
     int position = gtk_adjustment_get_value(table->v_scrollbar);
 
     // what is currently visible lies between position and position + page_size.
-    int row_min = (position) / table->thumb_height - 2;
-    int row_max = (position + page_size) / table->thumb_height + 2;
+    // don't preload next/previous rows because, when in 1 thumb/column,
+    // that can be quite slow
+    int row_min = (position) / table->thumb_height;
+    int row_max = (position + page_size) / table->thumb_height;
 
     // rowid is the positional ID of the image in the SQLite collection, indexed from 0.
     // SQLite indexes from 1 but then be use our own array to cache results.
@@ -268,6 +270,7 @@ static gboolean _get_row_ids(dt_thumbtable_t *table, int *rowid_min, int *rowid_
     int page_size = gtk_adjustment_get_page_size(table->h_scrollbar);
     int position = gtk_adjustment_get_value(table->h_scrollbar);
 
+    // Preload the previous and next pages too because thumbnails are typically small
     int row_min = (position - page_size) / table->thumb_width;
     int row_max = (position + 2 * page_size) / table->thumb_width;
 
@@ -284,8 +287,7 @@ gboolean _is_rowid_visible(dt_thumbtable_t *table, int rowid)
   if(!table->configured || !table->v_scrollbar || !table->h_scrollbar) return FALSE;
 
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
-  {
-    // Pixel coordinates of the viewport:
+  {    // Pixel coordinates of the viewport:
     int page_size = gtk_adjustment_get_page_size(table->v_scrollbar);
     int position = gtk_adjustment_get_value(table->v_scrollbar);
     int page_bottom = page_size + position;
