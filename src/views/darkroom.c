@@ -728,11 +728,6 @@ static void zoom_out_callback(dt_action_t *action)
 
 #endif
 
-static void _darkroom_ui_pipe_finish_signal_callback(gpointer instance, gpointer data)
-{
-  dt_control_queue_redraw_center();
-}
-
 static void _darkroom_ui_apply_style_activate_callback(gchar *name)
 {
   dt_control_log(_("applied style `%s' on current image"), name);
@@ -1938,10 +1933,6 @@ void enter(dt_view_t *self)
   // clean the undo list
   dt_undo_clear(darktable.undo, DT_UNDO_DEVELOP);
 
-  /* connect to ui pipe finished signal for redraw */
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_UI_PIPE_FINISHED,
-                            G_CALLBACK(_darkroom_ui_pipe_finish_signal_callback), (gpointer)self);
-
   dt_print(DT_DEBUG_CONTROL, "[run_job+] 11 %f in darkroom mode\n", dt_get_wtime());
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
@@ -2102,10 +2093,6 @@ void leave(dt_view_t *self)
 
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_darkroom_filmstrip_activate_callback),
-                               (gpointer)self);
-
-  /* disconnect from pipe finish signal */
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_darkroom_ui_pipe_finish_signal_callback),
                                (gpointer)self);
 
   // store groups for next time:
