@@ -1527,7 +1527,9 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
     // The main darkroom image fits within window, meaning it's almost never fully covering it.
     // RGBA float32 images:
     darkroom_pipe_size = width * height * 4 * sizeof(float) * 90 / 100;
-    preview_pipe_size = 720 * 450 * 4 * sizeof(float);
+
+    // Preview pipe is 720x450 px for raster inputs, else twice as much for RAW
+    preview_pipe_size = 1440 * 900 * 4 * sizeof(float);
   }
 
   // Get the minimal memory size needed at ANY time for ANY running pipeline
@@ -1562,7 +1564,7 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   resources->pixelpipe_memory = MAX(remaining_memory, 0);
 
   // Can't work with fewer than 4 cachelines, we need at least in/out + mask + raster
-  const int cache_lines = MAX(remaining_memory / (darkroom_pipe_size + preview_pipe_size), 4);
+  const int cache_lines = MAX(remaining_memory / MAX(darkroom_pipe_size + preview_pipe_size, 1), 4);
   dt_conf_set_int("cachelines", cache_lines);
 
   // Print
