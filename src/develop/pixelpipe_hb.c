@@ -532,6 +532,16 @@ void dt_dev_pixelpipe_synch(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, GList *
   }
 }
 
+/**
+ * @brief Find the last history item matching each pipeline node (module), in the order of pipeline execution.
+ * This is super important because modules providing raster masks need to be inited before modules using them,
+ * in the order of pipeline nodes. But history holds no guaranty that raster masks providers will be older
+ * than raster masks users, especially after history compression. So reading in history order is not an option.
+ *
+ * @param pipe
+ * @param dev
+ * @param caller_func
+ */
 void dt_dev_pixelpipe_synch_all_real(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, const char *caller_func)
 {
   dt_print(DT_DEBUG_DEV, "[pixelpipe] synch all modules with defaults_params for pipe %i called from %s\n", pipe->type, caller_func);
@@ -611,6 +621,10 @@ void dt_dev_pixelpipe_synch_top(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev)
     // We also need to care about the case where the history_end is not at the actual end of the history
     // aka stop looping before we overflow the desired range of history.
     GList *fence_item = g_list_nth(dev->history, dt_dev_get_history_end(dev));
+    // if the history end cursor is at the actual end of the history, dt_dev_get_history_end()
+    // returns an index that is outside of the range (equal to number of elements),
+    // so fence_item = NULL but the code works as expected since we check history != NULL
+    // first.
     for(GList *history = first_item; history && history != fence_item; history = g_list_next(history))
     {
       dt_dev_history_item_t *hist = (dt_dev_history_item_t *)history->data;

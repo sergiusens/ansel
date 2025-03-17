@@ -254,8 +254,6 @@ typedef struct dt_iop_module_t
     struct {
       /** the module that provides the raster mask (if any). keep in sync with blend_params! */
       struct dt_iop_module_t *source;
-      /** the blendop_hash representing the current state of masking parameters */
-      uint64_t hash;
       int id;
     } sink;
   } raster_mask;
@@ -496,12 +494,37 @@ void dt_bauhaus_value_changed_default_callback(GtkWidget *widget);
 
 
 /** Uniform way of getting the full state hash of user-defined parameters, including masks and blending.
- * Writes the value in module->hash. Needs module->blendop_hash to be inited first,
- * meaning call dt_iop_compute_blendop_hash() before calling that.
+ * Writes the value in module->hash, also writes the module->blendop_hash for masking and blending.
+ *
  * WARNING: doesn't take into account parameters dynamically set at runtime.
+ *
+ * WARNING: if computing module hash in HISTORY order, there is no guaranty that
+ * previous modules in PIPELINE are also previous modules in HISTORY,
+ * so their blendops & masks may not be inited yet, meaning the blendop_hash we compute here
+ * will be garbage. In particular, (legacy) history compression algo can mess with history order,
+ * such that history entries of raster mask providers can end up after history entries of raster mask consumers.
+ * Our current history compression does a pipeline snapshot in pipeline order, for user-changed modules.
+ * (Raster masks providers and consumers will all be user-changed modules).
+ *
+ * IF COMPUTING HASHES FOR PIPE CACHE INVALIDATION, that means we need to redo blendop/module hash recomputation
+ * at commit_params time, when pushing history to pipeline (but mandatorily in pipeline order).
+ * 
+ * IF COMPUTING HASHES FOR HISTORY CONSISTENCY (auto-saving when needed), since all we care is user params,
+ * it doesn't matter.
 */
 void dt_iop_compute_module_hash(dt_iop_module_t *module);
-void dt_iop_compute_blendop_hash(dt_iop_module_t *module);
+
+/**
+ * @brief Iterator function meant to be used with
+ * `g_hash_table_foreach(module->raster_mask.source.users, (GHFunc)dt_iop_hash_raster_masks, (gpointer)&hash)`.
+ * Hash and combine the blendop params of each module using
+ * the raster masks provided by the current `module`.
+ *
+ * @param key `dt_iop_module_t *module`
+ * @param value not used
+ * @param hash hash to update
+*/
+void dt_iop_hash_raster_masks(gpointer key, gpointer value, uint64_t *hash);
 
 // Use module fingerprints to determine if two instances are actually the same
 gboolean dt_iop_check_modules_equal(dt_iop_module_t *mod_1, dt_iop_module_t *mod_2);

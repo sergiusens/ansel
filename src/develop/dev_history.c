@@ -535,9 +535,6 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
     }
   }
 
-  dt_iop_compute_blendop_hash(module);
-  dt_iop_compute_module_hash(module);
-
   // look for leaks on top of history
   _remove_history_leaks(dev);
 
@@ -591,6 +588,8 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   }
 
   // Always resync history with all module internals
+  if(enable) module->enabled = TRUE;
+  hist->enabled = module->enabled;
   hist->module = module;
   hist->iop_order = module->iop_order;
   hist->multi_priority = module->multi_priority;
@@ -622,8 +621,8 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   else if(include_masks)
     dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] masks NOT committed for module %s at history position %i\n", module->name(), hist->num);
 
-  if(enable) module->enabled = TRUE;
-  hist->enabled = module->enabled;
+  // Refresh hashes now because they use enabled state and masks
+  dt_iop_compute_module_hash(module);
   hist->hash = module->hash;
 
   // It is assumed that the last-added history entry is always on top
@@ -659,6 +658,7 @@ uint64_t dt_dev_history_get_hash(dt_develop_t *dev)
     dt_dev_history_item_t *item = (dt_dev_history_item_t *)hist->data;
     hash = dt_hash(hash, (const char *)&item->hash, sizeof(uint64_t));
   }
+  dt_print(DT_DEBUG_HISTORY, "[dt_dev_history_get_hash] history hash: %lu, history end: %i, items %i\n", hash, dt_dev_get_history_end(dev), g_list_length(dev->history));
   return hash;
 }
 
@@ -877,21 +877,30 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
   for(int i = 0; i < dt_dev_get_history_end(dev) && history; i++)
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
-    memcpy(hist->module->params, hist->params, hist->module->params_size);
-    dt_iop_commit_blend_params(hist->module, hist->blend_params);
+    dt_iop_module_t *module = hist->module;
 
-    hist->module->iop_order = hist->iop_order;
-    hist->module->enabled = hist->enabled;
-    hist->module->multi_priority = hist->multi_priority;
-    g_strlcpy(hist->module->multi_name, hist->multi_name, sizeof(hist->module->multi_name));
+    // Update everything from history to modules
+    memcpy(module->params, hist->params, hist->module->params_size);
+    g_strlcpy(module->multi_name, hist->multi_name, sizeof(module->multi_name));
+    module->iop_order = hist->iop_order;
+    module->enabled = hist->enabled;
+    module->multi_priority = hist->multi_priority;
 
-    // This needs to run after dt_iop_compute_blendop_hash()
-    // which is called in dt_iop_commit_blend_params
-    dt_iop_compute_module_hash(hist->module);
-    hist->hash = hist->module->hash;
+    dt_iop_commit_blend_params(module, hist->blend_params);
 
-    if(hist->forms) forms = hist->forms;
+    // Module hash uses the drawn masks forms from global dev->forms because that's the
+    // general use case. Meaning we need to override them step by step.
+    // TODO: can be made faster ?
+    if(hist->forms) dt_masks_replace_current_forms(dev, hist->forms);
 
+    // Relies on params, blendops, forms and raster masks, aka should run last
+    dt_iop_compute_module_hash(module);
+
+    if(hist->hash != module->hash)
+      fprintf(stderr, "[dt_dev_pop_history_items] module hash is not consistent with history hash for %s : %lu != %lu \n",
+              module->op, module->hash, hist->hash);
+
+    hist->hash = module->hash;
     history = g_list_next(history);
   }
 
@@ -1530,7 +1539,7 @@ static void _init_default_history(dt_develop_t *dev, const int32_t imgid, gboole
   dt_print(DT_DEBUG_HISTORY, "[history] temporary history merged with image history\n");
 }
 
-
+// populate hist->module
 static void _find_so_for_history_entry(dt_develop_t *dev, dt_dev_history_item_t *hist)
 {
   dt_iop_module_t *match = NULL;
@@ -1612,14 +1621,13 @@ static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, 
   {
     if(!hist->module->legacy_params
         || hist->module->legacy_params(hist->module, module_params, labs(modversion),
-                                      hist->params, labs(hist->module->version())))
+                                       hist->params, labs(hist->module->version())))
     {
       fprintf(stderr, "[dev_read_history] module `%s' version mismatch: history is %d, dt %d.\n",
               hist->module->op, modversion, hist->module->version());
 
       dt_control_log(_("module `%s' version mismatch: %d != %d"), hist->module->op,
                       hist->module->version(), modversion);
-      dt_dev_free_history_item(hist);
       return 1;
     }
     else
@@ -1645,13 +1653,11 @@ static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, 
     }
   }
 
-  // Copy params from history entry to module internals
-  memcpy(hist->module->params, hist->params, hist->module->params_size);
-
   return 0;
 }
 
-static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int32_t imgid, int *legacy_params)
+// WARNING: this does not set hist->forms
+static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int32_t imgid, int *legacy_params)
 {
   // Unpack the DB blobs
   const int id = sqlite3_column_int(stmt, 0);
@@ -1659,7 +1665,7 @@ static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, cons
   const int modversion = sqlite3_column_int(stmt, 2);
   const char *module_name = (const char *)sqlite3_column_text(stmt, 3);
   const void *module_params = sqlite3_column_blob(stmt, 4);
-  int enabled = sqlite3_column_int(stmt, 5);
+  const int enabled = sqlite3_column_int(stmt, 5);
   const void *blendop_params = sqlite3_column_blob(stmt, 6);
   const int blendop_version = sqlite3_column_int(stmt, 7);
   const int multi_priority = sqlite3_column_int(stmt, 8);
@@ -1676,7 +1682,7 @@ static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, cons
   {
     fprintf(stderr, "[dev_read_history] database history for image `%s' seems to be corrupted!\n",
             dev->image_storage.filename);
-    return 1;
+    return;
   }
 
   const int iop_order = dt_ioppr_get_iop_order(dev->iop_order_list, module_name, multi_priority);
@@ -1684,10 +1690,10 @@ static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, cons
   // Init a bare minimal history entry
   dt_dev_history_item_t *hist = (dt_dev_history_item_t *)calloc(1, sizeof(dt_dev_history_item_t));
   hist->module = NULL;
-  hist->enabled = (enabled != 0); // "cast" int into a clean gboolean
   hist->num = num;
   hist->iop_order = iop_order;
   hist->multi_priority = multi_priority;
+  hist->enabled = enabled;
   g_strlcpy(hist->op_name, module_name, sizeof(hist->op_name));
   g_strlcpy(hist->multi_name, multi_name, sizeof(hist->multi_name));
 
@@ -1696,49 +1702,54 @@ static int _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, cons
 
   if(!hist->module)
   {
+    // History will be lost forever for this module
     fprintf(
         stderr,
         "[dev_read_history] the module `%s' requested by image `%s' is not installed on this computer!\n",
         module_name, dev->image_storage.filename);
     free(hist);
-    return 1;
+    return;
   }
-
-  // Update IOP order stuff, that applies to all modules regardless of their internals
-  hist->module->iop_order = hist->iop_order;
-  dt_iop_update_multi_priority(hist->module, hist->multi_priority);
 
   // module has no user params and won't bother us in GUI - exit early, we are done
   if(hist->module->flags() & IOP_FLAGS_NO_HISTORY_STACK)
   {
+    // Update IOP order stuff, that applies to all modules regardless of their internals
+    // but for modules that have an history stack, we handle this later
+    hist->module->iop_order = hist->iop_order;
+    dt_iop_update_multi_priority(hist->module, hist->multi_priority);
+
+    // Since it's the last we hear from this module as far as history is concerned,
+    // compute its hash here.
+    dt_iop_compute_module_hash(hist->module);
+
+    // Done. We don't add to history
     free(hist);
-    return 1;
+    return;
   }
+
+  // Copy module params if valid version, else try to convert legacy params
+  if(_sync_params(hist, module_params, param_length, modversion, legacy_params))
+  {
+    free(hist);
+    return;
+  }
+
+  // So far, on error we haven't allocated any buffer, so we just freed the hist structure
 
   // Last chance & desperate attempt at enabling/disabling critical modules
   // when history is garbled - This might prevent segfaults on invalid data
-  if(hist->module->force_enable) enabled = hist->module->force_enable(hist->module, enabled);
+  if(hist->module->force_enable)
+    hist->enabled = hist->module->force_enable(hist->module, hist->enabled);
 
-  dt_print(DT_DEBUG_HISTORY, "[history] successfully loaded module %s history (enabled: %i)\n", hist->module->op, enabled);
-
-  // Copy instance name
-  g_strlcpy(hist->module->multi_name, hist->multi_name, sizeof(hist->module->multi_name));
+  // make sure that always-on modules are always on. duh.
+  if(hist->module->default_enabled == 1 && hist->module->hide_enable_button == 1)
+    hist->enabled = TRUE;
 
   // Copy blending params if valid, else try to convert legacy params
   _sync_blendop_params(hist, blendop_params, bl_length, blendop_version, legacy_params);
 
-  // Copy module params if valid, else try to convert legacy params
-  if(_sync_params(hist, module_params, param_length, modversion, legacy_params))
-    return 1;
-
-  // make sure that always-on modules are always on. duh.
-  if(hist->module->default_enabled == 1 && hist->module->hide_enable_button == 1)
-    hist->enabled = hist->module->enabled = TRUE;
-
   dev->history = g_list_append(dev->history, hist);
-  dt_dev_set_history_end(dev, dt_dev_get_history_end(dev) + 1);
-
-  return 0;
 }
 
 
@@ -1772,10 +1783,8 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   // Strip rows from DB lookup. One row == One module in history
   while(sqlite3_step(stmt) == SQLITE_ROW)
-  {
-    if(_process_history_db_entry(dev, stmt, imgid, &legacy_params))
-      continue;
-  }
+    _process_history_db_entry(dev, stmt, imgid, &legacy_params);
+
   sqlite3_finalize(stmt);
 
   // find the new history end
@@ -1796,9 +1805,11 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   // Update masks history
   // Note: until there, we had only blendops. No masks
+  // writes hist->forms for each history entry, from DB
   dt_masks_read_masks_history(dev, imgid);
 
-  // Copy and publish the masks on the raster stack for other modules to find
+  // Now we have fully-populated history items:
+  // Commit params to modules and publish the masks on the raster stack for other modules to find
   for(GList *history = g_list_first(dev->history); history; history = g_list_next(history))
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)history->data;
@@ -1813,15 +1824,25 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
       continue;
     }
 
+    dt_iop_module_t *module = hist->module;
+    module->enabled = hist->enabled;
+
+    // Update IOP order stuff, that applies to all modules regardless of their internals
+    module->iop_order = hist->iop_order;
+    dt_iop_update_multi_priority(module, hist->multi_priority);
+
+    // Copy instance name
+    g_strlcpy(module->multi_name, hist->multi_name, sizeof(module->multi_name));
+
+    // Copy params from history entry to module internals
+    memcpy(module->params, hist->params, module->params_size);
     dt_iop_commit_blend_params(hist->module, hist->blend_params);
 
-    // Compute the history params hash.
-    // This needs to run after dt_iop_compute_blendop_hash(),
-    // which is called in dt_iop_commit_blend_params,
-    // which needs to run after dt_masks_read_masks_history()
-    // TL;DR: don't move this higher, it needs blendop AND mask shapes
+    // Get the module hash
     dt_iop_compute_module_hash(hist->module);
     hist->hash = hist->module->hash;
+
+    dt_print(DT_DEBUG_HISTORY, "[history] successfully loaded module %s history (enabled: %i)\n", hist->module->op, hist->enabled);
   }
 
   dt_dev_masks_list_change(dev);
@@ -1890,6 +1911,9 @@ void dt_dev_history_compress(dt_develop_t *dev)
   }
 
   // Second: modules enabled by user
+  // TODO: split it:
+  // 2.1 : start with modules that still have default params,
+  // 2.2 : then modules that are set to non-default
   for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(item->data);

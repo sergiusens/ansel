@@ -77,7 +77,6 @@ void dt_iop_load_default_params(dt_iop_module_t *module)
   dt_develop_blend_init_blend_parameters(module->default_blendop_params, cst);
   dt_iop_commit_blend_params(module, module->default_blendop_params);
   dt_iop_gui_blending_reload_defaults(module);
-  dt_iop_compute_blendop_hash(module);
   dt_iop_compute_module_hash(module);
 }
 
@@ -393,7 +392,6 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   module->raster_mask.source.masks = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);
   module->raster_mask.sink.source = NULL;
   module->raster_mask.sink.id = 0;
-  module->raster_mask.sink.hash = 0;
 
   // only reference cached results of dlopen:
   module->module = so->module;
@@ -1462,10 +1460,11 @@ void dt_iop_commit_blend_params(dt_iop_module_t *module, const dt_develop_blend_
     module->blend_params->blend_cst = dt_develop_blend_default_module_blend_colorspace(module);
   }
   dt_iop_set_mask_mode(module, blendop_params->mask_mode);
-  dt_iop_compute_blendop_hash(module);
 
+  // This assumes that the module providing raster mask to the current one is ALWAYS
+  // MANDATORILY before the current one BOTH in history order AND in pipe order,
+  // because the current function is run in history order when we load/reload/pop history
   if(module->dev)
-  {
     for(GList *iter = g_list_first(module->dev->iop); iter; iter = g_list_next(iter))
     {
       dt_iop_module_t *m = (dt_iop_module_t *)iter->data;
@@ -1478,16 +1477,14 @@ void dt_iop_commit_blend_params(dt_iop_module_t *module, const dt_develop_blend_
                   module->multi_name);
           module->raster_mask.sink.source = m;
           module->raster_mask.sink.id = blendop_params->raster_mask_id;
-          module->raster_mask.sink.hash = m->blendop_hash;
           return;
         }
       }
     }
-  }
+  // else if no module->dev, it means we are only loading module's .so
 
   module->raster_mask.sink.source = NULL;
   module->raster_mask.sink.id = 0;
-  module->raster_mask.sink.hash = 0;
 }
 
 gboolean _iop_validate_params(dt_introspection_field_t *field, gpointer params, gboolean report)
@@ -1611,12 +1608,12 @@ gboolean dt_iop_check_modules_equal(dt_iop_module_t *mod_1, dt_iop_module_t *mod
 }
 
 
-// hash the consumer module(s) referencing raster masks provided by the current module
-static void _hash_raster_masks(gpointer key, gpointer value, gpointer user_data)
+void _hash_raster_masks(gpointer key, gpointer value, uint64_t *hash)
 {
-  uint64_t *hash = (uint64_t *)user_data;
   dt_iop_module_t *module = (dt_iop_module_t *)key;
 
+  // Use only "constant" module params with regard to the pipeline
+  // init/resync aka we can't use any module pre-computed hash.
   *hash = dt_hash(*hash, (char *)module->op, sizeof(module->op));
   *hash = dt_hash(*hash, (char *)&module->iop_order, sizeof(module->iop_order));
   *hash = dt_hash(*hash, (char *)&module->instance, sizeof(module->instance));
@@ -1625,33 +1622,47 @@ static void _hash_raster_masks(gpointer key, gpointer value, gpointer user_data)
 }
 
 
-void dt_iop_compute_blendop_hash(dt_iop_module_t *module)
+void dt_iop_compute_blendop_hash(dt_iop_module_t *module, uint64_t hash)
 {
   // Blend params are always inited even when module doesn't support blending
-  uint64_t hash = dt_hash(5381, (char *)module->op, sizeof(dt_dev_operation_t));
-  hash = dt_hash(hash, (char *)&module->instance, sizeof(int32_t));
-  hash = dt_hash(hash, (char *)&module->multi_priority, sizeof(int));
-  hash = dt_hash(hash, (char *)&module->iop_order, sizeof(int));
   hash = dt_hash(hash, (char *)module->blend_params, sizeof(dt_develop_blend_params_t));
 
   if(module->flags() & IOP_FLAGS_SUPPORTS_BLENDING)
   {
-    // Drawn masks
+    // Drawn masks from dev for this module
     if(module->dev)
     {
       dt_masks_form_t *grp = dt_masks_get_from_id(module->dev, module->blend_params->mask_id);
       hash = dt_masks_group_get_hash(hash, grp);
     }
+    // else : no module->dev when running from init_default_params()
 
-    // Raster masks:
-    hash = dt_hash(hash, (char *)&module->raster_mask.sink, sizeof(module->raster_mask.sink));
-
-    // This contains the list of consumer modules for the raster
-    // masks this module provides.
+    // If module PROVIDES raster masks to others later in the pipe:
+    // Account for later modules that reuse the raster mask provided by the current module.
+    // This is a little cache invalidation trick: we change the final piece hash of this module,
+    // to signal to the pipeline that it needs to recompute from lower than just the last changed module,
+    // if that module references the raster mask produced here.
+    // This contains the list of consumer modules:
     g_hash_table_foreach(module->raster_mask.source.users, (GHFunc)_hash_raster_masks, (gpointer)&hash);
 
     // module->raster_mask.source.masks contains only one mask as of now,
     // aka its blendop output, so no need to iterate over that.
+
+    // If module CONSUMES raster masks from a module earlier in the pipe:
+    // Account for its blendops.
+    dt_iop_module_t *raster_source = module->raster_mask.sink.source;
+    if(raster_source)
+    {
+      // Drawn masks
+      if(raster_source->dev)
+      {
+        dt_masks_form_t *raster_grp = dt_masks_get_from_id(raster_source->dev, raster_source->blend_params->mask_id);
+        hash = dt_masks_group_get_hash(hash, raster_grp);
+      }
+
+      // Blending
+      hash = dt_hash(hash, (char *)raster_source->blend_params, sizeof(dt_develop_blend_params_t));
+    }
   }
 
   module->blendop_hash = hash;
@@ -1666,31 +1677,17 @@ void dt_iop_compute_module_hash(dt_iop_module_t *module)
 
   uint64_t hash = dt_hash(5381, (char *)module->op, sizeof(dt_dev_operation_t));
   hash = dt_hash(hash, (char *)&module->enabled, sizeof(gboolean));
-  hash = dt_hash(hash, (char *)module->params, module->params_size);
   hash = dt_hash(hash, (char *)&module->instance, sizeof(int32_t));
   hash = dt_hash(hash, (char *)&module->multi_priority, sizeof(int));
   hash = dt_hash(hash, (char *)&module->iop_order, sizeof(int));
+
+  // Compute stand-alone blendop hash (mask hash) from the above
+  // save to module->blendop_hash
+  dt_iop_compute_blendop_hash(module, hash);
+
+  // Finish our module-wide (output) hash
+  hash = dt_hash(hash, (char *)module->params, module->params_size);
   hash = dt_hash(hash, (char *)&module->blendop_hash, sizeof(uint64_t));
-
-  if((module->flags() & IOP_FLAGS_SUPPORTS_BLENDING) && module->dev)
-  {
-    // If raster masks are used, we need to copy the blendops of the raster source too
-    // And we need to update the hash with our blendops to the raster source too.
-    // Note: source is mandatorily before in pipe order.
-    dt_iop_module_t *raster_source = module->raster_mask.sink.source;
-    if(raster_source)
-    {
-      dt_masks_form_t *raster_grp = dt_masks_get_from_id(raster_source->dev, raster_source->blend_params->mask_id);
-      hash = dt_masks_group_get_hash(hash, raster_grp);
-      hash = dt_hash(hash, (char *)raster_source->blend_params, sizeof(dt_develop_blend_params_t));
-
-      // Nasty trick to notify the source module that we need a recompute from this module.
-      // Aka tamper with its hash.
-      // That's because the reference to the raster mask is stored in that module when it gets recomputed.
-      // It's not kept in a global pipe cache or anything.
-      //raster_source->hash = dt_hash(raster_source->hash, (char *)&module->blendop_hash, sizeof(uint64_t));
-    }
-  }
 
   module->hash = hash;
 }
@@ -1724,16 +1721,18 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
 
   module->commit_params(module, params, pipe, piece);
 
+  uint64_t old_hash = module->hash;
+
   // 2. Update the internal hash
   // We need to update the blendop params dynamically, because drawn masks (forms)
-  // belong to pipeline not to modules user params.
+  // belong to pipeline not to modules user params, and raster masks travel through the pipe.
   // So, module's blendops depend on the current and whole state of dev->forms if they use them
-  dt_iop_compute_blendop_hash(module);
-
-  // Because we update blendops, we need to update the rest too
   dt_iop_compute_module_hash(module);
 
   uint64_t hash = module->hash;
+
+  if(old_hash != hash)
+    fprintf(stdout, "WARNING: hash changed at history -> pipeline commit time for %s\n", module->op);
 
   // Take dynamically-set parameters into account.
   // Because colorout sets up output color profile at commit_params() time.
