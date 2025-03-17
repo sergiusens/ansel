@@ -792,7 +792,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
 
     dt_ioppr_check_iop_order(dev_dest, newimgid, "dt_styles_apply_to_image ");
 
-    dt_dev_pop_history_items_ext(dev_dest, dt_dev_get_history_end(dev_dest));
+    dt_dev_pop_history_items_ext(dev_dest);
 
     dt_ioppr_check_iop_order(dev_dest, newimgid, "dt_styles_apply_to_image 1");
 

@@ -685,7 +685,7 @@ gboolean _apply_style_before_export(dt_develop_t *dev, dt_imageio_module_data_t 
   GList *modules_used = NULL;
 
   dt_ioppr_check_iop_order(dev, imgid, "dt_imageio_export_with_flags");
-  dt_dev_pop_history_items_ext(dev, dt_dev_get_history_end(dev));
+  dt_dev_pop_history_items_ext(dev);
   dt_ioppr_update_for_style_items(dev, style_items, TRUE);
 
   for(GList *st_items = style_items; st_items; st_items = g_list_next(st_items))

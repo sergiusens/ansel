@@ -246,7 +246,7 @@ int dt_history_merge_module_into_history(dt_develop_t *dev_dest, dt_develop_t *d
 
     dt_ioppr_check_iop_order(dev_dest, 0, "dt_history_merge_module_into_history");
 
-    dt_dev_pop_history_items_ext(dev_dest, dt_dev_get_history_end(dev_dest));
+    dt_dev_pop_history_items_ext(dev_dest);
 
     if(forms_used_replace) free(forms_used_replace);
   }
@@ -281,8 +281,8 @@ static int _history_copy_and_paste_on_image_merge(int32_t imgid, int32_t dest_im
   dt_ioppr_check_iop_order(dev_src, imgid, "_history_copy_and_paste_on_image_merge ");
   dt_ioppr_check_iop_order(dev_dest, dest_imgid, "_history_copy_and_paste_on_image_merge ");
 
-  dt_dev_pop_history_items_ext(dev_src, dt_dev_get_history_end(dev_src));
-  dt_dev_pop_history_items_ext(dev_dest, dt_dev_get_history_end(dev_dest));
+  dt_dev_pop_history_items_ext(dev_src);
+  dt_dev_pop_history_items_ext(dev_dest);
 
   dt_ioppr_check_iop_order(dev_src, imgid, "_history_copy_and_paste_on_image_merge 1");
   dt_ioppr_check_iop_order(dev_dest, dest_imgid, "_history_copy_and_paste_on_image_merge 1");
@@ -828,7 +828,7 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
     }
   }
 
-  dt_dev_pop_history_items(dev, dt_dev_get_history_end(dev));
+  dt_dev_pop_history_items(dev);
 
   dt_ioppr_resync_iop_list(dev);
 
@@ -865,19 +865,16 @@ static inline void _dt_dev_modules_reload_defaults(dt_develop_t *dev)
 }
 
 
-void dt_dev_pop_history_items_ext(dt_develop_t *dev, int32_t cnt)
+void dt_dev_pop_history_items_ext(dt_develop_t *dev)
 {
   dt_print(DT_DEBUG_HISTORY, "[dt_dev_pop_history_items_ext] loading history entries into modules...\n");
-
-  dt_dev_set_history_end(dev, cnt);
 
   // reset gui params for all modules
   _dt_dev_modules_reload_defaults(dev);
 
   // go through history and set modules params
-  GList *forms = NULL;
   GList *history = g_list_first(dev->history);
-  for(int i = 0; i < cnt && history; i++)
+  for(int i = 0; i < dt_dev_get_history_end(dev) && history; i++)
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
     memcpy(hist->module->params, hist->params, hist->module->params_size);
@@ -903,17 +900,15 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev, int32_t cnt)
   dt_ioppr_check_duplicate_iop_order(&dev->iop, dev->history);
 
   dt_ioppr_check_iop_order(dev, 0, "dt_dev_pop_history_items_ext end");
-
-  dt_masks_replace_current_forms(dev, forms);
 }
 
-void dt_dev_pop_history_items(dt_develop_t *dev, int32_t cnt)
+void dt_dev_pop_history_items(dt_develop_t *dev)
 {
   ++darktable.gui->reset;
 
   dt_pthread_mutex_lock(&dev->history_mutex);
   dt_ioppr_check_iop_order(dev, 0, "dt_dev_pop_history_items");
-  dt_dev_pop_history_items_ext(dev, cnt);
+  dt_dev_pop_history_items_ext(dev);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
   // update all gui modules

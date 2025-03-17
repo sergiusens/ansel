@@ -935,7 +935,7 @@ void dt_masks_read_masks_history(dt_develop_t *dev, const int32_t imgid)
   sqlite3_finalize(stmt);
 
   // and we update the current forms snapshot
-  dt_masks_replace_current_forms(dev, (hist_item_last)?hist_item_last->forms:NULL);
+  dt_masks_replace_current_forms(dev, (hist_item_last) ? hist_item_last->forms : NULL);
 }
 
 void dt_masks_write_masks_history_item(const int32_t imgid, const int num, dt_masks_form_t *form)

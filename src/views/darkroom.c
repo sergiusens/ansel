@@ -1980,7 +1980,7 @@ void enter(dt_view_t *self)
   // synch gui and flag pipe as dirty
   // this is done here and not in dt_read_history, as it would else be triggered before module->gui_init.
   // locks history mutex internally
-  dt_dev_pop_history_items(dev, dt_dev_get_history_end(dev));
+  dt_dev_pop_history_items(dev);
 
   // get last active plugin:
   const char *active_plugin = dt_conf_get_string_const("plugins/darkroom/active");
@@ -2001,8 +2001,6 @@ void enter(dt_view_t *self)
   dt_dev_check_zoom_bounds(dev, &zoom_x, &zoom_y, DT_ZOOM_FIT, 0, NULL, NULL);
   dt_control_set_dev_zoom_x(zoom_x);
   dt_control_set_dev_zoom_y(zoom_y);
-
-  dt_collection_hint_message(darktable.collection);
 
   _register_modules_drag_n_drop(self);
 

@@ -1189,7 +1189,8 @@ static gboolean _lib_history_button_clicked_callback(GtkWidget *widget, GdkEvent
 
   /* revert to given history item. */
   const int num = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "history-number"));
-  dt_dev_pop_history_items(darktable.develop, num);
+  dt_dev_set_history_end(darktable.develop, num);
+  dt_dev_pop_history_items(darktable.develop);
   // set the module list order
   dt_dev_reorder_gui_module_list(darktable.develop);
 
