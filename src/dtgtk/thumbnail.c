@@ -958,7 +958,8 @@ void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
     cairo_surface_destroy(thumb->img_surf);
   thumb->img_surf = NULL;
 
-  if(thumb->widget) gtk_widget_destroy(thumb->widget);
+  if(thumb->widget)
+    gtk_container_remove(GTK_CONTAINER(gtk_widget_get_parent(thumb->widget)), thumb->widget);
   thumb->widget = NULL;
 
   if(thumb->filename) g_free(thumb->filename);

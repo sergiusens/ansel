@@ -38,6 +38,9 @@
 #include "osx/osx.h"
 #endif
 
+// 840 = 2*3*4*5*7, so we ensure full rows up to 11 thumbs/row.
+#define MAX_THUMBNAILS 840
+
 /**
  * @file thumbtable.c
  *
@@ -46,7 +49,7 @@
  *  - as an array of fixed length, in table->lut.
  *
  * The linked list is used to keep track of allocated objects to update, redraw and free.
- * Its length is limited to 420 elements or whatever is visible inside viewport
+ * Its length is limited to 840 elements or whatever is visible inside viewport
  * at current scroll level. It's garbage-collected.
  *
  * The LUT is used to speed up lookups for thumbnails at known, bounded positions in sequential
@@ -315,7 +318,7 @@ gboolean _is_rowid_visible(dt_thumbtable_t *table, int rowid)
 void _update_row_ids(dt_thumbtable_t *table)
 {
   int rowid_min = 0;
-  int rowid_max = 420;
+  int rowid_max = MAX_THUMBNAILS;
   _get_row_ids(table, &rowid_min, &rowid_max);
   if(rowid_min != table->min_row_id || rowid_max != table->max_row_id)
   {
@@ -425,9 +428,8 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
   }
 }
 
-// Remove invisible thumbs at current scrolling level, only when we have more than 420.
-// That's because freeing widgets slows down the scrolling and 420 is no issue to handle at once.
-// 420 = 3*4*5*7, so we ensure full rows up to 11 thumbs/row.
+// Remove invisible thumbs at current scrolling level, only when we have more than we can manage.
+// That's because freeing widgets slows down the scrolling.
 int _garbage_collection(dt_thumbtable_t *table)
 {
   dt_pthread_mutex_lock(&table->lock);
@@ -438,7 +440,7 @@ int _garbage_collection(dt_thumbtable_t *table)
     GList *l = link;
     link = g_list_next(link);
 
-    gboolean collect_garbage = (table->thumb_nb > 420)
+    gboolean collect_garbage = (table->thumb_nb > MAX_THUMBNAILS)
                                 && (thumb->rowid < table->min_row_id || thumb->rowid > table->max_row_id);
 
     // if current imgid stored at previously-known position in LUT doesn't match our imgid:
