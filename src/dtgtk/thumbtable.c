@@ -153,8 +153,11 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
   for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    const gboolean over = thumb->over;
     dt_thumbnail_set_mouseover(thumb, thumb->imgid == imgid);
-    gtk_widget_queue_draw(thumb->widget);
+
+    if(thumb->over != over)
+      gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
@@ -614,6 +617,7 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
   for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    const gboolean selected = thumb->selected;
     dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
 
     if(first)
@@ -623,7 +627,8 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
       first = FALSE;
     }
 
-    gtk_widget_queue_draw(thumb->widget);
+    if(thumb->selected != selected)
+      gtk_widget_queue_draw(thumb->widget);
   }
   dt_pthread_mutex_unlock(&table->lock);
 }
@@ -1073,7 +1078,7 @@ void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
   _update_row_ids(table);
-  gtk_widget_queue_draw(table->grid);
+  //gtk_widget_queue_draw(table->grid);
 }
 
 int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)

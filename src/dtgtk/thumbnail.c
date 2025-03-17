@@ -378,6 +378,8 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
+  dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
+
   g_idle_add((GSourceFunc)_get_image_buffer, thumb);
 
   int w = 0;
