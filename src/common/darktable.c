@@ -1447,7 +1447,7 @@ void dt_show_times_f(const dt_times_t *start, const char *prefix, const char *su
 
 int dt_worker_threads()
 {
-  return dt_conf_get_int("workers");
+  return dt_conf_get_int("worker_threads");
 }
 
 size_t dt_get_available_mem()
@@ -1476,6 +1476,10 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
 
   dt_print(DT_DEBUG_MEMORY, "[MEMORY CONFIGURATION] found a %s %zu-bit system with %zu cores\n",
     (sufficient) ? "sufficient" : "low performance", bits, threads);
+
+  // Override RAM detection with user config
+  if(dt_conf_get_int64("host_memory_limit") > 0)
+    resources->total_memory = dt_conf_get_int64("host_memory_limit") * 1024 * 1024;
 
   // Keep OS headroom between 1 GB and a third of the system RAM
   resources->headroom_memory = dt_conf_get_int64("memory_os_headroom") * 1024 * 1024;
@@ -1582,6 +1586,8 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
 
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Max pixel buffer size: %lu MiB (%s RGBA float32)\n"),
            resources->buffer_memory / (1024 * 1024), resolution_str);
+
+  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Worker threads: %i\n"), dt_worker_threads());
 
   g_free(resolution_str);
 }
