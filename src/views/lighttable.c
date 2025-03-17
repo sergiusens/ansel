@@ -143,6 +143,11 @@ static void _view_lighttable_activate_callback(gpointer instance, int32_t imgid,
   }
 }
 
+void configure(dt_view_t *self, int width, int height)
+{
+  dt_thumbtable_configure(dt_ui_thumbtable(darktable.gui->ui));
+}
+
 
 void enter(dt_view_t *self)
 {

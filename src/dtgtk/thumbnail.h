@@ -138,7 +138,7 @@ typedef struct
   GtkWidget *w_focal;
 
   gboolean busy; // should we show the busy message ?
-
+  gboolean drawn; // image already drawn, nothing more to do
 
 } dt_thumbnail_t;
 

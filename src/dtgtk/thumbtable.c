@@ -77,8 +77,6 @@
  * So we set the grid area to what it would be if we loaded all thumbnails.
  **/
 
-
-void dt_thumbtable_configure(dt_thumbtable_t *table);
 void _dt_thumbtable_empty_list(dt_thumbtable_t *table);
 
 // get the class name associated with the overlays mode
@@ -254,14 +252,14 @@ static gboolean _get_row_ids(dt_thumbtable_t *table, int *rowid_min, int *rowid_
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
     // Pixel coordinates of the viewport:
-    int page_size = gtk_adjustment_get_page_size(table->v_scrollbar);
-    int position = gtk_adjustment_get_value(table->v_scrollbar);
+    float page_size = gtk_adjustment_get_page_size(table->v_scrollbar);
+    float position = gtk_adjustment_get_value(table->v_scrollbar);
 
     // what is currently visible lies between position and position + page_size.
     // don't preload next/previous rows because, when in 1 thumb/column,
     // that can be quite slow
-    int row_min = floorf((float)position / (float)table->thumb_height);
-    int row_max = (position + page_size) / table->thumb_height + 1;
+    int row_min = floorf(position / (float)table->thumb_height);
+    int row_max = ceilf((position + page_size) / (float)table->thumb_height) + 1;
 
     // rowid is the positional ID of the image in the SQLite collection, indexed from 0.
     // SQLite indexes from 1 but then be use our own array to cache results.
@@ -270,12 +268,12 @@ static gboolean _get_row_ids(dt_thumbtable_t *table, int *rowid_min, int *rowid_
   }
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
-    int page_size = gtk_adjustment_get_page_size(table->h_scrollbar);
-    int position = gtk_adjustment_get_value(table->h_scrollbar);
+    float page_size = gtk_adjustment_get_page_size(table->h_scrollbar);
+    float position = gtk_adjustment_get_value(table->h_scrollbar);
 
     // Preload the previous and next pages too because thumbnails are typically small
     int row_min = (position - page_size) / table->thumb_width;
-    int row_max = (position + 2 * page_size) / table->thumb_width;
+    int row_max = (position + 2.f * page_size) / table->thumb_width;
 
     *rowid_min = row_min * table->thumbs_per_row;
     *rowid_max = row_max * table->thumbs_per_row;
@@ -416,12 +414,14 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     // new sizes: update everything
     table->thumbs_inited = FALSE;
     _grid_configure(table, new_width, new_height, cols);
+    gtk_widget_queue_draw(table->grid);
   }
 
   if(!table->thumbs_inited && table->collection_count > 0)
   {
     _update_grid_area(table);
     _update_row_ids(table);
+    gtk_widget_queue_draw(table->grid);
   }
 }
 
@@ -1027,7 +1027,6 @@ void dt_thumbtable_event_dnd_received(GtkWidget *widget, GdkDragContext *context
                                 GtkSelectionData *selection_data, guint target_type, guint time,
                                 gpointer user_data)
 {
-  // AUREL FIXME: clean that fucking mess
   gboolean success = FALSE;
 
   if((target_type == DND_TARGET_URI) && (selection_data != NULL)
@@ -1346,6 +1345,8 @@ static gboolean _draw_callback(GtkWidget *widget, cairo_t *cr, gpointer user_dat
   if(!user_data) return TRUE;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
+  dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] Redrawing thumbtable container\n");
+
   // Ensure the background color is painted
   GtkStyleContext *context = gtk_widget_get_style_context(widget);
   GtkAllocation allocation;
@@ -1367,8 +1368,9 @@ gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer 
 {
   if(!user_data) return TRUE;
   dt_control_set_mouse_over_id(-1);
-  return FALSE;
+  return TRUE;
 }
+
 
 dt_thumbtable_t *dt_thumbtable_new()
 {
@@ -1377,8 +1379,6 @@ dt_thumbtable_t *dt_thumbtable_new()
   table->scroll_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_scrolled_window_set_overlay_scrolling(GTK_SCROLLED_WINDOW(table->scroll_window), FALSE);
   gtk_scrolled_window_set_shadow_type(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_SHADOW_ETCHED_IN);
-  gtk_widget_set_can_focus(table->scroll_window, TRUE);
-  gtk_widget_set_focus_on_click(table->scroll_window, TRUE);
 
   table->v_scrollbar = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(table->scroll_window));
   table->h_scrollbar = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(table->scroll_window));
@@ -1391,6 +1391,9 @@ dt_thumbtable_t *dt_thumbtable_new()
   gtk_widget_set_can_focus(table->grid, TRUE);
   gtk_widget_set_focus_on_click(table->grid, TRUE);
   gtk_widget_add_events(table->grid, GDK_LEAVE_NOTIFY_MASK);
+  gtk_widget_set_can_default(table->grid, TRUE);
+  gtk_widget_set_receives_default(table->grid, TRUE);
+  gtk_widget_grab_default(table->grid);
   g_signal_connect(G_OBJECT(table->grid), "leave-notify-event", G_CALLBACK(_event_main_leave), table);
 
   // drag and drop : used for reordering, interactions with maps, exporting uri to external apps, importing images

@@ -378,9 +378,11 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
-  dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
+  // Image is already available or pending a pipe rendering/cache fetching
+  if(!((thumb->image_inited && thumb->img_surf) || thumb->busy))
+    g_idle_add((GSourceFunc)_get_image_buffer, thumb);
 
-  g_idle_add((GSourceFunc)_get_image_buffer, thumb);
+  dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
 
   int w = 0;
   int h = 0;
@@ -929,8 +931,6 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int
   thumb->over = over;
   thumb->zoom = 1.0f;
   thumb->table = table;
-  thumb->moved = FALSE;
-  thumb->alternative_mode = FALSE;
 
   // we create the widget
   dt_thumbnail_create_widget(thumb, zoom_ratio);
@@ -1192,6 +1192,7 @@ int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
   thumb_return_if_fails(thumb, G_SOURCE_REMOVE);
   _thumb_update_icons(thumb);
   thumb->busy = FALSE;
+  thumb->drawn = FALSE;
   gtk_widget_queue_draw(thumb->w_image);
   return G_SOURCE_REMOVE;
 }
