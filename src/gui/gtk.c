@@ -635,13 +635,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
 
   dt_gui_presets_init();
 
-  widget = dt_ui_center(darktable.gui->ui);
-  gtk_widget_set_app_paintable(widget, TRUE);
-  gtk_widget_set_can_default(widget, TRUE);
-  gtk_widget_set_receives_default(widget, TRUE);
-  gtk_widget_grab_default(widget);
-  gtk_widget_grab_focus(widget);
-
   dt_colorspaces_set_display_profile(DT_COLORSPACE_DISPLAY);
   // update the profile when the window is moved. resize is already handled in configure()
   widget = dt_ui_main_window(darktable.gui->ui);
