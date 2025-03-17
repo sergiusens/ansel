@@ -1700,6 +1700,11 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   // Find a .so file that matches our history entry, aka a module to run the params stored in DB
   _find_so_for_history_entry(dev, hist);
 
+  // Update IOP order stuff, that applies to all modules regardless of their internals
+  // Needed now to de-entangle multi-instances
+  hist->module->iop_order = hist->iop_order;
+  dt_iop_update_multi_priority(hist->module, hist->multi_priority);
+
   if(!hist->module)
   {
     // History will be lost forever for this module
@@ -1714,11 +1719,6 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   // module has no user params and won't bother us in GUI - exit early, we are done
   if(hist->module->flags() & IOP_FLAGS_NO_HISTORY_STACK)
   {
-    // Update IOP order stuff, that applies to all modules regardless of their internals
-    // but for modules that have an history stack, we handle this later
-    hist->module->iop_order = hist->iop_order;
-    dt_iop_update_multi_priority(hist->module, hist->multi_priority);
-
     // Since it's the last we hear from this module as far as history is concerned,
     // compute its hash here.
     dt_iop_compute_module_hash(hist->module);
