@@ -508,11 +508,12 @@ void dt_bauhaus_value_changed_default_callback(GtkWidget *widget);
  *
  * IF COMPUTING HASHES FOR PIPE CACHE INVALIDATION, that means we need to redo blendop/module hash recomputation
  * at commit_params time, when pushing history to pipeline (but mandatorily in pipeline order).
- * 
+ *
  * IF COMPUTING HASHES FOR HISTORY CONSISTENCY (auto-saving when needed), since all we care is user params,
  * it doesn't matter.
+ *
 */
-void dt_iop_compute_module_hash(dt_iop_module_t *module);
+void dt_iop_compute_module_hash(dt_iop_module_t *module, GList *masks);
 
 /**
  * @brief Iterator function meant to be used with

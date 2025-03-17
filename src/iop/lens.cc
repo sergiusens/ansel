@@ -1136,7 +1136,7 @@ void commit_params(struct dt_iop_module_t *self, dt_iop_params_t *p1, dt_dev_pix
     p = (dt_iop_lensfun_params_t *)self->default_params;
 
     // Temporary fix pending GUI unfucking
-    dt_iop_compute_module_hash(self);
+    dt_iop_compute_module_hash(self, self->dev->forms);
   }
 
   dt_iop_lensfun_data_t *d = (dt_iop_lensfun_data_t *)piece->data;

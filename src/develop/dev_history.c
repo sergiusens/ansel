@@ -622,7 +622,7 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
     dt_print(DT_DEBUG_HISTORY, "[dt_dev_add_history_item_ext] masks NOT committed for module %s at history position %i\n", module->name(), hist->num);
 
   // Refresh hashes now because they use enabled state and masks
-  dt_iop_compute_module_hash(module);
+  dt_iop_compute_module_hash(module, hist->forms);
   hist->hash = module->hash;
 
   // It is assumed that the last-added history entry is always on top
@@ -874,6 +874,7 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
 
   // go through history and set modules params
   GList *history = g_list_first(dev->history);
+  GList *forms = NULL;
   for(int i = 0; i < dt_dev_get_history_end(dev) && history; i++)
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
@@ -888,13 +889,10 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
 
     dt_iop_commit_blend_params(module, hist->blend_params);
 
-    // Module hash uses the drawn masks forms from global dev->forms because that's the
-    // general use case. Meaning we need to override them step by step.
-    // TODO: can be made faster ?
-    if(hist->forms) dt_masks_replace_current_forms(dev, hist->forms);
+    if(hist->forms) forms = hist->forms;
 
     // Relies on params, blendops, forms and raster masks, aka should run last
-    dt_iop_compute_module_hash(module);
+    dt_iop_compute_module_hash(module, hist->forms);
 
     if(hist->hash != module->hash)
       fprintf(stderr, "[dt_dev_pop_history_items] module hash is not consistent with history hash for %s : %lu != %lu \n",
@@ -903,6 +901,8 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
     hist->hash = module->hash;
     history = g_list_next(history);
   }
+
+  dt_masks_replace_current_forms(dev, forms);
 
   dt_ioppr_resync_modules_order(dev);
 
@@ -1721,7 +1721,7 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   {
     // Since it's the last we hear from this module as far as history is concerned,
     // compute its hash here.
-    dt_iop_compute_module_hash(hist->module);
+    dt_iop_compute_module_hash(hist->module, NULL);
 
     // Done. We don't add to history
     free(hist);
@@ -1839,7 +1839,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
     dt_iop_commit_blend_params(hist->module, hist->blend_params);
 
     // Get the module hash
-    dt_iop_compute_module_hash(hist->module);
+    dt_iop_compute_module_hash(hist->module, hist->forms);
     hist->hash = hist->module->hash;
 
     dt_print(DT_DEBUG_HISTORY, "[history] successfully loaded module %s history (enabled: %i)\n", hist->module->op, hist->enabled);

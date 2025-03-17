@@ -77,7 +77,7 @@ void dt_iop_load_default_params(dt_iop_module_t *module)
   dt_develop_blend_init_blend_parameters(module->default_blendop_params, cst);
   dt_iop_commit_blend_params(module, module->default_blendop_params);
   dt_iop_gui_blending_reload_defaults(module);
-  dt_iop_compute_module_hash(module);
+  dt_iop_compute_module_hash(module, module->dev->forms);
 }
 
 static void _iop_modify_roi_in(struct dt_iop_module_t *self, struct dt_dev_pixelpipe_iop_t *piece,
@@ -1622,7 +1622,7 @@ void _hash_raster_masks(gpointer key, gpointer value, uint64_t *hash)
 }
 
 
-void dt_iop_compute_blendop_hash(dt_iop_module_t *module, uint64_t hash)
+void dt_iop_compute_blendop_hash(dt_iop_module_t *module, uint64_t hash, GList *masks)
 {
   // Blend params are always inited even when module doesn't support blending
   hash = dt_hash(hash, (char *)module->blend_params, sizeof(dt_develop_blend_params_t));
@@ -1630,11 +1630,12 @@ void dt_iop_compute_blendop_hash(dt_iop_module_t *module, uint64_t hash)
   if(module->flags() & IOP_FLAGS_SUPPORTS_BLENDING)
   {
     // Drawn masks from dev for this module
-    if(module->dev)
+    if(masks)
     {
-      dt_masks_form_t *grp = dt_masks_get_from_id(module->dev, module->blend_params->mask_id);
+      dt_masks_form_t *grp = dt_masks_get_from_id_ext(masks, module->blend_params->mask_id);
       hash = dt_masks_group_get_hash(hash, grp);
     }
+
     // else : no module->dev when running from init_default_params()
 
     // If module PROVIDES raster masks to others later in the pipe:
@@ -1654,9 +1655,9 @@ void dt_iop_compute_blendop_hash(dt_iop_module_t *module, uint64_t hash)
     if(raster_source)
     {
       // Drawn masks
-      if(raster_source->dev)
+      if(masks)
       {
-        dt_masks_form_t *raster_grp = dt_masks_get_from_id(raster_source->dev, raster_source->blend_params->mask_id);
+        dt_masks_form_t *raster_grp = dt_masks_get_from_id_ext(masks, raster_source->blend_params->mask_id);
         hash = dt_masks_group_get_hash(hash, raster_grp);
       }
 
@@ -1669,7 +1670,7 @@ void dt_iop_compute_blendop_hash(dt_iop_module_t *module, uint64_t hash)
 }
 
 
-void dt_iop_compute_module_hash(dt_iop_module_t *module)
+void dt_iop_compute_module_hash(dt_iop_module_t *module, GList *masks)
 {
   // Uniform way of getting the full state hash of user-defined parameters,
   // including masks and blending.
@@ -1683,7 +1684,7 @@ void dt_iop_compute_module_hash(dt_iop_module_t *module)
 
   // Compute stand-alone blendop hash (mask hash) from the above
   // save to module->blendop_hash
-  dt_iop_compute_blendop_hash(module, hash);
+  dt_iop_compute_blendop_hash(module, hash, masks);
 
   // Finish our module-wide (output) hash
   hash = dt_hash(hash, (char *)module->params, module->params_size);
@@ -1727,7 +1728,7 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
   // We need to update the blendop params dynamically, because drawn masks (forms)
   // belong to pipeline not to modules user params, and raster masks travel through the pipe.
   // So, module's blendops depend on the current and whole state of dev->forms if they use them
-  dt_iop_compute_module_hash(module);
+  dt_iop_compute_module_hash(module, module->dev->forms);
 
   uint64_t hash = module->hash;
 
