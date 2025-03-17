@@ -72,6 +72,7 @@ float dt_osx_get_ppd()
   }
 }
 
+#if !GTK_CHECK_VERSION(3, 24, 14)
 static void dt_osx_disable_fullscreen(GtkWidget *widget)
 {
 #ifdef GDK_WINDOWING_QUARTZ
@@ -86,14 +87,17 @@ static void dt_osx_disable_fullscreen(GtkWidget *widget)
   }
 #endif
 }
+#endif
 
 void dt_osx_disallow_fullscreen(GtkWidget *widget)
 {
+#if !GTK_CHECK_VERSION(3, 24, 14)
 #ifdef GDK_WINDOWING_QUARTZ
   if(gtk_widget_get_realized(widget))
     dt_osx_disable_fullscreen(widget);
   else
     g_signal_connect(G_OBJECT(widget), "realize", G_CALLBACK(dt_osx_disable_fullscreen), NULL);
+#endif
 #endif
 }
 

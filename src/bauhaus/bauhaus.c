@@ -2451,6 +2451,7 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
   wx += w->margin->left;
   wy += w->margin->top;
 
+#if GTK_CHECK_VERSION(3, 24, 0)
   // Get the origin coordinates of the main window box with regard to the screen
   gint wwx = 0, wwy = 0;
   gdk_window_get_origin(gtk_widget_get_window(dt_ui_main_window(darktable.gui->ui)), &wwx, &wwy);
@@ -2458,6 +2459,21 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
   // Final coordinates of the allocation box where to anchor the popup
   tmp.x = wx - wwx;
   tmp.y = wy - wwy;
+#else
+  // From here, all positions are float so we need to handle them as such
+  // to avoid rounding errors resulting is pixel-shifting glitches.
+  float x = (float)wx;
+  float y = (float)wy;
+
+  // The popup is a drop-down, meaning we can be sure it will not go higher than the calling widget.
+  // But it can still exit the viewport by the bottom.
+  // When that's the case, shift it vertically until it fits, assuming
+  // the combobox is smaller than the viewport.
+  // If that's not enough, then reduce comboboxes items or use a scrolled window.
+  const int min_y = floorf(y) + height;
+  if(darktable.gui->ui->manager.viewport.height < min_y)
+    y = MAX(0, y - (min_y - darktable.gui->ui->manager.viewport.height));
+#endif
 
   // Set desired size, but it's more a guide than a rule.
   gtk_widget_set_size_request(w->bauhaus->popup_area, width, height);
@@ -2468,9 +2484,14 @@ void dt_bauhaus_show_popup(GtkWidget *widget)
 
   GdkWindow *window = gtk_widget_get_window(w->bauhaus->popup_window);
 
+#if GTK_CHECK_VERSION(3, 24, 0)
   // For Wayland (and supposed to work on X11 too) and Gtk 3.24 this is how you do it
   gdk_window_move_to_rect(GDK_WINDOW(window), &tmp, GDK_GRAVITY_STATIC, GDK_GRAVITY_STATIC,
                           GDK_ANCHOR_SLIDE, 0, 0);
+#else
+  // X11 wonky way of setting window position in absolute coordinates
+  gdk_window_move(window, (gint)x, (gint)y);
+#endif
 
   gtk_widget_show_all(w->bauhaus->popup_window);
   gtk_widget_grab_focus(w->bauhaus->popup_area);
