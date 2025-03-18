@@ -411,39 +411,23 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
 GList *dt_history_duplicate(GList *hist)
 {
   GList *result = NULL;
-
   for(GList *h = g_list_first(hist); h; h = g_list_next(h))
   {
     const dt_dev_history_item_t *old = (dt_dev_history_item_t *)(h->data);
-
     dt_dev_history_item_t *new = (dt_dev_history_item_t *)malloc(sizeof(dt_dev_history_item_t));
 
     memcpy(new, old, sizeof(dt_dev_history_item_t));
 
-    int32_t params_size = 0;
-    if(old->module)
+    dt_iop_module_t *module = (old->module) ? old->module : dt_iop_get_module(old->op_name);
+
+    if(module && module->params_size > 0)
     {
-      params_size = old->module->params_size;
-    }
-    else
-    {
-      dt_iop_module_t *base = dt_iop_get_module(old->op_name);
-      if(base)
-      {
-        params_size = base->params_size;
-      }
-      else
-      {
-        // nothing else to do
-        fprintf(stderr, "[_duplicate_history] can't find base module for %s\n", old->op_name);
-      }
+      new->params = malloc(module->params_size);
+      memcpy(new->params, old->params, module->params_size);
     }
 
-    if(params_size > 0)
-    {
-      new->params = malloc(params_size);
-      memcpy(new->params, old->params, params_size);
-    }
+    if(!module)
+      fprintf(stderr, "[_duplicate_history] can't find base module for %s\n", old->op_name);
 
     new->blend_params = malloc(sizeof(dt_develop_blend_params_t));
     memcpy(new->blend_params, old->blend_params, sizeof(dt_develop_blend_params_t));
@@ -452,9 +436,9 @@ GList *dt_history_duplicate(GList *hist)
 
     result = g_list_prepend(result, new);
   }
+
   return g_list_reverse(result);  // list was built in reverse order, so un-reverse it
 }
-
 
 
 static dt_iop_module_t * _find_mask_manager(dt_develop_t *dev)
@@ -527,14 +511,12 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
 
   if(!module)
   {
-    // module = NULL means a mask was changed from the mask manager
-    // and that's where this function is called.
+    // module = NULL means a mask was changed from the mask manager and that's where this function is called.
     // Find it now, even though it is not enabled and won't be.
     module = _find_mask_manager(dev);
     if(module)
     {
-      // Mask manager is an IOP that never processes pixel
-      // aka it's an ugly hack to record mask history
+      // Mask manager is an IOP that never processes pixel aka it's an ugly hack to record mask history
       force_new_item = FALSE;
       enable = FALSE;
     }
@@ -554,7 +536,6 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   {
     dt_dev_history_item_t *last_item = (dt_dev_history_item_t *)last->data;
     dt_iop_module_t *last_module = last_item->module;
-    // fprintf(stdout, "history has hash %lu, new module %s has %lu\n", last_item->hash, module->op, module->hash);
     new_is_old = dt_iop_check_modules_equal(module, last_module);
     // add_new_pipe_node = FALSE
   }
@@ -672,13 +653,11 @@ int dt_dev_history_auto_save(dt_develop_t *dev)
   const uint64_t new_hash = dt_dev_history_get_hash(dev);
   if(new_hash == dev->history_hash)
   {
-    //fprintf(stdout, "hash has NOT changed: %lu - %lu\n", dev->history_hash, new_hash);
     dt_pthread_mutex_unlock(&dev->history_mutex);
     return G_SOURCE_REMOVE;
   }
   else
   {
-    //fprintf(stdout, "hash has changed %lu - %lu\n", dev->history_hash, new_hash);
     dev->history_hash = new_hash;
   }
 
@@ -808,11 +787,8 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
       if(!dt_iop_is_hidden(module) && !module->expander)
       {
         dt_iop_gui_init(module);
-
-        /* add module to right panel */
         dt_iop_gui_set_expander(module);
         dt_iop_gui_set_expanded(module, TRUE, FALSE);
-
         dt_iop_reload_defaults(module);
         dt_iop_gui_update_blending(module);
       }
@@ -827,13 +803,8 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
   dt_dev_pop_history_items(dev);
 
   dt_ioppr_resync_iop_list(dev);
-
-  // set the module list order
   dt_dev_reorder_gui_module_list(dev);
-
-  // we update show params for multi-instances for each other instances
   dt_dev_modules_update_multishow(dev);
-
   dt_dev_pixelpipe_rebuild(dev);
 }
 
@@ -899,11 +870,8 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
   }
 
   dt_masks_replace_current_forms(dev, forms);
-
   dt_ioppr_resync_modules_order(dev);
-
   dt_ioppr_check_duplicate_iop_order(&dev->iop, dev->history);
-
   dt_ioppr_check_iop_order(dev, 0, "dt_dev_pop_history_items_ext end");
 }
 
