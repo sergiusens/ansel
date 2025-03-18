@@ -1888,20 +1888,32 @@ void dt_dev_history_compress(dt_develop_t *dev)
   }
 
   // Second: modules enabled by user
-  // TODO: split it:
   // 2.1 : start with modules that still have default params,
+  for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
+  {
+    dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
+    if(module->enabled
+      && !(module->default_enabled || (module->force_enable && module->force_enable(module, module->enabled)))
+      && module->has_defaults(module)
+      && !_module_leaves_no_history(module))
+      dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
+  }
+
   // 2.2 : then modules that are set to non-default
   for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
     if(module->enabled
       && !(module->default_enabled || (module->force_enable && module->force_enable(module, module->enabled)))
+      && !module->has_defaults(module)
       && !_module_leaves_no_history(module))
       dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
   }
 
   // Third: disabled modules that have an history. Maybe users want to re-enable them later,
   // or it's modules enabled by default that were manually disabled.
+  // Put them the end of the history, so user can truncate it after the last enabled item
+  // to get rid of disabled history if needed.
   for(GList *item = g_list_first(dev->iop); item; item = g_list_next(item))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
