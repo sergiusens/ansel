@@ -687,12 +687,6 @@ void dt_ui_init_main_table(GtkWidget *parent, dt_ui_t *ui)
   gtk_widget_set_events(cda, GDK_POINTER_MOTION_MASK | GDK_BUTTON_PRESS_MASK | GDK_KEY_PRESS_MASK
                              | GDK_BUTTON_RELEASE_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK
                              | darktable.gui->scroll_mask);
-  gtk_widget_set_can_focus(cda, TRUE);
-  gtk_widget_set_visible(cda, TRUE);
-  gtk_widget_set_can_default(cda, TRUE);
-  gtk_widget_set_receives_default(cda, TRUE);
-  gtk_widget_grab_default(cda);
-  gtk_widget_grab_focus(cda);
   gtk_overlay_add_overlay(GTK_OVERLAY(ocda), cda);
 
   // Add the reserved overlay for the thumbtable in central position

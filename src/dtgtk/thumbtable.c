@@ -1393,9 +1393,6 @@ dt_thumbtable_t *dt_thumbtable_new()
   gtk_widget_set_can_focus(table->grid, TRUE);
   gtk_widget_set_focus_on_click(table->grid, TRUE);
   gtk_widget_add_events(table->grid, GDK_LEAVE_NOTIFY_MASK);
-  gtk_widget_set_can_default(table->grid, TRUE);
-  gtk_widget_set_receives_default(table->grid, TRUE);
-  gtk_widget_grab_default(table->grid);
   g_signal_connect(G_OBJECT(table->grid), "leave-notify-event", G_CALLBACK(_event_main_leave), table);
 
   // drag and drop : used for reordering, interactions with maps, exporting uri to external apps, importing images

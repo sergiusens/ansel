@@ -623,6 +623,13 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
 
   widget = dt_ui_center(darktable.gui->ui);
 
+  gtk_widget_set_can_focus(widget, TRUE);
+  gtk_widget_set_visible(widget, TRUE);
+  gtk_widget_set_can_default(widget, TRUE);
+  gtk_widget_set_receives_default(widget, TRUE);
+  gtk_widget_grab_default(widget);
+  gtk_widget_grab_focus(widget);
+
   g_signal_connect(G_OBJECT(widget), "configure-event", G_CALLBACK(_configure), gui);
   g_signal_connect(G_OBJECT(widget), "draw", G_CALLBACK(_draw), NULL);
   g_signal_connect(G_OBJECT(widget), "motion-notify-event", G_CALLBACK(_mouse_moved), NULL);
