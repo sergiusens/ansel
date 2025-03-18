@@ -987,12 +987,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
                                  dt_imageio_module_data_t *storage_params, int num, int total,
                                  dt_export_metadata_t *metadata)
 {
-  // We need to ensure only one pipeline at a time runs because writing to database is not thread-safe.
-  // In the case of generating image previews for the lighttable on freshly-imported images,
-  // new, default, histories are inited in separate threads leading to concurrent writes
-  // to main.history because that happens from here.
-  // Pending an elegant fix for all this mess, do the reasonable thing.
-  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
 
   dt_develop_t dev;
   dt_dev_init(&dev, 0);
@@ -1088,6 +1082,11 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   const int bpp = format->bpp(format_params);
 
   dt_get_times(&start);
+
+  // Run only one pixelpipe at a time because CPU memory I/O is our bottleneck
+  // Anyway pixel code is parallelized/vectorized internally with OpenMP.
+  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
   /*
     if high-quality processing was requested, downsampling will be done
     at the very end of the pipe (just before border and watermark)
@@ -1112,6 +1111,8 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     // Warning: finalscale is still disabled in pipeline. It's no issue for now since we don't re-use it
     // before destroying it. Mind that if you extend the code.
   }
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
+
   dt_show_times(&start, thumbnail_export ? "[dev_process_thumbnail] pixel pipeline processing"
                                          : "[dev_process_export] pixel pipeline processing");
 
@@ -1174,13 +1175,11 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
                             format_params, storage, storage_params);
   }
 
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   return 0; // success
 
 error:
   dt_dev_pixelpipe_cleanup(&pipe);
 error_early:
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   dt_dev_cleanup(&dev);
   return 1;
 }
