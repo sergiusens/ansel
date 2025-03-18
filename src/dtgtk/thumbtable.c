@@ -1546,6 +1546,11 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_center), table->scroll_window);
     dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
+
+    // We can't set that at init time because the widget needs to have a parent before
+    gtk_widget_set_can_default(table->grid, TRUE);
+    gtk_widget_set_receives_default(table->grid, TRUE);
+    gtk_widget_grab_default(table->grid);
   }
   else if(mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
@@ -1555,6 +1560,10 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     gtk_widget_hide(table->overlay_center);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_filmstrip), table->scroll_window);
+
+    // In filmroll mode, the center view is going to capture default
+    gtk_widget_set_can_default(table->grid, FALSE);
+    gtk_widget_set_receives_default(table->grid, FALSE);
   }
 
   gtk_widget_show(table->scroll_window);
