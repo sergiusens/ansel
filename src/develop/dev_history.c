@@ -778,7 +778,11 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
   dt_dev_read_history_ext(dev, dev->image_storage.id, FALSE);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
-  // we have to add new module instances first
+  if(!dev->gui_attached) return;
+
+  ++darktable.gui->reset;
+
+  // Deal with GUI states update
   for(GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
@@ -799,13 +803,9 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
       dt_iop_gui_update_header(module);
     }
   }
+  --darktable.gui->reset;
 
   dt_dev_pop_history_items(dev);
-
-  dt_ioppr_resync_iop_list(dev);
-  dt_dev_reorder_gui_module_list(dev);
-  dt_dev_modules_update_multishow(dev);
-  dt_dev_pixelpipe_rebuild(dev);
 }
 
 static inline void _dt_dev_modules_reload_defaults(dt_develop_t *dev)
@@ -877,12 +877,12 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
 
 void dt_dev_pop_history_items(dt_develop_t *dev)
 {
-  ++darktable.gui->reset;
-
   dt_pthread_mutex_lock(&dev->history_mutex);
   dt_ioppr_check_iop_order(dev, 0, "dt_dev_pop_history_items");
   dt_dev_pop_history_items_ext(dev);
   dt_pthread_mutex_unlock(&dev->history_mutex);
+
+  ++darktable.gui->reset;
 
   // update all gui modules
   for(GList *module = g_list_first(dev->iop); module; module = g_list_next(module))
@@ -890,10 +890,14 @@ void dt_dev_pop_history_items(dt_develop_t *dev)
     dt_iop_module_t *mod = (dt_iop_module_t *)(module->data);
     dt_iop_gui_update(mod);
   }
-  --darktable.gui->reset;
 
+  dt_dev_reorder_gui_module_list(dev);
+  dt_dev_modules_update_multishow(dev);
   dt_dev_modulegroups_update_visibility(dev);
   dt_dev_masks_list_change(dev);
+
+  --darktable.gui->reset;
+
   dt_dev_pixelpipe_rebuild(dev);
   dt_dev_refresh_ui_images(dev);
 }
@@ -1778,6 +1782,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   // Sanitize and flatten module order
   dt_ioppr_resync_modules_order(dev);
+  dt_ioppr_resync_iop_list(dev);
   dt_ioppr_check_iop_order(dev, imgid, "dt_dev_read_history_no_image end");
 
   // Update masks history
@@ -1923,14 +1928,14 @@ void dt_dev_history_compress(dt_develop_t *dev)
       dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
   }
 
-  // Disabled modules go at the end of the history, so user can truncate it after the last enabled item
-  // to get rid of disabled history.
+  // Commit to DB
+  dt_dev_write_history_ext(dev, dev->image_storage.id);
 
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
-  // Commit to DB
-  dt_dev_write_history(dev);
-
   // Reload to sanitize mandatory/incompatible modules
   dt_dev_reload_history_items(dev);
+
+  // Write again after sanitizatio
+  dt_dev_write_history(dev);
 }
