@@ -87,41 +87,6 @@ static void _pop_undo_execute(const int32_t imgid, const gboolean before, const 
 static int32_t _image_duplicate_with_version(const int32_t imgid, const int32_t newversion, const gboolean undo);
 static void _pop_undo(gpointer user_data, const dt_undo_type_t type, dt_undo_data_t data, const dt_undo_action_t action, GList **imgs);
 
-static int64_t max_image_position()
-{
-  sqlite3_stmt *stmt = NULL;
-
-  // get last position
-  int64_t max_position = 0;
-
-  const gchar *max_position_query = "SELECT MAX(position) FROM main.images";
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), max_position_query, -1, &stmt, NULL);
-
-  if (sqlite3_step(stmt) == SQLITE_ROW)
-  {
-    max_position = sqlite3_column_int64(stmt, 0);
-  }
-
-  sqlite3_finalize(stmt);
-  return max_position;
-}
-
-static int64_t create_next_image_position()
-{
-  /* The sequence pictures come in (import) define the initial sequence.
-   *
-   * The upper int32_t of the last image position is increased by one
-   * while the lower 32 bits are masked out.
-   *
-   * Example:
-   * last image position: (Hex)
-   * 0000 0002 0000 0001
-   *
-   * next image position
-   * 0000 0003 0000 0000
-   */
-  return (max_image_position() & 0xFFFFFFFF00000000) + (1ll << 32);
-}
 
 static void _image_local_copy_full_path(const int32_t imgid, char *pathname, size_t pathname_len);
 
@@ -856,10 +821,6 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
 {
   sqlite3_stmt *stmt;
   int32_t newid = -1;
-  const int64_t image_position = dt_collection_get_image_position(imgid, 0);
-  const int64_t new_image_position = (image_position < 0) ? max_image_position() : image_position + 1;
-
-  dt_collection_shift_image_positions(1, new_image_position, 0);
 
   // clang-format off
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
@@ -891,19 +852,18 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
      "   raw_auto_bright_threshold, raw_black, raw_maximum,"
      "   license, sha1sum, orientation, histogram, lightmap,"
      "   longitude, latitude, altitude, color_matrix, colorspace, version, max_version, history_end,"
-     "   position, aspect_ratio, exposure_bias, import_timestamp)"
+     "   aspect_ratio, exposure_bias, import_timestamp)"
      " SELECT NULL, group_id, film_id, width, height, filename, maker, model, lens,"
      "       exposure, aperture, iso, focal_length, focus_distance, datetime_taken,"
      "       flags, output_width, output_height, crop, raw_parameters, raw_denoise_threshold,"
      "       raw_auto_bright_threshold, raw_black, raw_maximum,"
      "       license, sha1sum, orientation, histogram, lightmap,"
-     "       longitude, latitude, altitude, color_matrix, colorspace, NULL, NULL, 0, ?1,"
+     "       longitude, latitude, altitude, color_matrix, colorspace, NULL, NULL, 0,"
      "       aspect_ratio, exposure_bias, import_timestamp"
      " FROM main.images WHERE id = ?2",
      -1, &stmt, NULL);
   // clang-format on
-  DT_DEBUG_SQLITE3_BIND_INT64(stmt, 1, new_image_position);
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
+  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
   sqlite3_step(stmt);
   sqlite3_finalize(stmt);
   // clang-format off
@@ -1926,8 +1886,6 @@ int32_t dt_image_copy_rename(const int32_t imgid, const int32_t filmid, const gc
 
     if(copyStatus || g_error_matches(gerror, G_IO_ERROR, G_IO_ERROR_EXISTS))
     {
-      const int64_t new_image_position = create_next_image_position();
-
       // update database
       // clang-format off
       DT_DEBUG_SQLITE3_PREPARE_V2
@@ -1939,22 +1897,21 @@ int32_t dt_image_copy_rename(const int32_t imgid, const int32_t filmid, const gc
          "   raw_auto_bright_threshold, raw_black, raw_maximum,"
          "   license, sha1sum, orientation, histogram, lightmap,"
          "   longitude, latitude, altitude, color_matrix, colorspace, version, max_version,"
-         "   position, aspect_ratio, exposure_bias)"
+         "   aspect_ratio, exposure_bias)"
          " SELECT NULL, group_id, ?1 as film_id, width, height, ?2 as filename, maker, model, lens,"
          "        exposure, aperture, iso, focal_length, focus_distance, datetime_taken,"
          "        flags, width, height, crop, raw_parameters, raw_denoise_threshold,"
          "        raw_auto_bright_threshold, raw_black, raw_maximum,"
          "        license, sha1sum, orientation, histogram, lightmap,"
          "        longitude, latitude, altitude, color_matrix, colorspace, -1, -1,"
-         "        ?3, aspect_ratio, exposure_bias"
+         "        aspect_ratio, exposure_bias"
          " FROM main.images"
-         " WHERE id = ?4",
+         " WHERE id = ?3",
         -1, &stmt, NULL);
       // clang-format on
       DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, filmid);
       DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 2, newFilename, -1, SQLITE_TRANSIENT);
-      DT_DEBUG_SQLITE3_BIND_INT64(stmt, 3, new_image_position);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 4, imgid);
+      DT_DEBUG_SQLITE3_BIND_INT(stmt, 3, imgid);
       sqlite3_step(stmt);
       sqlite3_finalize(stmt);
       // clang-format off

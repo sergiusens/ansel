@@ -168,12 +168,11 @@ static void _dt_collection_set_selq_pre_sort(const dt_collection_t *collection, 
   *selq_pre = dt_util_dstrcat(*selq_pre,
                               "SELECT DISTINCT mi.id FROM (SELECT"
                               "  id, group_id, film_id, filename, datetime_taken, "
-                              "  flags, version, %s position, aspect_ratio,"
+                              "  flags, version, aspect_ratio,"
                               "  maker, model, lens, aperture, exposure, focal_length,"
                               "  iso, import_timestamp, change_timestamp,"
                               "  export_timestamp, print_timestamp"
                               "  FROM main.images AS mi %s%s WHERE ",
-                              tagid ? "CASE WHEN ti.position IS NULL THEN 0 ELSE ti.position END AS" : "",
                               tagid ? " LEFT JOIN main.tagged_images AS ti"
                                       " ON ti.imgid = mi.id AND ti.tagid = " : "",
                               tagid ? tag : "");
@@ -680,12 +679,6 @@ gchar *dt_collection_get_sort_query(const dt_collection_t *collection)
     case DT_COLLECTION_SORT_PATH:
       // clang-format off
       sq = g_strdup_printf("ORDER BY folder %s, filename %s, version %s, mi.id %s", order, order, order, order);
-      // clang-format on
-      break;
-
-    case DT_COLLECTION_SORT_CUSTOM_ORDER:
-      // clang-format off
-      sq = g_strdup_printf("ORDER BY position %s, filename %s, version %s, mi.id %s", order, order, order, order);
       // clang-format on
       break;
 
@@ -2091,194 +2084,6 @@ void dt_collection_load_filmroll(dt_collection_t *collection, const int32_t imgi
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_TAG_CHANGED);
 
   if(current_atelier) _dt_collection_change_view_after_import(current_atelier, open_single_image);
-}
-
-int64_t dt_collection_get_image_position(const int32_t image_id, const int32_t tagid)
-{
-  int64_t image_position = -1;
-
-  if (image_id >= 0)
-  {
-    sqlite3_stmt *stmt = NULL;
-    // clang-format off
-    gchar *image_pos_query = g_strdup(
-          tagid ? "SELECT position FROM main.tagged_images WHERE imgid = ?1 AND tagid = ?2"
-                : "SELECT position FROM main.images WHERE id = ?1");
-    // clang-format on
-
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), image_pos_query, -1, &stmt, NULL);
-    DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, image_id);
-    if(tagid) DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, tagid);
-    if(sqlite3_step(stmt) == SQLITE_ROW)
-    {
-      image_position = sqlite3_column_int64(stmt, 0);
-    }
-
-    sqlite3_finalize(stmt);
-    g_free(image_pos_query);
-  }
-
-  return image_position;
-}
-
-void dt_collection_shift_image_positions(const unsigned int length,
-                                         const int64_t image_position,
-                                         const int32_t tagid)
-{
-  sqlite3_stmt *stmt = NULL;
-  // clang-format off
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              tagid
-                              ?
-                              "UPDATE main.tagged_images"
-                              " SET position = position + ?1"
-                              " WHERE position >= ?2 AND position < ?3"
-                              "       AND tagid = ?4"
-                              :
-                              "UPDATE main.images"
-                              " SET position = position + ?1"
-                              " WHERE position >= ?2 AND position < ?3",
-                              -1, &stmt, NULL);
-  // clang-format on
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, length);
-  DT_DEBUG_SQLITE3_BIND_INT64(stmt, 2, image_position);
-  DT_DEBUG_SQLITE3_BIND_INT64(stmt, 3, (image_position & 0xFFFFFFFF00000000) + (1ll << 32));
-  if(tagid) DT_DEBUG_SQLITE3_BIND_INT(stmt, 4, tagid);
-  sqlite3_step(stmt);
-  sqlite3_finalize(stmt);
-}
-
-/* move images with drag and drop
- *
- * An int64 is used for the position index. The upper 31 bits define the initial order.
- * The lower 32bit provide space to reorder images. That way only a small amount of images must be
- * updated while reordering images.
- *
- * Example: (position values hex)
- * Initial order:
- * Img 1: 0000 0001 0000 0000
- * Img 2: 0000 0002 0000 0000
- * Img 3: 0000 0003 0000 0000
- * Img 3: 0000 0004 0000 0000
- *
- * Putting Img 2 in front of Img 1. Would give
- * Img 2: 0000 0001 0000 0000
- * Img 1: 0000 0001 0000 0001
- * Img 3: 0000 0003 0000 0000
- * Img 4: 0000 0004 0000 0000
- *
- * Img 3 and Img 4 is not updated.
-*/
-void dt_collection_move_before(const int32_t image_id, GList * selected_images)
-{
-  if (!selected_images)
-  {
-    return;
-  }
-
-  const uint32_t tagid = darktable.collection->tagid;
-  // getting the position of the target image
-  const int64_t target_image_pos = dt_collection_get_image_position(image_id, tagid);
-  if (target_image_pos >= 0)
-  {
-    const guint selected_images_length = g_list_length(selected_images);
-
-    dt_collection_shift_image_positions(selected_images_length, target_image_pos, tagid);
-
-    sqlite3_stmt *stmt = NULL;
-    dt_database_start_transaction(darktable.db);
-
-    // move images to their intended positions
-    int64_t new_image_pos = target_image_pos;
-    // clang-format off
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                tagid
-                                ?
-                                "UPDATE main.tagged_images"
-                                " SET position = ?1"
-                                " WHERE imgid = ?2 AND tagid = ?3"
-                                :
-                                "UPDATE main.images"
-                                " SET position = ?1"
-                                " WHERE id = ?2",
-                                -1, &stmt, NULL);
-    // clang-format on
-
-    for (const GList * selected_images_iter = selected_images;
-         selected_images_iter != NULL;
-         selected_images_iter = g_list_next(selected_images_iter))
-    {
-      const int moved_image_id = GPOINTER_TO_INT(selected_images_iter->data);
-
-      DT_DEBUG_SQLITE3_BIND_INT64(stmt, 1, new_image_pos);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, moved_image_id);
-      if(tagid) DT_DEBUG_SQLITE3_BIND_INT(stmt, 3, tagid);
-      sqlite3_step(stmt);
-      sqlite3_reset(stmt);
-      new_image_pos++;
-    }
-    sqlite3_finalize(stmt);
-    dt_database_release_transaction(darktable.db);
-  }
-  else
-  {
-    // move images to the end of the list
-    sqlite3_stmt *stmt = NULL;
-
-    // get last position
-    int64_t max_position = -1;
-    // clang-format off
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                tagid
-                                ?
-                                "SELECT MAX(position) FROM main.tagged_images"
-                                :
-                                "SELECT MAX(position) FROM main.images",
-                                -1, &stmt, NULL);
-    // clang-format on
-
-    if (sqlite3_step(stmt) == SQLITE_ROW)
-    {
-      max_position = sqlite3_column_int64(stmt, 0);
-      max_position = (max_position & 0xFFFFFFFF00000000) >> 32;
-    }
-
-    sqlite3_finalize(stmt);
-    sqlite3_stmt *update_stmt = NULL;
-
-    dt_database_start_transaction(darktable.db);
-
-    // move images to last position in custom image order table
-    // clang-format off
-    DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                tagid
-                                ?
-                                "UPDATE main.tagged_images"
-                                " SET position = ?1"
-                                " WHERE imgid = ?2 AND tagid = ?3"
-                                :
-                                "UPDATE main.images"
-                                " SET position = ?1"
-                                " WHERE id = ?2",
-                                -1, &update_stmt, NULL);
-    // clang-format on
-
-    for (const GList * selected_images_iter = selected_images;
-         selected_images_iter != NULL;
-         selected_images_iter = g_list_next(selected_images_iter))
-    {
-      max_position++;
-      const int moved_image_id = GPOINTER_TO_INT(selected_images_iter->data);
-      DT_DEBUG_SQLITE3_BIND_INT64(update_stmt, 1, max_position << 32);
-      DT_DEBUG_SQLITE3_BIND_INT(update_stmt, 2, moved_image_id);
-      if(tagid) DT_DEBUG_SQLITE3_BIND_INT(update_stmt, 3, tagid);
-      sqlite3_step(update_stmt);
-      sqlite3_reset(update_stmt);
-    }
-
-    sqlite3_finalize(update_stmt);
-    dt_database_release_transaction(darktable.db);
-  }
 }
 
 // clang-format off

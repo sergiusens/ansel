@@ -939,9 +939,6 @@ static void _event_dnd_begin(GtkWidget *widget, GdkDragContext *context, gpointe
                                 g_list_length(table->drag_list));
   }
 #endif
-
-  if(darktable.collection->params.sort == DT_COLLECTION_SORT_CUSTOM_ORDER)
-    dt_gui_add_class(table->grid, "dt_thumbtable_reorder");
 }
 
 GList *_thumbtable_dnd_import_check(GList *files, const char *pathname, int *elements)
@@ -1036,28 +1033,7 @@ void dt_thumbtable_event_dnd_received(GtkWidget *widget, GdkDragContext *context
   {
     success = _thumbtable_dnd_import(selection_data);
   }
-  else if((target_type == DND_TARGET_IMGID) && (selection_data != NULL)
-          && (gtk_selection_data_get_length(selection_data) >= 0))
-  {
-    dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-    if(table->drag_list)
-    {
-      if(darktable.collection->params.sort == DT_COLLECTION_SORT_CUSTOM_ORDER)
-      {
-        // source = dest = thumbtable => we are reordering
-        // set order to "user defined" (this shouldn't trigger anything)
-        const int32_t mouse_over_id = dt_control_get_mouse_over_id();
-        dt_collection_move_before(mouse_over_id, table->drag_list);
-        dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF,
-                                   g_list_copy(table->drag_list));
-        success = TRUE;
-      }
-    }
-    else
-    {
-      // we don't catch anything here at the moment
-    }
-  }
+
   gtk_drag_finish(context, success, FALSE, time);
 }
 
@@ -1079,7 +1055,6 @@ void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
   _update_row_ids(table);
-  //gtk_widget_queue_draw(table->grid);
 }
 
 int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)

@@ -69,7 +69,6 @@ typedef enum dt_collection_sort_t
   DT_COLLECTION_SORT_COLOR,
   DT_COLLECTION_SORT_GROUP,
   DT_COLLECTION_SORT_PATH,
-  DT_COLLECTION_SORT_CUSTOM_ORDER,
   DT_COLLECTION_SORT_TITLE
 } dt_collection_sort_t;
 
@@ -229,13 +228,6 @@ int dt_collection_serialize(char *buf, int bufsize);
 void dt_collection_split_operator_number(const gchar *input, char **number1, char **number2, char **op);
 void dt_collection_split_operator_datetime(const gchar *input, char **number1, char **number2, char **op);
 void dt_collection_split_operator_exposure(const gchar *input, char **number1, char **number2, char **op);
-
-int64_t dt_collection_get_image_position(const int32_t image_id, const int32_t tagid);
-void dt_collection_shift_image_positions(const unsigned int length, const int64_t image_position,
-                                         const int32_t tagid);
-
-/* move images with drag and drop */
-void dt_collection_move_before(const int32_t image_id, GList * selected_images);
 
 /* initialize memory table */
 void dt_collection_memory_update();

@@ -84,7 +84,6 @@ const dt_collection_sort_t items[] =
   DT_COLLECTION_SORT_COLOR,
   DT_COLLECTION_SORT_GROUP,
   DT_COLLECTION_SORT_PATH,
-  DT_COLLECTION_SORT_CUSTOM_ORDER,
   DT_COLLECTION_SORT_TITLE,
 };
 #define NB_ITEMS (sizeof(items) / sizeof(dt_collection_sort_t))
@@ -101,7 +100,6 @@ static const char *_sort_names[]
       N_("color label"),
       N_("group"),
       N_("full path"),
-      N_("custom sort"),
       N_("title"),
       NULL };
 
