@@ -20,7 +20,17 @@
 #include "control/control.h"
 
 #define DT_CONTROL_FG_PRIORITY 4
-#define DT_CONTROL_MAX_JOBS 128
+
+// The thumbtable allows at most 840 thumbs at once.
+// Once an order to recompute has been dispatched, thumbnails are not drawn
+// until it finishes and we get the final buffer.
+// If jobs are flushed from the queue before completion,
+// those thumbnails will never be redrawn.
+// We prevent thumbnail & exports pipelines from running concurrently,
+// so the RAM usage will not explode here : at any time, we have at most
+// 2 concurrent pipes running ((darkroow preview OR darkroom main) AND (thumbnail OR export)).
+// Crazy threading here is to hide disk & network I/O latency while fetching files.
+#define DT_CONTROL_MAX_JOBS 840
 
 /* the queue can have scheduled jobs but all
     the workers are sleeping, so this kicks the workers
