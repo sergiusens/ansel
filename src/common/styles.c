@@ -855,8 +855,7 @@ void dt_styles_apply_to_image(const char *name, const gboolean duplicate, const 
     dt_history_snapshot_undo_create(hist->imgid, &hist->before, &hist->before_history_end);
 
     // write history and forms to db
-    dt_dev_write_history_ext(dev_dest->history, dev_dest->iop_order_list, newimgid);
-    dt_dev_write_history_end_ext(dt_dev_get_history_end(dev_dest), newimgid);
+    dt_dev_write_history_ext(dev_dest, newimgid);
 
     dt_history_snapshot_undo_create(hist->imgid, &hist->after, &hist->after_history_end);
     dt_undo_start_group(darktable.undo, DT_UNDO_LT_HISTORY);

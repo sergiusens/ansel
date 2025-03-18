@@ -528,6 +528,9 @@ typedef struct darktable_t
   GList *iop;
   GList *iop_order_list;
   GList *iop_order_rules;
+
+  // Keep track of optional features that may depend on environnement
+  // ond compiling options : OpenCL, libsecret, kwallet
   GList *capabilities;
   JsonParser *noiseprofile_parser;
   struct dt_conf_t *conf;
@@ -552,11 +555,33 @@ typedef struct darktable_t
   struct dt_undo_t *undo;
   struct dt_colorspaces_t *color_profiles;
   struct dt_l10n_t *l10n;
+
+  // Protects from concurrent writing at export time
   dt_pthread_mutex_t plugin_threadsafe;
+
+  // Protect appending/removing GList links to the darktable.capabilities list
   dt_pthread_mutex_t capabilities_threadsafe;
+
+  // Exiv2 readMetadata() was not thread-safe prior to 0.27
+  // FIXME: Is it now ?
   dt_pthread_mutex_t exiv2_threadsafe;
+
+  // RawSpeed readFile() method is apparently not thread-safe
   dt_pthread_mutex_t readFile_mutex;
+
+  // Prevent concurrent export/thumbnail pipelines from runnnig at the same time
+  // It brings no additional performance since the CPU is our bottleneck,
+  // and CPU pixel code is already multi-threaded internally through OpenMP
   dt_pthread_mutex_t pipeline_threadsafe;
+
+  // Building SQL transactions through `dt_database_start_transaction_debug()`
+  // from "too many" threads (like loading all thumbnails from a new collection)
+  // leads to SQL error:
+  // `BEGIN": cannot start a transaction within a transaction`
+  // Also, we need to ensure that image metadata/history reads & writes
+  // happen each in their all time, from all pipeline jobs/threads.
+  dt_pthread_rwlock_t database_threadsafe;
+
   char *progname;
   char *datadir;
   char *sharedir;

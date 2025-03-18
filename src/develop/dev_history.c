@@ -46,6 +46,16 @@ static dt_dev_history_item_t *_search_history_by_op(dt_develop_t *dev, dt_iop_mo
   return hist_mod;
 }
 
+const dt_dev_history_item_t *_get_last_history_item_for_module(dt_develop_t *dev, struct dt_iop_module_t *module)
+{
+  for(GList *l = g_list_last(dev->history); l; l = g_list_previous(l))
+  {
+    dt_dev_history_item_t *item = (dt_dev_history_item_t *)l->data;
+    if(item->module == module)
+      return item;
+  }
+  return NULL;
+}
 
 // fills used with formid, if it is a group it recurs and fill all sub-forms
 static void _fill_used_forms(GList *forms_list, int formid, int *used, int nb)
@@ -349,8 +359,7 @@ static int _history_copy_and_paste_on_image_merge(int32_t imgid, int32_t dest_im
   dt_ioppr_check_iop_order(dev_dest, dest_imgid, "_history_copy_and_paste_on_image_merge 2");
 
   // write history and forms to db
-  dt_dev_write_history_ext(dev_dest->history, dev_dest->iop_order_list, dest_imgid);
-  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev_dest), dest_imgid);
+  dt_dev_write_history_ext(dev_dest, dest_imgid);
 
   dt_dev_cleanup(dev_src);
   dt_dev_cleanup(dev_dest);
@@ -551,7 +560,7 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   }
   else
   {
-    const dt_dev_history_item_t *previous_item = dt_dev_get_history_item(dev, module);
+    const dt_dev_history_item_t *previous_item = _get_last_history_item_for_module(dev, module);
     // check if NULL first or prevous_item->module will segfault
     // We need to add a new pipeline node if:
     add_new_pipe_node = (previous_item == NULL)                         // it's the first history entry for this module
@@ -634,17 +643,6 @@ gboolean dt_dev_add_history_item_ext(dt_develop_t *dev, struct dt_iop_module_t *
   return add_new_pipe_node;
 }
 
-const dt_dev_history_item_t *dt_dev_get_history_item(dt_develop_t *dev, struct dt_iop_module_t *module)
-{
-  for(GList *l = g_list_last(dev->history); l; l = g_list_previous(l))
-  {
-    dt_dev_history_item_t *item = (dt_dev_history_item_t *)l->data;
-    if(item->module == module)
-      return item;
-  }
-  return NULL;
-}
-
 
 #define AUTO_SAVE_TIMEOUT 15000
 
@@ -662,9 +660,8 @@ uint64_t dt_dev_history_get_hash(dt_develop_t *dev)
   return hash;
 }
 
-int dt_dev_history_auto_save(gpointer data)
+int dt_dev_history_auto_save(dt_develop_t *dev)
 {
-  dt_develop_t *dev = (dt_develop_t *)data;
   if(dev->auto_save_timeout)
   {
     g_source_remove(dev->auto_save_timeout);
@@ -689,8 +686,7 @@ int dt_dev_history_auto_save(gpointer data)
   dt_get_times(&start);
   dt_toast_log(_("autosaving changes..."));
 
-  dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
-  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
+  dt_dev_write_history_ext(dev, dev->image_storage.id);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
   dt_control_save_xmp(dev->image_storage.id);
@@ -770,7 +766,7 @@ void dt_dev_add_history_item_real(dt_develop_t *dev, dt_iop_module_t *module, gb
       g_source_remove(dev->auto_save_timeout);
       dev->auto_save_timeout = 0;
     }
-    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, dt_dev_history_auto_save, dev);
+    dev->auto_save_timeout = g_timeout_add(AUTO_SAVE_TIMEOUT, (GSourceFunc)dt_dev_history_auto_save, dev);
   }
 }
 
@@ -964,7 +960,7 @@ guint dt_dev_mask_history_overload(GList *dev_history, guint threshold)
   return states;
 }
 
-static void _warn_about_history_overuse(GList *dev_history)
+static void _warn_about_history_overuse(GList *dev_history, int32_t imgid)
 {
   /* History stores one entry per module, everytime a parameter is changed.
   *  For modules using masks, we also store a full snapshot of masks states.
@@ -974,9 +970,9 @@ static void _warn_about_history_overuse(GList *dev_history)
   guint states = dt_dev_mask_history_overload(dev_history, 250);
 
   if(states > 250)
-    dt_toast_log(_("Your history is storing %d mask states. To ensure smooth operation, consider compressing "
-                   "history and removing unused masks."),
-                 states);
+    dt_toast_log(_("Image #%i history is storing %d mask states. n"
+                   "Consider compressing history and removing unused masks to keep reads/writes manageable."),
+                   imgid, states);
 }
 
 
@@ -1053,28 +1049,37 @@ int dt_dev_write_history_item(const int32_t imgid, dt_dev_history_item_t *h, int
 
 
 
-void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int32_t imgid)
+void dt_dev_write_history_ext(dt_develop_t *dev, const int32_t imgid)
 {
-  _cleanup_history(imgid);
-  _warn_about_history_overuse(dev_history);
+  _warn_about_history_overuse(dev->history, imgid);
 
   dt_print(DT_DEBUG_HISTORY, "[dt_dev_write_history_ext] writing history for image %i...\n", imgid);
 
+  // Lock database
+  dt_pthread_rwlock_wrlock(&darktable.database_threadsafe);
+
+  _cleanup_history(imgid);
+
   // write history entries
   int i = 0;
-  for(GList *history = g_list_first(dev_history); history; history = g_list_next(history))
+  for(GList *history = g_list_first(dev->history); history; history = g_list_next(history))
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
     dt_dev_write_history_item(imgid, hist, i);
     i++;
   }
 
+  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
+
   // write the current iop-order-list for this image
-  dt_ioppr_write_iop_order_list(iop_order_list, imgid);
+  dt_ioppr_write_iop_order_list(dev->iop_order_list, imgid);
 
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
   dt_dev_append_changed_tag(imgid);
   dt_image_cache_set_change_timestamp(darktable.image_cache, imgid);
+
+  // Unlock database
+  dt_pthread_rwlock_unlock(&darktable.database_threadsafe);
 
   // We call dt_dev_write_history_ext only when history hash has changed,
   // however, we use our C-based cumulative custom hash while the following
@@ -1088,10 +1093,8 @@ void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const i
 
 void dt_dev_write_history(dt_develop_t *dev)
 {
-  // FIXME: [CRITICAL] should lock the image history at the app level
   dt_pthread_mutex_lock(&dev->history_mutex);
-  dt_dev_write_history_ext(dev->history, dev->iop_order_list, dev->image_storage.id);
-  dt_dev_write_history_end_ext(dt_dev_get_history_end(dev), dev->image_storage.id);
+  dt_dev_write_history_ext(dev, dev->image_storage.id);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 }
 
@@ -1700,11 +1703,6 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   // Find a .so file that matches our history entry, aka a module to run the params stored in DB
   _find_so_for_history_entry(dev, hist);
 
-  // Update IOP order stuff, that applies to all modules regardless of their internals
-  // Needed now to de-entangle multi-instances
-  hist->module->iop_order = hist->iop_order;
-  dt_iop_update_multi_priority(hist->module, hist->multi_priority);
-
   if(!hist->module)
   {
     // History will be lost forever for this module
@@ -1715,6 +1713,11 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
     free(hist);
     return;
   }
+
+  // Update IOP order stuff, that applies to all modules regardless of their internals
+  // Needed now to de-entangle multi-instances
+  hist->module->iop_order = hist->iop_order;
+  dt_iop_update_multi_priority(hist->module, hist->multi_priority);
 
   // module has no user params and won't bother us in GUI - exit early, we are done
   if(hist->module->flags() & IOP_FLAGS_NO_HISTORY_STACK)
@@ -1764,6 +1767,9 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   dt_ioppr_set_default_iop_order(dev, imgid);
 
+  // Lock database
+  dt_pthread_rwlock_rdlock(&darktable.database_threadsafe);
+
   if(!no_image) _init_default_history(dev, imgid, &first_run, &auto_apply_modules);
 
   sqlite3_stmt *stmt;
@@ -1798,6 +1804,9 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
     if(sqlite3_column_type(stmt, 0) != SQLITE_NULL)
       dt_dev_set_history_end(dev, sqlite3_column_int(stmt, 0));
   sqlite3_finalize(stmt);
+
+  // Unlock database
+  dt_pthread_rwlock_unlock(&darktable.database_threadsafe);
 
   // Sanitize and flatten module order
   dt_ioppr_resync_modules_order(dev);

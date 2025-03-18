@@ -43,37 +43,73 @@ typedef struct dt_dev_history_item_t
 } dt_dev_history_item_t;
 
 
-/** Free the whole GList attached to dev->history  */
+/** Free the whole GList of `dt_dev_history_item_t` attached to dev->history  */
 void dt_dev_history_free_history(struct dt_develop_t *dev);
 
-/* WARNING: non-thread-safe. Should be called in function locking the dev->history_mutex lock */
-const dt_dev_history_item_t *dt_dev_get_history_item(struct dt_develop_t *dev, struct dt_iop_module_t *module);
-/* Return TRUE if the pipeline topology may need to be updated, aka new module node inserted */
+/** Free a single GList *link containing a `dt_dev_history_item_t` */
+void dt_dev_free_history_item(gpointer data);
+
+/**
+ * @brief Append a new history item on dev->history, at dev->history_end position.
+ * If history items exist after dev->history_end, they will be removed under certain conditions.
+ *
+ * @param dev
+ * @param module
+ * @param enable
+ * @param force_new_item
+ * @param no_image
+ * @param include_masks
+ * @return gboolean TRUE if the pipeline topology may need to be updated, aka new module node inserted
+ */
 gboolean dt_dev_add_history_item_ext(struct dt_develop_t *dev, struct dt_iop_module_t *module, gboolean enable, gboolean force_new_item,
                                      gboolean no_image, gboolean include_masks);
+
+// Locks dev->history_mutex, calls `dt_dev_add_history_item_ext()`, invalidates darkroom pipelines,
+// triggers pipe recomputation and queue an history auto-save for the next 15 seconds.
 void dt_dev_add_history_item_real(struct dt_develop_t *dev, struct dt_iop_module_t *module, gboolean enable);
+
+// Debug helper to follow calls to `dt_dev_add_history_item_real()`, but mostly to follow useless pipe recomputations.
 #define dt_dev_add_history_item(dev, module, enable) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_DEV, dt_dev_add_history_item_real, (dev), (module), (enable))
 
-void dt_dev_reload_history_items(struct dt_develop_t *dev);
 
-// dev->history_end should be set before
+// Locks darktable.database_threadsafe in write mode,
+// write dev->history GList into DB and XMP
+void dt_dev_write_history_ext(struct dt_develop_t *dev, const int32_t imgid);
+
+// Locks dev->history_mutex and calls dt_dev_write_history_ext()
+void dt_dev_write_history(struct dt_develop_t *dev);
+
+// Locks darktable.database_threadsafe in read mode,
+// get history (module params) and masks from DB,
+// apply default modules, auto-presets and mandatory modules,
+// then populate dev->history GList.
+void dt_dev_read_history_ext(struct dt_develop_t *dev, const int32_t imgid, gboolean no_image);
+
+// Locks dev->history_mutex and calls dt_dev_read_history_ext()
+void dt_dev_read_history(struct dt_develop_t *dev);
+
+// Read dev->history state, up to dev->history_end,
+// and write it into the params/blendops of modules from dev->iop.
+// dev->history_end should be set before, see `dt_dev_set_history_end()`.
+// This doesn't update GUI. See `dt_dev_pop_history_items()`
 void dt_dev_pop_history_items_ext(struct dt_develop_t *dev);
 
-// dev->history_end should be set before
+// Locks dev->history_mutex and calls `dt_dev_pop_history_items_ext()`
+// Then update module GUI
 void dt_dev_pop_history_items(struct dt_develop_t *dev);
 
-void dt_dev_write_history_ext(GList *dev_history, GList *iop_order_list, const int32_t imgid);
-void dt_dev_write_history_end_ext(const int history_end, const int32_t imgid);
 
-void dt_dev_write_history(struct dt_develop_t *dev);
-int dt_dev_write_history_item(const int32_t imgid, dt_dev_history_item_t *h, int32_t num);
-void dt_dev_read_history_ext(struct dt_develop_t *dev, const int32_t imgid, gboolean no_image);
-void dt_dev_read_history(struct dt_develop_t *dev);
-void dt_dev_free_history_item(gpointer data);
+// Free exisiting history, re-read it from database, update GUI and rebuild darkroom pipeline nodes.
+// Locks dev->history_mutex
+void dt_dev_reload_history_items(struct dt_develop_t *dev);
+
+
+// Removes the reference to `*module` from history entries
+// FIXME: why is that needed ?
 void dt_dev_invalidate_history_module(GList *list, struct dt_iop_module_t *module);
 
 /**
- * @brief Get the integrity checksum of the whole history
+ * @brief Get the integrity checksum of the whole history stack
  *
  * @param dev
  * @return uint64_t
@@ -81,12 +117,14 @@ void dt_dev_invalidate_history_module(GList *list, struct dt_iop_module_t *modul
 uint64_t dt_dev_history_get_hash(struct dt_develop_t *dev);
 
 /**
- * @brief Callback function meant to be used with g_timeout, saving history if it changes since prior saving point.
+ * @brief Write history to DB and XMP only if the integrety hash has changed since
+ * first reading history, or since prior saving point.
+ * Callback function meant to be used with g_timeout, or standalone.
  *
- * @param data actually, `struct dt_develop_t *dev`, but needs to be `void * (alias gpointer)` for `g_timeout_add` support
+ * @param dev
  * @return int
  */
-int dt_dev_history_auto_save(gpointer data);
+int dt_dev_history_auto_save(struct dt_develop_t *dev);
 
 
 // We allow pipelines to run partial histories, up to a certain index
