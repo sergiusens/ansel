@@ -1906,7 +1906,7 @@ void dt_dev_history_compress(dt_develop_t *dev)
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(item->data);
     if(!module->enabled
-       && (module->default_enabled || memcmp(module->params, module->default_params, module->params_size) != 0)
+       && (module->default_enabled || !module->has_defaults(module))
        && !_module_leaves_no_history(module))
       dt_dev_add_history_item_ext(dev, module, FALSE, TRUE, TRUE, TRUE);
   }
