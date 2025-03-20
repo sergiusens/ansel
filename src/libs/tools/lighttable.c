@@ -35,20 +35,19 @@ DT_MODULE(1)
 
 typedef struct dt_lib_tool_lighttable_t
 {
-  GtkWidget *zoom;
-  GtkWidget *zoom_entry;
-  int current_zoom;
+  GtkWidget *columns;
+  int current_columns;
   gboolean combo_evt_reset;
 } dt_lib_tool_lighttable_t;
 
-/* set zoom proxy function */
-static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom);
-static gint _lib_lighttable_get_zoom(dt_lib_module_t *self);
+/* set columns proxy function */
+static void _lib_lighttable_set_columns(dt_lib_module_t *self, gint columns);
+static gint _lib_lighttable_get_columns(dt_lib_module_t *self);
 
-/* zoom slider change callback */
-static void _lib_lighttable_zoom_slider_changed(GtkWidget *widget, gpointer user_data);
+/* columns slider change callback */
+static void _lib_lighttable_columns_slider_changed(GtkWidget *widget, gpointer user_data);
 
-static void _set_zoom(dt_lib_module_t *self, int zoom);
+static void _set_columns(dt_lib_module_t *self, int columns);
 
 const char *name(struct dt_lib_module_t *self)
 {
@@ -76,24 +75,24 @@ int position()
   return 1001;
 }
 
-gboolean _zoom_in_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+gboolean _columns_in_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                          GdkModifierType modifier, gpointer data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
-  int current_level = _lib_lighttable_get_zoom(self);
+  int current_level = _lib_lighttable_get_columns(self);
   int new_level = CLAMP(current_level - 1, 1, 12);
-  _lib_lighttable_set_zoom(self, new_level);
+  _lib_lighttable_set_columns(self, new_level);
   dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
   return TRUE;
 }
 
-gboolean _zoom_out_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+gboolean _columns_out_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                           GdkModifierType modifier, gpointer data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
-  int current_level = _lib_lighttable_get_zoom(self);
+  int current_level = _lib_lighttable_get_columns(self);
   int new_level = CLAMP(current_level + 1, 1, 12);
-  _lib_lighttable_set_zoom(self, new_level);
+  _lib_lighttable_set_columns(self, new_level);
   dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
   return TRUE;
 }
@@ -104,7 +103,7 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 {
   if(!user_data) return;
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
-  int current_level = _lib_lighttable_get_zoom(self);
+  int current_level = _lib_lighttable_get_columns(self);
   int num_images = dt_collection_get_count(darktable.collection);
 
   switch(num_images)
@@ -114,16 +113,16 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     case 3:
     case 4:
     case 5:
-      _lib_lighttable_set_zoom(self, num_images);
+      _lib_lighttable_set_columns(self, num_images);
       dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
       break;
     case 6:
-      _lib_lighttable_set_zoom(self, 3);
+      _lib_lighttable_set_columns(self, 3);
       dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
       break;
     case 7:
     case 8:
-      _lib_lighttable_set_zoom(self, 4);
+      _lib_lighttable_set_columns(self, 4);
       dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
       break;
     case 9:
@@ -133,12 +132,12 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     case 13:
     case 14:
     case 15:
-      _lib_lighttable_set_zoom(self, 5);
+      _lib_lighttable_set_columns(self, 5);
       dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
       break;
     default:
       if(dt_conf_key_exists("plugins/lighttable/images_in_row_backup"))
-        _lib_lighttable_set_zoom(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
+        _lib_lighttable_set_columns(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
   }
 }
 
@@ -151,33 +150,32 @@ void gui_init(dt_lib_module_t *self)
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_widget_set_halign(self->widget, GTK_ALIGN_END);
 
-  d->current_zoom = dt_conf_get_int("plugins/lighttable/images_in_row");
+  d->current_columns = dt_conf_get_int("plugins/lighttable/images_in_row");
 
   /* Zoom */
   GtkWidget *label = gtk_label_new(C_("quickfilter", "Columns"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 
-  /* create horizontal zoom slider */
-  d->zoom = gtk_spin_button_new_with_range(1., 12., 1.);
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->zoom), FALSE, FALSE, 0);
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->zoom), d->current_zoom);
+  d->columns = gtk_spin_button_new_with_range(1., 12., 1.);
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->columns), FALSE, FALSE, 0);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->columns), d->current_columns);
 
   // Capturing focus collides with lighttable key navigation, and it is useless
-  // because we already have zoom in/out global shortcuts
-  gtk_widget_set_can_focus(d->zoom, FALSE);
+  // because we already have columns in/out global shortcuts
+  gtk_widget_set_can_focus(d->columns, FALSE);
 
-  g_signal_connect(G_OBJECT(d->zoom), "value-changed", G_CALLBACK(_lib_lighttable_zoom_slider_changed), self);
+  g_signal_connect(G_OBJECT(d->columns), "value-changed", G_CALLBACK(_lib_lighttable_columns_slider_changed), self);
 
-  dt_accels_new_lighttable_action(_zoom_in_action, self, N_("Lighttable/Actions"), N_("Zoom in the thumbtable grid"),
+  dt_accels_new_lighttable_action(_columns_in_action, self, N_("Lighttable/Actions"), N_("Zoom in the thumbtable grid"),
                                   GDK_KEY_plus, GDK_CONTROL_MASK);
-  dt_accels_new_lighttable_action(_zoom_out_action, self, N_("Lighttable/Actions"), N_("Zoom out the thumbtable grid"),
+  dt_accels_new_lighttable_action(_columns_out_action, self, N_("Lighttable/Actions"), N_("Zoom out the thumbtable grid"),
                                   GDK_KEY_minus, GDK_CONTROL_MASK);
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED,
                                   G_CALLBACK(_dt_collection_changed_callback), self);
 
-  _lib_lighttable_zoom_slider_changed(d->zoom, self); // the slider defaults to 1 and GTK doesn't
+  _lib_lighttable_columns_slider_changed(d->columns, self); // the slider defaults to 1 and GTK doesn't
                                                       // fire a value-changed signal when setting
                                                       // it to 1 => empty text box
 }
@@ -189,50 +187,50 @@ void gui_cleanup(dt_lib_module_t *self)
   self->data = NULL;
 }
 
-static void _set_zoom(dt_lib_module_t *self, int zoom)
+static void _set_columns(dt_lib_module_t *self, int columns)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  if(zoom != dt_conf_get_int("plugins/lighttable/images_in_row"))
+  if(columns != dt_conf_get_int("plugins/lighttable/images_in_row"))
   {
-    dt_conf_set_int("plugins/lighttable/images_in_row", zoom);
+    dt_conf_set_int("plugins/lighttable/images_in_row", columns);
     dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
     gtk_widget_queue_draw(table->grid);
-    d->current_zoom = zoom;
+    d->current_columns = columns;
   }
 }
 
-static void _lib_lighttable_zoom_slider_changed(GtkWidget *widget, gpointer user_data)
+static void _lib_lighttable_columns_slider_changed(GtkWidget *widget, gpointer user_data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  _set_zoom(self, gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->zoom)));
+  _set_columns(self, gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->columns)));
   dt_conf_set_int("plugins/lighttable/images_in_row_backup",
-                  gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->zoom)));
+                  gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->columns)));
 }
 
-static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom)
+static void _lib_lighttable_set_columns(dt_lib_module_t *self, gint columns)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->zoom), zoom);
-  _set_zoom(self, zoom);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->columns), columns);
+  _set_columns(self, columns);
 }
 
-static gint _lib_lighttable_get_zoom(dt_lib_module_t *self)
+static gint _lib_lighttable_get_columns(dt_lib_module_t *self)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  return d->current_zoom;
+  return d->current_columns;
 }
 
 #ifdef USE_LUA
 
-static int zoom_level_cb(lua_State *L)
+static int columns_level_cb(lua_State *L)
 {
   dt_lib_module_t *self = lua_touserdata(L, lua_upvalueindex(1));
-  const gint tmp = _lib_lighttable_get_zoom(self);
+  const gint tmp = _lib_lighttable_get_columns(self);
   if(lua_gettop(L) > 0){
     int value;
     luaA_to(L, int, &value, 1);
-    _lib_lighttable_set_zoom(self, value);
+    _lib_lighttable_set_columns(self, value);
   }
   luaA_push(L, int, &tmp);
   return 1;
@@ -246,7 +244,7 @@ void init(struct dt_lib_module_t *self)
   dt_lua_gtk_wrap(L);
   lua_pushcclosure(L, dt_lua_type_member_common, 1);
   lua_pushlightuserdata(L, self);
-  lua_pushcclosure(L, zoom_level_cb, 1);
+  lua_pushcclosure(L, columns_level_cb, 1);
   dt_lua_gtk_wrap(L);
   lua_pushcclosure(L, dt_lua_type_member_common, 1);
   dt_lua_type_register_const_type(L, my_type, "zoom_level");
