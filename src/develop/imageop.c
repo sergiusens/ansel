@@ -386,7 +386,7 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   module->request_mask_display = DT_DEV_PIXELPIPE_DISPLAY_NONE;
   module->suppress_mask = 0;
   module->bypass_cache = FALSE;
-  module->enabled = module->default_enabled = 0; // all modules disabled by default.
+  module->enabled = module->default_enabled = module->workflow_enabled = 0; // all modules disabled by default.
   g_strlcpy(module->op, so->op, 20);
   module->raster_mask.source.users = g_hash_table_new(NULL, NULL);
   module->raster_mask.source.masks = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, g_free);

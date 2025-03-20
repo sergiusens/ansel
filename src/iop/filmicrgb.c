@@ -3253,9 +3253,7 @@ void reload_defaults(dt_iop_module_t *module)
   d->white_point_source = module->so->get_f("white_point_source")->Float.Default;
   d->output_power = module->so->get_f("output_power")->Float.Default;
 
-  module->default_enabled = FALSE;
-
-  if(dt_image_is_matrix_correction_supported(&module->dev->image_storage))
+  if(dt_image_is_raw(&module->dev->image_storage))
   {
     // For scene-referred workflow, auto-enable and adjust based on exposure
     // TODO: fetch actual exposure in module, don't assume 1.
@@ -3268,6 +3266,8 @@ void reload_defaults(dt_iop_module_t *module)
     d->black_point_source = d->white_point_source - 12.f; // 12 EV of dynamic range is a good default for modern cameras
     d->output_power = logf(d->grey_point_target / 100.0f)
                       / logf(-d->black_point_source / (d->white_point_source - d->black_point_source));
+
+    module->workflow_enabled = TRUE;
   }
 }
 

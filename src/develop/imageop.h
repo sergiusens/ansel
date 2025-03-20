@@ -226,7 +226,14 @@ typedef struct dt_iop_module_t
   /** the module is used in this develop module. */
   struct dt_develop_t *dev;
   /** non zero if this node should be processed. */
-  gboolean enabled, default_enabled;
+  gboolean enabled;
+  /** Legacy default-enabled modules that left no history if user didn't changed params, prior to Darktable 3.0
+   * These modules will be forced enabled even for existing histories, when initing new histories.
+   * Disabling them (if allowed) will require another history step.
+  */
+  gboolean default_enabled;
+
+  gboolean workflow_enabled;
   /** parameters for the operation. will be replaced by history revert. */
   dt_iop_params_t *params, *default_params;
   /** size of individual params struct. */
