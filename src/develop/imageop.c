@@ -415,19 +415,18 @@ int dt_iop_load_module_by_so(dt_iop_module_t *module, dt_iop_module_so_t *so, dt
   module->hash = 0;
   module->blendop_hash = 0;
 
-  /* initialize blendop params and default values */
-  module->blend_params = calloc(1, sizeof(dt_develop_blend_params_t));
-  module->default_blendop_params = calloc(1, sizeof(dt_develop_blend_params_t));
-  dt_develop_blend_colorspace_t cst = dt_develop_blend_default_module_blend_colorspace(module);
-  dt_develop_blend_init_blend_parameters(module->default_blendop_params, cst);
-  dt_iop_commit_blend_params(module, module->default_blendop_params);
-
   if(module->params_size == 0)
   {
     fprintf(stderr, "[iop_load_module] `%s' needs to have a params size > 0!\n", so->op);
     return 1; // empty params hurt us in many places, just add a dummy value
   }
-  module->enabled = module->default_enabled; // apply (possibly new) default.
+
+  /* Alloc params */
+  module->params = calloc(1, module->params_size);
+  module->blend_params = calloc(1, sizeof(dt_develop_blend_params_t));
+  module->default_blendop_params = calloc(1, sizeof(dt_develop_blend_params_t));
+
+  // Don't init defaults here, it's done when reading/initing history
 
   /* pass on the dt_gui_module_t args for bauhaus widgets */
   module->common_fields.name = delete_underscore(module->name());
