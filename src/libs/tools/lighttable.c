@@ -81,7 +81,9 @@ gboolean _zoom_in_action(GtkAccelGroup *accel_group, GObject *accelerable, guint
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
   int current_level = _lib_lighttable_get_zoom(self);
-  _lib_lighttable_set_zoom(self, CLAMP(current_level - 1, 1, 12));
+  int new_level = CLAMP(current_level - 1, 1, 12);
+  _lib_lighttable_set_zoom(self, new_level);
+  dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
   return TRUE;
 }
 
@@ -90,8 +92,54 @@ gboolean _zoom_out_action(GtkAccelGroup *accel_group, GObject *accelerable, guin
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
   int current_level = _lib_lighttable_get_zoom(self);
-  _lib_lighttable_set_zoom(self, CLAMP(current_level + 1, 1, 12));
+  int new_level = CLAMP(current_level + 1, 1, 12);
+  _lib_lighttable_set_zoom(self, new_level);
+  dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
   return TRUE;
+}
+
+static void _dt_collection_changed_callback(gpointer instance, dt_collection_change_t query_change,
+                                            dt_collection_properties_t changed_property, gpointer imgs,
+                                            const int next, gpointer user_data)
+{
+  if(!user_data) return;
+  dt_lib_module_t *self = (dt_lib_module_t *)user_data;
+  int current_level = _lib_lighttable_get_zoom(self);
+  int num_images = dt_collection_get_count(darktable.collection);
+
+  switch(num_images)
+  {
+    case 1:
+    case 2:
+    case 3:
+    case 4:
+    case 5:
+      _lib_lighttable_set_zoom(self, num_images);
+      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+      break;
+    case 6:
+      _lib_lighttable_set_zoom(self, 3);
+      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+      break;
+    case 7:
+    case 8:
+      _lib_lighttable_set_zoom(self, 4);
+      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+      break;
+    case 9:
+    case 10:
+    case 11:
+    case 12:
+    case 13:
+    case 14:
+    case 15:
+      _lib_lighttable_set_zoom(self, 5);
+      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+      break;
+    default:
+      if(dt_conf_key_exists("plugins/lighttable/images_in_row_backup"))
+        _lib_lighttable_set_zoom(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
+  }
 }
 
 void gui_init(dt_lib_module_t *self)
@@ -126,6 +174,9 @@ void gui_init(dt_lib_module_t *self)
   dt_accels_new_lighttable_action(_zoom_out_action, self, N_("Lighttable/Actions"), N_("Zoom out the thumbtable grid"),
                                   GDK_KEY_minus, GDK_CONTROL_MASK);
 
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_COLLECTION_CHANGED,
+                                  G_CALLBACK(_dt_collection_changed_callback), self);
+
   _lib_lighttable_zoom_slider_changed(d->zoom, self); // the slider defaults to 1 and GTK doesn't
                                                       // fire a value-changed signal when setting
                                                       // it to 1 => empty text box
@@ -133,6 +184,7 @@ void gui_init(dt_lib_module_t *self)
 
 void gui_cleanup(dt_lib_module_t *self)
 {
+  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_collection_changed_callback), self);
   g_free(self->data);
   self->data = NULL;
 }
@@ -154,6 +206,8 @@ static void _lib_lighttable_zoom_slider_changed(GtkWidget *widget, gpointer user
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   _set_zoom(self, gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->zoom)));
+  dt_conf_set_int("plugins/lighttable/images_in_row_backup",
+                  gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->zoom)));
 }
 
 static void _lib_lighttable_set_zoom(dt_lib_module_t *self, gint zoom)

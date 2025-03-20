@@ -1242,6 +1242,9 @@ void dt_cleanup()
   if(darktable.gui && darktable.gui->culling_mode)
     dt_culling_mode_to_selection();
 
+  // Restore auto-computed zoom level to user-defined
+  dt_conf_set_int("plugins/lighttable/images_in_row", dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
+
   // last chance to ask user for any input...
 
   const gboolean perform_maintenance = dt_database_maybe_maintenance(darktable.db, init_gui, TRUE);
