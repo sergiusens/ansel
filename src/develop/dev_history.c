@@ -11,6 +11,8 @@
 
 #include <glib.h>
 
+static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int32_t imgid,
+                                      int *legacy_params, gboolean presets);
 
 // returns the first history item with hist->module == module
 static dt_dev_history_item_t *_search_history_by_module(dt_develop_t *dev, dt_iop_module_t *module)
@@ -1070,176 +1072,46 @@ void dt_dev_write_history(dt_develop_t *dev)
   dt_pthread_mutex_unlock(&dev->history_mutex);
 }
 
-static int _dev_get_module_nb_records()
+static gboolean _dev_auto_apply_presets(dt_develop_t *dev, int32_t imgid)
 {
-  sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT count (*) FROM  memory.history",
-                              -1, &stmt, NULL);
-  sqlite3_step(stmt);
-  const int cnt = sqlite3_column_int(stmt, 0);
-  sqlite3_finalize(stmt);
-  return cnt;
-}
-
-void _dev_insert_module(dt_develop_t *dev, dt_iop_module_t *module, const int32_t imgid)
-{
-  sqlite3_stmt *stmt;
-
-  DT_DEBUG_SQLITE3_PREPARE_V2(
-    dt_database_get(darktable.db),
-    "INSERT INTO memory.history VALUES (?1, 0, ?2, ?3, ?4, 1, NULL, 0, 0, '')",
-    -1, &stmt, NULL);
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
-  DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, module->version());
-  DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 3, module->op, -1, SQLITE_TRANSIENT);
-  DT_DEBUG_SQLITE3_BIND_BLOB(stmt, 4, module->default_params, module->params_size, SQLITE_TRANSIENT);
-  sqlite3_step(stmt);
-  sqlite3_finalize(stmt);
-
-  dt_print(DT_DEBUG_PARAMS, "[history] module %s inserted to history\n", module->op);
-}
-
-static gboolean _dev_auto_apply_presets(dt_develop_t *dev)
-{
-  // NOTE: the presets/default iops will be *prepended* into the history.
-
-  const int32_t imgid = dev->image_storage.id;
-
-  if(imgid <= 0) return FALSE;
-
-  gboolean run = FALSE;
-  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-  if(!(image->flags & DT_IMAGE_AUTO_PRESETS_APPLIED)) run = TRUE;
-
-  const gboolean is_raw = dt_image_is_raw(image);
-
-  // Force-reload modern chromatic adaptation
-  // Will be overriden below if we have no history for temperature
-  dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "modern");
-
-  // flag was already set? only apply presets once in the lifetime of a history stack.
-  // (the flag will be cleared when removing it).
-  if(!run || image->id <= 0)
-  {
-    // Next section is to recover old edits where all modules with default parameters were not
-    // recorded in the db nor in the .XMP.
-    //
-    // One crucial point is the white-balance which has automatic default based on the camera
-    // and depends on the chroma-adaptation. In modern mode the default won't be the same used
-    // in legacy mode and if the white-balance is not found on the history one will be added by
-    // default using current defaults. But if we are in modern chromatic adaptation the default
-    // will not be equivalent to the one used to develop this old edit.
-
-    // So if the current mode is the modern chromatic-adaptation, do check the history.
-
-    if(is_raw)
-    {
-      // loop over all modules and display a message for default-enabled modules that
-      // are not found on the history.
-
-      for(GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
-      {
-        dt_iop_module_t *module = (dt_iop_module_t *)modules->data;
-
-        if(module->default_enabled
-           && !(module->flags() & IOP_FLAGS_NO_HISTORY_STACK)
-           && !dt_history_check_module_exists(imgid, module->op, FALSE))
-        {
-          fprintf(stderr,
-                  "[_dev_auto_apply_presets] missing mandatory module %s for image %d\n",
-                  module->op, imgid);
-
-          // If the module is white-balance and we are dealing with a raw file we need to add
-          // one now with the default legacy parameters. And we want to do this only for
-          // old edits.
-          //
-          // For new edits the temperature will be added back depending on the chromatic
-          // adaptation the standard way.
-
-          if(!strcmp(module->op, "temperature")
-             && (image->change_timestamp == -1))
-          {
-            // it is important to recover temperature in this case (modern chroma and
-            // not module present as we need to have the pre 3.0 default parameters used.
-
-            dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "legacy");
-            dt_iop_reload_defaults(module);
-            _dev_insert_module(dev, module, imgid);
-            dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "modern");
-            dt_iop_reload_defaults(module);
-          }
-        }
-      }
-    }
-
-    dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
-    return FALSE;
-  }
-
-  //  Add scene-referred workflow
-  //  Note that we cannot use a preset for FilmicRGB as the default values are
-  //  dynamically computed depending on the actual exposure compensation
-  //  (see reload_default routine in filmicrgb.c)
-
+  dt_image_t *image = &dev->image_storage;
   const gboolean has_matrix = dt_image_is_matrix_correction_supported(image);
-
-  if(is_raw)
-  {
-    for(GList *modules = dev->iop; modules; modules = g_list_next(modules))
-    {
-      dt_iop_module_t *module = (dt_iop_module_t *)modules->data;
-
-      if((   (strcmp(module->op, "filmicrgb") == 0)
-          || (strcmp(module->op, "colorbalancergb") == 0)
-          || (strcmp(module->op, "lens") == 0)
-          || (has_matrix && strcmp(module->op, "channelmixerrgb") == 0) )
-         && !dt_history_check_module_exists(imgid, module->op, FALSE)
-         && !(module->flags() & IOP_FLAGS_NO_HISTORY_STACK))
-      {
-        _dev_insert_module(dev, module, imgid);
-      }
-    }
-  }
-
-  // FIXME : the following query seems duplicated from gui/presets.c/dt_gui_presets_autoapply_for_module()
-
-  // select all presets from one of the following table and add them into memory.history. Note that
-  // this is appended to possibly already present default modules.
-  const char *preset_table[2] = { "data.presets", "main.legacy_presets" };
-  const int legacy = (image->flags & DT_IMAGE_NO_LEGACY_PRESETS) ? 0 : 1;
-  char query[1024];
-  // clang-format off
-  snprintf(query, sizeof(query),
-           "INSERT INTO memory.history"
-           " SELECT ?1, 0, op_version, operation, op_params,"
-           "       enabled, blendop_params, blendop_version, multi_priority, multi_name"
-           " FROM %s"
-           " WHERE ( (autoapply=1"
-           "          AND ((?2 LIKE model AND ?3 LIKE maker) OR (?4 LIKE model AND ?5 LIKE maker))"
-           "          AND ?6 LIKE lens AND ?7 BETWEEN iso_min AND iso_max"
-           "          AND ?8 BETWEEN exposure_min AND exposure_max"
-           "          AND ?9 BETWEEN aperture_min AND aperture_max"
-           "          AND ?10 BETWEEN focal_length_min AND focal_length_max"
-           "          AND (format = 0 OR (format&?11 != 0 AND ~format&?12 != 0)))"
-           "        OR (name = ?13))"
-           "   AND operation NOT IN"
-           "        ('ioporder', 'metadata', 'modulegroups', 'export', 'tagging', 'collect', 'basecurve')"
-           " ORDER BY writeprotect DESC, LENGTH(model), LENGTH(maker), LENGTH(lens)",
-           preset_table[legacy]);
-  // clang-format on
-  // query for all modules at once:
-  sqlite3_stmt *stmt;
   const char *workflow_preset = has_matrix ? _("scene-referred default") : "\t\n";
+
   int iformat = 0;
-  if(dt_image_is_rawprepare_supported(image)) iformat |= FOR_RAW;
-  else iformat |= FOR_LDR;
-  if(dt_image_is_hdr(image)) iformat |= FOR_HDR;
+  if(dt_image_is_rawprepare_supported(image))
+    iformat |= FOR_RAW;
+  else
+    iformat |= FOR_LDR;
+
+  if(dt_image_is_hdr(image))
+    iformat |= FOR_HDR;
 
   int excluded = 0;
-  if(dt_image_monochrome_flags(image)) excluded |= FOR_NOT_MONO;
-  else excluded |= FOR_NOT_COLOR;
+  if(dt_image_monochrome_flags(image))
+    excluded |= FOR_NOT_MONO;
+  else
+    excluded |= FOR_NOT_COLOR;
 
+  sqlite3_stmt *stmt;
+  // clang-format off
+  char *query = g_strdup_printf(
+  " SELECT ?1, 0, op_version, operation, op_params," // 0 is num in main.history, we just need uniform params binding
+  "       enabled, blendop_params, blendop_version, multi_priority, multi_name, name"
+  " FROM %s" // SQLite doesn't like the table name to be bound with variables...
+  " WHERE ( (autoapply=1"
+  "          AND ((?2 LIKE model AND ?3 LIKE maker) OR (?4 LIKE model AND ?5 LIKE maker))"
+  "          AND ?6 LIKE lens AND ?7 BETWEEN iso_min AND iso_max"
+  "          AND ?8 BETWEEN exposure_min AND exposure_max"
+  "          AND ?9 BETWEEN aperture_min AND aperture_max"
+  "          AND ?10 BETWEEN focal_length_min AND focal_length_max"
+  "          AND (format = 0 OR (format & ?11 != 0 AND ~format & ?12 != 0)))"
+  "        OR (name = ?13))"
+  "   AND operation NOT IN"
+  "        ('ioporder', 'metadata', 'modulegroups', 'export', 'tagging', 'collect', 'basecurve')"
+  " ORDER BY writeprotect DESC, LENGTH(model), LENGTH(maker), LENGTH(lens)",
+  (image->flags & DT_IMAGE_NO_LEGACY_PRESETS) ? "data.presets" : "main.legacy_presets");
+  // clang-format on
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), query, -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 2, image->exif_model, -1, SQLITE_TRANSIENT);
@@ -1255,8 +1127,13 @@ static gboolean _dev_auto_apply_presets(dt_develop_t *dev)
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 11, iformat);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 12, excluded);
   DT_DEBUG_SQLITE3_BIND_TEXT(stmt, 13, workflow_preset, -1, SQLITE_TRANSIENT);
-  sqlite3_step(stmt);
+
+  int legacy_params = 0;
+  while(sqlite3_step(stmt) == SQLITE_ROW)
+    _process_history_db_entry(dev, stmt, imgid, &legacy_params, TRUE);
+
   sqlite3_finalize(stmt);
+  g_free(query);
 
   // now we want to auto-apply the iop-order list if one corresponds and none are
   // still applied. Note that we can already have an iop-order list set when
@@ -1274,7 +1151,7 @@ static gboolean _dev_auto_apply_presets(dt_develop_t *dev)
                                 "       AND ?8 BETWEEN exposure_min AND exposure_max"
                                 "       AND ?9 BETWEEN aperture_min AND aperture_max"
                                 "       AND ?10 BETWEEN focal_length_min AND focal_length_max"
-                                "       AND (format = 0 OR (format&?11 != 0 AND ~format&?12 != 0))"
+                                "       AND (format = 0 OR (format & ?11 != 0 AND ~format & ?12 != 0))"
                                 "       AND operation = 'ioporder'"
                                 " ORDER BY writeprotect DESC, LENGTH(model), LENGTH(maker), LENGTH(lens)",
                                 -1, &stmt, NULL);
@@ -1312,134 +1189,16 @@ static gboolean _dev_auto_apply_presets(dt_develop_t *dev)
     sqlite3_finalize(stmt);
   }
 
+  // Resync image flags to notify auto-presets were applied
+  image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
   image->flags |= DT_IMAGE_AUTO_PRESETS_APPLIED | DT_IMAGE_NO_LEGACY_PRESETS;
+  dev->image_storage = *image;
 
   // make sure these end up in the image_cache; as the history is not correct right now
   // we don't write the sidecar here but later in dt_dev_read_history_ext
   dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
 
   return TRUE;
-}
-
-static void _dev_add_default_modules(dt_develop_t *dev, const int32_t imgid)
-{
-  // modules that cannot be disabled
-  // or modules that can be disabled but are auto-on
-  for(GList *modules = dev->iop; modules; modules = g_list_next(modules))
-  {
-    dt_iop_module_t *module = (dt_iop_module_t *)modules->data;
-
-    if(!dt_history_check_module_exists(imgid, module->op, FALSE)
-       && module->default_enabled
-       && !(module->flags() & IOP_FLAGS_NO_HISTORY_STACK))
-    {
-      _dev_insert_module(dev, module, imgid);
-    }
-  }
-}
-
-static void _dev_merge_history(dt_develop_t *dev, const int32_t imgid)
-{
-  sqlite3_stmt *stmt;
-
-  // count what we found:
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "SELECT COUNT(*) FROM memory.history", -1,
-                              &stmt, NULL);
-  if(sqlite3_step(stmt) == SQLITE_ROW)
-  {
-    // if there is anything..
-    const int cnt = sqlite3_column_int(stmt, 0);
-    sqlite3_finalize(stmt);
-
-    // workaround a sqlite3 "feature". The above statement to insert
-    // items into memory.history is complex and in this case sqlite
-    // does not give rowid a linear increment. But the following code
-    // really expect that the rowid in this table starts from 0 and
-    // increment one by one. So in the following code we rewrite the
-    // "num" values from 0 to cnt-1.
-
-    if(cnt > 0)
-    {
-      // get all rowids
-      GList *rowids = NULL;
-
-      // get the rowids in descending order since building the list will reverse the order
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "SELECT rowid FROM memory.history ORDER BY rowid DESC",
-                                  -1, &stmt, NULL);
-      while(sqlite3_step(stmt) == SQLITE_ROW)
-        rowids = g_list_prepend(rowids, GINT_TO_POINTER(sqlite3_column_int(stmt, 0)));
-      sqlite3_finalize(stmt);
-
-      // update num accordingly
-      int v = 0;
-
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "UPDATE memory.history SET num=?1 WHERE rowid=?2",
-                                  -1, &stmt, NULL);
-
-      // let's wrap this into a transaction, it might make it a little faster.
-      dt_database_start_transaction(darktable.db);
-
-      for(GList *r = rowids; r; r = g_list_next(r))
-      {
-        DT_DEBUG_SQLITE3_CLEAR_BINDINGS(stmt);
-        DT_DEBUG_SQLITE3_RESET(stmt);
-        DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, v);
-        DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, GPOINTER_TO_INT(r->data));
-
-        if(sqlite3_step(stmt) != SQLITE_DONE) break;
-
-        v++;
-      }
-
-      dt_database_release_transaction(darktable.db);
-
-      g_list_free(rowids);
-
-      // advance the current history by cnt amount, that is, make space
-      // for the preset/default iops that will be *prepended* into the
-      // history.
-      DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                  "UPDATE main.history SET num=num+?1 WHERE imgid=?2",
-                                  -1, &stmt, NULL);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, cnt);
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
-
-      if(sqlite3_step(stmt) == SQLITE_DONE)
-      {
-        sqlite3_finalize(stmt);
-        // clang-format off
-        DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                                    "UPDATE main.images"
-                                    " SET history_end=history_end+?1"
-                                    " WHERE id=?2",
-                                    -1, &stmt, NULL);
-        // clang-format on
-        DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, cnt);
-        DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
-
-        if(sqlite3_step(stmt) == SQLITE_DONE)
-        {
-          // and finally prepend the rest with increasing numbers (starting at 0)
-          sqlite3_finalize(stmt);
-          // clang-format off
-          DT_DEBUG_SQLITE3_PREPARE_V2(
-            dt_database_get(darktable.db),
-            "INSERT INTO main.history"
-            " SELECT imgid, num, module, operation, op_params, enabled, "
-            "        blendop_params, blendop_version, multi_priority,"
-            "        multi_name"
-            " FROM memory.history",
-            -1, &stmt, NULL);
-          // clang-format on
-          sqlite3_step(stmt);
-          sqlite3_finalize(stmt);
-        }
-      }
-    }
-  }
 }
 
 // helper function for debug strings
@@ -1452,66 +1211,68 @@ char * _print_validity(gboolean state)
 }
 
 
-static inline void _dt_dev_load_pipeline_defaults(dt_develop_t *dev)
+static void _insert_default_modules(dt_develop_t *dev, dt_iop_module_t *module, const int32_t imgid, gboolean is_inited)
 {
-  for(const GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
+  // Module already in history: don't prepend extra entries
+  // Module has no user params: no history: don't prepend either
+  if(dt_history_check_module_exists(imgid, module->op, FALSE) || (module->flags() & IOP_FLAGS_NO_HISTORY_STACK))
+    return;
+
+  dt_image_t *image = &dev->image_storage;
+  const gboolean has_matrix = dt_image_is_matrix_correction_supported(image);
+  const gboolean is_raw = dt_image_is_raw(image);
+
+  // Prior to Darktable 3.0, modules enabled by default which still had
+  // default params (no user change) were not inserted into history/DB.
+  // We need to insert them here with default params.
+  // But defaults have changed since then for some modules, so we need to ensure
+  // we insert them with OLD defaults.
+  if(module->default_enabled || (module->force_enable && module->force_enable(module, FALSE)))
   {
-    dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
-    dt_iop_reload_defaults(module);
+    if(!strcmp(module->op, "temperature")
+        && (image->change_timestamp == -1) // change_timestamp is not defined for old pics
+        && is_raw && is_inited && has_matrix)
+    {
+      // Temp revert to legacy defaults
+      dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "legacy");
+      dt_iop_reload_defaults(module);
+
+      dt_dev_add_history_item_ext(dev, module, TRUE, TRUE, TRUE, FALSE);
+
+      // Go back to current defaults
+      dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "modern");
+      dt_iop_reload_defaults(module);
+    }
+    else
+    {
+      dt_dev_add_history_item_ext(dev, module, TRUE, TRUE, TRUE, FALSE);
+    }
+  }
+  else if(module->workflow_enabled && !is_inited)
+  {
+    dt_dev_add_history_item_ext(dev, module, TRUE, TRUE, TRUE, FALSE);
   }
 }
 
-
-/**
- * TODO: this is a big pile of bullshit
- *
- * We insert modules into a temporary history SQL table in memory.history
- * Then perform all kinds of silly SQL operations.
- * Then merge into where we keep the real histories, aka main.history in dev_merge_history function.
- *
- * First of all, that merge_history function needs to re-index all entries sequentially through C
- * because SQLite doesn't do it.
- *
- * Then, when loading large numbers of small files (PNG, JPEG) for the first time in lighttable,
- * sooner or later, we get the error:
- * `function dt_database_start_transaction_debug(), query "BEGIN": cannot start a transaction within a transaction`,
- * coming from _merge_history. When using a DEBUG build, which checks asserts, that makes the app crash.
- * Otherwise, the app doesn't crash and there is no telling what's going on in histories.
- *
- * But then, I couldn't find where we nest transactions here.
- *
- * Or perhaps, due to DEBUG builds being slow due to -O0 optimization, the race condition shows, and doesn't otherwise.
- *
- * So, anyway… history init should be done in C, so modules are inserted with defaults params inited
- * and sanitized directly with a pipe order. Then, we save to history or keep building the pipeline,
- * because anyway, read_history_ext() init defaults only if it's the first time we open the image,
- * and then reloads everything from main.history table from database.
- *
- * None of that is thread-safe.
- *
- **/
-
-static void _init_default_history(dt_develop_t *dev, const int32_t imgid, gboolean *first_run, gboolean *auto_apply_modules)
+// Returns TRUE if this is a freshly-inited history on which we just applied auto presets and defaults,
+// FALSE if we had an earlier history
+static gboolean _init_default_history(dt_develop_t *dev, const int32_t imgid)
 {
-  // cleanup DB
-  DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), "DELETE FROM memory.history", NULL, NULL, NULL);
-  dt_print(DT_DEBUG_HISTORY, "[history] temporary history deleted\n");
+  const gboolean is_inited = (dev->image_storage.flags & DT_IMAGE_AUTO_PRESETS_APPLIED);
 
   // make sure all modules default params are loaded to init history
-  _dt_dev_load_pipeline_defaults(dev);
+  for(GList *iop = g_list_first(dev->iop); iop; iop = g_list_next(iop))
+  {
+    dt_iop_module_t *module = (dt_iop_module_t *)(iop->data);
+    dt_iop_reload_defaults(module);
+    _insert_default_modules(dev, module, imgid, is_inited);
+  }
 
-  // prepend all default modules to memory.history
-  _dev_add_default_modules(dev, imgid);
-  const int default_modules = _dev_get_module_nb_records();
-
-  // maybe add auto-presets to memory.history
-  *first_run = _dev_auto_apply_presets(dev);
-  *auto_apply_modules = _dev_get_module_nb_records() - default_modules;
+  // On virgin history image, apply auto stuff (ours and user's)
+  if(!is_inited) _dev_auto_apply_presets(dev, imgid);
   dt_print(DT_DEBUG_HISTORY, "[history] temporary history initialised with default params and presets\n");
 
-  // now merge memory.history into main.history
-  _dev_merge_history(dev, imgid);
-  dt_print(DT_DEBUG_HISTORY, "[history] temporary history merged with image history\n");
+  return !is_inited;
 }
 
 // populate hist->module
@@ -1582,7 +1343,7 @@ static void _sync_blendop_params(dt_dev_history_item_t *hist, const void *blendo
 }
 
 static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, const int param_length,
-                          const int modversion, int *legacy_params)
+                          const int modversion, int *legacy_params, const char *preset_name)
 {
   const gboolean is_valid_module_version = (modversion == hist->module->version());
   const gboolean is_valid_params_size = (param_length == hist->module->params_size);
@@ -1598,15 +1359,24 @@ static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, 
         || hist->module->legacy_params(hist->module, module_params, labs(modversion),
                                        hist->params, labs(hist->module->version())))
     {
-      fprintf(stderr, "[dev_read_history] module `%s' version mismatch: history is %d, dt %d.\n",
-              hist->module->op, modversion, hist->module->version());
+      gchar *preset = (preset_name) ? g_strdup_printf(_("from preset %s"), preset_name)
+                                    : g_strdup("");
 
-      dt_control_log(_("module `%s' version mismatch: %d != %d"), hist->module->op,
-                      hist->module->version(), modversion);
+      fprintf(stderr, "[dev_read_history] module `%s' %s version mismatch: history is %d, dt %d.\n", hist->module->op,
+              preset, modversion, hist->module->version());
+
+      dt_control_log(_("module `%s' %s version mismatch: %d != %d"), hist->module->op,
+                      preset, hist->module->version(), modversion);
+
+      g_free(preset);
       return 1;
     }
     else
     {
+      // NOTE: spots version was bumped from 1 to 2 in 2013.
+      // This handles edits made prior to Darktable 1.4.
+      // Then spots was deprecated in 2021 in favour of retouch.
+      // How many edits out there still need the legacy conversion in 2025 ?
       if(!strcmp(hist->module->op, "spots") && modversion == 1)
       {
         // quick and dirty hack to handle spot removal legacy_params
@@ -1620,6 +1390,9 @@ static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, 
       * in history stack as "orientation (off)", but now we always want it
       * by default, so if it is disabled, enable it, and replace params with
       * default_params. if user want to, he can disable it.
+      * NOTE: Flip version was bumped from 1 to 2 in 2014.
+      * This handles edits made prior to Darktable 1.6.
+      * How many edits out there still need the legacy conversion in 2025 ?
       */
     if(!strcmp(hist->module->op, "flip") && hist->enabled == 0 && labs(modversion) == 1)
     {
@@ -1632,7 +1405,7 @@ static int _sync_params(dt_dev_history_item_t *hist, const void *module_params, 
 }
 
 // WARNING: this does not set hist->forms
-static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int32_t imgid, int *legacy_params)
+static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, const int32_t imgid, int *legacy_params, gboolean presets)
 {
   // Unpack the DB blobs
   const int id = sqlite3_column_int(stmt, 0);
@@ -1645,6 +1418,7 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   const int blendop_version = sqlite3_column_int(stmt, 7);
   const int multi_priority = sqlite3_column_int(stmt, 8);
   const char *multi_name = (const char *)sqlite3_column_text(stmt, 9);
+  const char *preset_name = (presets) ? (const char *)sqlite3_column_text(stmt, 10) : "";
 
   const int param_length = sqlite3_column_bytes(stmt, 4);
   const int bl_length = sqlite3_column_bytes(stmt, 6);
@@ -1704,7 +1478,7 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   }
 
   // Copy module params if valid version, else try to convert legacy params
-  if(_sync_params(hist, module_params, param_length, modversion, legacy_params))
+  if(_sync_params(hist, module_params, param_length, modversion, legacy_params, preset_name))
   {
     free(hist);
     return;
@@ -1725,16 +1499,36 @@ static void _process_history_db_entry(dt_develop_t *dev, sqlite3_stmt *stmt, con
   _sync_blendop_params(hist, blendop_params, bl_length, blendop_version, legacy_params);
 
   dev->history = g_list_append(dev->history, hist);
+
+  // Update the history end cursor. Note that this is useful only if it's a fresh, empty history,
+  // otherwise the value will get overriden by the DB value
+  // when we are done adding entries from defaults & auto-presets.
+  dt_dev_set_history_end(dev, g_list_length(dev->history));
+
+  dt_print(DT_DEBUG_HISTORY, "[history entry] read %s at pipe position %i (enabled %i) from %s %s\n", hist->op_name,
+    hist->iop_order, hist->enabled, (presets) ? "preset" : "database", (presets) ? preset_name : "");
 }
 
 
 void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no_image)
 {
-  if(imgid <= 0) return;
-  if(!dev->iop) return;
+  if(imgid == UNKNOWN_IMAGE) return;
+  if(!dev->iop)
+  {
+    fprintf(stderr,
+            "[dt_dev_read_history_ext] ERROR: can't read an history if dev->iop is not inited. Aborting...\n");
+    return;
+  }
 
-  int auto_apply_modules = 0;
-  gboolean first_run = FALSE;
+  // Get our own fresh copy of the image structure.
+  // Need to do it here, some modules rely on it to update their default params
+  // This is redundant with `_dt_dev_load_raw()` called from `dt_dev_load_image()`,
+  // but we don't always manipulate an history when/after loading an image, so we need to
+  // be sure.
+  const dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
+  dev->image_storage = *image;
+  dt_image_cache_read_release(darktable.image_cache, image);
+
   gboolean legacy_params = FALSE;
 
   dt_ioppr_set_default_iop_order(dev, imgid);
@@ -1742,7 +1536,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   // Lock database
   dt_pthread_rwlock_rdlock(&darktable.database_threadsafe);
 
-  if(!no_image) _init_default_history(dev, imgid, &first_run, &auto_apply_modules);
+  gboolean first_run = _init_default_history(dev, imgid);
 
   sqlite3_stmt *stmt;
 
@@ -1761,7 +1555,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   // Strip rows from DB lookup. One row == One module in history
   while(sqlite3_step(stmt) == SQLITE_ROW)
-    _process_history_db_entry(dev, stmt, imgid, &legacy_params);
+    _process_history_db_entry(dev, stmt, imgid, &legacy_params, FALSE);
 
   sqlite3_finalize(stmt);
 
@@ -1772,9 +1566,12 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
                               "SELECT history_end FROM main.images WHERE id = ?1",
                               -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
+
   if(sqlite3_step(stmt) == SQLITE_ROW) // seriously, this should never fail
-    if(sqlite3_column_type(stmt, 0) != SQLITE_NULL)
+    if(sqlite3_column_type(stmt, 0) != SQLITE_NULL
+       && sqlite3_column_int(stmt, 0) > 0)
       dt_dev_set_history_end(dev, sqlite3_column_int(stmt, 0));
+
   sqlite3_finalize(stmt);
 
   // Unlock database
@@ -1832,6 +1629,12 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
 
   // Init global history hash to track changes during runtime
   dev->history_hash = dt_dev_history_get_hash(dev);
+
+  // Write it straight away if we just inited the history
+  if(first_run) dt_dev_write_history_ext(dev, imgid);
+  //else if(legacy_params)
+  //  TODO: ask user for confirmation before saving updated history
+  //  because that will made it incompatible with earlier app versions
 
   dt_print(DT_DEBUG_HISTORY, "[history] dt_dev_read_history_ext completed\n");
 }
