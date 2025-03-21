@@ -375,6 +375,9 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
 
     gboolean io_error = FALSE;
     gchar *error = NULL;
+    uint8_t *blob = NULL;
+    dt_colorspaces_color_profile_type_t color_space = DT_COLORSPACE_DISPLAY;
+    dt_imageio_jpeg_t jpg;
 
     FILE *f = g_fopen(filename, "rb");
     if(f == NULL) goto finish; // file doesn't exist
@@ -387,7 +390,8 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
       io_error = TRUE;
       goto finish;
     }
-    uint8_t *blob = (uint8_t *)dt_alloc_align(len);
+
+    blob = (uint8_t *)dt_alloc_align(len);
     if(blob == NULL)
     {
       error = "out of memory";
@@ -403,9 +407,6 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
       io_error = TRUE;
       goto finish;
     }
-
-    dt_colorspaces_color_profile_type_t color_space = DT_COLORSPACE_DISPLAY;
-    dt_imageio_jpeg_t jpg;
 
     if(dt_imageio_jpeg_decompress_header(blob, len, &jpg))
     {
