@@ -881,7 +881,6 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
     if(dsc->flags & DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE)
     {
       __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_fetches), 1);
-      // fprintf(stderr, "[mipmap cache get] now initializing buffer for img %u mip %d!\n", imgid, mip);
       // we're write locked here, as requested by the alloc callback.
       // now fill it with data:
       if(mip == DT_MIPMAP_FULL)
@@ -897,9 +896,6 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
           buffered_image = *cimg;
           no_buffer = FALSE;
         }
-
-        // dt_image_t *img = dt_image_cache_write_get(darktable.image_cache, cimg);
-        // dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
         dt_image_cache_read_release(darktable.image_cache, cimg);
 
         if(no_buffer) return;
@@ -920,8 +916,6 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
 
         if(ret != DT_IMAGEIO_OK)
         {
-          // fprintf(stderr, "[mipmap read get] error loading image: %d\n", ret);
-          //
           // we can only return a zero dimension buffer if the buffer has been allocated.
           // in case dsc couldn't be allocated and points to the static buffer, it contains
           // a dead image already.
@@ -937,8 +931,7 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
           // swap back new image data:
           dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'w');
           *img = buffered_image;
-          // fprintf(stderr, "[mipmap read get] initializing full buffer img %u with %u %u -> %d %d (%p)\n",
-          // imgid, data[0], data[1], img->width, img->height, data);
+
           // don't write xmp for this (we only changed db stuff):
           dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
 
