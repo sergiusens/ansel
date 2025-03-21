@@ -36,6 +36,7 @@ DT_MODULE(1)
 typedef struct dt_lib_tool_lighttable_t
 {
   GtkWidget *columns;
+  GtkWidget *zoom;
   int current_columns;
   gboolean combo_evt_reset;
 } dt_lib_tool_lighttable_t;
@@ -141,6 +142,12 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   }
 }
 
+static void _zoom_combobox_changed(GtkWidget *widget, gpointer user_data)
+{
+  int level = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+  dt_thumbtable_set_zoom(dt_ui_thumbtable(darktable.gui->ui), level);
+}
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -150,10 +157,21 @@ void gui_init(dt_lib_module_t *self)
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_widget_set_halign(self->widget, GTK_ALIGN_END);
 
+  GtkWidget *label = gtk_label_new(C_("quickfilter", "Zoom"));
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
+  dt_gui_add_class(label, "quickfilter-label");
+
+  d->zoom = gtk_combo_box_text_new();
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("Fit"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("50 %"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("100 %"));
+  gtk_box_pack_start(GTK_BOX(self->widget), d->zoom, FALSE, FALSE, 0);
+  gtk_combo_box_set_active(GTK_COMBO_BOX(d->zoom), 0);
+  g_signal_connect(G_OBJECT(d->zoom), "changed", G_CALLBACK(_zoom_combobox_changed), (gpointer)self);
+
   d->current_columns = dt_conf_get_int("plugins/lighttable/images_in_row");
 
-  /* Zoom */
-  GtkWidget *label = gtk_label_new(C_("quickfilter", "Columns"));
+  label = gtk_label_new(C_("quickfilter", "Columns"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 

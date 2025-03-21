@@ -635,6 +635,12 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
   dt_pthread_mutex_unlock(&table->lock);
 }
 
+void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level)
+{
+  table->zoom = level;
+  dt_thumbtable_refresh_thumbnail(table, -1, TRUE);
+}
+
 // can be called with imgid = -1, in that case we reload all mipmaps
 static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {

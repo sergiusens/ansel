@@ -31,6 +31,14 @@ typedef enum dt_thumbtable_mode_t
   DT_THUMBTABLE_MODE_FILMSTRIP
 } dt_thumbtable_mode_t;
 
+
+typedef enum dt_thumbtable_zoom_t
+{
+  DT_THUMBTABLE_ZOOM_FIT = 0,
+  DT_THUMBTABLE_ZOOM_HALF = 1,
+  DT_THUMBTABLE_ZOOM_FULL = 2
+} dt_thumbtable_zoom_t;
+
 typedef struct dt_thumbtable_cache_t
 {
   int32_t imgid;
@@ -118,6 +126,9 @@ typedef struct dt_thumbtable_t
   // Set to TRUE to only display the group leader image
   gboolean collapse_groups;
 
+  // Thumbnails inner zoom level
+  dt_thumbtable_zoom_t zoom;
+
 } dt_thumbtable_t;
 
 
@@ -132,6 +143,9 @@ void dt_thumbtable_event_dnd_received(GtkWidget *widget, GdkDragContext *context
 
 // change the type of overlays that should be shown (over or under the image)
 void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overlay_t over);
+
+// set zoom level
+void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level);
 
 // signal that the current collection needs to be flushed entirely before being reloaded
 void dt_thumbtable_reset_collection(dt_thumbtable_t *table);

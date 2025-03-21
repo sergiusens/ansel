@@ -150,7 +150,7 @@ typedef enum dt_view_image_over_t
 char* dt_view_extend_modes_str(const char * name, const gboolean is_hdr, const gboolean is_bw, const gboolean is_bw_flow);
 /** expose an image and return a cair0_surface. */
 dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
-                                                  const gboolean quality);
+                                                  int zoom);
 
 
 /**

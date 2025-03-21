@@ -319,7 +319,9 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
   int image_h = 0;
   gtk_widget_get_size_request(thumb->w_image, &image_w, &image_h);
 
-  dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, FALSE);
+  int zoom = (thumb->table) ? thumb->table->zoom : DT_THUMBTABLE_ZOOM_FIT;
+
+  dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, zoom);
 
   if(thumb->img_surf && res == DT_VIEW_SURFACE_OK)
   {
@@ -1213,35 +1215,6 @@ void dt_thumbnail_image_refresh_position(dt_thumbnail_t *thumb)
   thumb->zoomy = CLAMP(thumb->zoomy, (ih * darktable.gui->ppd - thumb->img_height) / darktable.gui->ppd, 0);
   gtk_widget_queue_draw(thumb->widget);
 }
-
-#if 0
-// get the max zoom value of the thumb
-float dt_thumbnail_get_zoom100(dt_thumbnail_t *thumb)
-{
-  if(thumb->zoom_100 < 1.0f) // we only compute the sizes if needed
-  {
-    int w = 0;
-    int h = 0;
-    dt_image_get_final_size(thumb->imgid, &w, &h);
-    if(!thumb->img_margin) _thumb_retrieve_margins(thumb);
-
-    const float used_h = (float)(thumb->height - thumb->img_margin->top - thumb->img_margin->bottom);
-    const float used_w = (float)(thumb->width - thumb->img_margin->left - thumb->img_margin->right);
-    thumb->zoom_100 = fmaxf((float)w / used_w, (float)h / used_h);
-    if(thumb->zoom_100 < 1.0f) thumb->zoom_100 = 1.0f;
-  }
-
-  return thumb->zoom_100;
-}
-
-float dt_thumbnail_get_zoom_ratio(dt_thumbnail_t *thumb)
-{
-  if(thumb->zoom_100 < 1.0f) // we only compute the sizes if needed
-    dt_thumbnail_get_zoom100(thumb);
-
-  return _thumb_zoom_to_zoom_ratio(thumb->zoom, thumb->zoom_100);
-}
-#endif
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

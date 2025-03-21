@@ -611,7 +611,7 @@ int dt_view_manager_scrolled(dt_view_manager_t *vm, double x, double y, int up, 
 }
 
 dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
-                                                  const gboolean quality)
+                                                  int zoom)
 {
   double tt = 0;
   if((darktable.unmuted & (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF)) == (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF))
@@ -619,8 +619,8 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
   dt_view_surface_value_t ret = DT_VIEW_SURFACE_KO;
   // if surface not null, clean it up
-  if(*surface
-     && cairo_surface_get_reference_count(*surface) > 0) cairo_surface_destroy(*surface);
+  if(*surface && cairo_surface_get_reference_count(*surface) > 0)
+    cairo_surface_destroy(*surface);
   *surface = NULL;
 
   // get mipmap cache image
