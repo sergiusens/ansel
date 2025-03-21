@@ -751,6 +751,29 @@ static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
   return 0;
 }
 
+// update buffer params with dsc
+static void _sync_dsc_to_buf(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const int32_t imgid,
+                             const dt_mipmap_size_t mip)
+{
+  buf->width = dsc->width;
+  buf->height = dsc->height;
+  buf->iscale = dsc->iscale;
+  buf->color_space = dsc->color_space;
+  buf->imgid = imgid;
+  buf->size = mip;
+}
+
+// flag a buffer as invalid and set it NULL
+static void _invalid_buf(dt_mipmap_buffer_t *buf)
+{
+  buf->buf = NULL;
+  buf->imgid = UNKNOWN_IMAGE;
+  buf->size = DT_MIPMAP_NONE;
+  buf->width = buf->height = 0;
+  buf->iscale = 0.0f;
+  buf->color_space = DT_COLORSPACE_NONE;
+}
+
 void dt_mipmap_cache_get_with_caller(
     dt_mipmap_cache_t *cache,
     dt_mipmap_buffer_t *buf,
@@ -773,14 +796,10 @@ void dt_mipmap_cache_get_with_caller(
     {
       ASAN_UNPOISON_MEMORY_REGION(entry->data, dt_mipmap_buffer_dsc_size);
       struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
-      buf->width = dsc->width;
-      buf->height = dsc->height;
-      buf->iscale = dsc->iscale;
-      buf->color_space = dsc->color_space;
-      buf->imgid = imgid;
-      buf->size = mip;
-
+      _sync_dsc_to_buf(buf, dsc, imgid, mip);
       // skip to next 8-byte alignment, for sse buffers.
+      // FIXME: first, WTF ? Then, we need 64 bits aligments.
+      // Finally, the struct itself should be declared aligned on 64 bits and that stuff is outright dangerous.
       buf->buf = (uint8_t *)(dsc + 1);
 
       ASAN_UNPOISON_MEMORY_REGION(buf->buf, dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
@@ -788,12 +807,7 @@ void dt_mipmap_cache_get_with_caller(
     else
     {
       // set to NULL if failed.
-      buf->width = buf->height = 0;
-      buf->iscale = 0.0f;
-      buf->imgid = UNKNOWN_IMAGE;
-      buf->color_space = DT_COLORSPACE_NONE;
-      buf->size = DT_MIPMAP_NONE;
-      buf->buf = NULL;
+      _invalid_buf(buf);
     }
   }
   else if(flags == DT_MIPMAP_PREFETCH)
@@ -972,24 +986,12 @@ void dt_mipmap_cache_get_with_caller(
     // We don't use the best effort for float32 input images
     if(!_find_nearest_mipmap(cache, buf, imgid, mip, flags, mode, file, line))
     {
-      // nothing found (yet) :(
-      buf->buf = NULL;
-      buf->imgid = UNKNOWN_IMAGE;
-      buf->size = DT_MIPMAP_NONE;
-      buf->width = buf->height = 0;
-      buf->iscale = 0.0f;
-      buf->color_space = DT_COLORSPACE_NONE;
-      // but order has been sent to generate the required thumbnail size
+      _invalid_buf(buf);
     }
   }
   else
   {
-    buf->buf = NULL;
-    buf->imgid = UNKNOWN_IMAGE;
-    buf->size = DT_MIPMAP_NONE;
-    buf->width = buf->height = 0;
-    buf->iscale = 0.0f;
-    buf->color_space = DT_COLORSPACE_NONE;
+    _invalid_buf(buf);
   }
 }
 
