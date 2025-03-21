@@ -175,7 +175,7 @@ static void dt_control_image_enumerator_cleanup(void *p)
 {
   dt_control_image_enumerator_t *params = p;
 
-  g_list_free(params->index);
+  if(params->index) g_list_free(params->index);
   params->index = NULL;
 
   free(params);
@@ -2444,7 +2444,7 @@ static void _control_import_job_cleanup(void *p)
   dt_control_import_t *data = params->data;
 
   // Display a recap of files that weren't copied
-  if(g_list_length(g_list_last(data->discarded)) > 0)
+  if(g_list_length(data->discarded) > 0)
   {
     // Create the window
     GtkWidget *dialog = gtk_dialog_new_with_buttons("Message",
