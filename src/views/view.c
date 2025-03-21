@@ -625,7 +625,14 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
   // get mipmap cache image
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
-  dt_mipmap_size_t mip = dt_mipmap_cache_get_matching_size(cache, ceilf(width * darktable.gui->ppd), ceilf(height * darktable.gui->ppd));
+  dt_mipmap_size_t mip = DT_MIPMAP_NONE;
+
+  if(zoom == DT_THUMBTABLE_ZOOM_FIT)
+    mip = dt_mipmap_cache_get_matching_size(cache, ceilf(width * darktable.gui->ppd), ceilf(height * darktable.gui->ppd));
+  else if(zoom == DT_THUMBTABLE_ZOOM_HALF)
+    mip = DT_MIPMAP_HALF_RESOLUTION;
+  else
+    mip = DT_MIPMAP_FULL_RESOLUTION;
 
   // if needed, we load the mimap buffer
   dt_mipmap_buffer_t buf;
