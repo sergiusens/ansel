@@ -755,6 +755,7 @@ static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
   return 0;
 }
 
+
 static uint8_t * _shift_buffer(struct dt_mipmap_buffer_dsc *dsc)
 {
   // skip to next 8-byte alignment, for sse buffers.
@@ -763,10 +764,12 @@ static uint8_t * _shift_buffer(struct dt_mipmap_buffer_dsc *dsc)
   return (uint8_t *)(dsc + 1);
 }
 
+
 static void _realloc_shifted_buffer(struct dt_mipmap_buffer_dsc *dsc)
 {
   ASAN_UNPOISON_MEMORY_REGION(_shift_buffer(dsc), dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
 }
+
 
 static void _realloc_buffer(struct dt_mipmap_buffer_dsc *dsc)
 {
@@ -786,8 +789,9 @@ static void _sync_dsc_to_buf(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_ds
   buf->size = mip;
 }
 
+
 // flag a buffer as invalid and set it NULL
-static void _invalid_buf(dt_mipmap_buffer_t *buf)
+static void _invalidate_buffer(dt_mipmap_buffer_t *buf)
 {
   buf->buf = NULL;
   buf->imgid = UNKNOWN_IMAGE;
@@ -797,15 +801,34 @@ static void _invalid_buf(dt_mipmap_buffer_t *buf)
   buf->color_space = DT_COLORSPACE_NONE;
 }
 
-void dt_mipmap_cache_get_with_caller(
-    dt_mipmap_cache_t *cache,
-    dt_mipmap_buffer_t *buf,
-    const int32_t imgid,
-    const dt_mipmap_size_t mip,
-    const dt_mipmap_get_flags_t flags,
-    const char mode,
-    const char *file,
-    int line)
+// if we get a zero-sized image, paint skulls to signal a missing image
+static void _paint_skulls(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const dt_mipmap_size_t mip)
+{
+  if(dsc->width == 0 || dsc->height == 0)
+  {
+    // fprintf(stderr, "[mipmap cache get] got a zero-sized image for img %u mip %d!\n", imgid, mip);
+    if(mip < DT_MIPMAP_F)
+      dead_image_8(buf);
+    else if(mip == DT_MIPMAP_F)
+      dead_image_f(buf);
+    else
+      buf->buf = NULL; // full images with NULL buffer have to be handled, indicates `missing image', but still return locked slot
+  }
+}
+
+
+static void _validate_buffer(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const int32_t imgid,
+                             const dt_mipmap_size_t mip)
+{
+  _sync_dsc_to_buf(buf, dsc, imgid, mip);
+  _realloc_shifted_buffer(dsc);
+  buf->buf = _shift_buffer(dsc);
+}
+
+
+void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid,
+                                     const dt_mipmap_size_t mip, const dt_mipmap_get_flags_t flags,
+                                     const char mode, const char *file, int line)
 {
   assert(mip <= DT_MIPMAP_NONE && mip >= DT_MIPMAP_0);
 
@@ -819,14 +842,11 @@ void dt_mipmap_cache_get_with_caller(
     {
       struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
       _realloc_buffer(dsc);
-      _sync_dsc_to_buf(buf, dsc, imgid, mip);
-      _realloc_shifted_buffer(dsc);
-      buf->buf = _shift_buffer(dsc);
+      _validate_buffer(buf, dsc, imgid, mip);
     }
     else
     {
-      // set to NULL if failed.
-      _invalid_buf(buf);
+      _invalidate_buffer(buf);
     }
   }
   else if(flags == DT_MIPMAP_PREFETCH)
@@ -889,7 +909,7 @@ void dt_mipmap_cache_get_with_caller(
         dt_image_full_path(buffered_image.id,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
         buf->imgid = imgid;
         buf->size = mip;
-        buf->buf = 0;
+        buf->buf = NULL;
         buf->width = buf->height = 0;
         buf->iscale = 0.0f;
         buf->color_space = DT_COLORSPACE_NONE; // TODO: does the full buffer need to know this?
@@ -978,38 +998,20 @@ void dt_mipmap_cache_get_with_caller(
     }
 #endif
 
-    buf->width = dsc->width;
-    buf->height = dsc->height;
-    buf->iscale = dsc->iscale;
-    buf->color_space = dsc->color_space;
-    buf->imgid = imgid;
-    buf->size = mip;
-
-    _realloc_shifted_buffer(dsc);
-    buf->buf = _shift_buffer(dsc);
-
-    if(dsc->width == 0 || dsc->height == 0)
-    {
-      // fprintf(stderr, "[mipmap cache get] got a zero-sized image for img %u mip %d!\n", imgid, mip);
-      if(mip < DT_MIPMAP_F)
-        dead_image_8(buf);
-      else if(mip == DT_MIPMAP_F)
-        dead_image_f(buf);
-      else
-        buf->buf = NULL; // full images with NULL buffer have to be handled, indicates `missing image', but still return locked slot
-    }
+    _validate_buffer(buf, dsc, imgid, mip);
+    _paint_skulls(buf, dsc, mip);
   }
   else if(flags == DT_MIPMAP_BEST_EFFORT && mip < DT_MIPMAP_F)
   {
     // We don't use the best effort for float32 input images
     if(!_find_nearest_mipmap(cache, buf, imgid, mip, flags, mode, file, line))
     {
-      _invalid_buf(buf);
+      _invalidate_buffer(buf);
     }
   }
   else
   {
-    _invalid_buf(buf);
+    _invalidate_buffer(buf);
   }
 }
 
