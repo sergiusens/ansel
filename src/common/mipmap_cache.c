@@ -698,6 +698,59 @@ static dt_mipmap_cache_one_t *_get_cache(dt_mipmap_cache_t *cache, const dt_mipm
   }
 }
 
+// We don't use the best effort for float32 input images
+static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid,
+                                     const dt_mipmap_size_t mip, const dt_mipmap_get_flags_t flags,
+                                     const char mode, const char *file, int line)
+{
+  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_requests), 1);
+
+  // Find any existing thumbnail at least as large as the required size
+  for(int k = mip; k < DT_MIPMAP_F; k++)
+  {
+    // already loaded?
+    dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
+    if(buf->buf && buf->width > 0 && buf->height > 0)
+    {
+      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
+
+      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
+              imgid, buf->width, buf->height);
+
+      /* raise signal that mipmaps have been flushed to cache */
+      dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
+      return 1;
+    }
+    // didn't succeed the first time? prefetch for later!
+    if(mip == k)
+    {
+      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
+      dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_PREFETCH, 'r');
+    }
+  }
+
+  // Last chance: look for smaller sizes
+  for(int k = mip; k > DT_MIPMAP_0; k--)
+  {
+    // already loaded?
+    dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
+    if(buf->buf && buf->width > 0 && buf->height > 0)
+    {
+      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
+
+      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
+              imgid, buf->width, buf->height);
+
+      /* raise signal that mipmaps have been flushed to cache */
+      dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
+      return 1;
+    }
+  }
+
+  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_misses), 1);
+  return 0;
+}
+
 void dt_mipmap_cache_get_with_caller(
     dt_mipmap_cache_t *cache,
     dt_mipmap_buffer_t *buf,
@@ -879,6 +932,8 @@ void dt_mipmap_cache_get_with_caller(
       dsc = (struct dt_mipmap_buffer_dsc *)buf->cache_entry->data;
     }
 
+    // The cache can't be locked twice from the same thread,
+    // because then it would never unlock.
 #ifdef _DEBUG
     const pthread_t writer = dt_pthread_rwlock_get_writer(&(buf->cache_entry->lock));
     if(mode == 'w')
@@ -912,67 +967,23 @@ void dt_mipmap_cache_get_with_caller(
         buf->buf = NULL; // full images with NULL buffer have to be handled, indicates `missing image', but still return locked slot
     }
   }
-  else if(flags == DT_MIPMAP_BEST_EFFORT)
+  else if(flags == DT_MIPMAP_BEST_EFFORT && mip < DT_MIPMAP_F)
   {
-    __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_requests), 1);
-    // best-effort, might also return NULL.
-    // try larger ones only now (these will be slightly slower due to cairo rescaling):
-    dt_mipmap_size_t max_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_F-1;
-    for(int k = mip; k <= max_mip; k++)
+    // We don't use the best effort for float32 input images
+    if(!_find_nearest_mipmap(cache, buf, imgid, mip, flags, mode, file, line))
     {
-      // already loaded?
-      dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
-      if(buf->buf && buf->width > 0 && buf->height > 0)
-      {
-        __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
-
-        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
-                 imgid, buf->width, buf->height);
-
-        /* raise signal that mipmaps has been flushed to cache */
-        dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
-        return;
-      }
-      // didn't succeed the first time? prefetch for later!
-      if(mip == k)
-      {
-        __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
-        dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_PREFETCH, 'r');
-      }
+      // nothing found (yet) :(
+      buf->buf = NULL;
+      buf->imgid = UNKNOWN_IMAGE;
+      buf->size = DT_MIPMAP_NONE;
+      buf->width = buf->height = 0;
+      buf->iscale = 0.0f;
+      buf->color_space = DT_COLORSPACE_NONE;
+      // but order has been sent to generate the required thumbnail size
     }
-    // Last chance: look for smaller sizes
-    // never decrease mip level for float buffer or full image:
-    dt_mipmap_size_t min_mip = (mip >= DT_MIPMAP_F) ? mip : DT_MIPMAP_0;
-    for(int k = mip; k > min_mip; k--)
-    {
-      // already loaded?
-      dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
-      if(buf->buf && buf->width > 0 && buf->height > 0)
-      {
-        __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
-
-        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
-                 imgid, buf->width, buf->height);
-
-        /* raise signal that mipmaps has been flushed to cache */
-        dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
-        return;
-      }
-    }
-    __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_misses), 1);
-    // in case we don't even have a disk cache for our requested thumbnail,
-    // prefetch at least mip0, in case we have that in the disk caches:
-    if(cache->cachedir[0])
-    {
-      char filename[PATH_MAX] = {0};
-      snprintf(filename, sizeof(filename), "%s.d/%d/%" PRIu32 ".jpg", cache->cachedir, (int)mip, (uint32_t)key);
-      if(g_file_test(filename, G_FILE_TEST_EXISTS))
-      {
-        dt_mipmap_cache_get(cache, 0, imgid, DT_MIPMAP_0, DT_MIPMAP_PREFETCH_DISK, 0);
-        return;
-      }
-    }
-    // nothing found :(
+  }
+  else
+  {
     buf->buf = NULL;
     buf->imgid = UNKNOWN_IMAGE;
     buf->size = DT_MIPMAP_NONE;
