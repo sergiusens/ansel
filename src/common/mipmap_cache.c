@@ -213,8 +213,9 @@ static int dt_mipmap_cache_get_filename(gchar *mipmapfilename, size_t size)
   char cachedir[PATH_MAX] = { 0 };
   dt_loc_get_user_cache_dir(cachedir, sizeof(cachedir));
 
-  // Build the mipmap filename
+  // Build the mipmap filename fram hashing the path of the library DB
   const gchar *dbfilename = dt_database_get_path(darktable.db);
+
   if(!strcmp(dbfilename, ":memory:"))
   {
     mipmapfilename[0] = '\0';
@@ -254,7 +255,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
 // with the input image. will allocate img->width*img->height*img->bpp bytes.
 void *dt_mipmap_cache_alloc(dt_mipmap_buffer_t *buf, const dt_image_t *img)
 {
-  assert(buf->size == DT_MIPMAP_FULL);
+  assert(buf->size > DT_MIPMAP_F && buf->size < DT_MIPMAP_NONE);
 
   dt_cache_entry_t *entry = buf->cache_entry;
   struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
@@ -321,18 +322,16 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
   struct dt_mipmap_buffer_dsc *dsc = entry->data;
   const dt_mipmap_size_t mip = get_size(entry->key);
 
+  assert(mip < DT_MIPMAP_NONE);
+
   // alloc mere minimum for the header + broken image buffer:
   if(!dsc)
   {
+    // these are fixed-size:
     if(mip <= DT_MIPMAP_F)
-    {
-      // these are fixed-size:
       entry->data_size = cache->buffer_size[mip];
-    }
     else
-    {
       entry->data_size = sizeof(*dsc) + sizeof(float) * 4 * 64;
-    }
 
     entry->data = dt_alloc_align(entry->data_size);
 
@@ -365,59 +364,95 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
 
   assert(dsc->size >= sizeof(*dsc));
 
-  int loaded_from_disk = 0;
-  if(mip < DT_MIPMAP_F)
-  {
-    if(cache->cachedir[0] && (dt_conf_get_bool("cache_disk_backend") && mip < DT_MIPMAP_F))
-    {
-      // try and load from disk, if successful set flag
-      char filename[PATH_MAX] = {0};
-      snprintf(filename, sizeof(filename), "%s.d/%d/%" PRIu32 ".jpg", cache->cachedir, (int)mip,
-               get_imgid(entry->key));
-      FILE *f = g_fopen(filename, "rb");
-      if(f)
-      {
-        uint8_t *blob = 0;
-        fseek(f, 0, SEEK_END);
-        const long len = ftell(f);
-        if(len <= 0) goto read_error; // coverity madness
-        blob = (uint8_t *)dt_alloc_align(len);
-        if(!blob) goto read_error;
-        fseek(f, 0, SEEK_SET);
-        const int rd = fread(blob, sizeof(uint8_t), len, f);
-        if(rd != len) goto read_error;
-        dt_colorspaces_color_profile_type_t color_space;
-        dt_imageio_jpeg_t jpg;
-        if(dt_imageio_jpeg_decompress_header(blob, len, &jpg)
-           || (jpg.width > cache->max_width[mip] || jpg.height > cache->max_height[mip])
-           || ((color_space = dt_imageio_jpeg_read_color_space(&jpg)) == DT_COLORSPACE_NONE) // pointless test to keep it in the if clause
-           || dt_imageio_jpeg_decompress(&jpg, (uint8_t *)entry->data + sizeof(*dsc)))
-        {
-          fprintf(stderr, "[mipmap_cache] failed to decompress thumbnail for image %" PRIu32 " from `%s'!\n",
-                  get_imgid(entry->key), filename);
-          goto read_error;
-        }
-        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from disk cache\n", mip,
-                 get_imgid(entry->key), jpg.width, jpg.height);
-        dsc->width = jpg.width;
-        dsc->height = jpg.height;
-        dsc->iscale = 1.0f;
-        dsc->color_space = color_space;
-        loaded_from_disk = 1;
-        if(0)
-        {
-read_error:
-          g_unlink(filename);
-        }
-        dt_free_align(blob);
-        fclose(f);
-      }
-    }
-  }
+  dsc->flags = DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE;
 
-  if(!loaded_from_disk)
-    dsc->flags = DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE;
-  else dsc->flags = 0;
+  if(cache->cachedir[0] && dt_conf_get_bool("cache_disk_backend") && mip < DT_MIPMAP_F)
+  {
+    // try and load from disk, if successful set flag
+    char filename[PATH_MAX] = {0};
+    snprintf(filename, sizeof(filename), "%s.d/%d/%" PRIu32 ".jpg", cache->cachedir, (int)mip,
+             get_imgid(entry->key));
+
+    gboolean io_error = FALSE;
+    gchar *error = NULL;
+
+    FILE *f = g_fopen(filename, "rb");
+    if(f == NULL) goto finish; // file doesn't exist
+
+    fseek(f, 0, SEEK_END);
+    long len = ftell(f);
+    if(len <= 0)
+    {
+      error = "empty file";
+      io_error = TRUE;
+      goto finish;
+    }
+    uint8_t *blob = (uint8_t *)dt_alloc_align(len);
+    if(blob == NULL)
+    {
+      error = "out of memory";
+      io_error = TRUE;
+      goto finish;
+    }
+
+    fseek(f, 0, SEEK_SET);
+    const size_t rd = fread(blob, sizeof(uint8_t), len, f);
+    if(rd != len)
+    {
+      error = "corrupted file";
+      io_error = TRUE;
+      goto finish;
+    }
+
+    dt_colorspaces_color_profile_type_t color_space = DT_COLORSPACE_DISPLAY;
+    dt_imageio_jpeg_t jpg;
+
+    if(dt_imageio_jpeg_decompress_header(blob, len, &jpg))
+    {
+      error = "couldn't decompress header";
+      io_error = TRUE;
+      goto finish;
+    }
+
+    // Tolerate a 2 px error on the pictures dimensions for rounding errors.
+    // that will still discard the cache all the time for input images (JPG) smaller than required thumbnail
+    // dimension. FIXME ?
+    if(!(jpg.width >= cache->max_width[mip] - 2 || jpg.height >= cache->max_height[mip] - 2))
+    {
+      error = "bad size";
+      io_error = TRUE;
+      goto finish;
+    }
+
+    color_space = dt_imageio_jpeg_read_color_space(&jpg);
+
+    if(dt_imageio_jpeg_decompress(&jpg, (uint8_t *)entry->data + sizeof(*dsc)))
+    {
+      error = "couldn't decompress JPEG";
+      io_error = TRUE;
+      goto finish;
+    }
+
+    dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from disk cache\n", mip,
+              get_imgid(entry->key), jpg.width, jpg.height);
+    dsc->width = jpg.width;
+    dsc->height = jpg.height;
+    dsc->iscale = 1.0f;
+    dsc->color_space = color_space;
+    dsc->flags = 0;
+
+finish:
+    if(f && io_error)
+    {
+      // Delete the file, we will regenerate it
+      g_unlink(filename);
+      fprintf(stderr, "[mipmap_cache] failed to open thumbnail for image %" PRIu32 " from `%s'. Reason: %s\n",
+              get_imgid(entry->key), filename, error);
+    }
+
+    if(blob) dt_free_align(blob);
+    if(f) fclose(f);
+  }
 
   // cost is just flat one for the buffer, as the buffers might have different sizes,
   // to make sure quota is meaningful.
