@@ -996,15 +996,18 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
   const dt_image_t *img = &dev.image_storage;
 
+  int scaling_factor = dt_image_is_raw(img) ? 2 : 1;
+
   // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
-  // aka 720x450 px currently. Though it's a nice speed-up to generate small thumbnails,
+  // aka 720x450 px currently, with a 2x scaling factor for RAW.
+  // Though it's a nice speed-up to generate small thumbnails,
   // we can't use it as input for larger thumbnails, for obvious reasons.
   // WARNING: if the editing pipeline applies cropping and the final requested image
   // is less than 720x450 px, we will still produce an undersampled thumnbail.
   dt_mipmap_size_t size = DT_MIPMAP_NONE;
 
-  if(thumbnail_export && format_params->max_width <= cache->max_width[DT_MIPMAP_F]
-     && format_params->max_height <= cache->max_height[DT_MIPMAP_F])
+  if(thumbnail_export && format_params->max_width <= cache->max_width[DT_MIPMAP_F] * scaling_factor
+     && format_params->max_height <= cache->max_height[DT_MIPMAP_F] * scaling_factor)
     size = DT_MIPMAP_F;
   else
     size = DT_MIPMAP_FULL;
