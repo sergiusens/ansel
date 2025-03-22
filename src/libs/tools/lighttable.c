@@ -200,7 +200,6 @@ void gui_init(dt_lib_module_t *self)
 
   GtkWidget *label = gtk_label_new(C_("quickfilter", "Embedded JPEG"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
-  dt_gui_add_class(label, "quickfilter-label");
 
   d->jpg = gtk_combo_box_text_new();
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Never"));
@@ -220,7 +219,6 @@ void gui_init(dt_lib_module_t *self)
 
   label = gtk_label_new(C_("quickfilter", "Zoom"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
-  dt_gui_add_class(label, "quickfilter-label");
 
   d->zoom = gtk_combo_box_text_new();
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("Fit"));
@@ -235,7 +233,6 @@ void gui_init(dt_lib_module_t *self)
 
   label = gtk_label_new(C_("quickfilter", "Columns"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
-  dt_gui_add_class(label, "quickfilter-label");
 
   d->columns = gtk_spin_button_new_with_range(1., 12., 1.);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->columns), FALSE, FALSE, 0);
