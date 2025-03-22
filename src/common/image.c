@@ -1032,8 +1032,8 @@ void dt_image_remove(const int32_t imgid)
                               NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
   sqlite3_step(stmt);
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "DELETE FROM main.meta_data WHERE id = ?1", -1, &stmt,
-                              NULL);
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+                              "DELETE FROM main.meta_data WHERE id = ?1", -1, &stmt, NULL);
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
   sqlite3_step(stmt);
   sqlite3_finalize(stmt);
@@ -1044,8 +1044,18 @@ void dt_image_remove(const int32_t imgid)
 
 gboolean dt_image_altered(const int32_t imgid)
 {
-  dt_history_hash_t status = dt_history_hash_get_status(imgid);
-  return status & DT_HISTORY_HASH_CURRENT;
+  gboolean found_it = FALSE;
+
+  sqlite3_stmt *stmt;
+  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
+                              "SELECT imgid FROM main.history WHERE imgid = ?1", -1, &stmt, NULL);
+  DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
+  if(sqlite3_step(stmt) == SQLITE_ROW && sqlite3_column_int(stmt, 0) == imgid)
+    found_it = TRUE;
+
+  sqlite3_finalize(stmt);
+
+  return found_it;
 }
 
 gboolean dt_image_basic(const int32_t imgid)
