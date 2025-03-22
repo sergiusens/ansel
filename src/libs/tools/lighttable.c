@@ -35,6 +35,7 @@ DT_MODULE(1)
 
 typedef struct dt_lib_tool_lighttable_t
 {
+  GtkWidget *jpg;
   GtkWidget *columns;
   GtkWidget *zoom;
   int current_columns;
@@ -148,6 +149,26 @@ static void _zoom_combobox_changed(GtkWidget *widget, gpointer user_data)
   dt_thumbtable_set_zoom(dt_ui_thumbtable(darktable.gui->ui), level);
 }
 
+static void _jpg_combobox_changed(GtkWidget *widget, gpointer user_data)
+{
+  int mode = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+  if(mode == dt_conf_get_int("lighttable/embedded_jpg")) return;
+
+  dt_conf_set_int("lighttable/embedded_jpg", mode);
+
+  // Clear all thumbs from current collection
+  GList *selection = dt_collection_get_all(darktable.collection, -1);
+  for(GList *img = g_list_first(selection); img; img = g_list_next(img))
+  {
+    const int32_t imgid = GPOINTER_TO_INT(img->data);
+    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  }
+  g_list_free(selection);
+
+  // Redraw thumbnails
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), UNKNOWN_IMAGE, TRUE);
+}
+
 // Ctrl + Scroll changes the number of columns
 static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer data)
 {
@@ -177,7 +198,27 @@ void gui_init(dt_lib_module_t *self)
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_widget_set_halign(self->widget, GTK_ALIGN_END);
 
-  GtkWidget *label = gtk_label_new(C_("quickfilter", "Zoom"));
+  GtkWidget *label = gtk_label_new(C_("quickfilter", "Embedded JPEG"));
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
+  dt_gui_add_class(label, "quickfilter-label");
+
+  d->jpg = gtk_combo_box_text_new();
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Never"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Unedited"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Always"));
+  gtk_box_pack_start(GTK_BOX(self->widget), d->jpg, FALSE, FALSE, 0);
+  gtk_combo_box_set_active(GTK_COMBO_BOX(d->jpg), dt_conf_get_int("lighttable/embedded_jpg"));
+  g_signal_connect(G_OBJECT(d->jpg), "changed", G_CALLBACK(_jpg_combobox_changed), (gpointer)self);
+  gtk_widget_set_tooltip_markup(
+      d->jpg, _("Choose if the raw embedded thumbnail should be displayed\n"
+                "in the lightttable instead of a full rendering from raw.\n"
+                "\"Never\" always renders thumbnails from raw (slow but consistent with darkroom)\n"
+                "\"Unedited\" uses the embedded JPG for unedited pictures (faster)\n"
+                "\"Always\" uses the embedded JPG for all pictures (fast but inconsistent with darkroom)\n"
+                "Changing this value will purge the cached thumbnails for the current collection"));
+
+
+  label = gtk_label_new(C_("quickfilter", "Zoom"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
   dt_gui_add_class(label, "quickfilter-label");
 

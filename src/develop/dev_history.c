@@ -1520,7 +1520,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
     return;
   }
 
-  // Get our own fresh copy of the image structure.
+  // Get our hown fresh copy of the image structure.
   // Need to do it here, some modules rely on it to update their default params
   // This is redundant with `_dt_dev_load_raw()` called from `dt_dev_load_image()`,
   // but we don't always manipulate an history when/after loading an image, so we need to
@@ -1631,7 +1631,14 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   dev->history_hash = dt_dev_history_get_hash(dev);
 
   // Write it straight away if we just inited the history
-  if(first_run) dt_dev_write_history_ext(dev, imgid);
+  // NOTE: if the embedded_jpg mode is set to "never" (= 0),
+  // browsing the lighttable will render the thumbnails from scratch
+  // from the raw input, which will init an history to init a pipeline.
+  // In that case, we don't want to write an history that would make the images
+  // look like they have been edited.
+  // So we auto-write here only if we are in darkroom.
+  if(first_run && dev == darktable.develop)
+    dt_dev_write_history_ext(dev, imgid);
   //else if(legacy_params)
   //  TODO: ask user for confirmation before saving updated history
   //  because that will made it incompatible with earlier app versions

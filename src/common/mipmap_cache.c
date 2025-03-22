@@ -1259,7 +1259,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
   {
     // try to generate mip from larger mip
     // This expects that invalid mips will be flushed, so the assumption is:
-    // if mip then it's valid (aka current w.r.t. current history)
+    // if mip then it's valid (with regard to current history)
     for(dt_mipmap_size_t k = size + 1; k < DT_MIPMAP_F; k++)
     {
       dt_mipmap_buffer_t tmp;
@@ -1277,6 +1277,12 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     }
   }
 
+  // embedded JPG mode:
+  // 0 = never use embedded thumbnail
+  // 1 = only on unedited pics,
+  // 2 = always use embedded thumbnail
+  int mode = dt_conf_get_int("lighttable/embedded_jpg");
+
   const gboolean altered = dt_image_altered(imgid);
 
   const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, imgid, 'r');
@@ -1285,7 +1291,9 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
   const int incompatible = !strncmp(cimg->exif_maker, "Phase One", 9);
   dt_image_cache_read_release(darktable.image_cache, cimg);
 
-  if(res && !altered && !incompatible)
+  const gboolean user_pref = (mode == 2 || (mode == 1 && !altered));
+
+  if(res && !incompatible && user_pref)
   {
     const dt_image_orientation_t orientation = dt_image_get_orientation(imgid);
 

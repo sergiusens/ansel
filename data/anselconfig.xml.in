@@ -883,12 +883,12 @@
     <shortdescription>last timeline zoom.</shortdescription>
     <longdescription/>
   </dtconfig>
-  <dtconfig prefs="lighttable" section="thumbs">
-    <name>plugins/lighttable/thumbnail_sizes</name>
-    <type>string</type>
-    <default>120|400</default>
-    <shortdescription>delimiters for size categories</shortdescription>
-    <longdescription>size categories are used to be able to set different overlays and css values depending of the size of the thumbnail, separated by |. for example, 120|400 means 3 categories of thumbnails: 0px->120px, 120px->400px and >400px</longdescription>
+  <dtconfig>
+    <name>lighttable/embedded_jpg</name>
+    <type>int</type>
+    <default>1</default>
+    <shortdescription>Use the embedded JPG instead of rendering thumbnails from RAW.</shortdescription>
+    <longdescription/>
   </dtconfig>
   <dtconfig prefs="darkroom" section="general">
     <name>pressure_sensitivity</name>
