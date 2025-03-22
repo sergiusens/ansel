@@ -860,7 +860,7 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
      "       license, sha1sum, orientation, histogram, lightmap,"
      "       longitude, latitude, altitude, color_matrix, colorspace, NULL, NULL, 0,"
      "       aspect_ratio, exposure_bias, import_timestamp"
-     " FROM main.images WHERE id = ?2",
+     " FROM main.images WHERE id = ?1",
      -1, &stmt, NULL);
   // clang-format on
   DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
@@ -927,13 +927,6 @@ static int32_t _image_duplicate_with_version_ext(const int32_t imgid, const int3
     DT_DEBUG_SQLITE3_BIND_INT(stmt, 2, imgid);
     sqlite3_step(stmt);
     sqlite3_finalize(stmt);
-
-    if(darktable.develop->image_storage.id == imgid)
-    {
-      // make sure the current iop-order list is written as this will be duplicated from the db
-      dt_ioppr_write_iop_order_list(darktable.develop->iop_order_list, imgid);
-      dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
-    }
 
     // clang-format off
     DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
@@ -1271,7 +1264,7 @@ static int32_t _image_import_internal(const int32_t film_id, const char *filenam
   {
     g_free(imgfname);
     dt_image_t *img = dt_image_cache_get(darktable.image_cache, id, 'w');
-    img->flags &= ~DT_IMAGE_REMOVE;
+    img->flags &= ~DT_IMAGE_REMOVE & ~DT_IMAGE_AUTO_PRESETS_APPLIED;
     dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
     _image_read_duplicates(id, normalized_filename, raise_signals);
     dt_image_synch_all_xmp(normalized_filename);
