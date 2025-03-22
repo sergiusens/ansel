@@ -130,6 +130,9 @@ typedef struct dt_thumbtable_t
   // Thumbnails inner zoom level
   dt_thumbtable_zoom_t zoom;
 
+  // Show focus regions on thumbnails
+  gboolean focus;
+
 } dt_thumbtable_t;
 
 
@@ -147,6 +150,8 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
 
 // set zoom level
 void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level);
+
+void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable);
 
 // signal that the current collection needs to be flushed entirely before being reloaded
 void dt_thumbtable_reset_collection(dt_thumbtable_t *table);

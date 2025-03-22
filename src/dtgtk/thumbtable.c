@@ -661,6 +661,12 @@ void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level)
   dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
 }
 
+void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable)
+{
+  table->focus = enable;
+  dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
+}
+
 // can be called with imgid = -1, in that case we reload all mipmaps
 static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpointer user_data)
 {
@@ -1574,6 +1580,10 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     // In filmroll mode, the center view is going to capture default
     gtk_widget_set_can_default(table->grid, FALSE);
     gtk_widget_set_receives_default(table->grid, FALSE);
+
+    // Reset zoom & focus
+    table->focus = FALSE;
+    table->zoom = DT_THUMBTABLE_ZOOM_FIT;
   }
 
   gtk_widget_show(table->scroll_window);

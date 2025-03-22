@@ -343,7 +343,7 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
   }
 
   // if needed we compute and draw here the big rectangle to show focused areas
-  if(thumb->display_focus)
+  if(thumb->table && thumb->table->focus)
   {
     uint8_t *full_res_thumb = NULL;
     int32_t full_res_thumb_wd, full_res_thumb_ht;
@@ -439,7 +439,7 @@ static void _thumb_update_icons(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
 
-  gboolean show_nowhere = (thumb->over == DT_THUMBNAIL_OVERLAYS_NONE) || thumb->disable_mouseover;
+  gboolean show_nowhere = (thumb->over == DT_THUMBNAIL_OVERLAYS_NONE);
 
   gtk_widget_set_visible(thumb->w_local_copy, thumb->has_localcopy && !show_nowhere);
   gtk_widget_set_visible(thumb->w_altered, thumb->is_altered && !show_nowhere);
@@ -520,7 +520,7 @@ static gboolean _event_rating_release(GtkWidget *widget, GdkEventButton *event, 
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
 
-  if(event->button == 1 && !thumb->moved)
+  if(event->button == 1)
   {
     dt_view_image_over_t rating = DT_VIEW_DESERT;
     if(widget == thumb->w_reject)
@@ -558,7 +558,7 @@ static gboolean _event_audio_release(GtkWidget *widget, GdkEventButton *event, g
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
 
-  if(event->button == 1 && !thumb->moved)
+  if(event->button == 1)
   {
     gboolean start_audio = TRUE;
     if(darktable.view_manager->audio.audio_player_id != -1)

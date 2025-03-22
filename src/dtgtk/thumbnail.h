@@ -93,8 +93,6 @@ typedef struct
 
   GtkWidget *w_alternative; // alternative overlay
 
-  gboolean moved; // indicate if the thumb is currently moved (zoomable thumbtable case)
-
   dt_thumbnail_border_t group_borders; // which group borders should be drawn
 
   gboolean disable_mouseover;             // do we allow to change mouseoverid by mouse move
@@ -108,8 +106,6 @@ typedef struct
   double drag_x_start;
   double drag_y_start;
   gboolean dragging;
-
-  gboolean display_focus; // do we display rectangles to show focused part of the image
 
   struct dt_thumbtable_t *table; // convenience reference to the parent
 

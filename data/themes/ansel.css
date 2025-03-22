@@ -1457,7 +1457,8 @@ filechooser row:hover .sidebar-icon
   padding-left: 0.25em;
 }
 
-.quick_filter_box separator.horizontal
+.quick_filter_box separator.horizontal,
+.lighttable_box separator.horizontal
 {
   margin: 2px 0.5em;
   border: 1px solid @grey_35;

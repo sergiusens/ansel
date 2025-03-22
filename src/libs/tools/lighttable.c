@@ -36,6 +36,7 @@ DT_MODULE(1)
 typedef struct dt_lib_tool_lighttable_t
 {
   GtkWidget *jpg;
+  GtkWidget *focus;
   GtkWidget *columns;
   GtkWidget *zoom;
   int current_columns;
@@ -189,6 +190,11 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
   return FALSE;
 }
 
+void _focus_toggled(GtkToggleButton *self, gpointer user_data)
+{
+  dt_thumbtable_set_focus(dt_ui_thumbtable(darktable.gui->ui), gtk_toggle_button_get_active(self));
+}
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -196,6 +202,7 @@ void gui_init(dt_lib_module_t *self)
   self->data = (void *)d;
 
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  dt_gui_add_class(self->widget, "lighttable_box");
   gtk_widget_set_halign(self->widget, GTK_ALIGN_END);
 
   GtkWidget *label = gtk_label_new(C_("quickfilter", "Embedded JPEG"));
@@ -216,6 +223,20 @@ void gui_init(dt_lib_module_t *self)
                 "\"Always\" uses the embedded JPG for all pictures (fast but inconsistent with darkroom)\n"
                 "Changing this value will purge the cached thumbnails for the current collection"));
 
+  // dumb empty flexible spacer at the end
+  GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_hexpand(spacer, TRUE);
+  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
+
+  d->focus = gtk_toggle_button_new_with_label(_("Focus zones"));
+  gtk_box_pack_start(GTK_BOX(self->widget), d->focus, FALSE, FALSE, 0);
+  g_signal_connect(G_OBJECT(d->focus), "toggled", G_CALLBACK(_focus_toggled), NULL);
+  gtk_widget_set_name(d->focus, "quickfilter-culling");
+
+  // dumb empty flexible spacer at the end
+  spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  gtk_widget_set_hexpand(spacer, TRUE);
+  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
 
   label = gtk_label_new(C_("quickfilter", "Zoom"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
