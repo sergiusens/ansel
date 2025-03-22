@@ -190,6 +190,19 @@ static gboolean _set_thumb_position(dt_thumbtable_t *table, dt_thumbnail_t *thum
   return TRUE;
 }
 
+void dt_thumbtable_get_scroll_position(dt_thumbtable_t *table)
+{
+  table->x_position = gtk_adjustment_get_value(table->v_scrollbar);
+  table->y_position = gtk_adjustment_get_value(table->h_scrollbar);
+}
+
+static int dt_thumbtable_scroll_to_position(dt_thumbtable_t *table)
+{
+  gtk_adjustment_set_value(table->v_scrollbar, table->x_position);
+  gtk_adjustment_set_value(table->h_scrollbar, table->y_position);
+  return 0;
+}
+
 static void dt_thumbtable_scroll_to_rowid(dt_thumbtable_t *table, int rowid)
 {
   // Find (x, y) of the current thumbnail (north-west corner)
@@ -202,10 +215,9 @@ static void dt_thumbtable_scroll_to_rowid(dt_thumbtable_t *table, int rowid)
   y += table->thumb_height / 2;
 
   // Scroll viewport there
-  gtk_adjustment_set_value(table->v_scrollbar, (double)y - table->view_height / 2);
-  gtk_adjustment_set_value(table->h_scrollbar, (double)x - table->view_width / 2);
-  table->x_position = x;
-  table->y_position = y;
+  table->x_position = (double)y - (double)table->view_height / 2.;
+  table->y_position = (double)x - (double)table->view_width / 2.;
+  dt_thumbtable_scroll_to_position(table);
 }
 
 static int _find_rowid_from_imgid(dt_thumbtable_t *table, const int32_t imgid)
@@ -234,6 +246,13 @@ static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 
   dt_thumbtable_scroll_to_rowid(table, rowid);
 
+  return 0;
+}
+
+
+int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table)
+{
+  dt_thumbtable_scroll_to_rowid(table, table->rowid);
   return 0;
 }
 
@@ -1368,6 +1387,10 @@ dt_thumbtable_t *dt_thumbtable_new()
   g_signal_connect(G_OBJECT(table->v_scrollbar), "value-changed", G_CALLBACK(_adjust_value_changed), table);
   g_signal_connect(G_OBJECT(table->h_scrollbar), "value-changed", G_CALLBACK(_adjust_value_changed), table);
 
+  // Disable re-scrolling to beginning when a child of scrolled window gets the focus
+  gtk_container_set_focus_hadjustment(GTK_CONTAINER(table->scroll_window), NULL);
+  gtk_container_set_focus_vadjustment(GTK_CONTAINER(table->scroll_window), NULL);
+
   table->grid = gtk_fixed_new();
   dt_gui_add_class(table->grid, "dt_thumbtable");
   gtk_container_add(GTK_CONTAINER(table->scroll_window), table->grid);
@@ -1375,6 +1398,10 @@ dt_thumbtable_t *dt_thumbtable_new()
   gtk_widget_set_focus_on_click(table->grid, TRUE);
   gtk_widget_add_events(table->grid, GDK_LEAVE_NOTIFY_MASK);
   g_signal_connect(G_OBJECT(table->grid), "leave-notify-event", G_CALLBACK(_event_main_leave), table);
+
+  // Disable re-scrolling to beginning when a child of scrolled window gets the focus
+  gtk_container_set_focus_hadjustment(GTK_CONTAINER(table->grid), NULL);
+  gtk_container_set_focus_vadjustment(GTK_CONTAINER(table->grid), NULL);
 
   // drag and drop : used for reordering, interactions with maps, exporting uri to external apps, importing images
   // in filmroll...
@@ -1725,6 +1752,16 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
   dt_pthread_mutex_lock(&table->lock);
   table->rowid = _find_rowid_from_imgid(table, imgid);
   dt_pthread_mutex_unlock(&table->lock);
+
+  // Attempt to re-grab focus on every interaction to restore keyboard navigation,
+  // for example after a combobox grabbed it on click.
+  if(!gtk_widget_has_focus(table->grid))
+  {
+    // But giving focus to the grid scrolls it back to top, so we have to re-scroll it after
+    dt_thumbtable_get_scroll_position(table);
+    gtk_widget_grab_focus(table->grid);
+    g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_position, table);
+  }
 }
 
 // clang-format off
