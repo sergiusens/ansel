@@ -2138,6 +2138,9 @@ void leave(dt_view_t *self)
   gtk_widget_hide(dev->rawoverexposed.floating_window);
   gtk_widget_hide(dev->profile.floating_window);
 
+  // Fetch the new thumbnail if needed
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), darktable.develop->image_storage.id, TRUE);
+
   darktable.develop->image_storage.id = -1;
 
   dt_print(DT_DEBUG_CONTROL, "[run_job-] 11 %f in darkroom mode\n", dt_get_wtime());

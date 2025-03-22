@@ -1061,7 +1061,11 @@ void dt_dev_write_history_ext(dt_develop_t *dev, const int32_t imgid)
   //if(!dt_history_hash_is_mipmap_synced(imgid))
   dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
 
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
+  // Don't refresh the thumbnail if we are in darkroom
+  // Spawning another export thread will likely slow-down the current one.
+  if(darktable.gui && dev != darktable.develop)
+    dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
+
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_append(NULL, GINT_TO_POINTER(imgid)));
 }
 
