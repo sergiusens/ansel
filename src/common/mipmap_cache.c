@@ -572,18 +572,20 @@ void dt_mipmap_cache_init(dt_mipmap_cache_t *cache)
   dead_image_f((dt_mipmap_buffer_t *)_shift_buffer(dsc));
 
   // Fixed sizes for the thumbnail mip levels, selected for coverage of most screen sizes
+  // Starting at 4K, we use 3:2 ratio of camera sensor instead of 16:9/16:10 of display,
+  // in order to start caching full-resolution JPEG for 100% zoom in lighttable
   size_t mipsizes[DT_MIPMAP_F][2] = {
-    { 180, 110 },             // mip0 - ~1/2 size previous one
-    { 360, 225 },             // mip1 - 1/2 size previous one
-    { 720, 450 },             // mip2 - 1/2 size previous one
-    { 1440, 900 },            // mip3 - covers 720p and 1366x768
-    { 1920, 1200 },           // mip4 - covers 1080p and 1600x1200
-    { 2560, 1600 },           // mip5 - covers 2560x1440
-    { 4096, 2560 },           // mip6 - covers 4K and UHD
-    { 5120, 3200 },           // mip7 - covers 5120x2880 panels
+    { 360, 225 },             // mip0 - 1/2 size previous one
+    { 720, 450 },             // mip1 - 1/2 size previous one
+    { 1440, 900 },            // mip2 - covers HD, WXGA+
+    { 1920, 1200 },           // mip3 - covers 1080p and 1600x1200
+    { 2560, 1600 },           // mip4 - covers 2560x1440
+    { 3840, 2560 },           // mip5 - covers 4K and UHD
+    { 5120, 3414 },           // mip6 - covers 5K
+    { 6144,	4096 },           // mip7 - covers 6K
+    { 7680, 5120 },           // mip8 - covers 8K
   };
-  // Set mipf to mip2 size as at most the user will be using an 8K screen and
-  // have a preview that's ~4x smaller
+  // Set mipf for preview pipe to 1440x900
   cache->max_width[DT_MIPMAP_F] = mipsizes[DT_MIPMAP_2][0];
   cache->max_height[DT_MIPMAP_F] = mipsizes[DT_MIPMAP_2][1];
   for(int k = DT_MIPMAP_F-1; k >= 0; k--)
@@ -1143,9 +1145,7 @@ static void _init_f(dt_mipmap_buffer_t *mipmap_buf, float *out, uint32_t *width,
   // now let's figure out the scaling...
 
   // MIP_F is 4 channels, and we do not demosaic here
-  const float coeff = (image->buf_dsc.filters) ? 2.0f : 1.0f;
-
-  roi_out.scale = fminf((coeff * (float)wd) / (float)image->width, (coeff * (float)ht) / (float)image->height);
+  roi_out.scale = fminf(((float)wd) / (float)image->width, ((float)ht) / (float)image->height);
   roi_out.width = roi_out.scale * roi_in.width;
   roi_out.height = roi_out.scale * roi_in.height;
 

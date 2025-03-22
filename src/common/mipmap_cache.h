@@ -28,18 +28,17 @@ extern "C" {
 
 // sizes stored in the mipmap cache, set to fixed values in mipmap_cache.c
 typedef enum dt_mipmap_size_t {
-  DT_MIPMAP_0 = 0,           // 180x110
-  DT_MIPMAP_1,               // 360x225 px
-  DT_MIPMAP_2,               // 720x450 px
-  DT_MIPMAP_3,               // 1440x900 px
-  DT_MIPMAP_4,               // Full HD 1080p
-  DT_MIPMAP_5,               // 2560x1440 px
-  DT_MIPMAP_6,               // 4K/UHD
-  DT_MIPMAP_7,               // 5120x3200 px
+  DT_MIPMAP_0,               // 360x225 px
+  DT_MIPMAP_1,               // 720x450 px
+  DT_MIPMAP_2,               // 1440x900 px
+  DT_MIPMAP_3,               // Full HD 1080p
+  DT_MIPMAP_4,               // 2560x1440 px
+  DT_MIPMAP_5,               // 4K/UHD -
+  DT_MIPMAP_6,               // 5K
+  DT_MIPMAP_7,               // 6K
+  DT_MIPMAP_8,               // 8K
   DT_MIPMAP_F,               // unprocessed input float image downscaled to 720x450 or 1440x900 px for performance
   DT_MIPMAP_FULL,            // unprocessed input float image at original resolation
-  DT_MIPMAP_HALF_RESOLUTION, // fully processed 8 bits image at half the original resolution
-  DT_MIPMAP_FULL_RESOLUTION, // fully processed 8 bits image at the
   DT_MIPMAP_NONE
 } dt_mipmap_size_t;
 

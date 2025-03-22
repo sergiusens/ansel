@@ -1538,7 +1538,7 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
     // RGBA float32 images:
     darkroom_pipe_size = width * height * 4 * sizeof(float) * 90 / 100;
 
-    // Preview pipe is 720x450 px for raster inputs, else twice as much for RAW
+    // Preview pipe is 1440x900px for raster inputs
     preview_pipe_size = 1440 * 900 * 4 * sizeof(float);
   }
 

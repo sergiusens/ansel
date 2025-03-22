@@ -628,11 +628,21 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   dt_mipmap_size_t mip = DT_MIPMAP_NONE;
 
   if(zoom == DT_THUMBTABLE_ZOOM_FIT)
+  {
     mip = dt_mipmap_cache_get_matching_size(cache, ceilf(width * darktable.gui->ppd), ceilf(height * darktable.gui->ppd));
-  else if(zoom == DT_THUMBTABLE_ZOOM_HALF)
-    mip = DT_MIPMAP_HALF_RESOLUTION;
+  }
   else
-    mip = DT_MIPMAP_FULL_RESOLUTION;
+  {
+    const dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
+    const int full_width = image->width;
+    const int full_height = image->height;
+    dt_image_cache_read_release(darktable.image_cache, image);
+
+    if(zoom == DT_THUMBTABLE_ZOOM_HALF)
+      mip = dt_mipmap_cache_get_matching_size(cache, ceilf(full_width / 2.f ), ceilf(full_height / 2.f));
+    else if(zoom == DT_THUMBTABLE_ZOOM_FULL)
+      mip = dt_mipmap_cache_get_matching_size(cache, full_width, full_height);
+  }
 
   // if needed, we load the mimap buffer
   dt_mipmap_buffer_t buf;
@@ -648,11 +658,20 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   }
 
   // so we create a new image surface to return
-  float scale = fminf(width / (float)buf_wd, height / (float)buf_ht) * darktable.gui->ppd;
-  const int img_width = roundf(buf_wd * scale);
-  const int img_height = roundf(buf_ht * scale);
-  // due to the forced rounding above, we need to recompute scaling
-  scale = fmaxf(img_width / (float)buf_wd, img_height / (float)buf_ht);
+  float scale = 1.f;
+  int img_width = buf_wd;
+  int img_height = buf_ht;
+
+  if(zoom == DT_THUMBTABLE_ZOOM_FIT)
+  {
+    scale = fminf((float)width / (float)buf_wd, (float)height / (float)buf_ht) * darktable.gui->ppd;
+    img_width = roundf(buf_wd * scale);
+    img_height = roundf(buf_ht * scale);
+
+    // due to the forced rounding above, we need to recompute scaling
+    scale = fmaxf((float)img_width / (float)buf_wd, (float)img_height / (float)buf_ht);
+  }
+
   *surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, img_width, img_height);
 
   // we transfer cached image on a cairo_surface (with colorspace transform if needed)
@@ -731,8 +750,8 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   // draw the image scaled:
   cairo_t *cr = cairo_create(*surface);
   cairo_scale(cr, scale, scale);
-
   cairo_set_source_surface(cr, tmp_surface, 0, 0);
+
   // set filter no nearest:
   // in skull mode, we want to see big pixels.
   // in 1 iir mode for the right mip, we want to see exactly what the pipe gave us, 1:1 pixel for pixel.
@@ -757,7 +776,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   cairo_surface_destroy(tmp_surface);
   cairo_destroy(cr);
 
-  // we consider skull as ok as the image hasn't to be reload
+  // we consider skull as ok as the image hasn't to be reloaded
   if(buf_wd <= 8 && buf_ht <= 8)
     ret = DT_VIEW_SURFACE_OK;
   else if(mip != buf.size)

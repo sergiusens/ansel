@@ -997,7 +997,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   const dt_image_t *img = &dev.image_storage;
 
   // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
-  // aka 720x450 px currently, with a 2x scaling factor for RAW (1440x900 px).
+  // aka 1440x900 px.
   // We use to take that as input for thumbnail exports. We don't anymore:
   // 1. DT_MIPMAP_F don't demosaic, which can dramatically change the appearance of noisy pictures
   //    (magenta/green color casts in dark areas),

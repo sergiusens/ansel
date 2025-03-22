@@ -929,9 +929,9 @@ gpointer dt_opencl_benchmark_sequence(dt_opencl_t *cl)
   // Each of these globally overwrites size rounding factors and timeouts
   // So we leave the darkroom one for last since the most perf-critical
   // pipeline is when the user is editing in realtime.
-  dt_opencl_benchmark_array(cl, "opencl_devid_thumbnail", 1440, 900, gui, 4, 0);
-  dt_opencl_benchmark_array(cl, "opencl_devid_preview", 720, 450, gui, 4, 1);
-  dt_opencl_benchmark_array(cl, "opencl_devid_export", 6000, 4000, gui, 4, 2);
+  dt_opencl_benchmark_array(cl, "opencl_devid_thumbnail", 1920, 1200, gui, 4, 0);
+  dt_opencl_benchmark_array(cl, "opencl_devid_preview", 1440, 900, gui, 4, 1);
+  dt_opencl_benchmark_array(cl, "opencl_devid_export", 6144, 4096, gui, 4, 2);
   dt_opencl_benchmark_array(cl, "opencl_devid_darkroom", width, height, gui, 4, 3);
 
   if(gui) g_main_context_invoke(NULL, _close_opencl_window, cl);
