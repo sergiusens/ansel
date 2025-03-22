@@ -638,7 +638,7 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
 void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level)
 {
   table->zoom = level;
-  dt_thumbtable_refresh_thumbnail(table, -1, TRUE);
+  dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
 }
 
 // can be called with imgid = -1, in that case we reload all mipmaps
@@ -1714,6 +1714,7 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
   {
     // Active mouse pointer interactions: accept unconditionnaly
     dt_control_set_mouse_over_id(imgid);
+    gtk_widget_grab_focus(table->grid);
   }
   else
   {
