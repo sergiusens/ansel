@@ -226,6 +226,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("Fit"));
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("50 %"));
   gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("100 %"));
+  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("200 %"));
   gtk_box_pack_start(GTK_BOX(self->widget), d->zoom, FALSE, FALSE, 0);
   gtk_combo_box_set_active(GTK_COMBO_BOX(d->zoom), 0);
   g_signal_connect(G_OBJECT(d->zoom), "changed", G_CALLBACK(_zoom_combobox_changed), (gpointer)self);

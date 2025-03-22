@@ -36,7 +36,8 @@ typedef enum dt_thumbtable_zoom_t
 {
   DT_THUMBTABLE_ZOOM_FIT = 0,
   DT_THUMBTABLE_ZOOM_HALF = 1,
-  DT_THUMBTABLE_ZOOM_FULL = 2
+  DT_THUMBTABLE_ZOOM_FULL = 2,
+  DT_THUMBTABLE_ZOOM_TWICE = 3
 } dt_thumbtable_zoom_t;
 
 typedef struct dt_thumbtable_cache_t

@@ -640,7 +640,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
     if(zoom == DT_THUMBTABLE_ZOOM_HALF)
       mip = dt_mipmap_cache_get_matching_size(cache, ceilf(full_width / 2.f ), ceilf(full_height / 2.f));
-    else if(zoom == DT_THUMBTABLE_ZOOM_FULL)
+    else if(zoom >= DT_THUMBTABLE_ZOOM_FULL)
       mip = dt_mipmap_cache_get_matching_size(cache, full_width, full_height);
   }
 
@@ -670,6 +670,14 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
     // due to the forced rounding above, we need to recompute scaling
     scale = fmaxf((float)img_width / (float)buf_wd, (float)img_height / (float)buf_ht);
+  }
+  else if(zoom == DT_THUMBTABLE_ZOOM_TWICE)
+  {
+    // NOTE: we upscale the image surface, which means we will oversample
+    // the full-res input buffer
+    scale = 2.f;
+    img_width = roundf(buf_wd * scale);
+    img_height = roundf(buf_ht * scale);
   }
 
   *surface = cairo_image_surface_create(CAIRO_FORMAT_RGB24, img_width, img_height);
@@ -757,7 +765,8 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   // in 1 iir mode for the right mip, we want to see exactly what the pipe gave us, 1:1 pixel for pixel.
   // in between, filtering just makes stuff go unsharp.
   if((buf_wd <= 8 && buf_ht <= 8)
-      || fabsf(scale - 1.0f) < 0.01f)
+      || fabsf(scale - 1.0f) < 0.01f
+      || zoom == DT_THUMBTABLE_ZOOM_TWICE)
     cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
   else
     cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_GOOD);

@@ -403,12 +403,22 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   const float scaler = 1.0f / darktable.gui->ppd;
   cairo_scale(cr, scaler, scaler);
 
-  double x_offset = (w * darktable.gui->ppd - thumb->img_width) / 2.;
-  double y_offset = (h * darktable.gui->ppd - thumb->img_height) / 2.;
+  double cw = w * darktable.gui->ppd;
+  double ch = h * darktable.gui->ppd;
+  double x_offset = (cw - thumb->img_width) / 2.;
+  double y_offset = (ch - thumb->img_height) / 2.;
 
   // Sanitize zoom offsets
-  thumb->zoomx = CLAMP(thumb->zoomx, -thumb->img_width / 2. - x_offset / 2., thumb->img_width / 2. + x_offset / 2.);
-  thumb->zoomy = CLAMP(thumb->zoomy, -thumb->img_height / 2. - y_offset / 2., thumb->img_height / 2. + y_offset / 2.);
+  if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
+  {
+    thumb->zoomx = CLAMP(thumb->zoomx, -fabs(x_offset), fabs(x_offset));
+    thumb->zoomy = CLAMP(thumb->zoomy, -fabs(y_offset), fabs(y_offset));
+  }
+  else
+  {
+    thumb->zoomx = 0.;
+    thumb->zoomy = 0.;
+  }
 
   cairo_set_source_surface(cr, thumb->img_surf, thumb->zoomx + x_offset, thumb->zoomy + y_offset);
 
@@ -1245,14 +1255,6 @@ int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
   _thumb_update_icons(thumb);
   thumb->busy = FALSE;
   thumb->drawn = FALSE;
-
-  // If not in zoom mode, ensure we reset the image offset
-  if(thumb->table && thumb->table->zoom == DT_THUMBTABLE_ZOOM_FIT)
-  {
-    thumb->zoomx = 0.;
-    thumb->zoomy = 0.;
-  }
-
   gtk_widget_queue_draw(thumb->w_image);
   return G_SOURCE_REMOVE;
 }
