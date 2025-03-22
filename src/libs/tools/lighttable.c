@@ -152,7 +152,6 @@ static void _zoom_combobox_changed(GtkWidget *widget, gpointer user_data)
 static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
-  fprintf(stdout, "SCROLLED\n");
 
   if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
   {
@@ -161,7 +160,7 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
 
     int current_level = _lib_lighttable_get_columns(self);
     int new_level = CLAMP(current_level + CLAMP(scroll_y, -1, 1), 1, 12);
-    
+
     _lib_lighttable_set_columns(self, new_level);
     dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
     return TRUE;
