@@ -439,12 +439,11 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     _update_grid_area(table);
     _update_row_ids(table);
     gtk_widget_queue_draw(table->grid);
-
-    if(table->thumbs_inited)
-    {
-      // Attempt to re-align the scrolled view with last-known image
-      g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_active_rowid, table);
-    }
+  }
+  else
+  {
+    _update_grid_area(table);
+    _update_row_ids(table);
   }
 }
 
