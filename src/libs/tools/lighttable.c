@@ -148,6 +148,27 @@ static void _zoom_combobox_changed(GtkWidget *widget, gpointer user_data)
   dt_thumbtable_set_zoom(dt_ui_thumbtable(darktable.gui->ui), level);
 }
 
+// Ctrl + Scroll changes the number of columns
+static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer data)
+{
+  dt_lib_module_t *self = (dt_lib_module_t *)data;
+  fprintf(stdout, "SCROLLED\n");
+
+  if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
+  {
+    int scroll_y;
+    dt_gui_get_scroll_unit_delta(event, &scroll_y);
+
+    int current_level = _lib_lighttable_get_columns(self);
+    int new_level = CLAMP(current_level + CLAMP(scroll_y, -1, 1), 1, 12);
+    
+    _lib_lighttable_set_columns(self, new_level);
+    dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
+    return TRUE;
+  }
+  return FALSE;
+}
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -179,10 +200,6 @@ void gui_init(dt_lib_module_t *self)
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->columns), FALSE, FALSE, 0);
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->columns), d->current_columns);
 
-  // Capturing focus collides with lighttable key navigation, and it is useless
-  // because we already have columns in/out global shortcuts
-  gtk_widget_set_can_focus(d->columns, FALSE);
-
   g_signal_connect(G_OBJECT(d->columns), "value-changed", G_CALLBACK(_lib_lighttable_columns_slider_changed), self);
 
   dt_accels_new_lighttable_action(_columns_in_action, self, N_("Lighttable/Actions"), N_("Zoom in the thumbtable grid"),
@@ -196,6 +213,10 @@ void gui_init(dt_lib_module_t *self)
   _lib_lighttable_columns_slider_changed(d->columns, self); // the slider defaults to 1 and GTK doesn't
                                                       // fire a value-changed signal when setting
                                                       // it to 1 => empty text box
+
+  // Wire a scroll event handler on thumbtable here. This avoids us a proxy
+  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+  g_signal_connect(G_OBJECT(table->scroll_window), "scroll-event", G_CALLBACK(_thumbtable_scroll), self);
 }
 
 void gui_cleanup(dt_lib_module_t *self)
