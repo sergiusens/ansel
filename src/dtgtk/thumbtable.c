@@ -436,14 +436,15 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     // new sizes: update everything
     table->thumbs_inited = FALSE;
     _grid_configure(table, new_width, new_height, cols);
-    gtk_widget_queue_draw(table->grid);
-  }
-
-  if(!table->thumbs_inited && table->collection_count > 0)
-  {
     _update_grid_area(table);
     _update_row_ids(table);
     gtk_widget_queue_draw(table->grid);
+
+    if(table->thumbs_inited)
+    {
+      // Attempt to re-align the scrolled view with last-known image
+      g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_active_rowid, table);
+    }
   }
 }
 
@@ -1387,10 +1388,6 @@ dt_thumbtable_t *dt_thumbtable_new()
   g_signal_connect(G_OBJECT(table->v_scrollbar), "value-changed", G_CALLBACK(_adjust_value_changed), table);
   g_signal_connect(G_OBJECT(table->h_scrollbar), "value-changed", G_CALLBACK(_adjust_value_changed), table);
 
-  // Disable re-scrolling to beginning when a child of scrolled window gets the focus
-  gtk_container_set_focus_hadjustment(GTK_CONTAINER(table->scroll_window), NULL);
-  gtk_container_set_focus_vadjustment(GTK_CONTAINER(table->scroll_window), NULL);
-
   table->grid = gtk_fixed_new();
   dt_gui_add_class(table->grid, "dt_thumbtable");
   gtk_container_add(GTK_CONTAINER(table->scroll_window), table->grid);
@@ -1399,9 +1396,14 @@ dt_thumbtable_t *dt_thumbtable_new()
   gtk_widget_add_events(table->grid, GDK_LEAVE_NOTIFY_MASK);
   g_signal_connect(G_OBJECT(table->grid), "leave-notify-event", G_CALLBACK(_event_main_leave), table);
 
-  // Disable re-scrolling to beginning when a child of scrolled window gets the focus
-  gtk_container_set_focus_hadjustment(GTK_CONTAINER(table->grid), NULL);
-  gtk_container_set_focus_vadjustment(GTK_CONTAINER(table->grid), NULL);
+  // Disable auto re-scrolling to beginning when a child of scrolled window gets the focus
+  // Doesn't seem to work...
+  // https://stackoverflow.com/questions/26693042/gtkscrolledwindow-disable-scroll-to-focused-child
+  GtkAdjustment *dummy = gtk_adjustment_new(0., 0., 1., 1., 1., 1.);
+  gtk_container_set_focus_hadjustment(GTK_CONTAINER(table->scroll_window), dummy);
+  gtk_container_set_focus_vadjustment(GTK_CONTAINER(table->scroll_window), dummy);
+  gtk_container_set_focus_hadjustment(GTK_CONTAINER(table->grid), dummy);
+  gtk_container_set_focus_vadjustment(GTK_CONTAINER(table->grid), dummy);
 
   // drag and drop : used for reordering, interactions with maps, exporting uri to external apps, importing images
   // in filmroll...
@@ -1760,7 +1762,7 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
     // But giving focus to the grid scrolls it back to top, so we have to re-scroll it after
     dt_thumbtable_get_scroll_position(table);
     gtk_widget_grab_focus(table->grid);
-    g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_position, table);
+    dt_thumbtable_scroll_to_position(table);
   }
 }
 
