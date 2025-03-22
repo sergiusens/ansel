@@ -1193,14 +1193,8 @@ static gboolean _dev_auto_apply_presets(dt_develop_t *dev, int32_t imgid)
     sqlite3_finalize(stmt);
   }
 
-  // Resync image flags to notify auto-presets were applied
-  image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-  image->flags |= DT_IMAGE_AUTO_PRESETS_APPLIED | DT_IMAGE_NO_LEGACY_PRESETS;
-  dev->image_storage = *image;
-
-  // make sure these end up in the image_cache; as the history is not correct right now
-  // we don't write the sidecar here but later in dt_dev_read_history_ext
-  dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_RELAXED);
+  // Notify our private image copy that auto-presets got applied
+  dev->image_storage.flags |= DT_IMAGE_AUTO_PRESETS_APPLIED | DT_IMAGE_NO_LEGACY_PRESETS;
 
   return TRUE;
 }
@@ -1529,7 +1523,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   // This is redundant with `_dt_dev_load_raw()` called from `dt_dev_load_image()`,
   // but we don't always manipulate an history when/after loading an image, so we need to
   // be sure.
-  const dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
+  dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
   dev->image_storage = *image;
   dt_image_cache_read_release(darktable.image_cache, image);
 
@@ -1642,7 +1636,15 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   // look like they have been edited.
   // So we auto-write here only if we are in darkroom.
   if(first_run && dev == darktable.develop)
+  {
     dt_dev_write_history_ext(dev, imgid);
+
+    // Resync our private copy of image image with DB,
+    // mostly for DT_IMAGE_AUTO_PRESETS_APPLIED flag
+    image = dt_image_cache_get(darktable.image_cache, imgid, 'w');
+    *image = dev->image_storage;
+    dt_image_cache_write_release(darktable.image_cache, image, DT_IMAGE_CACHE_SAFE);
+  }
   //else if(legacy_params)
   //  TODO: ask user for confirmation before saving updated history
   //  because that will made it incompatible with earlier app versions
