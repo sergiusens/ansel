@@ -160,7 +160,7 @@
   <dtconfig prefs="processing" section="cpugpu" restart="true">
     <name>memory_os_headroom</name>
     <type min="500">int</type>
-    <default>3000</default>
+    <default>4500</default>
     <shortdescription>Memory headrom for OS/application (MiB)</shortdescription>
     <longdescription>This is the amount of memory that Ansel will leave to the operating system and other applications</longdescription>
   </dtconfig>
