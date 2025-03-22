@@ -1721,7 +1721,7 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
 
   module->commit_params(module, params, pipe, piece);
 
-  uint64_t old_hash = module->hash;
+  //uint64_t old_hash = module->hash;
 
   // 2. Update the internal hash
   // We need to update the blendop params dynamically, because drawn masks (forms)
@@ -1731,8 +1731,8 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
 
   uint64_t hash = module->hash;
 
-  if(old_hash != hash)
-    fprintf(stdout, "WARNING: hash changed at history -> pipeline commit time for %s\n", module->op);
+  //if(old_hash != hash)
+  //  fprintf(stdout, "WARNING: hash changed at history -> pipeline commit time for %s\n", module->op);
 
   // Take dynamically-set parameters into account.
   // Because colorout sets up output color profile at commit_params() time.
