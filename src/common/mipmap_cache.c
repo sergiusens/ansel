@@ -1220,6 +1220,8 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
                     dt_colorspaces_color_profile_type_t *color_space, const int32_t imgid,
                     const dt_mipmap_size_t size)
 {
+  if(size >= DT_MIPMAP_F) return;
+
   *iscale = 1.0f;
   const uint32_t wd = *width, ht = *height;
   char filename[PATH_MAX] = { 0 };
@@ -1235,8 +1237,31 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     return;
   }
 
-  const gboolean altered = dt_image_altered(imgid);
   int res = 1;
+
+  if(res && size < DT_MIPMAP_F - 1)
+  {
+    // try to generate mip from larger mip
+    // This expects that invalid mips will be flushed, so the assumption is:
+    // if mip then it's valid (aka current w.r.t. current history)
+    for(dt_mipmap_size_t k = size + 1; k < DT_MIPMAP_F; k++)
+    {
+      dt_mipmap_buffer_t tmp;
+      dt_mipmap_cache_get(darktable.mipmap_cache, &tmp, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
+      if(tmp.buf == NULL) continue;
+
+      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from level %d\n", size, imgid, k);
+      *color_space = tmp.color_space;
+      // downsample
+      dt_iop_flip_and_zoom_8(tmp.buf, tmp.width, tmp.height, buf, wd, ht, ORIENTATION_NONE, width, height);
+
+      dt_mipmap_cache_release(darktable.mipmap_cache, &tmp);
+      res = 0;
+      break;
+    }
+  }
+
+  const gboolean altered = dt_image_altered(imgid);
 
   const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, imgid, 'r');
   // the orientation for this camera is not read correctly from exiv2, so we need
@@ -1244,18 +1269,17 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
   const int incompatible = !strncmp(cimg->exif_maker, "Phase One", 9);
   dt_image_cache_read_release(darktable.image_cache, cimg);
 
-  if(!altered && !incompatible)
+  if(res && !altered && !incompatible)
   {
     const dt_image_orientation_t orientation = dt_image_get_orientation(imgid);
 
-    // try to load the embedded thumbnail in raw
     from_cache = TRUE;
     memset(filename, 0, sizeof(filename));
     dt_image_full_path(imgid,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
 
     const char *c = filename + strlen(filename);
     while(*c != '.' && c > filename) c--;
-    if(!strcasecmp(c, ".jpg"))
+    if(!strcasecmp(c, ".jpg") || !strcasecmp(c, ".jpeg"))
     {
       // try to load jpg
       dt_imageio_jpeg_t jpg;
@@ -1275,7 +1299,8 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     }
     else
     {
-      uint8_t *tmp = 0;
+      // try to load the embedded thumbnail in raw
+      uint8_t *tmp = NULL;
       int32_t thumb_width, thumb_height;
       res = dt_imageio_large_thumbnail(filename, &tmp, &thumb_width, &thumb_height, color_space);
       if(!res)
@@ -1302,26 +1327,6 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
 
   if(res)
   {
-    //try to generate mip from larger mip
-    for(dt_mipmap_size_t k = size + 1; k < DT_MIPMAP_F; k++)
-    {
-      dt_mipmap_buffer_t tmp;
-      dt_mipmap_cache_get(darktable.mipmap_cache, &tmp, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
-      if(tmp.buf == NULL)
-        continue;
-      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from level %d\n", size, imgid, k);
-      *color_space = tmp.color_space;
-      // downsample
-      dt_iop_flip_and_zoom_8(tmp.buf, tmp.width, tmp.height, buf, wd, ht, ORIENTATION_NONE, width, height);
-
-      dt_mipmap_cache_release(darktable.mipmap_cache, &tmp);
-      res = 0;
-      break;
-    }
-  }
-
-  if(res)
-  {
     // try the real thing: rawspeed + pixelpipe
     dt_imageio_module_format_t format;
     _dummy_data_t dat;
@@ -1338,7 +1343,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
                                        NULL, 1, 1, NULL);
     if(!res)
     {
-      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from scratch\n", size, imgid);
+      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generated mip %d for image %d from scratch\n", size, imgid);
       // might be smaller, or have a different aspect than what we got as input.
       *width = dat.head.width;
       *height = dat.head.height;
@@ -1346,9 +1351,6 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
       *color_space = DT_COLORSPACE_ADOBERGB;
     }
   }
-
-  // fprintf(stderr, "[mipmap init 8] export image %u finished (sizes %d %d => %d %d)!\n", imgid, wd, ht,
-  // dat.head.width, dat.head.height);
 
   // any errors?
   if(res)
@@ -1359,11 +1361,6 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     *color_space = DT_COLORSPACE_NONE;
     return;
   }
-
-  // TODO: various speed optimizations:
-  // TODO: also init all smaller mips!
-  // TODO: use mipf, but:
-  // TODO: if output is cropped, don't use mipf!
 }
 
 void dt_mipmap_cache_copy_thumbnails(const dt_mipmap_cache_t *cache, const uint32_t dst_imgid, const uint32_t src_imgid)
