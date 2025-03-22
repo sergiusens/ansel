@@ -177,7 +177,7 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
   if(dt_modifier_is(event->state, GDK_CONTROL_MASK))
   {
     int scroll_y;
-    dt_gui_get_scroll_unit_delta(event, &scroll_y);
+    dt_gui_get_scroll_unit_deltas(event, NULL, &scroll_y);
 
     int current_level = _lib_lighttable_get_columns(self);
     int new_level = CLAMP(current_level + CLAMP(scroll_y, -1, 1), 1, 12);
