@@ -1236,7 +1236,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
                     dt_colorspaces_color_profile_type_t *color_space, const int32_t imgid,
                     const dt_mipmap_size_t size)
 {
-  if(size >= DT_MIPMAP_F) return;
+  if(size >= DT_MIPMAP_F || *width < 16 || *height < 16) return;
 
   *iscale = 1.0f;
   const uint32_t wd = *width, ht = *height;
