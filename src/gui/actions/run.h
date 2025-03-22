@@ -31,14 +31,14 @@ static int32_t preload_image_cache(dt_job_t *job)
   // Load the mipmap cache sizes 0 to 4 of the current selection
   GList *selection = dt_selection_get_list(darktable.selection);
   int i = 0;
-  float imgs = (float)dt_selection_get_length(darktable.selection);
+  float imgs = (float)dt_selection_get_length(darktable.selection) * DT_MIPMAP_F;
   GList *img = g_list_first(selection);
 
   while(img && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED)
   {
     const int32_t imgid = GPOINTER_TO_INT(img->data);
 
-    for(int k = DT_MIPMAP_6; k >= DT_MIPMAP_0 && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED; k--)
+    for(int k = DT_MIPMAP_F - 1; k >= DT_MIPMAP_0 && dt_control_job_get_state(job) != DT_JOB_STATE_CANCELLED; k--)
     {
       char filename[PATH_MAX] = { 0 };
       snprintf(filename, sizeof(filename), "%s.d/%d/%d.jpg", darktable.mipmap_cache->cachedir, k, imgid);
@@ -50,11 +50,12 @@ static int32_t preload_image_cache(dt_job_t *job)
       dt_mipmap_buffer_t buf;
       dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, k, DT_MIPMAP_BLOCKING, 'r');
       dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
+
+      i++;
+      dt_control_job_set_progress(job, (float)i / imgs);
     }
 
     dt_history_hash_set_mipmap(imgid);
-    i++;
-    dt_control_job_set_progress(job, (float)i / imgs);
     img = g_list_next(img);
   }
 
@@ -93,8 +94,8 @@ static void write_XMP()
 void append_run(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   add_sub_menu_entry(menus, lists, _("Clear darkroom pipeline caches"), index, NULL, clear_caches_callback, NULL, NULL, NULL, 0, 0);
-  add_sub_menu_entry(menus, lists, _("Preload thumbnails in cache"), index, NULL, preload_image_cache_callback, NULL, NULL, has_active_images, 0, 0);
-  add_sub_menu_entry(menus, lists, _("Purge thumbnails from cache"), index, NULL, clear_image_cache, NULL, NULL, has_active_images, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Preload selected thumbnails in cache"), index, NULL, preload_image_cache_callback, NULL, NULL, has_active_images, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Purge selected thumbnails from cache"), index, NULL, clear_image_cache, NULL, NULL, has_active_images, 0, 0);
   add_menu_separator(menus[index]);
   add_sub_menu_entry(menus, lists, _("Defragment the library"), index, NULL, optimize_database_callback, NULL, NULL, NULL, 0, 0);
   add_sub_menu_entry(menus, lists, _("Backup the library"), index, NULL, backup_database_callback, NULL, NULL, NULL, 0, 0);

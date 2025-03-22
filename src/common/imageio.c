@@ -1077,11 +1077,12 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   const int bpp = format->bpp(format_params);
 
-  dt_get_times(&start);
 
   // Run only one pixelpipe at a time because CPU memory I/O is our bottleneck
   // Anyway pixel code is parallelized/vectorized internally with OpenMP.
   dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
+  dt_get_times(&start);
 
   /*
     if high-quality processing was requested, downsampling will be done
@@ -1107,10 +1108,11 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     // Warning: finalscale is still disabled in pipeline. It's no issue for now since we don't re-use it
     // before destroying it. Mind that if you extend the code.
   }
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
   dt_show_times(&start, thumbnail_export ? "[dev_process_thumbnail] pixel pipeline processing"
                                          : "[dev_process_export] pixel pipeline processing");
+
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
   uint8_t *outbuf = pipe.backbuf;
   if(outbuf == NULL)
