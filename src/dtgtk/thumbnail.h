@@ -103,17 +103,15 @@ typedef struct
   dt_thumbnail_overlay_t over;  // type of overlays
 
   // difference between the global zoom values and the value to apply to this specific thumbnail
-  float zoom;     // zoom value. 1.0 is "image to fit" (the initial value)
   double zoomx;   // zoom panning of the image
   double zoomy;   //
-
-  float zoom_100; // max zoom value (image 100%)
+  double drag_x_start;
+  double drag_y_start;
+  gboolean dragging;
 
   gboolean display_focus; // do we display rectangles to show focused part of the image
 
   struct dt_thumbtable_t *table; // convenience reference to the parent
-
-  float zoom_ratio;
 
   // Set FALSE when the thumbnail size changed, set TRUE when we have a Cairo image surface for that size
   gboolean image_inited;

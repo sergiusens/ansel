@@ -267,7 +267,7 @@ static float _thumb_zoom_to_zoom_ratio(float zoom, float zoom_100)
 }
 #endif
 
-static void _thumb_set_image_area(dt_thumbnail_t *thumb, float zoom_ratio)
+static void _thumb_set_image_area(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
   int image_w = thumb->width - thumb->img_margin->left - thumb->img_margin->right;
@@ -406,8 +406,11 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   double x_offset = (w * darktable.gui->ppd - thumb->img_width) / 2.;
   double y_offset = (h * darktable.gui->ppd - thumb->img_height) / 2.;
 
-  cairo_set_source_surface(cr, thumb->img_surf, thumb->zoomx * darktable.gui->ppd + x_offset,
-                            thumb->zoomy * darktable.gui->ppd + y_offset);
+  // Sanitize zoom offsets
+  thumb->zoomx = CLAMP(thumb->zoomx, -thumb->img_width / 2. - x_offset / 2., thumb->img_width / 2. + x_offset / 2.);
+  thumb->zoomy = CLAMP(thumb->zoomy, -thumb->img_height / 2. - y_offset / 2., thumb->img_height / 2. + y_offset / 2.);
+
+  cairo_set_source_surface(cr, thumb->img_surf, thumb->zoomx + x_offset, thumb->zoomy + y_offset);
 
   // get the transparency value
   GdkRGBA im_color;
@@ -724,6 +727,48 @@ static gboolean _altered_enter(GtkWidget *widget, GdkEventCrossing *event, gpoin
   return FALSE;
 }
 
+static gboolean _event_image_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+
+  if(event->button == 1 && thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
+  {
+    thumb->dragging = TRUE;
+    thumb->drag_x_start = event->x;
+    thumb->drag_y_start = event->y;
+  }
+
+  return FALSE;
+}
+
+static gboolean _event_image_motion(GtkWidget *widget, GdkEventMotion *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+  if(thumb->dragging)
+  {
+    thumb->zoomx += (event->x - thumb->drag_x_start) * darktable.gui->ppd;
+    thumb->zoomy += (event->y - thumb->drag_y_start) * darktable.gui->ppd;
+    thumb->drag_x_start = event->x;
+    thumb->drag_y_start = event->y;
+    gtk_widget_queue_draw(thumb->w_image);
+    return TRUE;
+  }
+  return FALSE;
+}
+
+static gboolean _event_image_release(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+
+  if(event->button == 1 && thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
+    thumb->dragging = FALSE;
+
+  return FALSE;
+}
+
 GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
 {
   // Let the background event box capture all user events from its children first,
@@ -776,7 +821,11 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   dt_gui_add_class(thumb->w_image, "thumb-image");
   gtk_widget_set_valign(thumb->w_image, GTK_ALIGN_CENTER);
   gtk_widget_set_halign(thumb->w_image, GTK_ALIGN_CENTER);
+  gtk_widget_set_events(thumb->w_image, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
   g_signal_connect(G_OBJECT(thumb->w_image), "draw", G_CALLBACK(_thumb_draw_image), thumb);
+  g_signal_connect(G_OBJECT(thumb->w_image), "button-press-event", G_CALLBACK(_event_image_press), thumb);
+  g_signal_connect(G_OBJECT(thumb->w_image), "button-release-event", G_CALLBACK(_event_image_release), thumb);
+  g_signal_connect(G_OBJECT(thumb->w_image), "motion-notify-event", G_CALLBACK(_event_image_motion), thumb);
   gtk_widget_show(thumb->w_image);
   gtk_overlay_add_overlay(GTK_OVERLAY(thumb->w_main), thumb->w_image);
   gtk_overlay_set_overlay_pass_through(GTK_OVERLAY(thumb->w_main), thumb->w_image, TRUE);
@@ -931,8 +980,9 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int
   thumb->rowid = rowid;
   thumb->groupid = groupid;
   thumb->over = over;
-  thumb->zoom = 1.0f;
   thumb->table = table;
+  thumb->zoomx = 0.;
+  thumb->zoomy = 0.;
 
   // we create the widget
   dt_thumbnail_create_widget(thumb, zoom_ratio);
@@ -1106,7 +1156,6 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
   // widget resizing
   thumb->width = width;
   thumb->height = height;
-  thumb->zoom_ratio = zoom_ratio;
   gtk_widget_set_size_request(thumb->w_main, width, height);
 
   // file extension
@@ -1134,7 +1183,7 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean 
   _thumb_resize_overlays(thumb);
 
   // we change the size and margins according to the size change. This will be refined after
-  _thumb_set_image_area(thumb, thumb->zoom_ratio);
+  _thumb_set_image_area(thumb);
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
@@ -1196,6 +1245,14 @@ int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
   _thumb_update_icons(thumb);
   thumb->busy = FALSE;
   thumb->drawn = FALSE;
+
+  // If not in zoom mode, ensure we reset the image offset
+  if(thumb->table && thumb->table->zoom == DT_THUMBTABLE_ZOOM_FIT)
+  {
+    thumb->zoomx = 0.;
+    thumb->zoomy = 0.;
+  }
+
   gtk_widget_queue_draw(thumb->w_image);
   return G_SOURCE_REMOVE;
 }
