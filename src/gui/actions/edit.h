@@ -112,7 +112,6 @@ static void compress_history_callback()
   }
 
   g_list_free(imgs);
-  dt_control_queue_redraw_center();
 
   // We should not need to raise signals here because lighttable
   // reloads the history from SQL at each redraw.
