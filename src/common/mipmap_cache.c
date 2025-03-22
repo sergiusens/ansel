@@ -254,7 +254,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
                     const dt_mipmap_size_t size);
 
 // callback for the imageio core to allocate memory.
-// only needed for _F and _FULL buffers, as they change size
+// only needed for _FULL buffers, as they change size
 // with the input image. will allocate img->width*img->height*img->bpp bytes.
 void *dt_mipmap_cache_alloc(dt_mipmap_buffer_t *buf, const dt_image_t *img)
 {
@@ -273,10 +273,10 @@ void *dt_mipmap_cache_alloc(dt_mipmap_buffer_t *buf, const dt_image_t *img)
   // so only check size and re-alloc if necessary:
   if(!buf->buf || ((void *)dsc == (void *)dt_mipmap_cache_static_dead_image) || (entry->data_size < buffer_size))
   {
-    if((void *)dsc != (void *)dt_mipmap_cache_static_dead_image) dt_free_align(entry->data);
+    if((void *)dsc != (void *)dt_mipmap_cache_static_dead_image)
+      dt_free_align(entry->data);
 
     entry->data_size = 0;
-
     entry->data = dt_alloc_align(buffer_size);
 
     if(!entry->data)
@@ -303,14 +303,16 @@ void *dt_mipmap_cache_alloc(dt_mipmap_buffer_t *buf, const dt_image_t *img)
   dsc->flags = DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE;
   buf->buf = _shift_buffer(dsc);
 
-  // fprintf(stderr, "full buffer allocating img %u %d x %d = %u bytes (%p)\n", img->id, img->width,
-  // img->height, buffer_size, *buf);
+  /*
+  fprintf(stderr, "full buffer allocating img %i %d x %d = %lu bytes (%p), bpp = %lu\n", img->id, img->width,
+  img->height, buffer_size, buf, bpp);
+  */
 
   assert(entry->data_size);
   assert(dsc->size);
   assert(dsc->size <= entry->data_size);
 
-  // Free the buffer
+  // Free the buffer and realloc it with the new size
   ASAN_POISON_MEMORY_REGION(entry->data, entry->data_size);
   _realloc_shifted_buffer(dsc);
 
@@ -319,6 +321,7 @@ void *dt_mipmap_cache_alloc(dt_mipmap_buffer_t *buf, const dt_image_t *img)
 }
 
 // callback for the cache backend to initialize payload pointers
+// It's actually not dynamic at all, fixed size only.
 void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
 {
   dt_mipmap_cache_t *cache = (dt_mipmap_cache_t *)data;
@@ -620,13 +623,11 @@ void dt_mipmap_cache_init(dt_mipmap_cache_t *cache)
   // That's 4 buffers total.
   const int32_t max_mem_bufs = nearest_power_of_two(4);
 
-  // for this buffer, because it can be very busy during import
   dt_cache_init(&cache->mip_full.cache, 0, max_mem_bufs);
   dt_cache_set_allocate_callback(&cache->mip_full.cache, dt_mipmap_cache_allocate_dynamic, cache);
   dt_cache_set_cleanup_callback(&cache->mip_full.cache, dt_mipmap_cache_deallocate_dynamic, cache);
   cache->buffer_size[DT_MIPMAP_FULL] = 0;
 
-  // same for mipf:
   dt_cache_init(&cache->mip_f.cache, 0, max_mem_bufs);
   dt_cache_set_allocate_callback(&cache->mip_f.cache, dt_mipmap_cache_allocate_dynamic, cache);
   dt_cache_set_cleanup_callback(&cache->mip_f.cache, dt_mipmap_cache_deallocate_dynamic, cache);
@@ -702,6 +703,24 @@ static dt_mipmap_cache_one_t *_get_cache(dt_mipmap_cache_t *cache, const dt_mipm
   }
 }
 
+static gboolean _query_cache(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid,
+                             const dt_mipmap_size_t mip, long *stats)
+{
+  dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_TESTLOCK, 'r');
+  if(buf->buf && buf->width > 0 && buf->height > 0)
+  {
+    __sync_fetch_and_add(stats, 1);
+
+    dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
+            imgid, buf->width, buf->height);
+
+    /* raise signal that mipmaps have been flushed to cache */
+    dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
+    return 1;
+  }
+  return 0;
+}
+
 // We don't use the best effort for float32 input images
 static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid,
                                      const dt_mipmap_size_t mip, const dt_mipmap_get_flags_t flags,
@@ -713,18 +732,9 @@ static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
   for(int k = mip; k < DT_MIPMAP_F; k++)
   {
     // already loaded?
-    dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
-    if(buf->buf && buf->width > 0 && buf->height > 0)
-    {
-      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
-
-      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
-              imgid, buf->width, buf->height);
-
-      /* raise signal that mipmaps have been flushed to cache */
-      dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
+    if(_query_cache(cache, buf, imgid, mip, &(_get_cache(cache, mip)->stats_standin)))
       return 1;
-    }
+
     // didn't succeed the first time? prefetch for later!
     if(mip == k)
     {
@@ -734,21 +744,11 @@ static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
   }
 
   // Last chance: look for smaller sizes
-  for(int k = mip; k > DT_MIPMAP_0; k--)
+  for(int k = MIN(mip, DT_MIPMAP_F) - 1; k >= DT_MIPMAP_0; k--)
   {
     // already loaded?
-    dt_mipmap_cache_get(cache, buf, imgid, k, DT_MIPMAP_TESTLOCK, 'r');
-    if(buf->buf && buf->width > 0 && buf->height > 0)
-    {
-      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_near_match), 1);
-
-      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
-              imgid, buf->width, buf->height);
-
-      /* raise signal that mipmaps have been flushed to cache */
-      dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
+    if(_query_cache(cache, buf, imgid, mip, &(_get_cache(cache, mip)->stats_near_match)))
       return 1;
-    }
   }
 
   __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_misses), 1);
@@ -801,6 +801,17 @@ static void _invalidate_buffer(dt_mipmap_buffer_t *buf)
   buf->color_space = DT_COLORSPACE_NONE;
 }
 
+
+static void _init_buffer(dt_mipmap_buffer_t *buf, const int32_t imgid, const dt_mipmap_size_t mip)
+{
+  buf->imgid = imgid;
+  buf->size = mip;
+  buf->buf = NULL;
+  buf->width = buf->height = 0;
+  buf->iscale = 0.0f;
+  buf->color_space = DT_COLORSPACE_NONE; // TODO: does the full buffer need to know this?
+}
+
 // if we get a zero-sized image, paint skulls to signal a missing image
 static void _paint_skulls(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const dt_mipmap_size_t mip)
 {
@@ -809,7 +820,7 @@ static void _paint_skulls(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *
     // fprintf(stderr, "[mipmap cache get] got a zero-sized image for img %u mip %d!\n", imgid, mip);
     if(mip < DT_MIPMAP_F)
       dead_image_8(buf);
-    else if(mip == DT_MIPMAP_F)
+    else if(mip >= DT_MIPMAP_F)
       dead_image_f(buf);
     else
       buf->buf = NULL; // full images with NULL buffer have to be handled, indicates `missing image', but still return locked slot
@@ -823,6 +834,98 @@ static void _validate_buffer(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_ds
   _sync_dsc_to_buf(buf, dsc, imgid, mip);
   _realloc_shifted_buffer(dsc);
   buf->buf = _shift_buffer(dsc);
+}
+
+// Grab our own local copy of the image structure
+static gboolean _get_image_copy(const int32_t imgid, dt_image_t *buffered_image)
+{
+  gboolean no_buffer = TRUE;
+  const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, imgid, 'r');
+
+  if(cimg)
+  {
+    *buffered_image = *cimg;
+    no_buffer = FALSE;
+  }
+
+  dt_image_cache_read_release(darktable.image_cache, cimg);
+
+  return no_buffer;
+}
+
+static void _commit_result(dt_imageio_retval_t result, dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc,
+                           dt_image_t buffered_image, const int32_t imgid)
+{
+  if(result != DT_IMAGEIO_OK && ((void *)dsc != (void *)dt_mipmap_cache_static_dead_image))
+  {
+    // we can only return a zero dimension buffer if the buffer has been allocated.
+    // in case dsc couldn't be allocated and points to the static buffer, it contains
+    // a dead image already.
+    dsc->width = dsc->height = 0;
+    buf->iscale = 0.0f;
+    dsc->color_space = DT_COLORSPACE_NONE;
+  }
+  else
+  {
+    // swap back new image data:
+    dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'w');
+    *img = buffered_image;
+
+    // don't write xmp for this (we only changed db stuff):
+    dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
+  }
+}
+
+// Actually do the work: produce an image
+static void _generate_blocking(dt_mipmap_cache_t *cache, dt_cache_entry_t *entry, dt_mipmap_buffer_t *buf,
+                               struct dt_mipmap_buffer_dsc *dsc, const int32_t imgid, const dt_mipmap_size_t mip)
+{
+  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_fetches), 1);
+
+  // we're write locked here, as requested by the alloc callback.
+  // now fill it with data:
+  if(mip == DT_MIPMAP_FULL)
+  {
+    // load the image:
+    // make sure we access the r/w lock as shortly as possible!
+    dt_image_t buffered_image;
+    if(_get_image_copy(imgid, &buffered_image)) return;
+    _init_buffer(buf, imgid, mip);
+
+    // Get the input file path, possibly from our local cache of copied images
+    char filename[PATH_MAX] = { 0 };
+    gboolean from_cache = TRUE;
+    dt_image_full_path(buffered_image.id,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
+
+    // will call dt_mipmap_cache_alloc() internally:
+    dt_imageio_retval_t ret = dt_imageio_open(&buffered_image, filename, buf); // TODO: color_space?
+
+    // might have been reallocated:
+    dsc = (struct dt_mipmap_buffer_dsc *)buf->cache_entry->data;
+    _realloc_buffer(dsc);
+
+    _commit_result(ret, buf, dsc, buffered_image, imgid);
+  }
+  else if(mip == DT_MIPMAP_F)
+  {
+    _realloc_shifted_buffer(dsc);
+    dt_print(DT_DEBUG_CACHE,
+             "[mipmap_cache] compute mip %d float32 for image %" PRIu32 " (%ix%i) from original file \n", mip,
+             get_imgid(entry->key), dsc->width, dsc->height);
+    _init_f(buf, (float *)_shift_buffer(dsc), &dsc->width, &dsc->height, &dsc->iscale, imgid);
+  }
+  else
+  {
+    // 8-bit thumbs
+    _realloc_shifted_buffer(dsc);
+    dt_print(DT_DEBUG_CACHE,
+             "[mipmap_cache] compute mip %d uint8 for image %" PRIu32 " (%ix%i) from original file \n", mip,
+             get_imgid(entry->key), dsc->width, dsc->height);
+    _init_8((uint8_t *)_shift_buffer(dsc), &dsc->width, &dsc->height, &dsc->iscale, &buf->color_space, imgid, mip);
+  }
+
+  dsc->color_space = buf->color_space;
+  dsc->flags &= ~DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE;
 }
 
 
@@ -879,86 +982,7 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
     buf->cache_entry = entry;
 
     if(dsc->flags & DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE)
-    {
-      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_fetches), 1);
-      // we're write locked here, as requested by the alloc callback.
-      // now fill it with data:
-      if(mip == DT_MIPMAP_FULL)
-      {
-        // load the image:
-        // make sure we access the r/w lock as shortly as possible!
-        dt_image_t buffered_image;
-        gboolean no_buffer = TRUE;
-
-        const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-        if(cimg)
-        {
-          buffered_image = *cimg;
-          no_buffer = FALSE;
-        }
-        dt_image_cache_read_release(darktable.image_cache, cimg);
-
-        if(no_buffer) return;
-
-        char filename[PATH_MAX] = { 0 };
-        gboolean from_cache = TRUE;
-        dt_image_full_path(buffered_image.id,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
-        buf->imgid = imgid;
-        buf->size = mip;
-        buf->buf = NULL;
-        buf->width = buf->height = 0;
-        buf->iscale = 0.0f;
-        buf->color_space = DT_COLORSPACE_NONE; // TODO: does the full buffer need to know this?
-        dt_imageio_retval_t ret = dt_imageio_open(&buffered_image, filename, buf); // TODO: color_space?
-        // might have been reallocated:
-        dsc = (struct dt_mipmap_buffer_dsc *)buf->cache_entry->data;
-        _realloc_buffer(dsc);
-
-        if(ret != DT_IMAGEIO_OK)
-        {
-          // we can only return a zero dimension buffer if the buffer has been allocated.
-          // in case dsc couldn't be allocated and points to the static buffer, it contains
-          // a dead image already.
-          if((void *)dsc != (void *)dt_mipmap_cache_static_dead_image)
-          {
-            dsc->width = dsc->height = 0;
-            buf->iscale = 0.0f;
-            dsc->color_space = DT_COLORSPACE_NONE;
-          }
-        }
-        else
-        {
-          // swap back new image data:
-          dt_image_t *img = dt_image_cache_get(darktable.image_cache, imgid, 'w');
-          *img = buffered_image;
-
-          // don't write xmp for this (we only changed db stuff):
-          dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
-
-          // Notify the DB that mipmap is in sync with current history hash
-          dt_history_hash_set_mipmap(imgid);
-        }
-      }
-      else if(mip == DT_MIPMAP_F)
-      {
-        _realloc_shifted_buffer(dsc);
-        dt_print(DT_DEBUG_CACHE,
-                 "[mipmap_cache] compute mip %d for image %" PRIu32 " (%ix%i) from original file \n", mip,
-                 get_imgid(entry->key), dsc->width, dsc->height);
-        _init_f(buf, (float *)_shift_buffer(dsc), &dsc->width, &dsc->height, &dsc->iscale, imgid);
-      }
-      else
-      {
-        // 8-bit thumbs
-        _realloc_shifted_buffer(dsc);
-        dt_print(DT_DEBUG_CACHE,
-                 "[mipmap_cache] compute mip %d for image %" PRIu32 " (%ix%i) from original file \n", mip,
-                 get_imgid(entry->key), dsc->width, dsc->height);
-        _init_8((uint8_t *)_shift_buffer(dsc), &dsc->width, &dsc->height, &dsc->iscale, &buf->color_space, imgid, mip);
-      }
-      dsc->color_space = buf->color_space;
-      dsc->flags &= ~DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE;
-    }
+      _generate_blocking(cache, entry, buf, dsc, imgid, mip);
 
     // image cache is leaving the write lock in place in case the image has been newly allocated.
     // this leads to a slight increase in thread contention, so we opt for dropping the write lock
@@ -998,9 +1022,7 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
   {
     // We don't use the best effort for float32 input images
     if(!_find_nearest_mipmap(cache, buf, imgid, mip, flags, mode, file, line))
-    {
       _invalidate_buffer(buf);
-    }
   }
   else
   {
@@ -1047,7 +1069,7 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(const dt_mipmap_cache_t *cach
 
 void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip)
 {
-  if(mip > DT_MIPMAP_7 || mip < DT_MIPMAP_0) return;
+  if(mip >= DT_MIPMAP_F || mip < DT_MIPMAP_0) return;
   // get rid of all ldr thumbnails:
   const uint32_t key = get_key(imgid, mip);
   dt_cache_entry_t *entry = dt_cache_testget(&_get_cache(cache, mip)->cache, key, 'w');
@@ -1066,31 +1088,25 @@ void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgi
   dt_mipmap_cache_unlink_ondisk_thumbnail((&_get_cache(cache, mip)->cache)->cleanup_data, imgid, mip);
 }
 
+// get rid of all ldr thumbnails:
 void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid)
 {
-  // get rid of all ldr thumbnails:
-
   for(dt_mipmap_size_t k = DT_MIPMAP_0; k < DT_MIPMAP_F; k++)
-  {
     dt_mipmap_cache_remove_at_size(cache, imgid, k);
-  }
 }
+
+// write thumbnail to disc if not existing there
 void dt_mipmap_cache_evict_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip)
 {
   const uint32_t key = get_key(imgid, mip);
-  // write thumbnail to disc if not existing there
   dt_cache_remove(&_get_cache(cache, mip)->cache, key);
 }
 
+// write thumbnail to disc if not existing there
 void dt_mimap_cache_evict(dt_mipmap_cache_t *cache, const int32_t imgid)
 {
   for(dt_mipmap_size_t k = DT_MIPMAP_0; k < DT_MIPMAP_F; k++)
-  {
-    const uint32_t key = get_key(imgid, k);
-
-    // write thumbnail to disc if not existing there
-    dt_cache_remove(&_get_cache(cache, k)->cache, key);
-  }
+    dt_cache_remove(&_get_cache(cache, k)->cache, get_key(imgid, k));
 }
 
 static void _init_f(dt_mipmap_buffer_t *mipmap_buf, float *out, uint32_t *width, uint32_t *height, float *iscale,
