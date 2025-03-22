@@ -303,7 +303,7 @@ static void dt_focus_draw_clusters(cairo_t *cr, int width, int height, int32_t i
   cairo_rectangle(cr, 0, 0, wd, ht);
   cairo_clip(cr);
 
-  double dashes[] = { 3 };
+  double dashes[] = { DT_PIXEL_APPLY_DPI(5.), DT_PIXEL_APPLY_DPI(5.) };
   const int ndash = sizeof(dashes) / sizeof(dashes[0]);
   double offset = 0.0f;
   cairo_set_dash(cr, dashes, ndash, offset);
@@ -357,7 +357,7 @@ static void dt_focus_draw_clusters(cairo_t *cr, int width, int height, int32_t i
 
         cairo_save(cr);
         cairo_scale(cr, 1. / scale, 1. / scale);
-        cairo_set_line_width(cr, 2.0f);
+        cairo_set_line_width(cr, DT_PIXEL_APPLY_DPI(2));
         cairo_stroke(cr);
         cairo_restore(cr);
       }
