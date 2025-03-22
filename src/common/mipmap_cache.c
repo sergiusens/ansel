@@ -373,12 +373,19 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
 
   dsc->flags = DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE;
 
+
   if(cache->cachedir[0] && dt_conf_get_bool("cache_disk_backend") && mip < DT_MIPMAP_F)
   {
     // try and load from disk, if successful set flag
     char filename[PATH_MAX] = {0};
     snprintf(filename, sizeof(filename), "%s.d/%d/%" PRIu32 ".jpg", cache->cachedir, (int)mip,
              get_imgid(entry->key));
+
+    // Get the original (max) dimensions of the picture
+    const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, get_imgid(entry->key), 'r');
+    const int width = cimg->width;
+    const int height = cimg->height;
+    dt_image_cache_read_release(darktable.image_cache, cimg);
 
     gboolean io_error = FALSE;
     gchar *error = NULL;
@@ -422,10 +429,11 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
       goto finish;
     }
 
-    // Tolerate a 2 px error on the pictures dimensions for rounding errors.
-    // that will still discard the cache all the time for input images (JPG) smaller than required thumbnail
-    // dimension. FIXME ?
-    if(!(jpg.width >= cache->max_width[mip] - 2 || jpg.height >= cache->max_height[mip] - 2))
+    // Tolerate a 2 px error on the pictures dimensions for rounding errors,
+    // unless the original file is anyway smaller than the requested mip
+    gboolean bad_width = width > jpg.width && jpg.width < cache->max_width[mip] - 2;
+    gboolean bad_height = height > jpg.height && jpg.height < cache->max_height[mip] - 2;
+    if(bad_width && bad_height)
     {
       error = "bad size";
       io_error = TRUE;
