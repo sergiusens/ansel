@@ -121,7 +121,7 @@ static void compress_history_callback()
 
 static void delete_history_callback()
 {
-  if(!has_selection()) return;
+  if(!has_active_images()) return;
 
   GList *imgs = dt_act_on_get_images();
   if(!imgs) return;
