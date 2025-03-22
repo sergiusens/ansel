@@ -1559,7 +1559,6 @@ gboolean dt_lightroom_import(int32_t imgid, dt_develop_t *dev, gboolean iauto)
     {
       /* signal history changed */
       dt_dev_reload_history_items(dev);
-      dt_dev_modulegroups_set(darktable.develop, dt_dev_modulegroups_get(darktable.develop));
       /* update xmp file */
       dt_image_synch_xmp(imgid);
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_HISTORY_CHANGE);
