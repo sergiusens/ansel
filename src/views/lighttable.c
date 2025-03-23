@@ -208,9 +208,6 @@ void leave(dt_view_t *self)
   // ensure we have no active image remaining
   dt_view_active_images_reset(FALSE);
 
-  // we remove the thumbtable from main view
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_NONE);
-
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_lighttable_activate_callback),
                                      (gpointer)self);
