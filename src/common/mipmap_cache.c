@@ -901,7 +901,7 @@ static void _generate_blocking(dt_mipmap_cache_t *cache, dt_cache_entry_t *entry
     struct dt_mipmap_buffer_dsc *former_dsc = dsc;
     dsc = (struct dt_mipmap_buffer_dsc *)buf->cache_entry->data;
     ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
-    fprintf(stdout, "%p is %p but was %p: %i - %i\n", dsc, former_dsc, entry->data, dsc == former_dsc, dsc == entry->data);
+    //fprintf(stdout, "%p is %p but was %p: %i - %i\n", dsc, former_dsc, entry->data, dsc == former_dsc, dsc == entry->data);
     assert(dsc == entry->data);
 
     _commit_result(ret, buf, dsc, buffered_image, imgid);
