@@ -107,7 +107,6 @@ static const size_t dt_mipmap_buffer_dsc_size __attribute__((unused)) = sizeof(s
 #endif
 
 static uint8_t * _shift_buffer(struct dt_mipmap_buffer_dsc *dsc);
-static void _realloc_shifted_buffer(struct dt_mipmap_buffer_dsc *dsc);
 
 int dt_mipmap_ready_idle_signal(gpointer data)
 {
@@ -314,7 +313,7 @@ void *dt_mipmap_cache_alloc(dt_mipmap_buffer_t *buf, const dt_image_t *img)
 
   // Free the buffer and realloc it with the new size
   ASAN_POISON_MEMORY_REGION(entry->data, entry->data_size);
-  _realloc_shifted_buffer(dsc);
+  ASAN_UNPOISON_MEMORY_REGION(_shift_buffer(dsc), dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
 
   // return pointer to start of payload
   return _shift_buffer(dsc);
@@ -775,18 +774,6 @@ static uint8_t * _shift_buffer(struct dt_mipmap_buffer_dsc *dsc)
 }
 
 
-static void _realloc_shifted_buffer(struct dt_mipmap_buffer_dsc *dsc)
-{
-  ASAN_UNPOISON_MEMORY_REGION(_shift_buffer(dsc), dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
-}
-
-
-static void _realloc_buffer(struct dt_mipmap_buffer_dsc *dsc)
-{
-  ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
-}
-
-
 // update buffer params with dsc
 static void _sync_dsc_to_buf(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const int32_t imgid,
                              const dt_mipmap_size_t mip)
@@ -842,7 +829,7 @@ static void _validate_buffer(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_ds
                              const dt_mipmap_size_t mip)
 {
   _sync_dsc_to_buf(buf, dsc, imgid, mip);
-  _realloc_shifted_buffer(dsc);
+  ASAN_UNPOISON_MEMORY_REGION(_shift_buffer(dsc), dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
   buf->buf = _shift_buffer(dsc);
 }
 
@@ -911,14 +898,17 @@ static void _generate_blocking(dt_mipmap_cache_t *cache, dt_cache_entry_t *entry
     dt_imageio_retval_t ret = dt_imageio_open(&buffered_image, filename, buf); // TODO: color_space?
 
     // might have been reallocated:
+    struct dt_mipmap_buffer_dsc *former_dsc = dsc;
     dsc = (struct dt_mipmap_buffer_dsc *)buf->cache_entry->data;
-    _realloc_buffer(dsc);
+    ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
+    fprintf(stdout, "%p is %p but was %p: %i - %i\n", dsc, former_dsc, entry->data, dsc == former_dsc, dsc == entry->data);
+    assert(dsc == entry->data);
 
     _commit_result(ret, buf, dsc, buffered_image, imgid);
   }
   else if(mip == DT_MIPMAP_F)
   {
-    _realloc_shifted_buffer(dsc);
+    ASAN_UNPOISON_MEMORY_REGION(_shift_buffer(dsc), dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
     dt_print(DT_DEBUG_CACHE,
              "[mipmap_cache] compute mip %d float32 for image %" PRIu32 " (%ix%i) from original file \n", mip,
              get_imgid(entry->key), dsc->width, dsc->height);
@@ -927,7 +917,7 @@ static void _generate_blocking(dt_mipmap_cache_t *cache, dt_cache_entry_t *entry
   else
   {
     // 8-bit thumbs
-    _realloc_shifted_buffer(dsc);
+    ASAN_UNPOISON_MEMORY_REGION(_shift_buffer(dsc), dsc->size - sizeof(struct dt_mipmap_buffer_dsc));
     dt_print(DT_DEBUG_CACHE,
              "[mipmap_cache] compute mip %d uint8 for image %" PRIu32 " (%ix%i) from original file \n", mip,
              get_imgid(entry->key), dsc->width, dsc->height);
@@ -954,7 +944,7 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
     if(entry)
     {
       struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
-      _realloc_buffer(dsc);
+      ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
       _validate_buffer(buf, dsc, imgid, mip);
     }
     else
@@ -988,7 +978,7 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
     // simple case: blocking get
     dt_cache_entry_t *entry =  dt_cache_get_with_caller(&_get_cache(cache, mip)->cache, key, mode, file, line);
     struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
-    _realloc_buffer(dsc);
+    ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
     buf->cache_entry = entry;
 
     if(dsc->flags & DT_MIPMAP_BUFFER_DSC_FLAG_GENERATE)
@@ -1007,8 +997,9 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
       // get a read lock
       buf->cache_entry = entry = dt_cache_get(&_get_cache(cache, mip)->cache, key, mode);
       dsc = (struct dt_mipmap_buffer_dsc *)buf->cache_entry->data;
-      _realloc_buffer(dsc);
+      ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
       entry->_lock_demoting = 0;
+      assert(entry->data == dsc);
     }
 
     // The cache can't be locked twice from the same thread,
@@ -1086,7 +1077,7 @@ void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgi
   if(entry)
   {
     struct dt_mipmap_buffer_dsc *dsc = (struct dt_mipmap_buffer_dsc *)entry->data;
-    _realloc_buffer(dsc);
+    ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
     dsc->flags |= DT_MIPMAP_BUFFER_DSC_FLAG_INVALIDATE;
     dt_cache_release(&_get_cache(cache, mip)->cache, entry);
 
