@@ -1904,23 +1904,12 @@ gboolean _scroll_on_focus(GdkEventScroll event, void *data)
 
 void enter(dt_view_t *self)
 {
-  // Reset focus to center view
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
-
-  // Attach bauhaus default signal callback to IOP
-  darktable.bauhaus->default_value_changed_callback = dt_bauhaus_value_changed_default_callback;
-
-  // clean the undo list
-  dt_undo_clear(darktable.undo, DT_UNDO_DEVELOP);
 
   dt_print(DT_DEBUG_CONTROL, "[run_job+] 11 %f in darkroom mode\n", dt_get_wtime());
   dt_develop_t *dev = (dt_develop_t *)self->data;
-
   dev->exit = 0;
 
-  // Make sure we don't start computing pipes until we have a proper history
-  dt_pthread_mutex_lock(&dev->history_mutex);
-
+  // We need to init forms before we init module blending GUI
   if(!dev->form_gui)
   {
     dev->form_gui = (dt_masks_form_gui_t *)calloc(1, sizeof(dt_masks_form_gui_t));
@@ -1931,16 +1920,11 @@ void enter(dt_view_t *self)
   dev->form_gui->formid = 0;
   dev->gui_module = NULL;
 
-  dt_control_set_dev_zoom(DT_ZOOM_FIT);
-  dt_control_set_dev_zoom_x(0);
-  dt_control_set_dev_zoom_y(0);
-  dt_control_set_dev_closeup(0);
-
-  /*
-   * add IOP modules to plugin list
-   */
+  // Add IOP modules to the plugin list
   char option[1024];
-  for(const GList *modules = g_list_last(dev->iop); modules; modules = g_list_previous(modules))
+  const char *active_plugin = dt_conf_get_string_const("plugins/darkroom/active");
+  dt_pthread_mutex_lock(&dev->history_mutex);
+  for(const GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
 
@@ -1948,8 +1932,6 @@ void enter(dt_view_t *self)
     if(!dt_iop_is_hidden(module))
     {
       dt_iop_gui_init(module);
-
-      /* add module to right panel */
       dt_iop_gui_set_expander(module);
 
       if(module->multi_priority == 0)
@@ -1957,12 +1939,12 @@ void enter(dt_view_t *self)
         snprintf(option, sizeof(option), "plugins/darkroom/%s/expanded", module->op);
         module->expanded = dt_conf_get_bool(option);
         dt_iop_gui_update_expanded(module);
-      }
 
-      dt_iop_reload_defaults(module);
+        if(active_plugin && !strcmp(module->op, active_plugin))
+          dt_iop_request_focus(module);
+      }
     }
   }
-
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
 #ifdef USE_LUA
@@ -1975,30 +1957,23 @@ void enter(dt_view_t *self)
 
 #endif
 
-  /* signal that darktable.develop is initialized and ready to be used */
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_INITIALIZE);
-
   // synch gui and flag pipe as dirty
   // this is done here and not in dt_read_history, as it would else be triggered before module->gui_init.
   // locks history mutex internally
   dt_dev_pop_history_items(dev);
 
-  // get last active plugin:
-  const char *active_plugin = dt_conf_get_string_const("plugins/darkroom/active");
-  if(active_plugin)
-  {
-    for(const GList *modules = dev->iop; modules; modules = g_list_next(modules))
-    {
-      dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
-      if(!strcmp(module->op, active_plugin)) dt_iop_request_focus(module);
-    }
-  }
+  // Clean & Init the starting point of undo/redo
+  dt_undo_clear(darktable.undo, DT_UNDO_DEVELOP);
+  dt_dev_undo_start_record(dev);
+  dt_dev_undo_end_record(dev);
 
-  // update module multishow state now modules are loaded
-  dt_dev_modules_update_multishow(dev);
+  /* signal that darktable.develop is initialized and ready to be used */
+  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_INITIALIZE);
 
   // image should be there now.
   float zoom_x, zoom_y;
+  dt_control_set_dev_zoom(DT_ZOOM_FIT);
+  dt_control_set_dev_closeup(0);
   dt_dev_check_zoom_bounds(dev, &zoom_x, &zoom_y, DT_ZOOM_FIT, 0, NULL, NULL);
   dt_control_set_dev_zoom_x(zoom_x);
   dt_control_set_dev_zoom_y(zoom_y);
@@ -2016,17 +1991,18 @@ void enter(dt_view_t *self)
 
   dt_image_check_camera_missing_sample(&dev->image_storage);
 
-  // Init the starting point of undo/redo
-  dt_dev_undo_start_record(dev);
-  dt_dev_undo_end_record(dev);
+  // Reset focus to center view
+  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
 
   // Attach shortcuts to new widgets
   dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_window(darktable.gui->accels, "darkroom");
-
   dt_accels_attach_scroll_handler(darktable.gui->accels, _scroll_on_focus, dev);
 
-  // change active image
+  // Attach bauhaus default signal callback to IOP
+  darktable.bauhaus->default_value_changed_callback = dt_bauhaus_value_changed_default_callback;
+
+  // change active image for global actions (menu)
   dt_view_active_images_reset(FALSE);
   dt_view_active_images_add(dev->image_storage.id, FALSE);
 
@@ -2039,39 +2015,30 @@ void enter(dt_view_t *self)
   /* connect signal for filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
                             G_CALLBACK(_view_darkroom_filmstrip_activate_callback), self);
+}
 
+static void _free_module(gpointer data)
+{
+  dt_iop_module_t *module = (dt_iop_module_t *)data;
+
+  if(!dt_iop_is_hidden(module))
+    dt_iop_gui_cleanup_module(module);
+
+  dt_iop_cleanup_module(module);
+  free(module);
 }
 
 void leave(dt_view_t *self)
 {
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_NONE);
-
-  // Detach the default callback for bauhaus widgets
-  dt_accels_detach_scroll_handler(darktable.gui->accels);
-
-  // Detach shortcuts
-  dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
-
   dt_develop_t *dev = (dt_develop_t *)self->data;
 
-  // Restore the previous selection
-  dt_view_active_images_reset(FALSE);
-  dt_selection_pop(darktable.selection);
-
-  // Send all shutdown signals
+  // Send all pipeline shutdown signals first
   dev->exit = 1;
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
 
-  dt_iop_color_picker_cleanup();
-  if(darktable.lib->proxy.colorpicker.picker_proxy)
-    dt_iop_color_picker_reset(darktable.lib->proxy.colorpicker.picker_proxy->module, FALSE);
-
-  _unregister_modules_drag_n_drop(self);
-
-  /* disconnect from filmstrip image activate */
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_darkroom_filmstrip_activate_callback),
-                               (gpointer)self);
+  // While we wait for possible pipelines to finish,
+  // do the GUI cleaning.
 
   // store groups for next time:
   dt_conf_set_int("plugins/darkroom/groups", dt_dev_modulegroups_get(darktable.develop));
@@ -2082,9 +2049,35 @@ void leave(dt_view_t *self)
   else
     dt_conf_set_string("plugins/darkroom/active", "");
 
+  // Hide the popover floating windows
+  gtk_widget_hide(dev->overexposed.floating_window);
+  gtk_widget_hide(dev->rawoverexposed.floating_window);
+  gtk_widget_hide(dev->profile.floating_window);
+
+  // Detach the default callback for bauhaus widgets
+  dt_accels_detach_scroll_handler(darktable.gui->accels);
+
+  /* disconnect from filmstrip image activate */
+  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_darkroom_filmstrip_activate_callback),
+  (gpointer)self);
+
+  dt_iop_color_picker_cleanup();
+
+  if(darktable.lib->proxy.colorpicker.picker_proxy)
+    dt_iop_color_picker_reset(darktable.lib->proxy.colorpicker.picker_proxy->module, FALSE);
+
+  _unregister_modules_drag_n_drop(self);
+
+  // Detach shortcuts
+  dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
+
+  // Restore the previous selection
+  dt_view_active_images_reset(FALSE);
+  dt_selection_pop(darktable.selection);
+
+  // Now, cleanup the pipes and history
   dt_dev_history_auto_save(darktable.develop);
 
-  // clear gui.
   dt_pthread_mutex_lock(&dev->pipe->busy_mutex);
   dt_dev_pixelpipe_cleanup_nodes(dev->pipe);
   dt_pthread_mutex_unlock(&dev->pipe->busy_mutex);
@@ -2094,31 +2087,12 @@ void leave(dt_view_t *self)
   dt_pthread_mutex_unlock(&dev->preview_pipe->busy_mutex);
 
   dt_pthread_mutex_lock(&dev->history_mutex);
-  while(dev->history)
-  {
-    dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(dev->history->data);
-    // printf("removing history item %d - %s, data %f %f\n", hist->module->instance, hist->module->op, *(float
-    // *)hist->params, *((float *)hist->params+1));
-    dt_dev_free_history_item(hist);
-    dev->history = g_list_delete_link(dev->history, dev->history);
-  }
-
-  while(dev->iop)
-  {
-    dt_iop_module_t *module = (dt_iop_module_t *)(dev->iop->data);
-    if(!dt_iop_is_hidden(module)) dt_iop_gui_cleanup_module(module);
-    dt_iop_cleanup_module(module);
-    free(module);
-    dev->iop = g_list_delete_link(dev->iop, dev->iop);
-  }
-  while(dev->alliop)
-  {
-    dt_iop_cleanup_module((dt_iop_module_t *)dev->alliop->data);
-    free(dev->alliop->data);
-    dev->alliop = g_list_delete_link(dev->alliop, dev->alliop);
-  }
-
+  dt_dev_history_free_history(dev);
   dt_pthread_mutex_unlock(&dev->history_mutex);
+
+  g_list_free_full(g_steal_pointer(&dev->iop), _free_module);
+  g_list_free_full(g_steal_pointer(&dev->alliop), _free_module);
+  dev->iop = dev->alliop = NULL;
 
   // cleanup visible masks
   if(dev->form_gui)
@@ -2129,19 +2103,15 @@ void leave(dt_view_t *self)
     dev->form_gui = NULL;
     dt_masks_change_form_gui(NULL);
   }
+
   // clear masks
   g_list_free_full(dev->forms, (void (*)(void *))dt_masks_free_form);
   dev->forms = NULL;
   g_list_free_full(dev->allforms, (void (*)(void *))dt_masks_free_form);
   dev->allforms = NULL;
 
-  gtk_widget_hide(dev->overexposed.floating_window);
-  gtk_widget_hide(dev->rawoverexposed.floating_window);
-  gtk_widget_hide(dev->profile.floating_window);
-
-  // Fetch the new thumbnail if needed
+  // Fetch the new thumbnail if needed. Ensure it runs after we save history.
   dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), darktable.develop->image_storage.id, TRUE);
-
   darktable.develop->image_storage.id = -1;
 
   dt_print(DT_DEBUG_CONTROL, "[run_job-] 11 %f in darkroom mode\n", dt_get_wtime());
