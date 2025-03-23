@@ -335,8 +335,7 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
     // the zoomed-in image on content that matters: details.
     // Offset is expressed from the center of the image
     if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT
-       && x_center > 0.f && y_center > 0.f
-       && thumb->zoomx == 0.f && thumb->zoomy == 0.f)
+       && x_center > 0.f && y_center > 0.f)
     {
       thumb->zoomx = (double)thumb->img_width / 2. - x_center;
       thumb->zoomy = (double)thumb->img_height / 2. - y_center;
