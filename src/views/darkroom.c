@@ -2111,6 +2111,7 @@ void leave(dt_view_t *self)
   dev->allforms = NULL;
 
   // Fetch the new thumbnail if needed. Ensure it runs after we save history.
+  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILEMANAGER);
   dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), darktable.develop->image_storage.id, TRUE);
   darktable.develop->image_storage.id = -1;
 
