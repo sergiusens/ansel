@@ -235,7 +235,7 @@ void gui_post_expose(dt_lib_module_t *self, cairo_t *cri, int32_t width, int32_t
     d->preview_width = width;
     d->preview_height = height;
 
-    res = dt_view_image_get_surface(d->imgid, img_wd * nz, img_ht * nz, &d->preview_surf, TRUE);
+    res = dt_view_image_get_surface(d->imgid, img_wd * nz, img_ht * nz, &d->preview_surf, DT_THUMBTABLE_ZOOM_FIT, NULL, NULL);
 
     if(res == DT_VIEW_SURFACE_OK)
     {

@@ -44,7 +44,9 @@ static inline uint8_t float_to_uint8(const float i)
 
 void dt_focuspeaking(cairo_t *cr, int width, int height,
                      uint8_t *const restrict image,
-                     const int buf_width, const int buf_height)
+                     const int buf_width, const int buf_height,
+                     gboolean draw,
+                     float *x, float *y)
 {
   float *const restrict luma = dt_alloc_align_float((size_t)buf_width * buf_height);
   uint8_t *const restrict focus_peaking = dt_alloc_align(sizeof(uint8_t) * buf_width * buf_height * 4);
@@ -73,10 +75,14 @@ void dt_focuspeaking(cairo_t *cr, int width, int height,
 
   // Compute the laplacian of a gaussian
   float *const restrict luma_ds =  dt_alloc_align_float((size_t)buf_width * buf_height);
+  float mass = 0.f;
+  float x_integral = 0.f;
+  float y_integral = 0.f;
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
 dt_omp_firstprivate(luma, luma_ds, buf_height, buf_width) \
-schedule(static) collapse(2)
+schedule(static) collapse(2) reduction(+:mass, x_integral, y_integral)
 #endif
   for(size_t i = 0; i < buf_height; ++i)
     for(size_t j = 0; j < buf_width; ++j)
@@ -138,8 +144,19 @@ schedule(static) collapse(2)
         // The TV is averaged from both directions, its coeff is made-up to balance local contrast detection.
         const float TV = 100.f * (TV_1 + TV_2 + TV_3 + TV_4) / 4.f;
         luma_ds[index] = (laplacian_close > 1e-15f) ? fmaxf(fabsf(laplacian_close) - 0.5f * fabsf(laplacian_far), 0.f) / (TV + 1.f) : 0.f;
+
+        // Compute the mass and integrals over x and y
+        mass += luma_ds[index];
+        x_integral += ((float)j) * luma_ds[index];
+        y_integral += ((float)i) * luma_ds[index];
       }
     }
+
+  // Compute the coordinates of the details barycenter
+  if(x) *x = CLAMP(x_integral / mass, 0, buf_height);
+  if(y) *y = CLAMP(y_integral / mass, 0, buf_height);
+
+  if(!draw) return;
 
   // Dilate the mask to improve connectivity
 #ifdef _OPENMP

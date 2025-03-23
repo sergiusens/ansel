@@ -611,7 +611,7 @@ int dt_view_manager_scrolled(dt_view_manager_t *vm, double x, double y, int up, 
 }
 
 dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
-                                                  int zoom)
+                                                  int zoom, float *x_center, float *y_center)
 {
   double tt = 0;
   if((darktable.unmuted & (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF)) == (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF))
@@ -772,15 +772,10 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
     cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_GOOD);
 
   cairo_paint(cr);
-  /* from focus_peaking.h
-      static inline void dt_focuspeaking(cairo_t *cr, int width, int height,
-                                      uint8_t *const restrict image,
-                                      const int buf_width, const int buf_height)
-      The current implementation assumes the data at image is organized as a rectangle without a stride,
-      So we pass the raw data to be processed, this is more data but correct.
-  */
-  if(darktable.gui->show_focus_peaking && mip == buf.size)
-    dt_focuspeaking(cr, img_width, img_height, rgbbuf, buf_wd, buf_ht);
+
+  if((zoom > DT_THUMBTABLE_ZOOM_FIT || darktable.gui->show_focus_peaking)
+     && mip == buf.size)
+    dt_focuspeaking(cr, img_width, img_height, rgbbuf, buf_wd, buf_ht, darktable.gui->show_focus_peaking, x_center, y_center);
 
   cairo_surface_destroy(tmp_surface);
   cairo_destroy(cr);

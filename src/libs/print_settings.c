@@ -1788,7 +1788,7 @@ void gui_post_expose(struct dt_lib_module_t *self, cairo_t *cr, int32_t width, i
       dt_printing_get_screen_pos(&ps->imgs, img, &screen);
 
       const dt_view_surface_value_t res =
-        dt_view_image_get_surface(img->imgid, screen.width, screen.height, &surf, TRUE);
+        dt_view_image_get_surface(img->imgid, screen.width, screen.height, &surf, DT_THUMBTABLE_ZOOM_FIT, NULL, NULL);
 
       if(res != DT_VIEW_SURFACE_OK)
       {

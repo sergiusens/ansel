@@ -320,14 +320,27 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
   gtk_widget_get_size_request(thumb->w_image, &image_w, &image_h);
 
   int zoom = (thumb->table) ? thumb->table->zoom : DT_THUMBTABLE_ZOOM_FIT;
+  float x_center = 0.f;
+  float y_center = 0.f;
 
-  dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, zoom);
+  dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, zoom, &x_center, &y_center);
 
   if(thumb->img_surf && res == DT_VIEW_SURFACE_OK)
   {
     // The image is immediately available
     thumb->img_width = cairo_image_surface_get_width(thumb->img_surf);
     thumb->img_height = cairo_image_surface_get_height(thumb->img_surf);
+
+    // Init the zoom offset using the barycenter of details, to center
+    // the zoomed-in image on content that matters: details.
+    // Offset is expressed from the center of the image
+    if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT
+       && x_center > 0.f && y_center > 0.f
+       && thumb->zoomx == 0.f && thumb->zoomy == 0.f)
+    {
+      thumb->zoomx = (double)thumb->img_width / 2. - x_center;
+      thumb->zoomy = (double)thumb->img_height / 2. - y_center;
+    }
   }
   else
   {
@@ -403,10 +416,8 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   const float scaler = 1.0f / darktable.gui->ppd;
   cairo_scale(cr, scaler, scaler);
 
-  double cw = w * darktable.gui->ppd;
-  double ch = h * darktable.gui->ppd;
-  double x_offset = (cw - thumb->img_width) / 2.;
-  double y_offset = (ch - thumb->img_height) / 2.;
+  double x_offset = (w * darktable.gui->ppd - thumb->img_width) / 2.;
+  double y_offset = (h * darktable.gui->ppd - thumb->img_height) / 2.;
 
   // Sanitize zoom offsets
   if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
