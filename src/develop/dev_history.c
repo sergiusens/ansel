@@ -1030,7 +1030,7 @@ void dt_dev_write_history_ext(dt_develop_t *dev, const int32_t imgid)
   dt_print(DT_DEBUG_HISTORY, "[dt_dev_write_history_ext] writing history for image %i...\n", imgid);
 
   // Lock database
-  dt_pthread_rwlock_wrlock(&darktable.database_threadsafe);
+  //dt_pthread_rwlock_wrlock(&darktable.database_threadsafe);
 
   _cleanup_history(imgid);
 
@@ -1053,7 +1053,7 @@ void dt_dev_write_history_ext(dt_develop_t *dev, const int32_t imgid)
   dt_image_cache_set_change_timestamp(darktable.image_cache, imgid);
 
   // Unlock database
-  dt_pthread_rwlock_unlock(&darktable.database_threadsafe);
+  //dt_pthread_rwlock_unlock(&darktable.database_threadsafe);
 
   // We call dt_dev_write_history_ext only when history hash has changed,
   // however, we use our C-based cumulative custom hash while the following
@@ -1532,7 +1532,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   dt_ioppr_set_default_iop_order(dev, imgid);
 
   // Lock database
-  dt_pthread_rwlock_rdlock(&darktable.database_threadsafe);
+  //dt_pthread_rwlock_rdlock(&darktable.database_threadsafe);
 
   gboolean first_run = _init_default_history(dev, imgid);
 
@@ -1573,7 +1573,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
   sqlite3_finalize(stmt);
 
   // Unlock database
-  dt_pthread_rwlock_unlock(&darktable.database_threadsafe);
+  //dt_pthread_rwlock_unlock(&darktable.database_threadsafe);
 
   // Sanitize and flatten module order
   dt_ioppr_resync_modules_order(dev);
