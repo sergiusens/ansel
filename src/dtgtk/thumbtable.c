@@ -845,6 +845,7 @@ static int _grab_focus(dt_thumbtable_t *table)
     // This can work only if the grid is mapped and realized, which we ensure
     // by wrapping that in a g_idle() method.
     gtk_widget_grab_focus(table->grid);
+    dt_thumbtable_scroll_to_selection(table);
   }
   return 0;
 }
@@ -884,7 +885,6 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     dt_thumbtable_update(table);
     gtk_widget_queue_draw(table->grid);
     g_idle_add((GSourceFunc) _grab_focus, table);
-    g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_selection, table);
   }
 }
 
@@ -1530,18 +1530,13 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
 {
   if(table->mode == mode) return;
 
+  const double start = dt_get_wtime();
+
   GtkWidget *parent = gtk_widget_get_parent(table->scroll_window);
   if(parent)
   {
-    // Relax size constaints
-    gtk_widget_set_size_request(table->overlay_center, -1, -1);
-    gtk_widget_set_size_request(parent, -1, -1);
-    gtk_widget_set_size_request(table->grid, -1, -1);
-
-    // Re-init everything
-    g_object_ref(table->scroll_window);
+    g_object_ref(table->scroll_window); // prevent Gtk from destroying the widget just yet
     gtk_container_remove(GTK_CONTAINER(parent), table->scroll_window);
-    _update_grid_area(table);
   }
 
   table->mode = mode;
@@ -1560,6 +1555,7 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     gtk_widget_show(table->overlay_center);
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_center), table->scroll_window);
+
     dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
 
     // We can't set that at init time because the widget needs to have a parent before
@@ -1569,6 +1565,10 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   }
   else if(mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
+    // Reset zoom & focus
+    table->focus = FALSE;
+    table->zoom = DT_THUMBTABLE_ZOOM_FIT;
+
     gtk_widget_set_name(table->grid, "thumbtable-filmstrip");
     dt_gui_add_help_link(table->grid, dt_get_help_url("filmstrip"));
     gtk_widget_show(drawing_area);
@@ -1579,15 +1579,13 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     // In filmroll mode, the center view is going to capture default
     gtk_widget_set_can_default(table->grid, FALSE);
     gtk_widget_set_receives_default(table->grid, FALSE);
-
-    // Reset zoom & focus
-    table->focus = FALSE;
-    table->zoom = DT_THUMBTABLE_ZOOM_FIT;
   }
 
   gtk_widget_show(table->scroll_window);
 
   dt_pthread_mutex_lock(&table->lock);
+
+  const int32_t mouseover_imgid = dt_control_get_mouse_over_id();
 
   for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
@@ -1600,7 +1598,7 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
 
       // There is no selection in filmstrip, only active images,
       // but we need to pass on the CSS states anyway.
-      dt_thumbnail_update_selection(thumb, (thumb->imgid == dt_control_get_mouse_over_id()));
+      dt_thumbnail_update_selection(thumb, (thumb->imgid == mouseover_imgid));
     }
     else
     {
@@ -1613,8 +1611,9 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   dt_thumbtable_configure(table);
   dt_thumbtable_update(table);
   gtk_widget_queue_draw(table->grid);
-  g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_selection, table);
   g_idle_add((GSourceFunc) _grab_focus, table);
+
+  dt_print(DT_DEBUG_LIGHTTABLE, "Reparenting the thumbtable took %0.04f sec\n", dt_get_wtime() - start);
 }
 
 void dt_thumbtable_select_all(dt_thumbtable_t *table)
