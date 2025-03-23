@@ -72,7 +72,6 @@ static void preload_image_cache_callback(GtkWidget *widget)
 
 static void clear_image_cache(GtkWidget *widget)
 {
-  // Load the mipmap cache sizes 0 to 4 of the current selection
   GList *selection = dt_selection_get_list(darktable.selection);
 
   for(GList *img = g_list_first(selection); img; img = g_list_next(img))
@@ -82,6 +81,9 @@ static void clear_image_cache(GtkWidget *widget)
   }
 
   g_list_free(selection);
+
+  // Redraw thumbnails
+  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), UNKNOWN_IMAGE, TRUE);
 }
 
 

@@ -154,20 +154,7 @@ static void _jpg_combobox_changed(GtkWidget *widget, gpointer user_data)
 {
   int mode = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
   if(mode == dt_conf_get_int("lighttable/embedded_jpg")) return;
-
   dt_conf_set_int("lighttable/embedded_jpg", mode);
-
-  // Clear all thumbs from current collection
-  GList *selection = dt_collection_get_all(darktable.collection, -1);
-  for(GList *img = g_list_first(selection); img; img = g_list_next(img))
-  {
-    const int32_t imgid = GPOINTER_TO_INT(img->data);
-    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
-  }
-  g_list_free(selection);
-
-  // Redraw thumbnails
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), UNKNOWN_IMAGE, TRUE);
 }
 
 // Ctrl + Scroll changes the number of columns
@@ -220,8 +207,7 @@ void gui_init(dt_lib_module_t *self)
                 "in the lightttable instead of a full rendering from raw.\n"
                 "\"Never\" always renders thumbnails from raw (slow but consistent with darkroom)\n"
                 "\"Unedited\" uses the embedded JPG for unedited pictures (faster)\n"
-                "\"Always\" uses the embedded JPG for all pictures (fast but inconsistent with darkroom)\n"
-                "Changing this value will purge the cached thumbnails for the current collection"));
+                "\"Always\" uses the embedded JPG for all pictures (fast but inconsistent with darkroom)"));
 
   // dumb empty flexible spacer at the end
   GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
