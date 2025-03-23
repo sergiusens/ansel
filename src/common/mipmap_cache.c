@@ -1231,6 +1231,52 @@ static int _write_image(dt_imageio_module_data_t *data, const char *filename, co
   return 0;
 }
 
+static int _load_jpg(const char *filename, const int32_t imgid, const uint32_t wd, const uint32_t ht,
+                     const dt_mipmap_size_t size, const dt_image_orientation_t orientation, uint8_t *buf,
+                     uint32_t *width, uint32_t *height, dt_colorspaces_color_profile_type_t *color_space)
+{
+  int res = 1;
+  dt_imageio_jpeg_t jpg;
+  if(!dt_imageio_jpeg_read_header(filename, &jpg))
+  {
+    uint8_t *tmp = (uint8_t *)dt_alloc_align(sizeof(uint8_t) * jpg.width * jpg.height * 4);
+    *color_space = dt_imageio_jpeg_read_color_space(&jpg);
+    if(!dt_imageio_jpeg_read(&jpg, tmp))
+    {
+      // scale to fit
+      dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from jpeg\n", size, imgid);
+      dt_iop_flip_and_zoom_8(tmp, jpg.width, jpg.height, buf, wd, ht, orientation, width, height);
+      res = 0;
+    }
+    dt_free_align(tmp);
+  }
+  return res;
+}
+
+static int _find_sidecar_jpg(const char *filename, const char *ext, char *sidecar)
+{
+  const size_t filename_size = strlen(filename) - strlen(ext);
+  const char *exts[4] = { ".jpg\0", ".JPG\0", ".jpeg\0", ".JPEG\0" };
+
+  for(int i = 0; i < 4; i++)
+  {
+    // Damage control. Should never happen.
+    if(filename_size + strlen(exts[i]) > PATH_MAX)
+      continue;
+
+    // Copy the filename minus the extension
+    strncpy(sidecar, filename, filename_size);
+
+    // Append one of our own extensions
+    strncpy(sidecar + filename_size, exts[i], strlen(exts[i]));
+
+    if(g_file_test(sidecar, G_FILE_TEST_EXISTS))
+      return 1;
+  }
+
+  return 0;
+}
+
 static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *iscale,
                     dt_colorspaces_color_profile_type_t *color_space, const int32_t imgid,
                     const dt_mipmap_size_t size)
@@ -1254,11 +1300,11 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
 
   int res = 1;
 
+  // try to generate mip from larger mip
+  // This expects that invalid mips will be flushed, so the assumption is:
+  // if mip then it's valid (with regard to current history)
   if(res && size < DT_MIPMAP_F - 1)
   {
-    // try to generate mip from larger mip
-    // This expects that invalid mips will be flushed, so the assumption is:
-    // if mip then it's valid (with regard to current history)
     for(dt_mipmap_size_t k = size + 1; k < DT_MIPMAP_F; k++)
     {
       dt_mipmap_buffer_t tmp;
@@ -1300,49 +1346,40 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     memset(filename, 0, sizeof(filename));
     dt_image_full_path(imgid,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
 
+    char sidecar_filename[PATH_MAX] = { 0 };
+
     const char *c = filename + strlen(filename);
     while(*c != '.' && c > filename) c--;
     if(!strcasecmp(c, ".jpg") || !strcasecmp(c, ".jpeg"))
     {
-      // try to load jpg
-      dt_imageio_jpeg_t jpg;
-      if(!dt_imageio_jpeg_read_header(filename, &jpg))
-      {
-        uint8_t *tmp = (uint8_t *)dt_alloc_align(sizeof(uint8_t) * jpg.width * jpg.height * 4);
-        *color_space = dt_imageio_jpeg_read_color_space(&jpg);
-        if(!dt_imageio_jpeg_read(&jpg, tmp))
-        {
-          // scale to fit
-          dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from jpeg\n", size, imgid);
-          dt_iop_flip_and_zoom_8(tmp, jpg.width, jpg.height, buf, wd, ht, orientation, width, height);
-          res = 0;
-        }
-        dt_free_align(tmp);
-      }
+      // input file is a JPEG: just load it
+      res = _load_jpg(filename, imgid, wd, ht, size, orientation, buf, width, height, color_space);
+    }
+    else if(_find_sidecar_jpg(filename, c, sidecar_filename))
+    {
+      // input file is a RAW but we have a companion JPEG file in the same folder:
+      // use it in priority (it may be higher resolution/quality than embedded JPEG).
+      res = _load_jpg(sidecar_filename, imgid, wd, ht, size, orientation, buf, width, height, color_space);
     }
     else
     {
-      // try to load the embedded thumbnail in raw
+      // input file is a RAW without companion JPEG:
+      // try to load the embedded thumbnail. Might not be large enough though.
       uint8_t *tmp = NULL;
       int32_t thumb_width, thumb_height;
       res = dt_imageio_large_thumbnail(filename, &tmp, &thumb_width, &thumb_height, color_space);
       if(!res)
       {
-        // if the thumbnail is not large enough, we compute one
-        const dt_image_t *img2 = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-        const int imgwd = img2->width;
-        const int imght = img2->height;
-        dt_image_cache_read_release(darktable.image_cache, img2);
-        if(thumb_width < wd && thumb_height < ht && thumb_width < imgwd - 4 && thumb_height < imght - 4)
-        {
-          res = 1;
-        }
-        else
-        {
-          // scale to fit
-          dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from embedded jpeg\n", size, imgid);
-          dt_iop_flip_and_zoom_8(tmp, thumb_width, thumb_height, buf, wd, ht, orientation, width, height);
-        }
+        // We take the thumbnail no matter its size. It might be too small for the requested dimension,
+        // and end up blurry. But it's less bad than the following scenario:
+        // 1. user displays collections in grid of 5 columns (small thumbnail -> fetch embedded JPEG for performance, all good),
+        // 2. user zooms in the grid, to 2 or 3 columns,
+        // 3. suddently, embedded JPEG is too small so we ditch it for a full pipe recompute,
+        // 4. but then, color/contrast/appearance unexpectedly changes and user doesn't understand WTF just happened.
+        // Blurry is less bad than randomly inconsistent, plus user has a GUI way in lighttable to
+        // change how thumbs are processed at runtime.
+        dt_print(DT_DEBUG_CACHE, "[mipmap_cache] generate mip %d for image %d from embedded jpeg\n", size, imgid);
+        dt_iop_flip_and_zoom_8(tmp, thumb_width, thumb_height, buf, wd, ht, orientation, width, height);
         dt_free_align(tmp);
       }
     }
