@@ -795,14 +795,7 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
         dt_iop_gui_init(module);
         dt_iop_gui_set_expander(module);
         dt_iop_gui_set_expanded(module, TRUE, FALSE);
-        dt_iop_reload_defaults(module);
-        dt_iop_gui_update_blending(module);
       }
-    }
-    else if(!dt_iop_is_hidden(module) && module->expander)
-    {
-      // we have to ensure that the name of the widget is correct
-      dt_iop_gui_update_header(module);
     }
   }
   --darktable.gui->reset;
@@ -810,27 +803,41 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
   dt_dev_pop_history_items(dev);
 }
 
+
 static inline void _dt_dev_modules_reload_defaults(dt_develop_t *dev)
 {
-  // The reason for this is modules mandatorily ON don't leave history.
-  // We therefore need to init modules containers to the defaults.
-  // This is of course shit because it relies on the fact that defaults will never change in the future.
-  // As a result, changing defaults needs to be handled on a case-by-case basis, by first adding the affected
-  // modules to history, then setting said history to the previous defaults.
-  // Worse, some modules (temperature.c) grabbed their params at runtime (WB as shot in camera),
-  // meaning the defaults were not even static values.
   for(GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
   {
     dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
-    memcpy(module->params, module->default_params, module->params_size);
-    dt_iop_commit_blend_params(module, module->default_blendop_params);
-    module->enabled = module->default_enabled;
+    dt_iop_reload_defaults(module);
 
     if(module->multi_priority == 0)
       module->iop_order = dt_ioppr_get_iop_order(dev->iop_order_list, module->op, module->multi_priority);
     else
       module->iop_order = INT_MAX;
+
+    dt_iop_compute_module_hash(module, dev->forms);
   }
+}
+
+// Dump the content of an history entry into its associated module params, blendops, etc.
+static inline void _history_to_module(const dt_dev_history_item_t *const hist, dt_iop_module_t *module)
+{
+  module->enabled = hist->enabled;
+
+  // Update IOP order stuff, that applies to all modules regardless of their internals
+  module->iop_order = hist->iop_order;
+  dt_iop_update_multi_priority(module, hist->multi_priority);
+
+  // Copy instance name
+  g_strlcpy(module->multi_name, hist->multi_name, sizeof(module->multi_name));
+
+  // Copy params from history entry to module internals
+  memcpy(module->params, hist->params, module->params_size);
+  dt_iop_commit_blend_params(module, hist->blend_params);
+
+  // Get the module hash
+  dt_iop_compute_module_hash(module, hist->forms);
 }
 
 
@@ -838,7 +845,14 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
 {
   dt_print(DT_DEBUG_HISTORY, "[dt_dev_pop_history_items_ext] loading history entries into modules...\n");
 
-  // reset gui params for all modules
+  // Shitty design ahead:
+  // some modules (temperature.c, colorin.c) init their GUI comboboxes
+  // in/from reload_defaults. Though we already loaded them once at
+  // _read_history_ext() when initing history, and history is now sanitized
+  // such that all used module will have at least an entry,
+  // it's not enough and we need to reload defaults here.
+  // But anyway, if user truncated history before mandatory modules,
+  // and we reload it here, it's good to ensure defaults are re-inited.
   _dt_dev_modules_reload_defaults(dev);
 
   // go through history and set modules params
@@ -848,26 +862,14 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
   {
     dt_dev_history_item_t *hist = (dt_dev_history_item_t *)(history->data);
     dt_iop_module_t *module = hist->module;
-
-    // Update everything from history to modules
-    memcpy(module->params, hist->params, hist->module->params_size);
-    g_strlcpy(module->multi_name, hist->multi_name, sizeof(module->multi_name));
-    module->iop_order = hist->iop_order;
-    module->enabled = hist->enabled;
-    module->multi_priority = hist->multi_priority;
-
-    dt_iop_commit_blend_params(module, hist->blend_params);
-
-    if(hist->forms) forms = hist->forms;
-
-    // Relies on params, blendops, forms and raster masks, aka should run last
-    dt_iop_compute_module_hash(module, hist->forms);
+    _history_to_module(hist, module);
 
     if(hist->hash != module->hash)
       fprintf(stderr, "[dt_dev_pop_history_items] module hash is not consistent with history hash for %s : %lu != %lu \n",
               module->op, module->hash, hist->hash);
 
-    hist->hash = module->hash;
+    if(hist->forms) forms = hist->forms;
+
     history = g_list_next(history);
   }
 
@@ -880,7 +882,6 @@ void dt_dev_pop_history_items_ext(dt_develop_t *dev)
 void dt_dev_pop_history_items(dt_develop_t *dev)
 {
   dt_pthread_mutex_lock(&dev->history_mutex);
-  dt_ioppr_check_iop_order(dev, 0, "dt_dev_pop_history_items");
   dt_dev_pop_history_items_ext(dev);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
@@ -1602,21 +1603,7 @@ void dt_dev_read_history_ext(dt_develop_t *dev, const int32_t imgid, gboolean no
     }
 
     dt_iop_module_t *module = hist->module;
-    module->enabled = hist->enabled;
-
-    // Update IOP order stuff, that applies to all modules regardless of their internals
-    module->iop_order = hist->iop_order;
-    dt_iop_update_multi_priority(module, hist->multi_priority);
-
-    // Copy instance name
-    g_strlcpy(module->multi_name, hist->multi_name, sizeof(module->multi_name));
-
-    // Copy params from history entry to module internals
-    memcpy(module->params, hist->params, module->params_size);
-    dt_iop_commit_blend_params(hist->module, hist->blend_params);
-
-    // Get the module hash
-    dt_iop_compute_module_hash(hist->module, hist->forms);
+    _history_to_module(hist, module);
     hist->hash = hist->module->hash;
 
     dt_print(DT_DEBUG_HISTORY, "[history] successfully loaded module %s history (enabled: %i)\n", hist->module->op, hist->enabled);
