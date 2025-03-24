@@ -221,7 +221,7 @@ gboolean dt_opencl_read_device_config(const int devid)
   if((cl->dev[devid].clroundup_ht < 2) || (cl->dev[devid].clroundup_ht > 512))
     cl->dev[devid].clroundup_ht = 16;
   if(cl->dev[devid].event_handles < 0)
-    cl->dev[devid].event_handles = 0x40000000;
+    cl->dev[devid].event_handles = 0x40961440;
   cl->dev[devid].benchmark = fminf(1e6, fmaxf(0.0f, cl->dev[devid].benchmark));
 
   cl->dev[devid].use_events = (cl->dev[devid].event_handles != 0) ? 1 : 0;
@@ -1345,7 +1345,7 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
   unsigned int *const tea_states = alloc_tea_states(darktable.num_openmp_threads);
 
   // Simulate a 24 Mpx raw
-  buf = dt_alloc_align(6000 * 4000 * bpp);
+  buf = dt_alloc_align(6144 * 4096 * bpp);
   if(buf == NULL) goto error;
 
   // Write noise in the raw image
@@ -1353,12 +1353,12 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
 #pragma omp parallel for default(none) \
   dt_omp_firstprivate(tea_states, buf)
 #endif
-  for(size_t j = 0; j < 4000; j++)
+  for(size_t j = 0; j < 4096; j++)
   {
     unsigned int *tea_state = get_tea_state(tea_states,dt_get_thread_num());
     tea_state[0] = j + dt_get_thread_num();
-    size_t index = j * 4 * 6000;
-    for(int i = 0; i < 4 * 6000; i++)
+    size_t index = j * 4 * 6144;
+    for(int i = 0; i < 4 * 6144; i++)
     {
       encrypt_tea(tea_state);
       buf[index + i] = 100.0f * tpdf(tea_state[0]);
@@ -1371,7 +1371,7 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
   // Allocate dev_in buffer & copy fake data from RAM to vRAM
   // We take I/O cost into account in the timer because
   // OpenCL pipelines have a lot of overhead.
-  dev_in = dt_opencl_copy_host_to_device(devid, buf, 6000, 4000, bpp);
+  dev_in = dt_opencl_copy_host_to_device(devid, buf, 6144, 4096, bpp);
   if(dev_in == NULL) goto error;
 
   dev_mem = dt_opencl_alloc_device(devid, width, height, bpp);
@@ -1379,7 +1379,7 @@ static float dt_opencl_benchmark_gpu(const int devid, const size_t width, const 
 
   // simulate "demosaicing" a 24 Mpx raw, aka interpolation
   const struct dt_interpolation *itor = dt_interpolation_new(DT_INTERPOLATION_LANCZOS3);
-  dt_iop_roi_t roi_in = { .height = 4000, .width = 6000, .x = 0, .y = 0 };
+  dt_iop_roi_t roi_in = { .height = 4096, .width = 6144, .x = 0, .y = 0 };
   dt_iop_roi_t roi_out = { .height = height, .width = width, .x = 0, .y = 0 };
   dt_interpolation_resample_cl(itor, devid, dev_mem, &roi_out, dev_in, &roi_in);
 
@@ -1457,19 +1457,19 @@ static float dt_opencl_benchmark_cpu(const size_t width, const size_t height, co
   float *out = dt_alloc_align(width * height * bpp);
 
   // Fake raw
-  float *in = dt_alloc_align(6000 * 4000 * bpp);
+  float *in = dt_alloc_align(6144 * 4096 * bpp);
 
   // Write noise in the fake raw
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
   dt_omp_firstprivate(tea_states, in)
 #endif
-  for(size_t j = 0; j < 4000; j++)
+  for(size_t j = 0; j < 4096; j++)
   {
     unsigned int *tea_state = get_tea_state(tea_states,dt_get_thread_num());
     tea_state[0] = j + dt_get_thread_num();
-    size_t index = j * 4 * 6000;
-    for(int i = 0; i < 4 * 6000; i++)
+    size_t index = j * 4 * 6144;
+    for(int i = 0; i < 4 * 6144; i++)
     {
       encrypt_tea(tea_state);
       in[index + i] = 100.0f * tpdf(tea_state[0]);
@@ -1481,7 +1481,7 @@ static float dt_opencl_benchmark_cpu(const size_t width, const size_t height, co
 
   // Simulate "demosaicing" a 24 Mpx raw, aka interpolation
   const struct dt_interpolation *itor = dt_interpolation_new(DT_INTERPOLATION_LANCZOS3);
-  dt_iop_roi_t roi_in = { .height = 4000, .width = 6000, .x = 0, .y = 0 };
+  dt_iop_roi_t roi_in = { .height = 4096, .width = 6144, .x = 0, .y = 0 };
   dt_iop_roi_t roi_out = { .height = height, .width = width, .x = 0, .y = 0 };
   dt_interpolation_resample(itor, out, &roi_out, in, &roi_in);
 
