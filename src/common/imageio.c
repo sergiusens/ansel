@@ -1046,7 +1046,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
-  const dt_image_t *img = &dev.image_storage;
 
   // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
   // aka 1440x900 px.
@@ -1059,10 +1058,8 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   dt_mipmap_cache_get(cache, &buf, imgid, size, DT_MIPMAP_BLOCKING, 'r');
 
-  if(!buf.buf || !buf.width || !buf.height)
+  if(!buf.buf || buf.width == 0 || buf.height == 0)
   {
-    fprintf(stderr, "[dt_imageio_export_with_flags] mipmap allocation for `%s' failed\n", filename);
-    dt_control_log(_("image `%s' is not available!"), img->filename);
     dt_mipmap_cache_release(cache, &buf);
     goto error_early;
   }
