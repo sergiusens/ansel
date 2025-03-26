@@ -580,6 +580,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
       }
       else if(!strcmp(argv[k], "--debug"))
       {
+        k++;
         argv[k] = NULL;
       }
       else if(!strcmp(argv[k], "--moduledir") && argc > k + 1)
