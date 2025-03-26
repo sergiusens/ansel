@@ -663,11 +663,7 @@ static inline int _dt_dev_load_raw(dt_develop_t *dev, const int32_t imgid)
   // Test we got images. Also that populates the cache for later.
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
-  gboolean no_valid_image = buf.buf == NULL;
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-
-  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, imgid, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
-  gboolean no_valid_thumb = buf.buf == NULL;
+  gboolean no_valid_image = (buf.buf == NULL) || buf.width == 0 || buf.height == 0;
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
 
   dt_show_times_f(&start, "[dev]", "to load the image.");
@@ -676,7 +672,7 @@ static inline int _dt_dev_load_raw(dt_develop_t *dev, const int32_t imgid)
   dev->image_storage = *image;
   dt_image_cache_read_release(darktable.image_cache, image);
 
-  return (no_valid_image || no_valid_thumb);
+  return (no_valid_image);
 }
 
 float dt_dev_get_zoom_scale(dt_develop_t *dev, dt_dev_zoom_t zoom, int closeup_factor, int preview)
