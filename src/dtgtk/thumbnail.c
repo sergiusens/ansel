@@ -1026,8 +1026,11 @@ void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
 
+  // remove multiple delayed gtk_widget_queue_draw triggers
+  while(g_idle_remove_by_data(thumb))
+  ;
   while(g_idle_remove_by_data(thumb->widget))
-  ; // remove multiple delayed gtk_widget_queue_draw triggers
+  ;
 
   if(thumb->img_surf && cairo_surface_get_reference_count(thumb->img_surf) > 0)
     cairo_surface_destroy(thumb->img_surf);
