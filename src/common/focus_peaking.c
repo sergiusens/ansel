@@ -34,14 +34,6 @@ static inline float uint8_to_float(const uint8_t i)
   return (float)i / 255.0f;
 }
 
-#ifdef _OPENMP
-#pragma omp declare simd
-#endif
-static inline uint8_t float_to_uint8(const float i)
-{
-  return (uint8_t)(i * 255.0f);
-}
-
 void dt_focuspeaking(cairo_t *cr, int width, int height,
                      uint8_t *const restrict image,
                      const int buf_width, const int buf_height,
