@@ -1322,40 +1322,35 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     }
   }
 
+  const dt_image_orientation_t orientation = dt_image_get_orientation(imgid);
+
+  // Get the file extension
+  const char *ext = filename + strlen(filename);
+  while(*ext != '.' && ext > filename) ext--;
+
+  // Check whether our input file is already a JPEG
+  const gboolean jpeg_input = !strcasecmp(ext, ".jpg") || !strcasecmp(ext, ".jpeg");
+
   // embedded JPG mode:
   // 0 = never use embedded thumbnail
   // 1 = only on unedited pics,
   // 2 = always use embedded thumbnail
+  const gboolean unaltered = !dt_image_altered(imgid);
   int mode = dt_conf_get_int("lighttable/embedded_jpg");
+  const gboolean user_pref = (mode == 2                      // always use embedded
+                              || (mode == 1 && unaltered)    // use embedded only on unaltered images
+                              || (jpeg_input && unaltered)); // we have unaltered JPEG input
 
-  const gboolean altered = dt_image_altered(imgid);
-
-  const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-  // the orientation for this camera is not read correctly from exiv2, so we need
-  // to go the full path (as the thumbnail will be flipped the wrong way round)
-  const int incompatible = !strncmp(cimg->exif_maker, "Phase One", 9);
-  dt_image_cache_read_release(darktable.image_cache, cimg);
-
-  const gboolean user_pref = (mode == 2 || (mode == 1 && !altered));
-
-  if(res && !incompatible && user_pref)
+  if(res && user_pref)
   {
-    const dt_image_orientation_t orientation = dt_image_get_orientation(imgid);
-
-    from_cache = TRUE;
-    memset(filename, 0, sizeof(filename));
-    dt_image_full_path(imgid,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
-
     char sidecar_filename[PATH_MAX] = { 0 };
 
-    const char *c = filename + strlen(filename);
-    while(*c != '.' && c > filename) c--;
-    if(!strcasecmp(c, ".jpg") || !strcasecmp(c, ".jpeg"))
+    if(jpeg_input)
     {
-      // input file is a JPEG: just load it
+      // Input file is a JPEG
       res = _load_jpg(filename, imgid, wd, ht, size, orientation, buf, width, height, color_space);
     }
-    else if(_find_sidecar_jpg(filename, c, sidecar_filename))
+    else if(_find_sidecar_jpg(filename, ext, sidecar_filename))
     {
       // input file is a RAW but we have a companion JPEG file in the same folder:
       // use it in priority (it may be higher resolution/quality than embedded JPEG).
