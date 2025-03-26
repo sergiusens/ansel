@@ -578,11 +578,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
         argv[k-1] = NULL;
         argv[k] = NULL;
       }
-      else if(!strcmp(argv[k], "--debug"))
-      {
-        k++;
-        argv[k] = NULL;
-      }
       else if(!strcmp(argv[k], "--moduledir") && argc > k + 1)
       {
         moduledir_from_command = argv[++k];
@@ -810,6 +805,10 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 #ifdef HAVE_OPENCL
         exclude_opencl = TRUE;
 #endif
+        argv[k] = NULL;
+      }
+      else if(!strcmp(argv[k], "--debug"))
+      {
         argv[k] = NULL;
       }
       else if(!strcmp(argv[k], "--"))
