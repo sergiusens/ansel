@@ -618,6 +618,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
     tt = dt_get_wtime();
 
   dt_view_surface_value_t ret = DT_VIEW_SURFACE_KO;
+
   // if surface not null, clean it up
   if(*surface && cairo_surface_get_reference_count(*surface) > 0)
     cairo_surface_destroy(*surface);
@@ -644,17 +645,20 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
       mip = dt_mipmap_cache_get_matching_size(cache, full_width, full_height);
   }
 
+  // Can't have float32 types here
+  if(mip >= DT_MIPMAP_F) return DT_VIEW_SURFACE_KO;
+
   // if needed, we load the mimap buffer
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(cache, &buf, imgid, mip, DT_MIPMAP_BEST_EFFORT, 'r');
   const int buf_wd = buf.width;
   const int buf_ht = buf.height;
 
-  // if we don't get buffer, no image is awailable at the moment
+  // if we don't get buffer, no image is available at the moment
   if(!buf.buf)
   {
     dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-    return ret;
+    return DT_VIEW_SURFACE_KO;
   }
 
   // so we create a new image surface to return
@@ -710,16 +714,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   // which happens because transform = NULL
   else
   {
-    if(buf.color_space == DT_COLORSPACE_NONE)
-    {
-      fprintf(stderr, "oops, there seems to be a code path not setting the color space of thumbnails!\n");
-    }
-    else if(buf.color_space != DT_COLORSPACE_DISPLAY)
-    {
-      fprintf(stderr,
-              "oops, there seems to be a code path setting an unhandled color space of thumbnails (%s)!\n",
-              dt_colorspaces_get_name(buf.color_space, "from file"));
-    }
+    assert(buf.color_space == DT_COLORSPACE_DISPLAY);
   }
 
 #ifdef _OPENMP
