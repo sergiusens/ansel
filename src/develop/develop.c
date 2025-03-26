@@ -381,7 +381,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, dev->image_storage.id, DT_MIPMAP_F, DT_MIPMAP_BLOCKING, 'r');
 
-  gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
+  gboolean finish_on_error = (!buf.buf || buf.width == 0 || buf.height == 0);
 
   // Take a local copy of the buffer so we can release the mipmap cache lock immediately
   const size_t buf_width = buf.width;
@@ -393,10 +393,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
   {
     dt_dev_pixelpipe_set_input(pipe, dev, dev->image_storage.id, buf_width, buf_height, buf_iscale, DT_MIPMAP_F);
     dt_print(DT_DEBUG_DEV, "[pixelpipe] Started thumbnail preview recompute at %lu×%lu px\n", buf_width, buf_height);
-  }
-  else
-  {
-    return;
   }
 
   pipe->processing = 1;
@@ -540,7 +536,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
   dt_mipmap_cache_get(cache, &buf, dev->image_storage.id, DT_MIPMAP_FULL, DT_MIPMAP_BLOCKING, 'r');
 
-  gboolean finish_on_error = (!buf.buf || !buf.width || !buf.height);
+  gboolean finish_on_error = (!buf.buf || buf.width == 0 || buf.height == 0);
 
   // Take a local copy of the buffer so we can release the mipmap cache lock immediately
   const size_t buf_width = buf.width;
@@ -552,8 +548,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     dt_dev_pixelpipe_set_input(pipe, dev, dev->image_storage.id, buf_width, buf_height, 1.0, DT_MIPMAP_FULL);
     dt_print(DT_DEBUG_DEV, "[pixelpipe] Started main preview recompute at %i×%i px\n", dev->width, dev->height);
   }
-  else
-    return;
 
   pipe->processing = 1;
 
