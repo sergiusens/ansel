@@ -1995,8 +1995,8 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
 
     // Cache size has changed since we inited pipe input ?
     // Note: we know pipe->iwidth/iheight are non-zero or we would have not launched a pipe.
-    // Note 2: there is no valid reason for a cacheline to change size during runtime.
-    if(!buf.buf || buf.height != pipe->iheight || buf.width != pipe->iwidth)
+     // Note 2: there is no valid reason for a cacheline to change size during runtime.
+    if(!buf.buf || buf.height != pipe->iheight || buf.width != pipe->iwidth || !*output)
     {
       // Nothing we can do, we need to recompute roi_in and roi_out from scratch
       // for all modules with new sizes. Exit on error and catch that in develop.
