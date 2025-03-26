@@ -45,6 +45,15 @@ static int32_t dt_image_load_job_run(dt_job_t *job)
 
 dt_job_t *dt_image_load_job_create(int32_t id, dt_mipmap_size_t mip)
 {
+  // This job is only for async retrieval of 8 bits thumbnails.
+  // float32 input images, whether half- or full-size use
+  // direct (blocking) retrieval.
+  if(mip >= DT_MIPMAP_F)
+  {
+    fprintf(stderr, "trying to load a floating point input image from a background job. this is forbidden\n");
+    return NULL;
+  }
+
   dt_job_t *job = dt_control_job_create(&dt_image_load_job_run, "load image %d mip %d", id, mip);
   if(!job) return NULL;
   dt_image_load_t *params = (dt_image_load_t *)calloc(1, sizeof(dt_image_load_t));
