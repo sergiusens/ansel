@@ -1230,7 +1230,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   {
     dt_accels_load_user_config(darktable.gui->accels);
     dt_accels_connect_accels(darktable.gui->accels);
-    dt_accels_connect_window(darktable.gui->accels, "global");
+    dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "global");
   }
 
   dt_print(DT_DEBUG_CONTROL, "[init] startup took %f seconds\n", dt_get_wtime() - start_wtime);
@@ -1271,9 +1271,6 @@ void dt_cleanup()
 
   if(init_gui)
   {
-    // prevent accels from disconnecting from the window that is soon to be destroyed
-    darktable.gui->accels->window = NULL;
-
     // hide main window and do rest of the cleanup in the background
     gtk_widget_hide(dt_ui_main_window(darktable.gui->ui));
 

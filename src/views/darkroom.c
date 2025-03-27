@@ -1996,7 +1996,7 @@ void enter(dt_view_t *self)
 
   // Attach shortcuts to new widgets
   dt_accels_connect_accels(darktable.gui->accels);
-  dt_accels_connect_window(darktable.gui->accels, "darkroom");
+  dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "darkroom");
   dt_accels_attach_scroll_handler(darktable.gui->accels, _scroll_on_focus, dev);
 
   // Attach bauhaus default signal callback to IOP
@@ -2070,7 +2070,7 @@ void leave(dt_view_t *self)
   _unregister_modules_drag_n_drop(self);
 
   // Detach shortcuts
-  dt_accels_disconnect_window(darktable.gui->accels, "active", TRUE);
+  dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active", TRUE);
 
   // Restore the previous selection
   dt_view_active_images_reset(FALSE);

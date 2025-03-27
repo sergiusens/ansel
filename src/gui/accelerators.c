@@ -14,7 +14,7 @@ static void _clean_shortcut(gpointer data)
 }
 
 
-dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
+dt_accels_t * dt_accels_init(char *config_file)
 {
   dt_accels_t *accels = malloc(sizeof(dt_accels_t));
   accels->config_file = g_strdup(config_file);
@@ -22,7 +22,6 @@ dt_accels_t * dt_accels_init(char *config_file, GtkWindow *window)
   accels->darkroom_accels = gtk_accel_group_new();
   accels->lighttable_accels = gtk_accel_group_new();
   accels->acceleratables = g_hash_table_new_full(g_str_hash, g_str_equal, NULL, _clean_shortcut);
-  accels->window = window;
   accels->active_group = NULL;
   accels->reset = 1;
   accels->keymap = gdk_keymap_get_for_display(gdk_display_get_default());
@@ -41,9 +40,6 @@ void dt_accels_cleanup(dt_accels_t *accels)
 {
   gtk_accel_map_save(accels->config_file);
 
-  dt_accels_disconnect_window(accels, "global", FALSE);
-
-  accels->window = NULL;
   accels->active_group = NULL;
 
   g_object_unref(accels->global_accels);
@@ -57,33 +53,31 @@ void dt_accels_cleanup(dt_accels_t *accels)
 }
 
 
-void dt_accels_connect_window(dt_accels_t *accels, const gchar *group)
+void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group)
 {
-  // When closing the app, it may happen that a text entry releasing focus
-  // will re-connect accels on an already-destroyed window
-  if(!accels->window) return;
+  if(!win) return;
 
   if(!g_strcmp0(group, "global") && accels->global_accels)
   {
-    gtk_window_add_accel_group(accels->window, accels->global_accels);
+    gtk_window_add_accel_group(win, accels->global_accels);
     accels->reset--;
     // global is always active
   }
   else if(!g_strcmp0(group, "lighttable") && accels->lighttable_accels)
   {
-    gtk_window_add_accel_group(accels->window, accels->lighttable_accels);
+    gtk_window_add_accel_group(win, accels->lighttable_accels);
     accels->reset--;
     accels->active_group = accels->lighttable_accels;
   }
   else if(!g_strcmp0(group, "darkroom") && accels->darkroom_accels)
   {
-    gtk_window_add_accel_group(accels->window, accels->darkroom_accels);
+    gtk_window_add_accel_group(win, accels->darkroom_accels);
     accels->reset--;
     accels->active_group = accels->darkroom_accels;
   }
   else if(!g_strcmp0(group, "active") && accels->active_group)
   {
-    gtk_window_add_accel_group(accels->window, accels->active_group);
+    gtk_window_add_accel_group(win, accels->active_group);
     accels->reset--;
   }
   else
@@ -93,17 +87,17 @@ void dt_accels_connect_window(dt_accels_t *accels, const gchar *group)
 }
 
 
-void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const gboolean reset)
+void dt_accels_disconnect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group, const gboolean reset)
 {
-  if(!accels->window) return;
+  if(!win) return;
 
   if(!g_strcmp0(group, "global") && accels->global_accels)
   {
-    gtk_window_remove_accel_group(accels->window, accels->global_accels);
+    gtk_window_remove_accel_group(win, accels->global_accels);
   }
   else if(!g_strcmp0(group, "active") && accels->active_group)
   {
-    gtk_window_remove_accel_group(accels->window, accels->active_group);
+    gtk_window_remove_accel_group(win, accels->active_group);
     if(reset) accels->active_group = NULL;
   }
   else

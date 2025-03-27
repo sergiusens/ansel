@@ -38,19 +38,26 @@ typedef struct dt_accels_t
   GtkAccelGroup *global_accels;     // used, aka init it and free it
   GtkAccelGroup *darkroom_accels;   // darkroom-specific accels
   GtkAccelGroup *lighttable_accels; // lighttable-specific accels
-  GtkAccelGroup *active_group; // reference to the above group currently loaded in the main window. don't init,
-                               // don't free, only update
-  GHashTable *acceleratables;  // Key/value list of path/dt_shortcut_t
-  GtkWindow *window;           // window capturing shortcuts
-  gint reset;                  // ref counter of how many parts disconnected accels
-  GdkKeymap *keymap;           // default screen keymap to decode key values
+
+  // reference to the above group currently loaded in the main window. don't init,
+  // don't free, only update
+  GtkAccelGroup *active_group;
+
+  GHashTable *acceleratables;       // Key/value list of path/dt_shortcut_t
+  gint reset;                       // ref counter of how many parts disconnected accels
+  GdkKeymap *keymap;                // default screen keymap to decode key values
   GdkModifierType default_mod_mask; // set of modifier masks relevant only to key strokes
-  gboolean init; // TRUE if we didn't find a keyboardrc config file at startup and we need to init a new one
-  GtkAccelKey active_key;      // between key_pressed and key_release events, store the active key strokes
+
+  // TRUE if we didn't find a keyboardrc config file at startup and we need to init a new one
+  gboolean init;
+
+  // between key_pressed and key_release events, this stores the active key strokes
+  GtkAccelKey active_key;
 
   // Views can register a global callback to handle scroll events
   // for example while keystrokes are on.
-  struct scroll {
+  struct scroll
+  {
     gboolean (*callback)(GdkEventScroll event, void *data);
     void *data;
   } scroll;
@@ -58,9 +65,9 @@ typedef struct dt_accels_t
 
 typedef enum dt_shortcut_type_t
 {
-  DT_SHORTCUT_UNSET = 0,     // shortcut non-inited
-  DT_SHORTCUT_DEFAULT = 1,   // shortcut inited with compile-time defaults
-  DT_SHORTCUT_USER = 2       // shortcut changed by user config
+  DT_SHORTCUT_UNSET = 0,   // shortcut non-inited
+  DT_SHORTCUT_DEFAULT = 1, // shortcut inited with compile-time defaults
+  DT_SHORTCUT_USER = 2     // shortcut changed by user config
 } dt_shortcut_type_t;
 
 typedef struct dt_shortcut_t
@@ -73,11 +80,11 @@ typedef struct dt_shortcut_t
   guint key;                  // default key
   GdkModifierType mods;       // default modifier
   dt_shortcut_type_t type;
-  gboolean locked;            // this will not listen to user config
+  gboolean locked; // this will not listen to user config
 } dt_shortcut_t;
 
 
-dt_accels_t *dt_accels_init(char *config_file, GtkWindow *window);
+dt_accels_t *dt_accels_init(char *config_file);
 void dt_accels_cleanup(dt_accels_t *accels);
 
 
@@ -108,7 +115,7 @@ void dt_accels_connect_accels(dt_accels_t *accels);
  * "darkroom" or "lighttable" will set their group the active one, that can be later
  * retrieved with "active". The "active" option will not work on the first call of this function.
  */
-void dt_accels_connect_window(dt_accels_t *accels, const gchar *group);
+void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group);
 
 /**
  * @brief Disconnect the global accels group to the window
@@ -119,7 +126,7 @@ void dt_accels_connect_window(dt_accels_t *accels, const gchar *group);
  * @param reset set to TRUE if the active group should be reset. This will prevent later calls of
  * `dt_accels_connect_window()` using "active". This has no effect when disconnecting the global group.
  */
-void dt_accels_disconnect_window(dt_accels_t *accels, const gchar *group, const gboolean reset);
+void dt_accels_disconnect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group, const gboolean reset);
 
 /**
  * @brief Register a new shortcut for a widget, setting up its path, default keys and accel group.
@@ -185,6 +192,7 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data);
  * @param callback
  * @param data
  */
-void dt_accels_attach_scroll_handler(dt_accels_t *accels, gboolean (*callback)(GdkEventScroll event, void *data), void *data);
+void dt_accels_attach_scroll_handler(dt_accels_t *accels, gboolean (*callback)(GdkEventScroll event, void *data),
+                                     void *data);
 
 void dt_accels_detach_scroll_handler(dt_accels_t *accels);

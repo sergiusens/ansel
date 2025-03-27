@@ -413,6 +413,17 @@ GtkBox *attach_help_popover(GtkWidget *widget, const char *label);
  */
 void dt_accels_disconnect_on_text_input(GtkWidget *widget);
 
+// Get the top-most window attached to a widget.
+// This is a dynamic get that takes into account destroyed widgets and such.
+static inline GtkWindow *dt_gtk_get_window(GtkWidget *widget)
+{
+  if(!widget) return NULL;
+  GtkWidget *toplevel = gtk_widget_get_toplevel(widget);
+  if(toplevel && gtk_widget_is_toplevel(toplevel)) return GTK_WINDOW(toplevel);
+  return NULL;
+}
+
+
 #ifdef __cplusplus
 }
 #endif

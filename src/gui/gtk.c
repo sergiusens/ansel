@@ -689,7 +689,7 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // User switching between languages may loose their custom shortcuts if we didn't localize them.
   gchar *keyboardrc = g_strdup_printf("keyboardrc.%s", dt_l10n_get_current_lang(darktable.l10n));
   gchar *keyboardrc_path = g_build_filename(configdir, keyboardrc, NULL);
-  gui->accels = dt_accels_init(keyboardrc_path, GTK_WINDOW(dt_ui_main_window(gui->ui)));
+  gui->accels = dt_accels_init(keyboardrc_path);
   g_free(keyboardrc);
   g_free(keyboardrc_path);
 
@@ -1833,15 +1833,15 @@ GtkBox * attach_help_popover(GtkWidget *widget, const char *label)
 
 static gboolean _text_entry_focus_in_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  dt_accels_disconnect_window(darktable.gui->accels, "global", FALSE);
-  dt_accels_disconnect_window(darktable.gui->accels, "active", FALSE);
+  dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "global", FALSE);
+  dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active", FALSE);
   return FALSE;
 }
 
 static gboolean _text_entry_focus_out_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  dt_accels_connect_window(darktable.gui->accels, "global");
-  dt_accels_connect_window(darktable.gui->accels, "active");
+  dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "global");
+  dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active");
   return FALSE;
 }
 
