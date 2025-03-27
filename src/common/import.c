@@ -70,7 +70,7 @@ typedef struct dt_import_t {
   GList *files;
 
   // Kill-switch to stop the list building before it completed
-  gboolean shutdown;
+  gboolean *shutdown;
 
   // Number of elements in the list
   uint32_t elements;
@@ -148,7 +148,7 @@ static void _gtk_label_set_and_free(GtkWidget *widget, gchar *label)
 
 static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
 {
-  if((import->shutdown)) return;
+  if((*import->shutdown)) return;
 
   gchar *pathname = g_file_get_path(document);
   GtkFileFilterInfo filter_info = { gtk_file_filter_get_needed(import->filter),
@@ -176,7 +176,7 @@ static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
 static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import)
 {
   // Get subfolders and files from current folder
-  if((import->shutdown)) return;
+  if((*import->shutdown)) return;
 
   GFileEnumerator *files
       = g_file_enumerate_children(folder, G_FILE_ATTRIBUTE_STANDARD_NAME "," G_FILE_ATTRIBUTE_STANDARD_TYPE,
@@ -190,7 +190,7 @@ static void _recurse_folder(GVfs *vfs, GFile *folder, dt_import_t *const import)
     if(!file) break;
 
     // Shutdown ASAP
-    if((import->shutdown))
+    if((*import->shutdown))
     {
       g_object_unref(files);
       return;
@@ -208,7 +208,7 @@ static void _recurse_selection(GSList *selection, dt_import_t *const import)
   // GtkFileChooser gives us a GSList for selection, so we can't directly recurse from here
   // since the import job expects a GList.
 
-  if((import->shutdown) || selection == NULL) return;
+  if(*(import->shutdown) || selection == NULL) return;
 
   GVfs *vfs = g_vfs_get_default();
   for(GSList *uri = selection; uri; uri = g_slist_next(uri))
@@ -251,7 +251,7 @@ static int32_t dt_get_selected_files(dt_import_t *import)
 
   dt_pthread_mutex_lock(import->lock);
   // Re-init flags
-  import->shutdown = FALSE;
+  *import->shutdown = FALSE;
 
   // Start the delayed file count update
   import->timeout = g_timeout_add(1000, _delayed_file_count, import);
@@ -259,7 +259,7 @@ static int32_t dt_get_selected_files(dt_import_t *import)
   // Get the new list
   _recurse_selection(import->selection, import);
   import->elements = (import->files) ? g_list_length(import->files) : 0;
-  gboolean valid = !(import->shutdown);
+  gboolean valid = !(*import->shutdown);
 
   // Stop the delayed file count update
   g_source_remove(import->timeout);
@@ -1283,7 +1283,7 @@ void dt_images_import()
 static dt_import_t * dt_import_init(dt_lib_import_t *d)
 {
   dt_import_t *import = g_malloc(sizeof(dt_import_t));
-  import->shutdown = d->shutdown;
+  import->shutdown = &d->shutdown;
   import->files = NULL;
   import->elements = 0;
   import->lock = &d->lock;
