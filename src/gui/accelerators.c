@@ -45,6 +45,9 @@ void dt_accels_cleanup(dt_accels_t *accels)
   g_object_unref(accels->global_accels);
   g_object_unref(accels->darkroom_accels);
   g_object_unref(accels->lighttable_accels);
+  accels->global_accels = NULL;
+  accels->darkroom_accels = NULL;
+  accels->lighttable_accels = NULL;
 
   g_hash_table_unref(accels->acceleratables);
 
@@ -55,7 +58,7 @@ void dt_accels_cleanup(dt_accels_t *accels)
 
 void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group)
 {
-  if(!win) return;
+  if(!accels || !win) return;
 
   if(!g_strcmp0(group, "global") && accels->global_accels)
   {
@@ -89,7 +92,7 @@ void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *win, const gchar *
 
 void dt_accels_disconnect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group, const gboolean reset)
 {
-  if(!win) return;
+  if(!accels || !win) return;
 
   if(!g_strcmp0(group, "global") && accels->global_accels)
   {
