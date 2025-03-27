@@ -448,6 +448,7 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 static void _thumb_update_icons(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
+  if(!thumb->widget) return;
 
   gboolean show_nowhere = (thumb->over == DT_THUMBNAIL_OVERLAYS_NONE);
 
@@ -473,7 +474,6 @@ static void _thumb_update_icons(dt_thumbnail_t *thumb)
   }
 
   _set_flag(thumb->w_group, GTK_STATE_FLAG_ACTIVE, (thumb->imgid == thumb->groupid));
-
   _set_flag(thumb->w_main, GTK_STATE_FLAG_SELECTED, thumb->selected);
   _set_flag(thumb->widget, GTK_STATE_FLAG_SELECTED, thumb->selected);
 }
