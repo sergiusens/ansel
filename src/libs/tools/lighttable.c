@@ -249,6 +249,7 @@ void gui_init(dt_lib_module_t *self)
   d->columns = gtk_spin_button_new_with_range(1., 12., 1.);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->columns), FALSE, FALSE, 0);
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->columns), d->current_columns);
+  dt_accels_disconnect_on_text_input(d->columns);
 
   g_signal_connect(G_OBJECT(d->columns), "value-changed", G_CALLBACK(_lib_lighttable_columns_slider_changed), self);
 

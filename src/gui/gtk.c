@@ -1847,7 +1847,12 @@ static gboolean _text_entry_focus_out_event(GtkWidget *self, GdkEventFocus event
 
 static gboolean _text_entry_key_pressed(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
 {
-  if(event->keyval == GDK_KEY_Escape) gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  if(event->keyval == GDK_KEY_Escape)
+  {
+    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+    gtk_widget_grab_default(dt_ui_center(darktable.gui->ui));
+    return TRUE;
+  }
   return FALSE;
 }
 
