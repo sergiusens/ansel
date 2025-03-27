@@ -1752,8 +1752,10 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
 
 void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
 {
-  while(g_idle_remove_by_data(module->widget))
-    ; // remove multiple delayed gtk_widget_queue_draw triggers
+  if(!module) return;
+
+  // remove multiple delayed gtk_widget_queue_draw triggers
+  while(g_idle_remove_by_data(module->widget));
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   dt_gui_module_t *m = DT_GUI_MODULE(module);
@@ -1762,7 +1764,7 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
   g_free(m->name);
   g_free(m->view);
 
-  module->gui_cleanup(module);
+  if(module->gui_cleanup) module->gui_cleanup(module);
   dt_iop_gui_cleanup_blending(module);
 }
 
