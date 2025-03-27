@@ -83,6 +83,20 @@
 void _dt_thumbtable_empty_list(dt_thumbtable_t *table);
 void _update_row_ids(dt_thumbtable_t *table);
 
+static int _grab_focus(dt_thumbtable_t *table)
+{
+  if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+  {
+    // Grab focus here otherwise, on first click over the grid,
+    // scrolled window gets scrolled all the way to the top and it's annoying.
+    // This can work only if the grid is mapped and realized, which we ensure
+    // by wrapping that in a g_idle() method.
+    gtk_widget_grab_focus(table->grid);
+    dt_thumbtable_scroll_to_selection(table);
+  }
+  return 0;
+}
+
 // get the class name associated with the overlays mode
 static gchar *_thumbs_get_overlays_class(dt_thumbnail_overlay_t over)
 {
@@ -180,6 +194,22 @@ static void _rowid_to_position(dt_thumbtable_t *table, int index, int *x, int *y
   }
 }
 
+// Needs updated table->x_position and table->y_position
+static int _position_to_rowid(dt_thumbtable_t *table)
+{
+  if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+  {
+    // Attempt to get the image rowid sitting in the center of the middle row
+    return (table->y_position + table->view_height / 2) / table->thumb_height * table->thumbs_per_row
+      + table->thumbs_per_row / 2 - 1;
+  }
+  else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
+  {
+    return table->x_position + (table->view_width / 2.) / table->thumb_width;
+  }
+  return UNKNOWN_IMAGE;
+}
+
 // Find the x, y coordinates of any given thumbnail
 // Return TRUE if a position could be computed
 // thumb->rowid and table->thumbs_per_row need to have been inited before calling this
@@ -190,16 +220,23 @@ static gboolean _set_thumb_position(dt_thumbtable_t *table, dt_thumbnail_t *thum
   return TRUE;
 }
 
+// Updates table->x_position and table->y_position
 void dt_thumbtable_get_scroll_position(dt_thumbtable_t *table)
 {
-  table->x_position = gtk_adjustment_get_value(table->v_scrollbar);
-  table->y_position = gtk_adjustment_get_value(table->h_scrollbar);
+  table->y_position = gtk_adjustment_get_value(table->v_scrollbar);
+  table->x_position = gtk_adjustment_get_value(table->h_scrollbar);
+}
+
+void dt_thumbtable_set_active_rowid(dt_thumbtable_t *table)
+{
+  dt_thumbtable_get_scroll_position(table);
+  table->rowid = _position_to_rowid(table);
 }
 
 static int dt_thumbtable_scroll_to_position(dt_thumbtable_t *table)
 {
-  gtk_adjustment_set_value(table->v_scrollbar, table->x_position);
-  gtk_adjustment_set_value(table->h_scrollbar, table->y_position);
+  gtk_adjustment_set_value(table->v_scrollbar, table->y_position);
+  gtk_adjustment_set_value(table->h_scrollbar, table->x_position);
   return 0;
 }
 
@@ -215,8 +252,8 @@ static void dt_thumbtable_scroll_to_rowid(dt_thumbtable_t *table, int rowid)
   y += table->thumb_height / 2;
 
   // Scroll viewport there
-  table->x_position = (double)y - (double)table->view_height / 2.;
-  table->y_position = (double)x - (double)table->view_width / 2.;
+  table->y_position = (double)y - (double)table->view_height / 2.;
+  table->x_position = (double)x - (double)table->view_width / 2.;
   dt_thumbtable_scroll_to_position(table);
 }
 
@@ -232,7 +269,7 @@ static int _find_rowid_from_imgid(dt_thumbtable_t *table, const int32_t imgid)
 int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->collection_inited) return 1;
-  int rowid = -1;
+  int rowid = UNKNOWN_IMAGE;
   if(imgid > UNKNOWN_IMAGE)
   {
     dt_pthread_mutex_lock(&table->lock);
@@ -242,7 +279,7 @@ int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
   else
     rowid = table->rowid;
 
-  if(rowid == -1) return 1;
+  if(rowid == UNKNOWN_IMAGE) return 1;
 
   dt_thumbtable_scroll_to_rowid(table, rowid);
 
@@ -252,7 +289,7 @@ int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 
 int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table)
 {
-  if(table->rowid > -1)
+  if(table->rowid > UNKNOWN_IMAGE)
     dt_thumbtable_scroll_to_rowid(table, table->rowid);
   else
     dt_thumbtable_scroll_to_selection(table);
@@ -638,7 +675,7 @@ static void _dt_profile_change_callback(gpointer instance, int type, gpointer us
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-  dt_thumbtable_refresh_thumbnail(table, -1, TRUE);
+  dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
 }
 
 static void _dt_selection_changed_callback(gpointer instance, gpointer user_data)
@@ -670,7 +707,9 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
 void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level)
 {
   table->zoom = level;
+  dt_thumbtable_set_active_rowid(table);
   dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
+  g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
 void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable)
@@ -849,19 +888,6 @@ static gboolean _dt_collection_get_hash(dt_thumbtable_t *table)
   return FALSE;
 }
 
-static int _grab_focus(dt_thumbtable_t *table)
-{
-  if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
-  {
-    // Grab focus here otherwise, on first click over the grid,
-    // scrolled window gets scrolled all the way to the top and it's annoying.
-    // This can work only if the grid is mapped and realized, which we ensure
-    // by wrapping that in a g_idle() method.
-    gtk_widget_grab_focus(table->grid);
-    dt_thumbtable_scroll_to_active_rowid(table);
-  }
-  return 0;
-}
 
 // this is called each time collected images change
 static void _dt_collection_changed_callback(gpointer instance, dt_collection_change_t query_change,
@@ -873,8 +899,6 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
   gboolean collapse_groups = dt_conf_get_bool("ui_last/grouping");
   gboolean collapsing_changed = (table->collapse_groups != collapse_groups);
-
-  
 
   // See if the collection changed
   gboolean changed = _dt_collection_get_hash(table) || collapsing_changed;
@@ -903,6 +927,10 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   _update_grid_area(table);
 
   dt_thumbtable_update(table);
+  dt_thumbtable_set_active_rowid(table);
+
+  // Focus will also re-scroll where needed, that is to active row id,
+  // or else to selection.
   g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
@@ -1108,9 +1136,9 @@ void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
 
 int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)
 {
-  if(!table->lut) return -1;
+  if(!table->lut) return UNKNOWN_IMAGE;
 
-  int rowid = -1;
+  int rowid = UNKNOWN_IMAGE;
 
   dt_pthread_mutex_lock(&table->lock);
   for(int i = 0; i < table->collection_count; i++)
@@ -1392,7 +1420,7 @@ void dt_thumbtable_reset_collection(dt_thumbtable_t *table)
 gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
 {
   if(!user_data) return TRUE;
-  dt_control_set_mouse_over_id(-1);
+  dt_control_set_mouse_over_id(UNKNOWN_IMAGE);
   return TRUE;
 }
 

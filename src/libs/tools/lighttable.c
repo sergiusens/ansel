@@ -285,6 +285,8 @@ static void _set_columns(dt_lib_module_t *self, int columns)
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   dt_conf_set_int("plugins/lighttable/images_in_row", columns);
   dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+
+  dt_thumbtable_set_active_rowid(table);
   dt_thumbtable_configure(table);
   dt_thumbtable_update(table);
   dt_thumbtable_redraw(table);

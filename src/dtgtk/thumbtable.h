@@ -186,6 +186,8 @@ int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid);
 int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table);
 int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table);
 
+void dt_thumbtable_set_active_rowid(dt_thumbtable_t *table);
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
