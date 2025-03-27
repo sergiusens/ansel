@@ -366,6 +366,7 @@ gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable,
   if(w->module) w->module->focus(w->module, FALSE);
 
   gtk_widget_grab_focus(GTK_WIDGET(data));
+  darktable.gui->has_scroll_focus = GTK_WIDGET(data);
   return TRUE;
 }
 
