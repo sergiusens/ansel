@@ -176,6 +176,16 @@ void dt_thumbtable_invert_selection(dt_thumbtable_t *table);
 // set mouse_over imgid while resolving conflicts between mouse and keyboard events
 void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int32_t imgid);
 
+static inline void dt_thumbtable_redraw(dt_thumbtable_t *table)
+{
+  gtk_widget_queue_draw(table->scroll_window);
+  gtk_widget_queue_draw(table->grid);
+}
+
+int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid);
+int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table);
+int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table);
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

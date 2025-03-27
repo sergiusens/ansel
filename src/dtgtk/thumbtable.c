@@ -38,8 +38,8 @@
 #include "osx/osx.h"
 #endif
 
-// 840 = 2*3*4*5*7, so we ensure full rows up to 11 thumbs/row.
-#define MAX_THUMBNAILS 840
+// 420 = 3*4*5*7, so we ensure full rows for 1-10 and 12 thumbs/row.
+#define MAX_THUMBNAILS 420
 
 /**
  * @file thumbtable.c
@@ -81,6 +81,7 @@
  **/
 
 void _dt_thumbtable_empty_list(dt_thumbtable_t *table);
+void _update_row_ids(dt_thumbtable_t *table);
 
 // get the class name associated with the overlays mode
 static gchar *_thumbs_get_overlays_class(dt_thumbnail_overlay_t over)
@@ -119,8 +120,7 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
 
   dt_gui_remove_class(table->grid, cl0);
   dt_gui_add_class(table->grid, cl1);
-  gtk_widget_queue_draw(table->grid);
-
+  dt_thumbtable_redraw(table);
 
   // we need to change the overlay content if we pass from normal to extended overlays
   // this is not done on the fly with css to avoid computing extended msg for nothing and to reserve space if needed
@@ -226,10 +226,10 @@ static int _find_rowid_from_imgid(dt_thumbtable_t *table, const int32_t imgid)
     if(table->lut[i].imgid == imgid)
       return i;
 
-  return -1;
+  return UNKNOWN_IMAGE;
 }
 
-static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
+int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->collection_inited) return 1;
   int rowid = -1;
@@ -252,12 +252,15 @@ static int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid)
 
 int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table)
 {
-  dt_thumbtable_scroll_to_rowid(table, table->rowid);
+  if(table->rowid > -1)
+    dt_thumbtable_scroll_to_rowid(table, table->rowid);
+  else
+    dt_thumbtable_scroll_to_selection(table);
   return 0;
 }
 
 
-static int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table)
+int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table)
 {
   int id = dt_selection_get_first_id(darktable.selection);
   if(id < 0) id = dt_control_get_keyboard_over_id();
@@ -437,13 +440,6 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     table->thumbs_inited = FALSE;
     _grid_configure(table, new_width, new_height, cols);
     _update_grid_area(table);
-    _update_row_ids(table);
-    gtk_widget_queue_draw(table->grid);
-  }
-  else
-  {
-    _update_grid_area(table);
-    _update_row_ids(table);
   }
 }
 
@@ -451,13 +447,15 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
 // That's because freeing widgets slows down the scrolling.
 int _garbage_collection(dt_thumbtable_t *table)
 {
-  dt_pthread_mutex_lock(&table->lock);
-  GList *link = g_list_first(table->list);
+  GList *link = g_list_last(table->list);
+  int count = 0;
   while(link)
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;
+    if(!thumb) continue;
+
     GList *l = link;
-    link = g_list_next(link);
+    link = g_list_previous(link);
 
     gboolean collect_garbage = (table->thumb_nb > MAX_THUMBNAILS)
                                 && (thumb->rowid < table->min_row_id || thumb->rowid > table->max_row_id);
@@ -475,9 +473,11 @@ int _garbage_collection(dt_thumbtable_t *table)
       dt_thumbnail_destroy(thumb);
       table->list = g_list_delete_link(table->list, l);
       table->thumb_nb -= 1;
+      count++;
     }
   }
-  dt_pthread_mutex_unlock(&table->lock);
+
+  dt_print(DT_DEBUG_LIGHTTABLE, "Removed %d thumbs outside %i and %i\n", count, table->min_row_id, table->max_row_id);
   return G_SOURCE_REMOVE;
 }
 
@@ -493,83 +493,91 @@ dt_thumbnail_t *_find_thumb_by_imgid(dt_thumbtable_t *table, const int32_t imgid
   return NULL;
 }
 
+
+void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const int32_t mouse_over)
+{
+  const int32_t imgid = table->lut[rowid].imgid;
+  const int32_t groupid = table->lut[rowid].groupid;
+
+  dt_thumbnail_t *thumb = NULL;
+  gboolean new_item = TRUE;
+  gboolean new_position = TRUE;
+
+  // Do we already have a thumbnail at the correct postion for the correct imgid ?
+  if(table->lut[rowid].thumb && table->lut[rowid].thumb->imgid == imgid)
+  {
+    // YES : reuse it
+    thumb = table->lut[rowid].thumb;
+    new_position = FALSE;
+  }
+  else
+  {
+    // NO : Try to find an existing thumbnail widget by imgid in table->list
+    // That will be faster if we only changed the sorting order but are still in the same collection.
+    // NOTE: the thumb widget position in grid will be wrong
+    thumb = _find_thumb_by_imgid(table, imgid);
+  }
+
+  if(thumb)
+  {
+    // Ensure everything is up-to-date
+    thumb->rowid = rowid;
+    thumb->groupid = groupid;
+    new_item = FALSE;
+  }
+  else
+  {
+    thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, rowid, groupid, table->overlays, table);
+    table->list = g_list_prepend(table->list, thumb);
+    table->thumb_nb += 1;
+  }
+
+  table->lut[rowid].thumb = thumb;
+
+  if(!thumb) return; // not sure why that would happen
+
+  // Resize
+  gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
+  if(new_item || size_changed)
+  {
+    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
+    dt_thumbnail_set_overlay(thumb, table->overlays);
+  }
+
+  // Reposition: cheap to recompute
+  _set_thumb_position(table, thumb);
+
+  // Actually moving the widgets in the grid is more expensive, do it only if necessary
+  if(new_item)
+  {
+    gtk_fixed_put(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
+    //fprintf(stdout, "adding new thumb at #%lu: %i, %i\n", rowid, thumb->x, thumb->y);
+  }
+  else if(new_position || size_changed)
+  {
+    gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
+    //fprintf(stdout, "moving new thumb at #%lu: %i, %i\n", rowid, thumb->x, thumb->y);
+  }
+
+  // Update visual states and flags. Mouse over is not connected to a signal and cheap to update
+  dt_thumbnail_set_mouseover(thumb, (mouse_over == thumb->imgid));
+  dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
+}
+
+
 // Add and/or resize thumbnails within visible viewort at current scroll level
 void _populate_thumbnails(dt_thumbtable_t *table)
 {
   const int32_t mouse_over = dt_control_get_mouse_over_id();
 
-  dt_pthread_mutex_lock(&table->lock);
-
+  // for(size_t rowid = 0; rowid < table->collection_count; rowid++)
   for(size_t rowid = MAX(table->min_row_id, 0); rowid < MIN(table->max_row_id, table->collection_count); rowid++)
-  {
-    const int32_t imgid = table->lut[rowid].imgid;
-    const int32_t groupid = table->lut[rowid].groupid;
-
-    dt_thumbnail_t *thumb = NULL;
-    gboolean new_item = TRUE;
-    gboolean new_position = TRUE;
-
-    // Do we already have a thumbnail at the correct postion for the correct imgid ?
-    if(table->lut[rowid].thumb && table->lut[rowid].thumb->imgid == imgid)
-    {
-      // YES : reuse it
-      thumb = table->lut[rowid].thumb;
-      new_position = FALSE;
-    }
-    else
-    {
-      // NO : Try to find an existing thumbnail widget by imgid in table->list
-      // That will be faster if we only changed the sorting order but are still in the same collection.
-      // NOTE: the thumb widget position in grid will be wrong
-      thumb = _find_thumb_by_imgid(table, imgid);
-    }
-
-    if(thumb)
-    {
-      // Ensure everything is up-to-date
-      thumb->rowid = rowid;
-      thumb->groupid = groupid;
-      new_item = FALSE;
-    }
-    else
-    {
-      thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, rowid, groupid, table->overlays, table);
-      table->list = g_list_prepend(table->list, thumb);
-      table->thumb_nb += 1;
-    }
-
-    table->lut[rowid].thumb = thumb;
-
-    if(!thumb) continue; // not sure why that would happen
-
-    // Resize
-    gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
-    if(new_item || size_changed)
-    {
-      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
-      dt_thumbnail_set_overlay(thumb, table->overlays);
-    }
-
-    // Reposition: cheap to recompute
-    _set_thumb_position(table, thumb);
-
-    // Actually moving the widgets in the grid is more expensive, do it only if necessary
-    if(new_item)
-      gtk_fixed_put(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
-    else if(new_position || size_changed)
-      gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
-
-    // Update visual states and flags. Mouse over is not connected to a signal and cheap to update
-    dt_thumbnail_set_mouseover(thumb, (mouse_over == thumb->imgid));
-    dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
-  }
-  dt_pthread_mutex_unlock(&table->lock);
+    _add_thumbnail_at_rowid(table, rowid, mouse_over);
 }
 
 // Resize the thumbnails that are still existing but outside of visible viewport at current scroll level
 void _resize_thumbnails(dt_thumbtable_t *table)
 {
-  dt_pthread_mutex_lock(&table->lock);
   for(GList *link = g_list_first(table->list); link; link = g_list_next(link))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;
@@ -585,7 +593,6 @@ void _resize_thumbnails(dt_thumbtable_t *table)
       gtk_widget_queue_draw(thumb->widget);
     }
   }
-  dt_pthread_mutex_unlock(&table->lock);
 }
 
 
@@ -595,6 +602,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   _update_row_ids(table);
 
   if(!table->lut || !table->configured || !table->collection_inited || table->thumbs_inited || table->collection_count == 0) return;
+  dt_thumbtable_redraw(table);
 
   if(table->reset_collection)
   {
@@ -603,6 +611,9 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   }
 
   const double start = dt_get_wtime();
+
+  dt_pthread_mutex_lock(&table->lock);
+
   gboolean empty_list = (table->list == NULL);
 
   _populate_thumbnails(table);
@@ -610,12 +621,14 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   // Remove unneeded thumbnails: out of viewport or out of current collection
   if(!empty_list && table->list)
   {
-    //
-    g_idle_add((GSourceFunc)_garbage_collection, table);
+    _garbage_collection(table);
     _resize_thumbnails(table);
   }
 
   table->thumbs_inited = TRUE;
+
+  dt_pthread_mutex_unlock(&table->lock);
+
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb, table->min_row_id, table->max_row_id, dt_get_wtime() - start);
 }
@@ -845,7 +858,7 @@ static int _grab_focus(dt_thumbtable_t *table)
     // This can work only if the grid is mapped and realized, which we ensure
     // by wrapping that in a g_idle() method.
     gtk_widget_grab_focus(table->grid);
-    dt_thumbtable_scroll_to_selection(table);
+    dt_thumbtable_scroll_to_active_rowid(table);
   }
   return 0;
 }
@@ -860,6 +873,8 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
   gboolean collapse_groups = dt_conf_get_bool("ui_last/grouping");
   gboolean collapsing_changed = (table->collapse_groups != collapse_groups);
+
+  
 
   // See if the collection changed
   gboolean changed = _dt_collection_get_hash(table) || collapsing_changed;
@@ -880,12 +895,15 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
       dt_control_log(_(
           "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
     }
-
-    dt_thumbtable_configure(table);
-    dt_thumbtable_update(table);
-    gtk_widget_queue_draw(table->grid);
-    g_idle_add((GSourceFunc) _grab_focus, table);
   }
+
+  dt_thumbtable_configure(table);
+
+  // Number of image may have changed, size of grid too:
+  _update_grid_area(table);
+
+  dt_thumbtable_update(table);
+  g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
 static void _event_dnd_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data,
@@ -1085,7 +1103,7 @@ void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-  _update_row_ids(table);
+  g_idle_add((GSourceFunc)dt_thumbtable_update, table);
 }
 
 int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)
@@ -1363,7 +1381,6 @@ static gboolean _draw_callback(GtkWidget *widget, cairo_t *cr, gpointer user_dat
   gtk_render_frame(context, cr, 0, 0, allocation.width, allocation.height);
 
   dt_thumbtable_configure(table);
-  dt_thumbtable_update(table);
   return FALSE;
 }
 
@@ -1399,6 +1416,7 @@ dt_thumbtable_t *dt_thumbtable_new()
   gtk_widget_set_can_focus(table->grid, TRUE);
   gtk_widget_set_focus_on_click(table->grid, TRUE);
   gtk_widget_add_events(table->grid, GDK_LEAVE_NOTIFY_MASK);
+  gtk_widget_set_app_paintable(table->grid, TRUE);
   g_signal_connect(G_OBJECT(table->grid), "leave-notify-event", G_CALLBACK(_event_main_leave), table);
 
   // Disable auto re-scrolling to beginning when a child of scrolled window gets the focus
@@ -1609,8 +1627,7 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
   dt_pthread_mutex_unlock(&table->lock);
 
   dt_thumbtable_configure(table);
-  dt_thumbtable_update(table);
-  gtk_widget_queue_draw(table->grid);
+  g_idle_add((GSourceFunc)dt_thumbtable_update, table);
   g_idle_add((GSourceFunc) _grab_focus, table);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Reparenting the thumbtable took %0.04f sec\n", dt_get_wtime() - start);

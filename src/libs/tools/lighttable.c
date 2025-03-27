@@ -106,6 +106,8 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 {
   if(!user_data) return;
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
+
+  #if 0
   int current_level = _lib_lighttable_get_columns(self);
   int num_images = dt_collection_get_count(darktable.collection);
 
@@ -142,6 +144,7 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
       if(dt_conf_key_exists("plugins/lighttable/images_in_row_backup"))
         _lib_lighttable_set_columns(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
   }
+  #endif
 
   // Reset zoom
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
@@ -280,22 +283,22 @@ void gui_cleanup(dt_lib_module_t *self)
 static void _set_columns(dt_lib_module_t *self, int columns)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  if(columns != dt_conf_get_int("plugins/lighttable/images_in_row"))
-  {
-    dt_conf_set_int("plugins/lighttable/images_in_row", columns);
-    dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
-    gtk_widget_queue_draw(table->grid);
-    d->current_columns = columns;
-  }
+  dt_conf_set_int("plugins/lighttable/images_in_row", columns);
+  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+  dt_thumbtable_configure(table);
+  dt_thumbtable_update(table);
+  dt_thumbtable_redraw(table);
+  g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_active_rowid, table);
+  d->current_columns = columns;
 }
 
 static void _lib_lighttable_columns_slider_changed(GtkWidget *widget, gpointer user_data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  _set_columns(self, gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->columns)));
-  dt_conf_set_int("plugins/lighttable/images_in_row_backup",
-                  gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->columns)));
+  const int cols = gtk_spin_button_get_value_as_int(GTK_SPIN_BUTTON(d->columns));
+  _set_columns(self, cols);
+  dt_conf_set_int("plugins/lighttable/images_in_row_backup", cols);
 }
 
 static void _lib_lighttable_set_columns(dt_lib_module_t *self, gint columns)

@@ -145,8 +145,9 @@ static void _view_lighttable_activate_callback(gpointer instance, int32_t imgid,
 
 void configure(dt_view_t *self, int width, int height)
 {
-  dt_thumbtable_configure(dt_ui_thumbtable(darktable.gui->ui));
-  gtk_widget_queue_draw(dt_ui_thumbtable(darktable.gui->ui)->scroll_window);
+  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+  dt_thumbtable_configure(table);
+  g_idle_add((GSourceFunc)dt_thumbtable_update, table);
 }
 
 
