@@ -1462,6 +1462,35 @@ void dt_dev_masks_update_hash(dt_develop_t *dev)
   dt_show_times(&start, "[masks_update_hash] computing forms hash");
 }
 
+void dt_dev_get_final_size(const int32_t imgid, const int input_width, const int input_height, int *processed_width, int *processed_height)
+{
+  dt_times_t start;
+  dt_get_times(&start);
+
+  dt_develop_t dev;
+  dt_dev_init(&dev, 0);
+
+  const dt_image_t *image = dt_image_cache_get(darktable.image_cache, imgid, 'r');
+  dev.image_storage = *image;
+  dt_image_cache_read_release(darktable.image_cache, image);
+
+  dev.iop = dt_iop_load_modules(&dev);
+  dt_dev_read_history_ext(&dev, imgid, FALSE);
+
+  dt_dev_pixelpipe_t pipe;
+  dt_dev_pixelpipe_init_dummy(&pipe, input_width, input_height);
+  dt_dev_pixelpipe_set_input(&pipe, &dev, imgid, input_width, input_height, 1.0, DT_MIPMAP_NONE);
+  dt_dev_pixelpipe_create_nodes(&pipe, &dev);
+  dt_dev_pixelpipe_synch_all(&pipe, &dev);
+
+  dt_dev_pixelpipe_get_roi_out(&pipe, &dev, input_width, input_height, processed_width, processed_height);
+
+  dt_dev_pixelpipe_cleanup(&pipe);
+  dt_dev_cleanup(&dev);
+
+  dt_show_times(&start, "[dt_dev_get_final_size] computing test final size");
+}
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

@@ -2549,8 +2549,9 @@ gboolean dt_dev_pixelpipe_activemodule_disables_currentmodule(struct dt_develop_
           // current_module does operation(s) that active module doesn't want
 }
 
-void dt_dev_pixelpipe_get_roi_out(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev, int width_in,
-                                     int height_in, int *width, int *height)
+void dt_dev_pixelpipe_get_roi_out(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev,
+                                  const int width_in, const int height_in, 
+                                  int *width, int *height)
 {
   dt_iop_roi_t roi_in = (dt_iop_roi_t){ 0, 0, width_in, height_in, 1.0 };
   dt_iop_roi_t roi_out;

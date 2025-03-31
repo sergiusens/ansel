@@ -1044,17 +1044,26 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   dt_dev_init(&dev, 0);
   dt_dev_load_image(&dev, imgid);
 
+  int width = MAX(format_params->max_width, 0);
+  int height = MAX(format_params->max_height, 0);
+  double scale = 1.;
+
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_t *cache = darktable.mipmap_cache;
+  dt_mipmap_size_t size = DT_MIPMAP_FULL;
 
-  // The DT_MIPMAP_F is set to DT_MIPMAP_2 sizes in mipmap_cache.c,
-  // aka 1440x900 px.
-  // We use to take that as input for thumbnail exports. We don't anymore:
-  // 1. DT_MIPMAP_F don't demosaic, which can dramatically change the appearance of noisy pictures
-  //    (magenta/green color casts in dark areas),
-  // 2. factoring in the cropping, there is no guaranty that the final image size will
-  //    meet output size requirements, leading to blurry thumbnails in lighttable.
-  const dt_mipmap_size_t size = DT_MIPMAP_FULL;
+  if(thumbnail_export && width <= 1440 && height <= 900)
+  {
+    // Use the 1440x900 downsized raw input for thumbnail exports only if, accounting for internal cropping,
+    // it still produces a final thumbnail at least as large as the requested dimensions.
+    // This takes 30-350 ms depending on how the image cache is locked.
+    // Still worth it in most cases.
+    int theoritical_width;
+    int theoritical_height;
+    dt_dev_get_final_size(imgid, 1440, 900, &theoritical_width, &theoritical_height);
+    if(width <= theoritical_width && height <= theoritical_height)
+      size = DT_MIPMAP_F;
+  }
 
   dt_mipmap_cache_get(cache, &buf, imgid, size, DT_MIPMAP_BLOCKING, 'r');
 
@@ -1116,9 +1125,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   dt_show_times(&start, "[export] creating pixelpipe");
 
-  int width = MAX(format_params->max_width, 0);
-  int height = MAX(format_params->max_height, 0);
-  double scale = 1.;
   int processed_width = 0;
   int processed_height = 0;
   float origin[] = { 0.0f, 0.0f };
@@ -1126,7 +1132,6 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     goto error;
 
   const int bpp = format->bpp(format_params);
-
 
   // Run only one pixelpipe at a time because CPU memory I/O is our bottleneck
   // Anyway pixel code is parallelized/vectorized internally with OpenMP.

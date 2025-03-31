@@ -524,6 +524,10 @@ guint dt_dev_mask_history_overload(GList *dev_history, guint threshold);
 // Write the `darktable|changed` tag on the current picture upon history modification
 void dt_dev_append_changed_tag(const int32_t imgid);
 
+// Compute the theoritical final size of a pipeline taking the full-resolution image at input.
+// Note: this creates a dummy pipeline and develop object, but doesn't trigger file I/O.
+void dt_dev_get_final_size(const int32_t imgid, const int input_width, const int input_height, int *processed_width, int *processed_height);
+
 #ifdef __cplusplus
 }
 #endif
