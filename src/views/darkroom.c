@@ -2006,11 +2006,13 @@ void enter(dt_view_t *self)
   dt_view_active_images_reset(FALSE);
   dt_view_active_images_add(dev->image_storage.id, FALSE);
 
-  // save and clear selection, we don't want selections in darkroom
-  dt_selection_push(darktable.selection);
-  dt_selection_clear(darktable.selection);
-
+  // This gets the first selected ID to scroll where relevant, so
+  // runs it before clearing the selection
   dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_filmstrip);
+  gtk_widget_hide(darktable.gui->ui->thumbtable_lighttable->scroll_window);
+
+  // clear selection, we don't want selections in darkroom
+  dt_selection_clear(darktable.selection);
 
   /* connect signal for filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
@@ -2073,8 +2075,8 @@ void leave(dt_view_t *self)
   dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active", TRUE);
 
   // Restore the previous selection
+  dt_selection_select_single(darktable.selection, dt_view_active_images_get_first());
   dt_view_active_images_reset(FALSE);
-  dt_selection_pop(darktable.selection);
 
   // Now, cleanup the pipes and history
   dt_dev_history_auto_save(darktable.develop);

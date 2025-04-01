@@ -1170,6 +1170,8 @@ typedef enum dt_thumbtable_direction_t
 void _move_in_grid(dt_thumbtable_t *table, GdkEventKey *event, dt_thumbtable_direction_t direction, int origin_imgid)
 {
   if(!table->lut) return;
+  if(!gtk_widget_is_visible(table->scroll_window)) return;
+
   int current_rowid = _imgid_to_rowid(table, origin_imgid);
   int offset = 0;
 
@@ -1571,9 +1573,6 @@ void dt_thumbtable_cleanup(dt_thumbtable_t *table)
 
 void dt_thumbtable_update_parent(dt_thumbtable_t *table)
 {
-  // Reset the keyboard_over imgid
-  dt_control_set_keyboard_over_id(dt_control_get_mouse_over_id());
-
   // Ensure the default drawing area for views is hidden for lighttable and shown otherwise
   GtkWidget *drawing_area = dt_ui_center(darktable.gui->ui);
 
@@ -1581,7 +1580,6 @@ void dt_thumbtable_update_parent(dt_thumbtable_t *table)
   {
     gtk_widget_hide(drawing_area);
     gtk_widget_show(table->overlay_center);
-    dt_control_set_mouse_over_id(dt_selection_get_first_id(darktable.selection));
   }
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
@@ -1592,6 +1590,7 @@ void dt_thumbtable_update_parent(dt_thumbtable_t *table)
   dt_pthread_mutex_lock(&table->lock);
 
   const int32_t mouseover_imgid = dt_control_get_mouse_over_id();
+  dt_control_set_keyboard_over_id(mouseover_imgid);
 
   for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
   {
@@ -1604,15 +1603,7 @@ void dt_thumbtable_update_parent(dt_thumbtable_t *table)
 
       // There is no selection in filmstrip, only active images,
       // but we need to pass on the CSS states anyway.
-      if(thumb->imgid == mouseover_imgid)
-      {
-        dt_thumbnail_update_selection(thumb, TRUE);
-        table->rowid = thumb->rowid;
-      }
-      else
-      {
-        dt_thumbnail_update_selection(thumb, FALSE);
-      }
+      dt_thumbnail_update_selection(thumb, (thumb->imgid == mouseover_imgid));
     }
     else
     {
@@ -1623,9 +1614,12 @@ void dt_thumbtable_update_parent(dt_thumbtable_t *table)
   dt_pthread_mutex_unlock(&table->lock);
 
   dt_thumbtable_configure(table);
-  g_idle_add((GSourceFunc)dt_thumbtable_update, table);
-  g_idle_add((GSourceFunc) _grab_focus, table);
+  dt_thumbtable_update(table);
 
+  // selection might change by the time the GUI goes idle and
+  // scroll is performed. Save it now to active rowid
+  table->rowid = _imgid_to_rowid(table, mouseover_imgid);
+  g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_active_rowid, table);
 }
 
 void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
@@ -1766,6 +1760,8 @@ static gint64 next_over_time = 0;
 
 void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int32_t imgid)
 {
+  if(!gtk_widget_is_visible(table->scroll_window)) return;
+
   gint64 current_time = g_get_real_time(); // microseconds
   if(type == GDK_KEY_PRESS || type == GDK_KEY_RELEASE)
   {
