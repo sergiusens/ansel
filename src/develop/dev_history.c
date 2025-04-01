@@ -405,7 +405,7 @@ gboolean dt_history_copy_and_paste_on_image(const int32_t imgid, const int32_t d
   dt_control_save_xmp(dest_imgid);
 
   // signal that the mipmap need to be updated
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), dest_imgid, TRUE);
+  dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, dest_imgid, TRUE);
 
   return ret_val;
 }
@@ -1065,7 +1065,7 @@ void dt_dev_write_history_ext(dt_develop_t *dev, const int32_t imgid)
   // Don't refresh the thumbnail if we are in darkroom
   // Spawning another export thread will likely slow-down the current one.
   if(darktable.gui && dev != darktable.develop)
-    dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
+    dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, imgid, TRUE);
 
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED, g_list_append(NULL, GINT_TO_POINTER(imgid)));
 }

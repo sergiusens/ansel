@@ -2010,7 +2010,7 @@ void enter(dt_view_t *self)
   dt_selection_push(darktable.selection);
   dt_selection_clear(darktable.selection);
 
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILMSTRIP);
+  dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_filmstrip);
 
   /* connect signal for filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
@@ -2112,8 +2112,7 @@ void leave(dt_view_t *self)
   dev->allforms = NULL;
 
   // Fetch the new thumbnail if needed. Ensure it runs after we save history.
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILEMANAGER);
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), darktable.develop->image_storage.id, TRUE);
+  dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, darktable.develop->image_storage.id, TRUE);
   darktable.develop->image_storage.id = -1;
 
   dt_print(DT_DEBUG_CONTROL, "[run_job-] 11 %f in darkroom mode\n", dt_get_wtime());

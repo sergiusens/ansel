@@ -14,7 +14,7 @@ void select_all_callback()
 {
   if(!select_all_sensitive_callback()) return;
 
-  dt_thumbtable_select_all(dt_ui_thumbtable(darktable.gui->ui));
+  dt_thumbtable_select_all(darktable.gui->ui->thumbtable_lighttable);
 }
 
 
@@ -36,7 +36,7 @@ void clear_selection_callback()
 void invert_selection_callback()
 {
   if(!clear_selection_sensitive_callback()) return;
-  dt_thumbtable_invert_selection(dt_ui_thumbtable(darktable.gui->ui));
+  dt_thumbtable_invert_selection(darktable.gui->ui->thumbtable_lighttable);
 }
 
 void append_select(GtkWidget **menus, GList **lists, const dt_menus_t index)

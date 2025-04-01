@@ -83,7 +83,7 @@ static void clear_image_cache(GtkWidget *widget)
   g_list_free(selection);
 
   // Redraw thumbnails
-  dt_thumbtable_refresh_thumbnail(dt_ui_thumbtable(darktable.gui->ui), UNKNOWN_IMAGE, TRUE);
+  dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, UNKNOWN_IMAGE, TRUE);
 }
 
 

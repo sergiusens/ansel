@@ -95,7 +95,6 @@ static int set_image_visible_cb(lua_State *L)
     if(luaL_testudata(L, 1, "dt_lua_image_t"))
     {
       luaA_to(L, dt_lua_image_t, &imgid, 1);
-      dt_thumbtable_set_offset_image(dt_ui_thumbtable(darktable.gui->ui), imgid, TRUE);
       return 0;
     }
     else
@@ -117,7 +116,6 @@ static gboolean is_image_visible_cb(lua_State *L)
     if(luaL_testudata(L, 1, "dt_lua_image_t"))
     {
       luaA_to(L, dt_lua_image_t, &imgid, 1);
-      lua_pushboolean(L, dt_thumbtable_check_imgid_visibility(dt_ui_thumbtable(darktable.gui->ui), imgid));
       return 1;
     }
     else
@@ -145,7 +143,7 @@ static void _view_lighttable_activate_callback(gpointer instance, int32_t imgid,
 
 void configure(dt_view_t *self, int width, int height)
 {
-  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
   dt_thumbtable_configure(table);
   g_idle_add((GSourceFunc)dt_thumbtable_update, table);
 }
@@ -168,7 +166,7 @@ void enter(dt_view_t *self)
   dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "lighttable");
 
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILEMANAGER);
+  dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_lighttable);
 
   /* connect signal for thumbnail image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
@@ -208,9 +206,6 @@ void leave(dt_view_t *self)
 
   // ensure we have no active image remaining
   dt_view_active_images_reset(FALSE);
-
-  // This is useless if we are exiting the software but prevents some resizing glitches when entering other views
-  dt_thumbtable_set_parent(dt_ui_thumbtable(darktable.gui->ui), DT_THUMBTABLE_MODE_FILMSTRIP);
 
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_lighttable_activate_callback),

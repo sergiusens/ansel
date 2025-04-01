@@ -258,8 +258,7 @@ GtkWidget *dt_ui_center(dt_ui_t *ui);
 GtkWidget *dt_ui_center_base(dt_ui_t *ui);
 /** \brief get the main window widget */
 GtkWidget *dt_ui_main_window(dt_ui_t *ui);
-/** \brief get the thumb table */
-struct dt_thumbtable_t *dt_ui_thumbtable(dt_ui_t *ui);
+
 /** \brief get the log message widget */
 GtkWidget *dt_ui_log_msg(dt_ui_t *ui);
 /** \brief get the toast message widget */

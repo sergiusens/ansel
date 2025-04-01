@@ -98,7 +98,8 @@ typedef struct dt_ui_t
   GtkWidget *main_window;
 
   /* thumb table */
-  dt_thumbtable_t *thumbtable;
+  dt_thumbtable_t *thumbtable_lighttable;
+  dt_thumbtable_t *thumbtable_filmstrip;
 
   /* log msg and toast labels */
   GtkWidget *log_msg, *toast_msg;
@@ -116,7 +117,6 @@ void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s);
 gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
 GtkWidget *dt_ui_center(dt_ui_t *ui);
 GtkWidget *dt_ui_center_base(dt_ui_t *ui);
-dt_thumbtable_t *dt_ui_thumbtable(dt_ui_t *ui);
 GtkWidget *dt_ui_log_msg(dt_ui_t *ui);
 GtkWidget *dt_ui_toast_msg(dt_ui_t *ui);
 GtkWidget *dt_ui_main_window(dt_ui_t *ui);

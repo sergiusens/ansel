@@ -140,7 +140,8 @@ dt_thumbtable_t *dt_thumbtable_new();
 void dt_thumbtable_cleanup(dt_thumbtable_t *table);
 void dt_thumbtable_configure(dt_thumbtable_t *table);
 void dt_thumbtable_update(dt_thumbtable_t *table);
-void dt_thumbtable_set_parent(dt_thumbtable_t *table,dt_thumbtable_mode_t mode);
+void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode);
+void dt_thumbtable_update_parent(dt_thumbtable_t *table);
 
 // drag & drop receive function - handles dropping of files in the center view (files are added to the library)
 void dt_thumbtable_event_dnd_received(GtkWidget *widget, GdkDragContext *context, gint x, gint y, GtkSelectionData *selection_data, guint target_type, guint time, gpointer user_data);

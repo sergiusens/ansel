@@ -404,7 +404,7 @@ static void _culling_mode(GtkWidget *widget, gpointer data)
   dt_control_set_keyboard_over_id(imgid);
 
   // Force-rebuild the whole thumbtable on the next collection update
-  dt_thumbtable_reset_collection(dt_ui_thumbtable(darktable.gui->ui));
+  dt_thumbtable_reset_collection(darktable.gui->ui->thumbtable_lighttable);
 
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_UNDEF, NULL);
   DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_SELECTION_CHANGED);

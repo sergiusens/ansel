@@ -149,13 +149,13 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   // Reset zoom
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   gtk_combo_box_set_active(GTK_COMBO_BOX(d->zoom), 0);
-  dt_thumbtable_set_zoom(dt_ui_thumbtable(darktable.gui->ui), 0);
+  dt_thumbtable_set_zoom(darktable.gui->ui->thumbtable_lighttable, 0);
 }
 
 static void _zoom_combobox_changed(GtkWidget *widget, gpointer user_data)
 {
   int level = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-  dt_thumbtable_set_zoom(dt_ui_thumbtable(darktable.gui->ui), level);
+  dt_thumbtable_set_zoom(darktable.gui->ui->thumbtable_lighttable, level);
 }
 
 static void _jpg_combobox_changed(GtkWidget *widget, gpointer user_data)
@@ -187,7 +187,7 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
 
 void _focus_toggled(GtkToggleButton *self, gpointer user_data)
 {
-  dt_thumbtable_set_focus(dt_ui_thumbtable(darktable.gui->ui), gtk_toggle_button_get_active(self));
+  dt_thumbtable_set_focus(darktable.gui->ui->thumbtable_lighttable, gtk_toggle_button_get_active(self));
 }
 
 void gui_init(dt_lib_module_t *self)
@@ -269,7 +269,7 @@ void gui_init(dt_lib_module_t *self)
                                                       // it to 1 => empty text box
 
   // Wire a scroll event handler on thumbtable here. This avoids us a proxy
-  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
   g_signal_connect(G_OBJECT(table->scroll_window), "scroll-event", G_CALLBACK(_thumbtable_scroll), self);
 }
 
@@ -284,7 +284,7 @@ static void _set_columns(dt_lib_module_t *self, int columns)
 {
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   dt_conf_set_int("plugins/lighttable/images_in_row", columns);
-  dt_thumbtable_t *table = dt_ui_thumbtable(darktable.gui->ui);
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
 
   dt_thumbtable_set_active_rowid(table);
   dt_thumbtable_configure(table);
