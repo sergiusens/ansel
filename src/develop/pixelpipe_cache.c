@@ -35,6 +35,8 @@
 
 int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, int entries, size_t size)
 {
+  if(entries == 0) return 0;
+
   cache->entries = entries;
   cache->data = (void **)calloc(entries, sizeof(void *));
   cache->size = (size_t *)calloc(entries, sizeof(size_t));

@@ -1060,10 +1060,13 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     // Still worth it in most cases.
     int theoritical_width;
     int theoritical_height;
-    dt_dev_get_final_size(imgid, 1440, 900, &theoritical_width, &theoritical_height);
+    dt_dev_get_final_size(&dev, NULL, imgid, 1440, 900, &theoritical_width, &theoritical_height);
+    // NOTE: width and height may be set to 0 (aka full size) for non-thumbnail exports
     if(width <= theoritical_width && height <= theoritical_height)
       size = DT_MIPMAP_F;
+    // else size = DT_MIPMAP_FULL
   }
+  // else size = DT_MIPMAP_FULL
 
   dt_mipmap_cache_get(cache, &buf, imgid, size, DT_MIPMAP_BLOCKING, 'r');
 
@@ -1079,6 +1082,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   const float buf_iscale = buf.iscale;
   dt_mipmap_cache_release(cache, &buf);
 
+  // Redo an actual pipe init with actual input sizes
   int res = 0;
   dt_times_t start;
   dt_get_times(&start);
@@ -1091,7 +1095,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   if(!res)
   {
     dt_control_log(
-        _("failed to allocate memory for %s, please lower the threads used for export or buy more memory."),
+        _("failed to allocate memory for %s, please verify your memory settings or close some applications on your system."),
         thumbnail_export ? C_("noun", "thumbnail export") : C_("noun", "export"));
     goto error;
   }

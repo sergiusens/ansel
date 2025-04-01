@@ -185,7 +185,6 @@ int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t 
   pipe->processed_height = pipe->backbuf_height = pipe->iheight = 0;
   pipe->nodes = NULL;
   pipe->backbuf_size = size;
-  if(!dt_dev_pixelpipe_cache_init(&(pipe->cache), entries, pipe->backbuf_size)) return 0;
   pipe->backbuf = NULL;
   pipe->backbuf_scale = 0.0f;
   pipe->backbuf_zoom_x = 0.0f;
@@ -226,6 +225,7 @@ int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t 
   pipe->flush_cache = FALSE;
 
   dt_dev_pixelpipe_reset_reentry(pipe);
+  if(!dt_dev_pixelpipe_cache_init(&(pipe->cache), entries, pipe->backbuf_size)) return 0;
 
   return 1;
 }
@@ -2550,7 +2550,7 @@ gboolean dt_dev_pixelpipe_activemodule_disables_currentmodule(struct dt_develop_
 }
 
 void dt_dev_pixelpipe_get_roi_out(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev,
-                                  const int width_in, const int height_in, 
+                                  const int width_in, const int height_in,
                                   int *width, int *height)
 {
   dt_iop_roi_t roi_in = (dt_iop_roi_t){ 0, 0, width_in, height_in, 1.0 };
