@@ -35,8 +35,6 @@
 
 int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, int entries, size_t size)
 {
-  if(entries == 0) return 0;
-
   cache->entries = entries;
   cache->data = (void **)calloc(entries, sizeof(void *));
   cache->size = (size_t *)calloc(entries, sizeof(size_t));
@@ -82,8 +80,13 @@ alloc_memory_fail:
 
 void dt_dev_pixelpipe_cache_cleanup(dt_dev_pixelpipe_cache_t *cache)
 {
-  for(int k = 0; k < cache->entries; k++) dt_free_align(cache->data[k]);
-  free(cache->data);
+  if(!cache) return;
+  if(cache->data)
+  {
+    for(int k = 0; k < cache->entries; k++)
+      dt_free_align(cache->data[k]);
+    free(cache->data);
+  }
   free(cache->dsc);
   free(cache->hash);
   free(cache->used);
