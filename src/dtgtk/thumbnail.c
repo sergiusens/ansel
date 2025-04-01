@@ -482,6 +482,7 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
+  if(!gtk_widget_is_visible(thumb->widget)) return TRUE;
 
   // Ensure mouse_over_id is set because that's what darkroom uses to open a picture.
   // NOTE: Duplicate module uses that fucking thumbnail without a table...
@@ -683,6 +684,7 @@ static gboolean _event_main_motion(GtkWidget *widget, GdkEventMotion *event, gpo
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
+  if(!gtk_widget_is_visible(thumb->widget)) return TRUE;
   if(!thumb->mouse_over)
   {
     // Thumbnails send leave-notify when in the thumbnail frame but over the image.
@@ -704,6 +706,7 @@ static gboolean _event_main_enter(GtkWidget *widget, GdkEventCrossing *event, gp
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
+  if(!gtk_widget_is_visible(thumb->widget)) return TRUE;
 
   if(thumb->table)
     dt_thumbtable_dispatch_over(thumb->table, event->type, thumb->imgid);
@@ -719,6 +722,7 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
+  if(!gtk_widget_is_visible(thumb->widget)) return TRUE;
 
   if(thumb->table)
     dt_thumbtable_dispatch_over(thumb->table, event->type, -1);
