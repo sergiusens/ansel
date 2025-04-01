@@ -878,6 +878,11 @@ void dt_view_active_images_remove(int32_t imgid, gboolean raise)
   }
 }
 
+gboolean dt_view_active_images_has_imgid(int32_t imgid)
+{
+  return g_list_find(dt_view_active_images_get_all(), GINT_TO_POINTER(imgid)) != NULL;
+}
+
 GList *dt_view_active_images_get_all()
 {
   return darktable.view_manager->active_images;

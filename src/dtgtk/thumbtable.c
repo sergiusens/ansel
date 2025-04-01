@@ -92,8 +92,8 @@ static int _grab_focus(dt_thumbtable_t *table)
     // This can work only if the grid is mapped and realized, which we ensure
     // by wrapping that in a g_idle() method.
     gtk_widget_grab_focus(table->grid);
-    dt_thumbtable_scroll_to_selection(table);
   }
+  dt_thumbtable_scroll_to_selection(table);
   return 0;
 }
 
@@ -178,34 +178,34 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
 }
 
 
-static void _rowid_to_position(dt_thumbtable_t *table, int index, int *x, int *y)
+static void _rowid_to_position(dt_thumbtable_t *table, int rowid, int *x, int *y)
 {
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
-    int row = index / table->thumbs_per_row;  // euclidean division
-    int col = index % table->thumbs_per_row;
+    int row = rowid / table->thumbs_per_row;  // euclidean division
+    int col = rowid % table->thumbs_per_row;
     *x = col * table->thumb_width;
     *y = row * table->thumb_height;
   }
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
-    *x = index * table->thumb_width;
+    *x = rowid * table->thumb_width;
     *y = 0;
   }
 }
 
 // Needs updated table->x_position and table->y_position
-static int _position_to_rowid(dt_thumbtable_t *table)
+static int _position_to_rowid(dt_thumbtable_t *table, const double x, const double y)
 {
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
     // Attempt to get the image rowid sitting in the center of the middle row
-    return (table->y_position + table->view_height / 2) / table->thumb_height * table->thumbs_per_row
+    return (y + table->view_height / 2) / table->thumb_height * table->thumbs_per_row
       + table->thumbs_per_row / 2 - 1;
   }
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
-    return table->x_position + (table->view_width / 2.) / table->thumb_width;
+    return x + (table->view_width / 2.) / table->thumb_width;
   }
   return UNKNOWN_IMAGE;
 }
@@ -221,22 +221,24 @@ static gboolean _set_thumb_position(dt_thumbtable_t *table, dt_thumbnail_t *thum
 }
 
 // Updates table->x_position and table->y_position
-void dt_thumbtable_get_scroll_position(dt_thumbtable_t *table)
+void dt_thumbtable_get_scroll_position(dt_thumbtable_t *table, double *x, double *y)
 {
-  table->y_position = gtk_adjustment_get_value(table->v_scrollbar);
-  table->x_position = gtk_adjustment_get_value(table->h_scrollbar);
+  *y = gtk_adjustment_get_value(table->v_scrollbar);
+  *x = gtk_adjustment_get_value(table->h_scrollbar);
 }
 
 void dt_thumbtable_set_active_rowid(dt_thumbtable_t *table)
 {
-  dt_thumbtable_get_scroll_position(table);
-  table->rowid = _position_to_rowid(table);
+  double x = 0.;
+  double y = 0.;
+  dt_thumbtable_get_scroll_position(table, &x, &y);
+  table->rowid = _position_to_rowid(table, x, y);
 }
 
-static int dt_thumbtable_scroll_to_position(dt_thumbtable_t *table)
+static int dt_thumbtable_scroll_to_position(dt_thumbtable_t *table, const double x, const double y)
 {
-  gtk_adjustment_set_value(table->v_scrollbar, table->y_position);
-  gtk_adjustment_set_value(table->h_scrollbar, table->x_position);
+  gtk_adjustment_set_value(table->v_scrollbar, y);
+  gtk_adjustment_set_value(table->h_scrollbar, x);
   return 0;
 }
 
@@ -252,9 +254,9 @@ static void dt_thumbtable_scroll_to_rowid(dt_thumbtable_t *table, int rowid)
   y += table->thumb_height / 2;
 
   // Scroll viewport there
-  table->y_position = (double)y - (double)table->view_height / 2.;
-  table->x_position = (double)x - (double)table->view_width / 2.;
-  dt_thumbtable_scroll_to_position(table);
+  const double x_scroll = (double)x - (double)table->view_width / 2.;
+  const double y_scroll = (double)y - (double)table->view_height / 2.;
+  dt_thumbtable_scroll_to_position(table, x_scroll, y_scroll);
 }
 
 static int _find_rowid_from_imgid(dt_thumbtable_t *table, const int32_t imgid)
@@ -599,6 +601,11 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
   // Update visual states and flags. Mouse over is not connected to a signal and cheap to update
   dt_thumbnail_set_mouseover(thumb, (mouse_over == thumb->imgid));
   dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
+
+  if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
+    dt_thumbnail_update_selection(thumb, dt_view_active_images_has_imgid(thumb->imgid));
+  else if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+    dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
 }
 
 
@@ -1574,52 +1581,12 @@ void dt_thumbtable_cleanup(dt_thumbtable_t *table)
 void dt_thumbtable_update_parent(dt_thumbtable_t *table)
 {
   // Ensure the default drawing area for views is hidden for lighttable and shown otherwise
-  GtkWidget *drawing_area = dt_ui_center(darktable.gui->ui);
-
-  if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
-  {
-    gtk_widget_hide(drawing_area);
-    gtk_widget_show(table->overlay_center);
-  }
-  else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
-  {
-    gtk_widget_show(drawing_area);
-    gtk_widget_hide(table->overlay_center);
-  }
-
-  dt_pthread_mutex_lock(&table->lock);
-
-  const int32_t mouseover_imgid = dt_control_get_mouse_over_id();
-  dt_control_set_keyboard_over_id(mouseover_imgid);
-
-  for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
-  {
-    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
-    if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
-    {
-      // In filmstrip view, the overlay controls are too small to be
-      // usable, so we remove actions on them to prevent accidents
-      thumb->disable_actions = FALSE;
-
-      // There is no selection in filmstrip, only active images,
-      // but we need to pass on the CSS states anyway.
-      dt_thumbnail_update_selection(thumb, (thumb->imgid == mouseover_imgid));
-    }
-    else
-    {
-      // Restore selection when existing filmstrip
-      dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
-    }
-  }
-  dt_pthread_mutex_unlock(&table->lock);
+  gtk_widget_set_visible(dt_ui_center(darktable.gui->ui), table->mode != DT_THUMBTABLE_MODE_FILEMANAGER);
 
   dt_thumbtable_configure(table);
   dt_thumbtable_update(table);
 
-  // selection might change by the time the GUI goes idle and
-  // scroll is performed. Save it now to active rowid
-  table->rowid = _imgid_to_rowid(table, mouseover_imgid);
-  g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_active_rowid, table);
+  g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
 void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
@@ -1632,10 +1599,6 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     dt_gui_add_help_link(table->grid, dt_get_help_url("lighttable_filemanager"));
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_center), table->scroll_window);
-
-    gtk_widget_set_can_default(table->grid, TRUE);
-    gtk_widget_set_receives_default(table->grid, TRUE);
-    gtk_widget_grab_default(table->grid);
   }
   else if(mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
@@ -1643,9 +1606,6 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     dt_gui_add_help_link(table->grid, dt_get_help_url("filmstrip"));
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_filmstrip), table->scroll_window);
-
-    gtk_widget_set_can_default(table->grid, FALSE);
-    gtk_widget_set_receives_default(table->grid, FALSE);
   }
 
   gtk_widget_show(table->scroll_window);
@@ -1805,9 +1765,11 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
   if(!gtk_widget_has_focus(table->grid))
   {
     // But giving focus to the grid scrolls it back to top, so we have to re-scroll it after
-    dt_thumbtable_get_scroll_position(table);
+    double x = 0.;
+    double y = 0.;
+    dt_thumbtable_get_scroll_position(table, &x, &y);
     gtk_widget_grab_focus(table->grid);
-    dt_thumbtable_scroll_to_position(table);
+    dt_thumbtable_scroll_to_position(table, x, y);
   }
 }
 

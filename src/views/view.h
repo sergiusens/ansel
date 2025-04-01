@@ -311,6 +311,8 @@ void dt_view_active_images_reset(gboolean raise);
 void dt_view_active_images_set(GList *images, gboolean raise);
 void dt_view_active_images_add(int32_t imgid, gboolean raise);
 void dt_view_active_images_remove(int32_t imgid, gboolean raise);
+gboolean dt_view_active_images_has_imgid(int32_t imgid);
+
 GList *dt_view_active_images_get_all();
 int32_t dt_view_active_images_get_first();
 

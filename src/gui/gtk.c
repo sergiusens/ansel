@@ -640,6 +640,12 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   g_signal_connect(G_OBJECT(widget), "button-release-event", G_CALLBACK(_button_released), NULL);
   g_signal_connect(G_OBJECT(widget), "scroll-event", G_CALLBACK(_scrolled), NULL);
 
+
+  dt_thumbtable_t *table = gui->ui->thumbtable_lighttable;
+  gtk_widget_set_can_default(table->grid, TRUE);
+  gtk_widget_set_receives_default(table->grid, TRUE);
+  gtk_widget_grab_default(table->grid);
+
   dt_gui_presets_init();
 
   dt_colorspaces_set_display_profile(DT_COLORSPACE_DISPLAY);
