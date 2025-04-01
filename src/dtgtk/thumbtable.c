@@ -507,7 +507,7 @@ int _garbage_collection(dt_thumbtable_t *table)
 
     if(collect_garbage || !is_in_collection)
     {
-      dt_thumbnail_destroy(thumb);
+      g_idle_add((GSourceFunc)dt_thumbnail_destroy, thumb);
       table->list = g_list_delete_link(table->list, l);
       table->thumb_nb -= 1;
       count++;
@@ -1521,8 +1521,6 @@ dt_thumbtable_t *dt_thumbtable_new()
 }
 
 
-// Be careful where you call this because we loop on the list
-// in many places, so you might free something being looped on
 void _dt_thumbtable_empty_list(dt_thumbtable_t *table)
 {
   // Cleanup existing stuff

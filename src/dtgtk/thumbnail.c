@@ -1022,9 +1022,9 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int
   return thumb;
 }
 
-void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
+int dt_thumbnail_destroy(dt_thumbnail_t *thumb)
 {
-  thumb_return_if_fails(thumb);
+  thumb_return_if_fails(thumb, 0);
 
   // remove multiple delayed gtk_widget_queue_draw triggers
   while(g_idle_remove_by_data(thumb))
@@ -1051,6 +1051,8 @@ void dt_thumbnail_destroy(dt_thumbnail_t *thumb)
 
   free(thumb);
   thumb = NULL;
+
+  return 0;
 }
 
 void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
