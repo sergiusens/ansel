@@ -79,20 +79,20 @@ github.com/AlDanial/cloc v 2.02  T=227.18 s (2.9 files/s, 4772.1 lines/s)
 Language                      files          blank        comment           code
 --------------------------------------------------------------------------------
 C
- same                             0              0          22928         208021
- modified                       266              0            964           7059
- added                           19           2072           2955          18146
- removed                         48           6747           5243          51264
+ same                             0              0          22679         206655
+ modified                       266              0           1065           7568
+ added                           20           2173           3179          18999
+ removed                         48           6678           5391          52121
 C/C++ Header
- same                             0              0           5018          11746
- modified                        92              0            195            476
- added                           17            599            857           2565
- removed                          9            296            704           2487
+ same                             0              0           5221          12296
+ modified                       100              0            198            547
+ added                           17            726           1053           2901
+ removed                          9            300            743           2629
 C++
- same                             0              0            791           6746
- modified                         8              0             20            170
- added                            1            321            280           2210
- removed                          1            318            243           2020
+ same                             0              0            791           6731
+ modified                         8              0             20            177
+ added                            1            325            280           2205
+ removed                          1            320            243           2028
 CSS
  same                             0              0              0              0
  modified                         0              0              0              0
@@ -101,10 +101,10 @@ CSS
 ...
 --------------------------------------------------------------------------------
 SUM:
- same                             0              0          56961         491412
- modified                       486              0         111210          48363
- added                           88          15173          42295         121274
- removed                        186          25488          96370         187742
+ same                             0              0          56479         485138
+ modified                       495              0         108949          47745
+ added                           89          15405          40475         116326
+ removed                        186          25324          99358         195399
 --------------------------------------------------------------------------------
 ```
 
@@ -149,9 +149,9 @@ has also been reduced reduced:
 
 | Metric | Ansel Master | Darktable 4.0 | Darktable 5.0 |
 | ------ | -----------: | ------------: | ------------: |
-| Cyclomatic complexity | [48830](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_ansel) | [56170](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierre_darktable) | [59377](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_darktable-5) |
-| Cognitive complexity | [62033](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_ansel) | [72743](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierre_darktable) | [77039](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_darktable-5) |
-| Lines of code | [318890](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_ansel) | [361046](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierre_darktable) | [370781](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_darktable-5) |
+| Cyclomatic complexity | [48860](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_ansel) | [56170](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierre_darktable) | [59377](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_darktable-5) |
+| Cognitive complexity | [62042](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_ansel) | [72743](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierre_darktable) | [77039](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_darktable-5) |
+| Lines of code | [318912](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_ansel) | [361046](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierre_darktable) | [370781](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_darktable-5) |
 | Ratio of comments | [12.3%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierreeng_ansel) | [11.5%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierre_darktable) | [11.7%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierreeng_darktable-5) |
 
 Those figures are indirect indicators of the long-term maintainability of the project:
@@ -229,3 +229,420 @@ The following have been measured on battery, in powersave mode, with the applica
 | Darkroom   | 1.8 % CPU, power: 10.3 mW | 1.8 % CPU, power: 22 mW |
 
 TL;DR: Darktable is leaking performance by the GUI, and the tedious work done in 2023-2024 on optimizing pixel processing modules for an extra 15-50 ms is completely irrelevant.
+
+## Contributors
+
+Github doesn't show anymore the contributions for repositories having more than 10.000 commits…
+
+### Number of commits
+
+#### Since forever
+
+```bash
+$ git shortlog -sn --no-merges
+  4295  Pascal Obry
+  3597  johannes hanika
+  2565  Aurélien PIERRE
+  2127  Tobias Ellinghaus
+  2083  Roman Lebedev
+  1757  Henrik Andersson
+  1527  Ulrich Pegelow
+  1250  Aldric Renaudin
+   948  Pascal de Bruijn
+   841  Pedro Côrte-Real
+   692  Ralf Brown
+   604  Jérémy Rosen
+   601  Dan Torop
+   566  Diederik ter Rahe
+   546  Philippe Weyland
+   516  Hanno Schwalm
+   430  Hubert Kowalski
+   355  parafin
+   331  Ger Siemerink
+   286  Chris.Elston
+   283  Jeronimo Pellegrini
+   276  rawfiner
+   243  Nicolas Auffray
+   236  José Carlos García Sogo
+   207  Andreas Schneider
+   200  EdgarLux
+   195  Robert Bieber
+   192  Michel Leblond
+   183  Richard Levitte
+   180  Heiko Bauke
+   172  Edouard Gomez
+   162  Stefan Schöfegger
+   155  edgardoh
+   140  Miloš Komarčević
+   126  Peter Budai
+   122  Victor Forsiuk
+   103  Bill Ferguson
+   101  Simon Spannagel
+   100  Alynx Zhou
+    93  Jean-Sébastien Pédron
+    90  Martin Straeten
+    83  Olivier Tribout
+    76  Alexandre Prokoudine
+    73  Mark-64
+    67  Bruce Guenter
+    66  Sakari Kapanen
+    61  Timur Davletshin
+    55  Matthieu Moy
+    55  bartokk
+    50  Rostyslav Pidgornyi
+    49  Chris Elston
+    48  Moritz Lipp
+    48  tatica
+    44  Dennis Gnad
+    43  Marco Carrarini
+    42  Christian Tellefsen
+    41  Josep V. Moragues
+    39  Matt Maguire
+    38  Matthieu Volat
+    38  Maurizio Paglia
+    36  Daniel Vogelbacher
+    36  Jakub Filipowicz
+    35  Thomas Pryds
+    32  David-Tillmann Schaefer
+    32  GrahamByrnes
+    32  Harold le Clément de Saint-Marcq
+    31  Marco
+    30  Guillaume Stutin
+    30  marcel
+    28  wpferguson
+    27  HansBull
+    27  Kaminsky Andrey
+    27  Matjaž Jeran
+    25  mepi0011
+    25  shlomi braitbart
+    24  Michal Babej
+    23  lhietal
+    22  quovadit
+    21  Antony Dovgal
+    21  Jacques Le Clerc
+    21  Milan Knížek
+    20  Sam Smith
+    19  Richard Wonka
+    19  Ryo Shinozaki
+    18  Jiyone
+    18  Rikard Öxler
+    18  darkelectron
+    17  Guillaume Marty
+    16  Alexis Mousset
+    16  Báthory Péter
+    16  Dimitrios Psychogios
+    16  José Carlos Casimiro
+    16  Wolfgang Goetz
+    15  Guilherme Brondani Torri
+    15  U-DESKTOP-HQME86J\marco
+    15  Vasyl Tretiakov
+    15  Vincent THOMAS
+    14  Brian Teague
+    14  Frédéric Grollier
+    14  lologor
+    14  luzpaz
+    13  Kevin Vermassen
+    13  Marcus Gama
+    13  Novy Sawai
+    13  Philipp Lutz
+    13  Robert Bridge
+    12  Germano Massullo
+    12  James C. McPherson
+    12  Victor Lamoine
+    11  Andrew Toskin
+    11  Eckhart Pedersen
+    11  Felipe Contreras
+    11  Mikko Ruohola
+    10  Asma
+    10  Bernd Steinhauser
+    10  Kanstantsin Shautsou
+    10  Martin Burri
+    10  Serkan ÖNDER
+    10  Tomasz Golinski
+    10  Victor Engmark
+    10  Wyatt Olson
+    10  junkyardsparkle
+    10  thisnamewasnottaken
+     9  Arnaud TANGUY
+     9  Fabio Heer
+     9  JohnnyRun
+     9  Loic Guibert
+     9  Paolo DePetrillo
+     9  Žilvinas Žaltiena
+     8  Benoit Brummer
+     8  Dušan Kazik
+     8  Jan Kundrát
+     8  Jochen Schroeder
+     8  Matteo Mardegan
+     8  Petr Styblo
+     8  Robert William Hutton
+     8  Roman Khatko
+     8  Stuart Henderson
+     8  itinerarium
+     8  luz paz
+     8  vertama
+     8  vrnhgd
+     7  Ammon Riley
+     7  Chris Hodapp
+     7  David Bremner
+     7  Gaspard Jankowiak
+     7  Ivan Tarozzi
+     7  Jim Robinson
+     7  Marcello Mamino
+     7  Marcus Rückert
+     7  Richard Hughes
+     7  calca
+     7  elstoc
+     7  篠崎亮　Ryo Shinozaki
+     6  Artur de Sousa Rocha
+     6  Cherrot Luo
+     6  Christian Himpel
+     6  Denis Dyakov
+     6  Dominik Markiewicz
+     6  Guillaume Benny
+     6  Harald
+     6  Jesper Pedersen
+     6  Maximilian Trescher
+     6  Petr Stasiak
+     6  Pierre Lamot
+     6  Sergey Pavlov
+     6  Stephan Hoek
+     6  Wolfgang Mader
+     6  grand-piano
+     6  piratenpanda
+     6  solarer
+     5  August Schwerdfeger
+     5  JP Verrue
+     5  Johanes Schneider
+     5  K. Adam Christensen
+     5  Karl Mikaelsson
+     5  Luca Zulberti
+     5  Matthias Gehre
+     5  Matthias Vogelgesang
+     5  Simon Legner
+     5  Tianhao Chai
+     5  Torsten Bronger
+     5  matt-maguire
+```
+
+#### Since forking Ansel
+
+```bash
+$ git shortlog -sn --no-merges --since "JUN 1 2022"
+  1576  Aurélien PIERRE
+   100  Alynx Zhou
+    30  Guillaume Stutin
+    24  Hanno Schwalm
+    18  Jiyone
+    17  Guillaume Marty
+    14  lologor
+    11  Miloš Komarčević
+    10  Sakari Kapanen
+     9  Maurizio Paglia
+     9  Victor Forsiuk
+     6  Pascal Obry
+     5  Luca Zulberti
+     4  Alban Gruin
+     4  Ricky Moon
+     3  Sidney Markowitz
+     2  Diederik ter Rahe
+     2  Marrony Neris
+     2  Miguel Moquillon
+     2  Roman Neuhauser
+     2  parafin
+     1  Aldric Renaudin
+     1  André Doherty
+     1  Chris Elston
+     1  Germano Massullo
+     1  Jehan Singh
+     1  Marc Cousin
+     1  Philippe Weyland
+     1  Ralf Brown
+     1  Roman Lebedev
+     1  naveen
+     1  realSpok
+     1  tatu
+```
+
+#### Before forking Ansel (Darktable legacy)
+
+```bash
+$ git shortlog -sn --no-merges --before "JUN 1 2022"
+  4289  Pascal Obry
+  3597  johannes hanika
+  2127  Tobias Ellinghaus
+  2082  Roman Lebedev
+  1757  Henrik Andersson
+  1527  Ulrich Pegelow
+  1249  Aldric Renaudin
+   989  Aurélien PIERRE
+   948  Pascal de Bruijn
+   841  Pedro Côrte-Real
+   691  Ralf Brown
+   604  Jérémy Rosen
+   601  Dan Torop
+   564  Diederik ter Rahe
+   545  Philippe Weyland
+   492  Hanno Schwalm
+   430  Hubert Kowalski
+   353  parafin
+   331  Ger Siemerink
+   286  Chris.Elston
+   283  Jeronimo Pellegrini
+   276  rawfiner
+   243  Nicolas Auffray
+   236  José Carlos García Sogo
+   207  Andreas Schneider
+   200  EdgarLux
+   195  Robert Bieber
+   192  Michel Leblond
+   183  Richard Levitte
+   180  Heiko Bauke
+   172  Edouard Gomez
+   162  Stefan Schöfegger
+   155  edgardoh
+   129  Miloš Komarčević
+   126  Peter Budai
+   113  Victor Forsiuk
+   103  Bill Ferguson
+   101  Simon Spannagel
+    93  Jean-Sébastien Pédron
+    90  Martin Straeten
+    83  Olivier Tribout
+    76  Alexandre Prokoudine
+    73  Mark-64
+    67  Bruce Guenter
+    61  Timur Davletshin
+    56  Sakari Kapanen
+    55  Matthieu Moy
+    55  bartokk
+    50  Rostyslav Pidgornyi
+    48  Chris Elston
+    48  Moritz Lipp
+    48  tatica
+    44  Dennis Gnad
+    43  Marco Carrarini
+    42  Christian Tellefsen
+    41  Josep V. Moragues
+    39  Matt Maguire
+    38  Matthieu Volat
+    36  Daniel Vogelbacher
+    36  Jakub Filipowicz
+    35  Thomas Pryds
+    32  David-Tillmann Schaefer
+    32  GrahamByrnes
+    32  Harold le Clément de Saint-Marcq
+    31  Marco
+    30  marcel
+    29  Maurizio Paglia
+    28  wpferguson
+    27  HansBull
+    27  Kaminsky Andrey
+    27  Matjaž Jeran
+    25  mepi0011
+    25  shlomi braitbart
+    24  Michal Babej
+    23  lhietal
+    22  quovadit
+    21  Antony Dovgal
+    21  Jacques Le Clerc
+    21  Milan Knížek
+    20  Sam Smith
+    19  Richard Wonka
+    19  Ryo Shinozaki
+    18  Rikard Öxler
+    18  darkelectron
+    16  Alexis Mousset
+    16  Báthory Péter
+    16  Dimitrios Psychogios
+    16  José Carlos Casimiro
+    16  Wolfgang Goetz
+    15  Guilherme Brondani Torri
+    15  U-DESKTOP-HQME86J\marco
+    15  Vasyl Tretiakov
+    15  Vincent THOMAS
+    14  Brian Teague
+    14  Frédéric Grollier
+    14  luzpaz
+    13  Kevin Vermassen
+    13  Marcus Gama
+    13  Novy Sawai
+    13  Philipp Lutz
+    13  Robert Bridge
+    12  James C. McPherson
+    12  Victor Lamoine
+    11  Andrew Toskin
+    11  Eckhart Pedersen
+    11  Felipe Contreras
+    11  Germano Massullo
+    11  Mikko Ruohola
+    10  Asma
+    10  Bernd Steinhauser
+    10  Kanstantsin Shautsou
+    10  Martin Burri
+    10  Serkan ÖNDER
+    10  Tomasz Golinski
+    10  Victor Engmark
+    10  Wyatt Olson
+    10  junkyardsparkle
+    10  thisnamewasnottaken
+     9  Arnaud TANGUY
+     9  Fabio Heer
+     9  JohnnyRun
+     9  Loic Guibert
+     9  Paolo DePetrillo
+     9  Žilvinas Žaltiena
+     8  Benoit Brummer
+     8  Dušan Kazik
+     8  Jan Kundrát
+     8  Jochen Schroeder
+     8  Matteo Mardegan
+     8  Petr Styblo
+     8  Robert William Hutton
+     8  Roman Khatko
+     8  Stuart Henderson
+     8  itinerarium
+     8  luz paz
+     8  vertama
+     8  vrnhgd
+     7  Ammon Riley
+     7  Chris Hodapp
+     7  David Bremner
+     7  Gaspard Jankowiak
+     7  Ivan Tarozzi
+     7  Jim Robinson
+     7  Marcello Mamino
+     7  Marcus Rückert
+     7  Richard Hughes
+     7  calca
+     7  elstoc
+     7  篠崎亮　Ryo Shinozaki
+     6  Artur de Sousa Rocha
+     6  Cherrot Luo
+     6  Christian Himpel
+     6  Denis Dyakov
+     6  Dominik Markiewicz
+     6  Guillaume Benny
+     6  Harald
+     6  Jesper Pedersen
+     6  Maximilian Trescher
+     6  Petr Stasiak
+     6  Pierre Lamot
+     6  Sergey Pavlov
+     6  Stephan Hoek
+     6  Wolfgang Mader
+     6  grand-piano
+     6  piratenpanda
+     6  solarer
+     5  August Schwerdfeger
+     5  JP Verrue
+     5  Johanes Schneider
+     5  K. Adam Christensen
+     5  Karl Mikaelsson
+     5  Matthias Gehre
+     5  Matthias Vogelgesang
+     5  Simon Legner
+     5  Tianhao Chai
+     5  Torsten Bronger
+     5  matt-maguire
+```
