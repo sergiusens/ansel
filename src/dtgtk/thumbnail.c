@@ -778,7 +778,6 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   // Children buttons will mostly only use button pressed/released events
   thumb->widget = gtk_event_box_new();
   dt_gui_add_class(thumb->widget, "thumb-main");
-  gtk_event_box_set_above_child(GTK_EVENT_BOX(thumb->widget), TRUE);
   gtk_widget_set_events(thumb->widget, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK | GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
   // this is only here to ensure that mouse-over value is updated correctly
