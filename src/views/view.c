@@ -740,12 +740,12 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
     }
   }
   pthread_rwlock_unlock(&darktable.color_profiles->xprofile_lock);
+  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
 
   const int32_t stride = cairo_format_stride_for_width(CAIRO_FORMAT_RGB24, buf_wd);
   cairo_surface_t *tmp_surface = cairo_image_surface_create_for_data(rgbbuf, CAIRO_FORMAT_RGB24, buf_wd, buf_ht, stride);
   if(!tmp_surface)
   {
-    dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
     free(rgbbuf);
     return ret;
   }
@@ -778,12 +778,9 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   // we consider skull as ok as the image hasn't to be reloaded
   if(buf_wd <= 8 && buf_ht <= 8)
     ret = DT_VIEW_SURFACE_OK;
-  else if(mip != buf.size)
-    ret = DT_VIEW_SURFACE_SMALLER;
   else
     ret = DT_VIEW_SURFACE_OK;
 
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
   if(rgbbuf) free(rgbbuf);
 
   // logs

@@ -93,7 +93,6 @@ typedef enum dt_view_surface_value_t
 {
   DT_VIEW_SURFACE_OK = 0,
   DT_VIEW_SURFACE_KO,
-  DT_VIEW_SURFACE_SMALLER
 } dt_view_surface_value_t;
 
 typedef struct dt_mouse_action_t
