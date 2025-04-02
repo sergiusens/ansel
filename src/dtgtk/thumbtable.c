@@ -452,17 +452,15 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
 
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
-    GtkWidget *parent = table->overlay_center;
-    new_width = gtk_widget_get_allocated_width(parent);
-    new_height = gtk_widget_get_allocated_height(parent);
+    new_width = gtk_widget_get_allocated_width(table->parent_overlay);
+    new_height = gtk_widget_get_allocated_height(table->parent_overlay);
     GtkWidget *v_scroll = gtk_scrolled_window_get_vscrollbar(GTK_SCROLLED_WINDOW(table->scroll_window));
     new_width -= gtk_widget_get_allocated_width(v_scroll);
     cols = dt_conf_get_int("plugins/lighttable/images_in_row");
   }
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
-    GtkWidget *parent = table->overlay_filmstrip;
-    new_width = gtk_widget_get_allocated_width(parent);
+    new_width = gtk_widget_get_allocated_width(table->parent_overlay);
     new_height = dt_conf_get_int("darkroom/ui/0/bottom_size");
     GtkWidget *h_scroll = gtk_scrolled_window_get_hscrollbar(GTK_SCROLLED_WINDOW(table->scroll_window));
     new_height -= gtk_widget_get_allocated_height(h_scroll);
@@ -1441,7 +1439,7 @@ gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gpointer 
 }
 
 
-dt_thumbtable_t *dt_thumbtable_new()
+dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
 {
   dt_thumbtable_t *table = (dt_thumbtable_t *)calloc(1, sizeof(dt_thumbtable_t));
 
@@ -1529,9 +1527,7 @@ dt_thumbtable_t *dt_thumbtable_new()
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE,
                             G_CALLBACK(_mouse_over_image_callback), table);
 
-
-  table->overlay_center = gtk_overlay_new();
-  table->overlay_filmstrip = gtk_overlay_new();
+  dt_thumbtable_set_parent(table, mode);
 
   return table;
 }
@@ -1587,28 +1583,26 @@ void dt_thumbtable_cleanup(dt_thumbtable_t *table)
 
 void dt_thumbtable_update_parent(dt_thumbtable_t *table)
 {
-  // Ensure the default drawing area for views is hidden for lighttable and shown otherwise
-  gtk_widget_set_visible(dt_ui_center(darktable.gui->ui), table->mode != DT_THUMBTABLE_MODE_FILEMANAGER);
   g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
 void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
 {
   table->mode = mode;
+  table->parent_overlay = gtk_overlay_new();
+  gtk_overlay_add_overlay(GTK_OVERLAY(table->parent_overlay), table->scroll_window);
 
   if(mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
     gtk_widget_set_name(table->grid, "thumbtable-filemanager");
     dt_gui_add_help_link(table->grid, dt_get_help_url("lighttable_filemanager"));
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_NEVER, GTK_POLICY_ALWAYS);
-    gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_center), table->scroll_window);
   }
   else if(mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
     gtk_widget_set_name(table->grid, "thumbtable-filmstrip");
     dt_gui_add_help_link(table->grid, dt_get_help_url("filmstrip"));
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
-    gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_filmstrip), table->scroll_window);
   }
 }
 

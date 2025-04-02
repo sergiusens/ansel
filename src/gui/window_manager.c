@@ -619,13 +619,12 @@ static void _ui_init_panel_bottom(dt_ui_t *ui, GtkWidget *container)
 {
   /* create the panel box */
   GtkWidget *over = gtk_overlay_new();
-  ui->thumbtable_filmstrip = dt_thumbtable_new();
-  gtk_container_add(GTK_CONTAINER(over), ui->thumbtable_filmstrip->overlay_filmstrip);
-  dt_thumbtable_set_parent(ui->thumbtable_filmstrip, DT_THUMBTABLE_MODE_FILMSTRIP);
+  ui->thumbtable_filmstrip = dt_thumbtable_new(DT_THUMBTABLE_MODE_FILMSTRIP);
+  gtk_container_add(GTK_CONTAINER(over), ui->thumbtable_filmstrip->parent_overlay);
 
-  ui->panels[DT_UI_PANEL_BOTTOM] = ui->thumbtable_filmstrip->overlay_filmstrip;
-  gtk_widget_set_name(ui->thumbtable_filmstrip->overlay_filmstrip, "bottom");
-  _ui_init_panel_size(ui->thumbtable_filmstrip->overlay_filmstrip);
+  ui->panels[DT_UI_PANEL_BOTTOM] = ui->thumbtable_filmstrip->parent_overlay;
+  gtk_widget_set_name(ui->thumbtable_filmstrip->parent_overlay, "bottom");
+  _ui_init_panel_size(ui->thumbtable_filmstrip->parent_overlay);
   gtk_grid_attach(GTK_GRID(container), over, 1, 2, 3, 1);
 
   // we add a transparent overlay over the modules margins to resize the panel
@@ -673,7 +672,7 @@ void dt_ui_init_main_table(GtkWidget *parent, dt_ui_t *ui)
   _ui_init_panel_center_top(ui, widget);
 
   /* initialize the thumb panel */
-  ui->thumbtable_lighttable = dt_thumbtable_new();
+  ui->thumbtable_lighttable = dt_thumbtable_new(DT_THUMBTABLE_MODE_FILEMANAGER);
 
   /* setup center drawing area */
   GtkWidget *ocda = gtk_overlay_new();
@@ -692,8 +691,7 @@ void dt_ui_init_main_table(GtkWidget *parent, dt_ui_t *ui)
   // Add the reserved overlay for the thumbtable in central position
   // Then we insert into container, instead of dynamically adding/removing a new overlay
   // because log and toast messages need to go on top too.
-  gtk_overlay_add_overlay(GTK_OVERLAY(ocda), ui->thumbtable_lighttable->overlay_center);
-  dt_thumbtable_set_parent(ui->thumbtable_lighttable, DT_THUMBTABLE_MODE_FILEMANAGER);
+  gtk_overlay_add_overlay(GTK_OVERLAY(ocda), ui->thumbtable_lighttable->parent_overlay);
 
   gtk_box_pack_start(GTK_BOX(widget), ocda, TRUE, TRUE, 0);
 

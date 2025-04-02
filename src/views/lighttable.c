@@ -169,6 +169,7 @@ void enter(dt_view_t *self)
 
   dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_lighttable);
   dt_thumbtable_show(darktable.gui->ui->thumbtable_lighttable);
+  gtk_widget_hide(dt_ui_center(darktable.gui->ui));
 
   /* connect signal for thumbnail image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
@@ -210,6 +211,7 @@ void leave(dt_view_t *self)
   dt_view_active_images_reset(FALSE);
 
   dt_thumbtable_hide(darktable.gui->ui->thumbtable_lighttable);
+  gtk_widget_show(dt_ui_center(darktable.gui->ui));
 
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_lighttable_activate_callback),

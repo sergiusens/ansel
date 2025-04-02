@@ -107,9 +107,8 @@ typedef struct dt_thumbtable_t
   double x_position;
   double y_position;
 
-  // Overlays in which we insert the grid, in central view and filmstrip
-  GtkWidget *overlay_center;
-  GtkWidget *overlay_filmstrip;
+  // Overlay in which we insert the grid, in central view and filmstrip
+  GtkWidget *parent_overlay;
 
   // Since GUI and background signals can init/delete/populate/iterate over the same stuff,
   // ensure iterations don't happen on stuff being deleted at the same time.
@@ -139,7 +138,7 @@ typedef struct dt_thumbtable_t
 } dt_thumbtable_t;
 
 
-dt_thumbtable_t *dt_thumbtable_new();
+dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode);
 void dt_thumbtable_cleanup(dt_thumbtable_t *table);
 void dt_thumbtable_configure(dt_thumbtable_t *table);
 void dt_thumbtable_update(dt_thumbtable_t *table);
@@ -201,6 +200,7 @@ static inline void dt_thumbtable_redraw_real(dt_thumbtable_t *table)
 
 static inline void dt_thumbtable_show(dt_thumbtable_t *table)
 {
+  gtk_widget_show(table->parent_overlay);
   gtk_widget_show(table->scroll_window);
 
   // Thumbtable is prevented to configure and update, for
@@ -210,6 +210,7 @@ static inline void dt_thumbtable_show(dt_thumbtable_t *table)
 
 static inline void dt_thumbtable_hide(dt_thumbtable_t *table)
 {
+  gtk_widget_hide(table->parent_overlay);
   gtk_widget_hide(table->scroll_window);
 }
 

@@ -115,6 +115,9 @@ int dt_ui_panel_get_size(dt_ui_t *ui, const dt_ui_panel_t p);
 void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s);
 
 gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
+
+// Drawing area used to paint background image.
+// Hide it in lighttable mode.
 GtkWidget *dt_ui_center(dt_ui_t *ui);
 GtkWidget *dt_ui_center_base(dt_ui_t *ui);
 GtkWidget *dt_ui_log_msg(dt_ui_t *ui);
