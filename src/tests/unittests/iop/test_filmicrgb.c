@@ -69,7 +69,7 @@ static void test_name(void **state)
 
 static void test_default_group(void **state)
 {
-  assert_int_equal(default_group(), IOP_GROUP_TONE | IOP_GROUP_TECHNICAL);
+  assert_int_equal(default_group(), IOP_GROUP_TONES | IOP_GROUP_TECHNICAL);
 }
 
 static void test_clamp_simd(void **state)
@@ -529,4 +529,3 @@ int main(int argc, char* argv[])
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
