@@ -423,6 +423,10 @@ static inline GtkWindow *dt_gtk_get_window(GtkWidget *widget)
 }
 
 
+// Give back the focus to the main/center widget, either
+// image in darkroom or thumbtable in lighttable
+void dt_gui_refocus_center();
+
 #ifdef __cplusplus
 }
 #endif

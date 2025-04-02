@@ -1853,8 +1853,7 @@ static gboolean _text_entry_key_pressed(GtkWidget *widget, GdkEventKey *event, g
 {
   if(event->keyval == GDK_KEY_Escape)
   {
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
-    gtk_widget_grab_default(dt_ui_center(darktable.gui->ui));
+    dt_gui_refocus_center();
     return TRUE;
   }
   return FALSE;
@@ -1866,6 +1865,29 @@ void dt_accels_disconnect_on_text_input(GtkWidget *widget)
   g_signal_connect(G_OBJECT(widget), "focus-in-event", G_CALLBACK(_text_entry_focus_in_event), NULL);
   g_signal_connect(G_OBJECT(widget), "focus-out-event", G_CALLBACK(_text_entry_focus_out_event), NULL);
   g_signal_connect(G_OBJECT(widget), "key-press-event", G_CALLBACK(_text_entry_key_pressed), NULL);
+}
+
+
+void dt_gui_refocus_center()
+{
+  // Refocus window, useful if we just closed a popup/modal/transient
+  gtk_window_present_with_time(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), GDK_CURRENT_TIME);
+  gtk_widget_grab_focus(dt_ui_main_window(darktable.gui->ui));
+
+  const char *current_view = dt_view_manager_name(darktable.view_manager);
+  if(g_strcmp0(current_view, "lighttable"))
+  {
+    gtk_widget_grab_focus(darktable.gui->ui->thumbtable_lighttable->grid);
+    gtk_widget_grab_default(darktable.gui->ui->thumbtable_lighttable->grid);
+  }
+  else
+  {
+    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+    gtk_widget_grab_default(dt_ui_center(darktable.gui->ui));
+  }
+
+  // Be sure to re-enable accelerators
+  dt_accels_disable(darktable.gui->accels, FALSE);
 }
 
 // clang-format off

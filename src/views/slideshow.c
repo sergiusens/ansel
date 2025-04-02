@@ -444,7 +444,7 @@ void enter(dt_view_t *self)
   // restart from beginning, will first increment counter by step and then prefetch
   dt_pthread_mutex_unlock(&d->lock);
 
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  dt_gui_refocus_center();
 
   // start first job
   dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_BG, process_job_create(d));

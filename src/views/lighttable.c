@@ -155,7 +155,7 @@ void enter(dt_view_t *self)
   dt_view_active_images_reset(FALSE);
 
   dt_undo_clear(darktable.undo, DT_UNDO_LIGHTTABLE);
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  dt_gui_refocus_center();
   dt_collection_hint_message(darktable.collection);
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_RIGHT, FALSE, TRUE);
   dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_BOTTOM, FALSE, TRUE);

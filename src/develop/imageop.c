@@ -308,7 +308,7 @@ int default_iop_focus(dt_gui_module_t *m, gboolean toggle)
   {
     darktable.develop->gui_module = NULL;
     dt_iop_gui_set_expanded(module, FALSE, TRUE);
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+    dt_gui_refocus_center();
   }
 
   return 1;
@@ -498,7 +498,7 @@ static void _gui_delete_callback(GtkButton *button, dt_iop_module_t *module)
                           module->expander, -1);
 
     dt_iop_gui_cleanup_module(module);
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+    dt_gui_refocus_center();
     gtk_widget_destroy(module->widget);
   }
 
@@ -1851,7 +1851,7 @@ void dt_iop_request_focus(dt_iop_module_t *module)
       out_focus_module->gui_focus(out_focus_module, FALSE);
 
     dt_iop_color_picker_reset(out_focus_module, TRUE);
-    gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+    dt_gui_refocus_center();
 
     gtk_widget_set_state_flags(dt_iop_gui_get_pluginui(out_focus_module), GTK_STATE_FLAG_NORMAL, TRUE);
 

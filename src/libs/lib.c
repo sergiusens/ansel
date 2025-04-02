@@ -1169,14 +1169,14 @@ void dt_lib_colorpicker_set_box_area(dt_lib_t *lib, const dt_boundingbox_t box)
 {
   if(!lib->proxy.colorpicker.module || !lib->proxy.colorpicker.set_sample_box_area) return;
   lib->proxy.colorpicker.set_sample_box_area(lib->proxy.colorpicker.module, box);
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  dt_gui_refocus_center();
 }
 
 void dt_lib_colorpicker_set_point(dt_lib_t *lib, const float pos[2])
 {
   if(!lib->proxy.colorpicker.module || !lib->proxy.colorpicker.set_sample_point) return;
   lib->proxy.colorpicker.set_sample_point(lib->proxy.colorpicker.module, pos);
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  dt_gui_refocus_center();
 }
 
 dt_lib_module_t *dt_lib_get_module(const char *name)

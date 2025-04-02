@@ -1990,7 +1990,7 @@ void enter(dt_view_t *self)
   dt_image_check_camera_missing_sample(&dev->image_storage);
 
   // Reset focus to center view
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  dt_gui_refocus_center();
 
   // Attach shortcuts to new widgets
   dt_accels_connect_accels(darktable.gui->accels);

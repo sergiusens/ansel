@@ -364,7 +364,7 @@ void enter(dt_view_t *self)
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
                             G_CALLBACK(_view_print_filmstrip_activate_callback), self);
 
-  gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
+  dt_gui_refocus_center();
 
   GtkWidget *widget = dt_ui_center(darktable.gui->ui);
 

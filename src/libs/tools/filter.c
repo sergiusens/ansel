@@ -272,14 +272,14 @@ gboolean _focus_search_action(GtkAccelGroup *accel_group, GObject *accelerable, 
 }
 
 const dt_collection_filter_flag_t colors[6] =
-  {
-    COLLECTION_FILTER_WHITE,
-    COLLECTION_FILTER_RED,
-    COLLECTION_FILTER_YELLOW,
-    COLLECTION_FILTER_GREEN,
-    COLLECTION_FILTER_BLUE,
-    COLLECTION_FILTER_MAGENTA,};
-
+{
+  COLLECTION_FILTER_WHITE,
+  COLLECTION_FILTER_RED,
+  COLLECTION_FILTER_YELLOW,
+  COLLECTION_FILTER_GREEN,
+  COLLECTION_FILTER_BLUE,
+  COLLECTION_FILTER_MAGENTA,
+};
 
 static void _dtgtk_button_set_active(GtkWidget *w, gboolean active)
 {

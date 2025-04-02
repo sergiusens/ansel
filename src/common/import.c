@@ -897,6 +897,9 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_process_file_list), (gpointer)d);
   gui_cleanup(d);
   _cleanup(d);
+
+  // Re-allocate focus to center widget
+  dt_gui_refocus_center();
 }
 
 void _file_chooser_response(GtkDialog *dialog, gint response_id, dt_lib_import_t *d)
@@ -954,7 +957,7 @@ static void gui_init(dt_lib_import_t *d)
                               dt_conf_get_int("ui_last/import_dialog_width"),
                               dt_conf_get_int("ui_last/import_dialog_height"));
   gtk_window_set_modal(GTK_WINDOW(d->dialog), FALSE);
-  gtk_window_set_transient_for(GTK_WINDOW(d->dialog), NULL);
+  gtk_window_set_transient_for(GTK_WINDOW(d->dialog), GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
   g_signal_connect(d->dialog, "response", G_CALLBACK(_file_chooser_response), d);
 
   GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(d->dialog));
