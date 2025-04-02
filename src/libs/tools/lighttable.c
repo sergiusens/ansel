@@ -107,44 +107,49 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   if(!user_data) return;
   dt_lib_module_t *self = (dt_lib_module_t *)user_data;
 
-  #if 0
-  int current_level = _lib_lighttable_get_columns(self);
-  int num_images = dt_collection_get_count(darktable.collection);
-
-  switch(num_images)
+  if(darktable.gui->culling_mode)
   {
-    case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-      _lib_lighttable_set_columns(self, num_images);
-      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
-      break;
-    case 6:
-      _lib_lighttable_set_columns(self, 3);
-      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
-      break;
-    case 7:
-    case 8:
-      _lib_lighttable_set_columns(self, 4);
-      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
-      break;
-    case 9:
-    case 10:
-    case 11:
-    case 12:
-    case 13:
-    case 14:
-    case 15:
-      _lib_lighttable_set_columns(self, 5);
-      dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
-      break;
-    default:
-      if(dt_conf_key_exists("plugins/lighttable/images_in_row_backup"))
-        _lib_lighttable_set_columns(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
+    int current_level = _lib_lighttable_get_columns(self);
+    int num_images = dt_collection_get_count(darktable.collection);
+
+    switch(num_images)
+    {
+      case 1:
+      case 2:
+      case 3:
+      case 4:
+      case 5:
+        _lib_lighttable_set_columns(self, num_images);
+        dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+        break;
+      case 6:
+        _lib_lighttable_set_columns(self, 3);
+        dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+        break;
+      case 7:
+      case 8:
+        _lib_lighttable_set_columns(self, 4);
+        dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+        break;
+      case 9:
+      case 10:
+      case 11:
+      case 12:
+      case 13:
+      case 14:
+      case 15:
+        _lib_lighttable_set_columns(self, 5);
+        dt_conf_set_int("plugins/lighttable/images_in_row_backup", current_level);
+        break;
+      default:
+        if(dt_conf_key_exists("plugins/lighttable/images_in_row_backup"))
+          _lib_lighttable_set_columns(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
+    }
   }
-  #endif
+  else if(dt_conf_key_exists("plugins/lighttable/images_in_row_backup"))
+  {
+    _lib_lighttable_set_columns(self, dt_conf_get_int("plugins/lighttable/images_in_row_backup"));
+  }
 
   // Reset zoom
   dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
