@@ -932,8 +932,12 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
           "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
     }
 
+    // Ensure we have something to scroll
+    dt_thumbtable_configure(table);
+
     // Number of images may have changed, size of grid too:
     _update_grid_area(table);
+
     dt_thumbtable_redraw(table);
 
     g_idle_add((GSourceFunc)_grab_focus, table);
