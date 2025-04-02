@@ -154,6 +154,9 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
 // set zoom level
 void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level);
 
+// offset all the zoomed thumbnails by the same amount
+void dt_thumbtable_offset_zoom(dt_thumbtable_t *table, const double delta_x, const double delta_y);
+
 void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable);
 
 // signal that the current collection needs to be flushed entirely before being reloaded

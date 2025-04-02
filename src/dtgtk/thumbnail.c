@@ -752,11 +752,29 @@ static gboolean _event_image_motion(GtkWidget *widget, GdkEventMotion *event, gp
   thumb_return_if_fails(thumb, TRUE);
   if(thumb->dragging)
   {
-    thumb->zoomx += (event->x - thumb->drag_x_start) * darktable.gui->ppd;
-    thumb->zoomy += (event->y - thumb->drag_y_start) * darktable.gui->ppd;
+    const double delta_x = (event->x - thumb->drag_x_start) * darktable.gui->ppd;
+    const double delta_y = (event->y - thumb->drag_y_start) * darktable.gui->ppd;
+    const gboolean global_shift = dt_modifier_is(event->state, GDK_SHIFT_MASK) && thumb->table;
+
+    if(global_shift)
+    {
+      // Offset all thumbnails by this amount
+      dt_thumbtable_offset_zoom(thumb->table, delta_x, delta_y);
+    }
+    else
+    {
+      // Offset only the current thumbnail
+      thumb->zoomx += delta_x;
+      thumb->zoomy += delta_y;
+    }
+
+    // Reset drag origin
     thumb->drag_x_start = event->x;
     thumb->drag_y_start = event->y;
-    gtk_widget_queue_draw(thumb->w_image);
+
+    if(!global_shift)
+      gtk_widget_queue_draw(thumb->w_image);
+
     return TRUE;
   }
   return FALSE;

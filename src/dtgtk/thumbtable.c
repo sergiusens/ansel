@@ -728,6 +728,21 @@ void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level)
   g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
+
+void dt_thumbtable_offset_zoom(dt_thumbtable_t *table, const double delta_x, const double delta_y)
+{
+  dt_pthread_mutex_lock(&table->lock);
+  for(const GList *l = g_list_first(table->list); l; l = g_list_next(l))
+  {
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    thumb->zoomx += delta_x;
+    thumb->zoomy += delta_y;
+    gtk_widget_queue_draw(thumb->w_image);
+  }
+  dt_pthread_mutex_unlock(&table->lock);
+}
+
+
 void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable)
 {
   table->focus = enable;
