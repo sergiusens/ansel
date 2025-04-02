@@ -144,8 +144,9 @@ static void _view_lighttable_activate_callback(gpointer instance, int32_t imgid,
 void configure(dt_view_t *self, int width, int height)
 {
   dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
-  dt_thumbtable_configure(table);
-  g_idle_add((GSourceFunc)dt_thumbtable_update, table);
+  dt_thumbtable_set_active_rowid(table);
+  dt_thumbtable_redraw(table);
+  g_idle_add((GSourceFunc)dt_thumbtable_scroll_to_active_rowid, table);
 }
 
 
@@ -167,7 +168,7 @@ void enter(dt_view_t *self)
   dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "lighttable");
 
   dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_lighttable);
-  gtk_widget_show(darktable.gui->ui->thumbtable_lighttable->scroll_window);
+  dt_thumbtable_show(darktable.gui->ui->thumbtable_lighttable);
 
   /* connect signal for thumbnail image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
@@ -207,6 +208,8 @@ void leave(dt_view_t *self)
 
   // ensure we have no active image remaining
   dt_view_active_images_reset(FALSE);
+
+  dt_thumbtable_hide(darktable.gui->ui->thumbtable_lighttable);
 
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_view_lighttable_activate_callback),

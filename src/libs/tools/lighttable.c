@@ -287,8 +287,6 @@ static void _set_columns(dt_lib_module_t *self, int columns)
   dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
 
   dt_thumbtable_set_active_rowid(table);
-  dt_thumbtable_configure(table);
-  dt_thumbtable_update(table);
   dt_thumbtable_redraw(table);
   g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_active_rowid, table);
   d->current_columns = columns;

@@ -19,6 +19,9 @@
 /** a class to manage a table of thumbnail for lighttable and filmstrip.  */
 #include "dtgtk/thumbnail.h"
 #include "common/dtpthread.h"
+#include "common/darktable.h"
+#include "common/debug.h"
+
 #include <gtk/gtk.h>
 #include <gdk/gdk.h>
 
@@ -162,7 +165,8 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
 
 // call this when the history of an image is changed and mipmap cache needs updating.
 // reinit = TRUE will force-flush the existing thumbnail. imgid = -1 applies on all thumbnails in thumbtable.
-void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboolean reinit);
+void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid, gboolean reinit);
+#define dt_thumbtable_refresh_thumbnail(table, imgid, reinit) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_LIGHTTABLE, dt_thumbtable_refresh_thumbnail_real, (table), (imgid), (reinit))
 
 // select all images from the current collection through the GUI list of thumbnails
 void dt_thumbtable_select_all(dt_thumbtable_t *table);
@@ -177,17 +181,37 @@ void dt_thumbtable_invert_selection(dt_thumbtable_t *table);
 // set mouse_over imgid while resolving conflicts between mouse and keyboard events
 void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int32_t imgid);
 
-static inline void dt_thumbtable_redraw(dt_thumbtable_t *table)
-{
-  gtk_widget_queue_draw(table->scroll_window);
-  gtk_widget_queue_draw(table->grid);
-}
-
 int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid);
 int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table);
 int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table);
 
+// Internally update the first visible thumbnail index based on current scrolling position
 void dt_thumbtable_set_active_rowid(dt_thumbtable_t *table);
+
+/**
+ * Gtk quick wrappers/helpers
+ */
+
+static inline void dt_thumbtable_redraw_real(dt_thumbtable_t *table)
+{
+  gtk_widget_queue_draw(table->grid);
+}
+
+#define dt_thumbtable_redraw(table) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_LIGHTTABLE, dt_thumbtable_redraw_real, (table))
+
+static inline void dt_thumbtable_show(dt_thumbtable_t *table)
+{
+  gtk_widget_show(table->scroll_window);
+
+  // Thumbtable is prevented to configure and update, for
+  // as long as it's hidden. We need to force the update now.
+  dt_thumbtable_redraw(table);
+}
+
+static inline void dt_thumbtable_hide(dt_thumbtable_t *table)
+{
+  gtk_widget_hide(table->scroll_window);
+}
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

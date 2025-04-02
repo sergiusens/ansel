@@ -307,12 +307,6 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
   // size. The resizing handlers should reset this flag when size changes.
   if(thumb->image_inited && thumb->img_surf) return G_SOURCE_REMOVE;
 
-  // If busy, it means we already sent a request to the mipmap cache to fetch or generate
-  // the image for us. There is no need to re-ping it again until it finishes.
-  // When the image is ready, it will raise the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal,
-  // and its handler will reset thumb->busy = FALSE
-  if(thumb->busy) return G_SOURCE_REMOVE;
-
   _free_image_surface(thumb);
 
   int image_w = 0;
@@ -392,9 +386,13 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
-  // Image is already available or pending a pipe rendering/cache fetching
-  if(!((thumb->image_inited && thumb->img_surf) || thumb->busy))
-    g_idle_add((GSourceFunc)_get_image_buffer, thumb);
+  // Image is already available or pending a pipe rendering/cache fetching:
+  // don't query a new image buffer.
+  if((!thumb->image_inited || !thumb->img_surf) && !thumb->busy)
+  {
+    thumb->busy = TRUE;
+    _get_image_buffer(thumb);
+  }
 
   dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
 
@@ -793,7 +791,7 @@ static gboolean _event_image_release(GtkWidget *widget, GdkEventButton *event, g
   return FALSE;
 }
 
-GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
+GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
 {
   // Let the background event box capture all user events from its children first,
   // so we don't have to wire leave/enter events to all of them individually.
@@ -939,20 +937,6 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   gtk_widget_set_no_show_all(thumb->w_audio, TRUE);
   gtk_overlay_add_overlay(GTK_OVERLAY(thumb->w_main), thumb->w_audio);
 
-  // the zoom indicator
-  thumb->w_zoom_eb = gtk_event_box_new();
-  dt_gui_add_class(thumb->w_zoom_eb, "thumb-zoom");
-  gtk_widget_set_valign(thumb->w_zoom_eb, GTK_ALIGN_START);
-  gtk_widget_set_halign(thumb->w_zoom_eb, GTK_ALIGN_START);
-  if(zoom_ratio == IMG_TO_FIT)
-    thumb->w_zoom = gtk_label_new(_("fit"));
-  else
-    thumb->w_zoom = gtk_label_new("mini");
-  dt_gui_add_class(thumb->w_zoom, "thumb-zoom-label");
-  gtk_widget_show(thumb->w_zoom);
-  gtk_container_add(GTK_CONTAINER(thumb->w_zoom_eb), thumb->w_zoom);
-  gtk_overlay_add_overlay(GTK_OVERLAY(thumb->w_main), thumb->w_zoom_eb);
-
   thumb->w_alternative = gtk_overlay_new();
   gtk_overlay_add_overlay(GTK_OVERLAY(thumb->w_main), thumb->w_alternative);
   gtk_widget_set_halign(thumb->w_alternative, GTK_ALIGN_FILL);
@@ -995,7 +979,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio)
   return thumb->widget;
 }
 
-dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int32_t groupid,
+dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid,
                                  dt_thumbnail_overlay_t over, dt_thumbtable_t *table)
 {
   dt_thumbnail_t *thumb = calloc(1, sizeof(dt_thumbnail_t));
@@ -1009,12 +993,7 @@ dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int
   thumb->zoomy = 0.;
 
   // we create the widget
-  dt_thumbnail_create_widget(thumb, zoom_ratio);
-
-  // Query mipmap and history for the changed tooltip
-  // This will then only run on "mipmap_changed" event,
-  // assuming they follow history changes 1:1.
-  dt_thumbnail_image_refresh(thumb);
+  dt_thumbnail_create_widget(thumb);
 
   // Query ratings, extension and such.
   // This will then only run on "image_info_changed" event.
@@ -1170,7 +1149,7 @@ static void _thumb_resize_overlays(dt_thumbnail_t *thumb)
 }
 
 // This function is called only from the thumbtable, when the grid size changed.
-void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio)
+void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force)
 {
   thumb_return_if_fails(thumb);
   //fprintf(stdout, "calling resize on %i\n", thumb->imgid);
@@ -1271,7 +1250,7 @@ void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop)
 }
 
 // Apply new mipmap on thumbnail
-int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
+int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb, G_SOURCE_REMOVE);
   _thumb_update_icons(thumb);
@@ -1279,22 +1258,6 @@ int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb)
   thumb->drawn = FALSE;
   gtk_widget_queue_draw(thumb->w_image);
   return G_SOURCE_REMOVE;
-}
-
-
-// force the image to be redraw at the right position
-void dt_thumbnail_image_refresh_position(dt_thumbnail_t *thumb)
-{
-  thumb_return_if_fails(thumb);
-
-  // let's sanitize and apply panning values
-  // here we have to make sure to properly align according to ppd
-  int iw = 0;
-  int ih = 0;
-  gtk_widget_get_size_request(thumb->w_image, &iw, &ih);
-  thumb->zoomx = CLAMP(thumb->zoomx, (iw * darktable.gui->ppd - thumb->img_width) / darktable.gui->ppd, 0);
-  thumb->zoomy = CLAMP(thumb->zoomy, (ih * darktable.gui->ppd - thumb->img_height) / darktable.gui->ppd, 0);
-  gtk_widget_queue_draw(thumb->widget);
 }
 
 // clang-format off

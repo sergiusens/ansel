@@ -2009,7 +2009,7 @@ void enter(dt_view_t *self)
   // This gets the first selected ID to scroll where relevant, so
   // runs it before clearing the selection
   dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_filmstrip);
-  gtk_widget_hide(darktable.gui->ui->thumbtable_lighttable->scroll_window);
+  dt_thumbtable_show(darktable.gui->ui->thumbtable_filmstrip);
 
   // clear selection, we don't want selections in darkroom
   dt_selection_clear(darktable.selection);
@@ -2077,6 +2077,8 @@ void leave(dt_view_t *self)
   // Restore the previous selection
   dt_selection_select_single(darktable.selection, dt_view_active_images_get_first());
   dt_view_active_images_reset(FALSE);
+
+  dt_thumbtable_hide(darktable.gui->ui->thumbtable_filmstrip);
 
   // Now, cleanup the pipes and history
   dt_dev_history_auto_save(darktable.develop);

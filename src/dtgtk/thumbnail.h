@@ -17,14 +17,15 @@
 */
 /** this is the thumbnail class for the lighttable module.  */
 
-#ifndef THUMBNAIL_H
-#define THUMBNAIL_H
+#pragma once
+
+#include "common/darktable.h"
+#include "common/debug.h"
 
 #include <glib.h>
 #include <gtk/gtk.h>
 
 #define MAX_STARS 5
-#define IMG_TO_FIT 0.0f
 
 struct dt_thumbtable_t;
 
@@ -88,9 +89,6 @@ typedef struct
   GtkWidget *w_group;      // GtkDarktableThumbnailBtn -- Grouping icon
   GtkWidget *w_audio;      // GtkDarktableThumbnailBtn -- Audio sidecar icon
 
-  GtkWidget *w_zoom_eb; // GtkEventBox -- container for the zoom level widget
-  GtkWidget *w_zoom;    // GtkLabel -- show the zoom level (if zoomable and hover_block overlay)
-
   GtkWidget *w_alternative; // alternative overlay
 
   dt_thumbnail_border_t group_borders; // which group borders should be drawn
@@ -136,10 +134,10 @@ typedef struct
 
 } dt_thumbnail_t;
 
-dt_thumbnail_t *dt_thumbnail_new(float zoom_ratio, int32_t imgid, int rowid, int32_t groupid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
+dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
 int dt_thumbnail_destroy(dt_thumbnail_t *thumb);
-GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb, float zoom_ratio);
-void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force, float zoom_ratio);
+GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb);
+void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force);
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border);
 void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over);
 void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode);
@@ -155,17 +153,11 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb);
 void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected);
 
 // force image recomputing
-int dt_thumbnail_image_refresh(dt_thumbnail_t *thumb);
+int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb);
+#define dt_thumbnail_image_refresh(thumb) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_LIGHTTABLE, dt_thumbnail_image_refresh_real, (thumb))
 
 // force reloading image infos
 void dt_thumbnail_reload_infos(dt_thumbnail_t *thumb);
-
-// force image position refresh (only in the case of zoomed image)
-void dt_thumbnail_image_refresh_position(dt_thumbnail_t *thumb);
-// get the maximal zoom value (to show 1:1 image)
-float dt_thumbnail_get_zoom100(dt_thumbnail_t *thumb);
-// get the zoom ratio from 0 ("image to fit") to 1 ("max zoom value")
-float dt_thumbnail_get_zoom_ratio(dt_thumbnail_t *thumb);
 
 void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean nable);
 
@@ -174,7 +166,6 @@ static inline dt_thumbnail_overlay_t sanitize_overlays(dt_thumbnail_overlay_t ov
   return (dt_thumbnail_overlay_t)MIN(overlays, DT_THUMBNAIL_OVERLAYS_LAST - 1);
 }
 
-#endif
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

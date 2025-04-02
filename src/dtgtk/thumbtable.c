@@ -19,9 +19,9 @@
 /** a class to manage a table of thumbnail for lighttable and filmstrip.  */
 
 #include "dtgtk/thumbtable.h"
+#include "dtgtk/thumbnail.h"
 #include "common/collection.h"
 #include "common/colorlabels.h"
-#include "common/debug.h"
 #include "common/history.h"
 #include "common/image_cache.h"
 #include "common/ratings.h"
@@ -81,7 +81,6 @@
  **/
 
 void _dt_thumbtable_empty_list(dt_thumbtable_t *table);
-void _update_row_ids(dt_thumbtable_t *table);
 
 static int _grab_focus(dt_thumbtable_t *table)
 {
@@ -144,7 +143,7 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     // and we resize the bottom area
     dt_thumbnail_set_overlay(thumb, table->overlays);
-    dt_thumbnail_resize(thumb, thumb->width, thumb->height, TRUE, IMG_TO_FIT);
+    dt_thumbnail_resize(thumb, thumb->width, thumb->height, TRUE);
     dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
     gtk_widget_queue_draw(thumb->widget);
   }
@@ -375,8 +374,8 @@ gboolean _is_rowid_visible(dt_thumbtable_t *table, int rowid)
   return FALSE;
 }
 
-
-void _update_row_ids(dt_thumbtable_t *table)
+// Returns TRUE if visible row ids have changed since last check
+gboolean _update_row_ids(dt_thumbtable_t *table)
 {
   int rowid_min = 0;
   int rowid_max = MAX_THUMBNAILS;
@@ -386,7 +385,9 @@ void _update_row_ids(dt_thumbtable_t *table)
     table->min_row_id = rowid_min;
     table->max_row_id = rowid_max;
     table->thumbs_inited = FALSE;
+    return TRUE;
   }
+  return FALSE;
 }
 
 void _update_grid_area(dt_thumbtable_t *table)
@@ -443,6 +444,8 @@ void _grid_configure(dt_thumbtable_t *table, int width, int height, int cols)
 // and recomputed the size of individual thumbnails accordingly
 void dt_thumbtable_configure(dt_thumbtable_t *table)
 {
+  if(!gtk_widget_is_visible(table->scroll_window)) return;
+
   int cols;
   int new_width;
   int new_height;
@@ -566,7 +569,7 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
   }
   else
   {
-    thumb = dt_thumbnail_new(IMG_TO_FIT, imgid, rowid, groupid, table->overlays, table);
+    thumb = dt_thumbnail_new(imgid, rowid, groupid, table->overlays, table);
     table->list = g_list_prepend(table->list, thumb);
     table->thumb_nb += 1;
   }
@@ -579,7 +582,7 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
   gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
   if(new_item || size_changed)
   {
-    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
+    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE);
     dt_thumbnail_set_overlay(thumb, table->overlays);
   }
 
@@ -630,7 +633,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
     if(size_changed)
     {
       dt_thumbnail_set_overlay(thumb, table->overlays);
-      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE, IMG_TO_FIT);
+      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE);
       _set_thumb_position(table, thumb);
       gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
@@ -642,11 +645,11 @@ void _resize_thumbnails(dt_thumbtable_t *table)
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
-  // Ensure min/max_row_id are up-to-date
   _update_row_ids(table);
 
-  if(!table->lut || !table->configured || !table->collection_inited || table->thumbs_inited || table->collection_count == 0) return;
-  dt_thumbtable_redraw(table);
+  if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
+     || table->thumbs_inited || table->collection_count == 0)
+    return;
 
   if(table->reset_collection)
   {
@@ -736,7 +739,7 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
 // can be called with imgid = -1, in that case we reload all mipmaps
 // reinit = FALSE should be called when the mipmap is ready to redraw,
 // reinit = TRUE should be called when a refreshed mipmap has been requested but we have nothing yet to draw
-void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboolean reinit)
+void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid, gboolean reinit)
 {
   dt_pthread_mutex_lock(&table->lock);
   for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
@@ -745,13 +748,13 @@ void dt_thumbtable_refresh_thumbnail(dt_thumbtable_t *table, int32_t imgid, gboo
     if(thumb->imgid == imgid)
     {
       if(reinit) thumb->image_inited = FALSE;
-      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh, thumb);
+      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh_real, thumb);
       break;
     }
     else if(imgid == UNKNOWN_IMAGE)
     {
       if(reinit) thumb->image_inited = FALSE;
-      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh, thumb);
+      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh_real, thumb);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -907,6 +910,10 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   gboolean collapse_groups = dt_conf_get_bool("ui_last/grouping");
   gboolean collapsing_changed = (table->collapse_groups != collapse_groups);
 
+  // Remember where the scrolling is at to possibly get the same visible images
+  // despite collection changes (provided they are still there).
+  dt_thumbtable_set_active_rowid(table);
+
   // See if the collection changed
   gboolean changed = _dt_collection_get_hash(table) || collapsing_changed;
   if(changed)
@@ -919,26 +926,18 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     table->thumbs_inited = FALSE;
 
     if(table->collection_count == 0)
-     _dt_thumbtable_empty_list(table);
-
-    if(table->collection_count == 0)
     {
+      _dt_thumbtable_empty_list(table);
       dt_control_log(_(
           "The current filtered collection contains no image. Relax your filters or fetch a non-empty collection"));
     }
+
+    // Number of images may have changed, size of grid too:
+    _update_grid_area(table);
+    dt_thumbtable_redraw(table);
+
+    g_idle_add((GSourceFunc)_grab_focus, table);
   }
-
-  dt_thumbtable_configure(table);
-
-  // Number of image may have changed, size of grid too:
-  _update_grid_area(table);
-
-  dt_thumbtable_update(table);
-  dt_thumbtable_set_active_rowid(table);
-
-  // Focus will also re-scroll where needed, that is to active row id,
-  // or else to selection.
-  g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
 static void _event_dnd_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data,
@@ -1138,7 +1137,7 @@ void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-  g_idle_add((GSourceFunc)dt_thumbtable_update, table);
+  dt_thumbtable_redraw(table);
 }
 
 int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)
@@ -1417,7 +1416,11 @@ static gboolean _draw_callback(GtkWidget *widget, cairo_t *cr, gpointer user_dat
   gtk_render_background(context, cr, 0, 0, allocation.width, allocation.height);
   gtk_render_frame(context, cr, 0, 0, allocation.width, allocation.height);
 
+  // The draw callback catches all parent resizing events that need an update of the grid layout.
+  // Some are already captured upstream, but the rest need to be handled here.
   dt_thumbtable_configure(table);
+  dt_thumbtable_update(table);
+
   return FALSE;
 }
 
@@ -1582,10 +1585,6 @@ void dt_thumbtable_update_parent(dt_thumbtable_t *table)
 {
   // Ensure the default drawing area for views is hidden for lighttable and shown otherwise
   gtk_widget_set_visible(dt_ui_center(darktable.gui->ui), table->mode != DT_THUMBTABLE_MODE_FILEMANAGER);
-
-  dt_thumbtable_configure(table);
-  dt_thumbtable_update(table);
-
   g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
@@ -1607,8 +1606,6 @@ void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode)
     gtk_scrolled_window_set_policy(GTK_SCROLLED_WINDOW(table->scroll_window), GTK_POLICY_ALWAYS, GTK_POLICY_NEVER);
     gtk_overlay_add_overlay(GTK_OVERLAY(table->overlay_filmstrip), table->scroll_window);
   }
-
-  gtk_widget_show(table->scroll_window);
 }
 
 void dt_thumbtable_select_all(dt_thumbtable_t *table)
