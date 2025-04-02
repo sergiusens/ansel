@@ -738,7 +738,7 @@ static gboolean _query_cache(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, 
             imgid, buf->width, buf->height);
 
     /* raise signal that mipmaps have been flushed to cache */
-    dt_mipmap_ready_idle_signal(GINT_TO_POINTER(imgid));
+    g_idle_add((GSourceFunc)dt_mipmap_ready_idle_signal, GINT_TO_POINTER(imgid));
     return 1;
   }
   return 0;
@@ -757,22 +757,11 @@ static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
     // already loaded?
     if(_query_cache(cache, buf, imgid, mip, &(_get_cache(cache, mip)->stats_standin)))
       return 1;
-
-    // didn't succeed the first time? prefetch for later!
-    if(mip == k)
-    {
-      __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
-      dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_PREFETCH, 'r');
-    }
   }
 
-  // Last chance: look for smaller sizes
-  for(int k = MIN(mip, DT_MIPMAP_F) - 1; k >= DT_MIPMAP_0; k--)
-  {
-    // already loaded?
-    if(_query_cache(cache, buf, imgid, mip, &(_get_cache(cache, mip)->stats_near_match)))
-      return 1;
-  }
+  // Didn't find a larger mip in store. Request the exact desired size.
+  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
+  dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_PREFETCH, 'r');
 
   __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_misses), 1);
   return 0;
@@ -925,17 +914,10 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
   else if(flags == DT_MIPMAP_PREFETCH_DISK)
   {
     // only prefetch if the disk cache exists:
-    if(!cache->cachedir[0]) return;
-
-    // load from disk if file exists
-    char filename[PATH_MAX] = {0};
-    snprintf(filename, sizeof(filename), "%s.d/%d/%"PRIu32".jpg", cache->cachedir, (int)mip, (uint32_t)key);
-
+    // don't test for file existence here, defer file I/O (latencies) to the background job
+    assert(cache->cachedir[0]);
+    dt_control_add_job(darktable.control, DT_JOB_QUEUE_SYSTEM_FG, dt_image_load_job_create(imgid, mip));
     // will raise DT_SIGNAL_DEVELOP_MIPMAP_UPDATED internally when finished
-    if(g_file_test(filename, G_FILE_TEST_EXISTS))
-      dt_control_add_job(darktable.control, DT_JOB_QUEUE_SYSTEM_FG, dt_image_load_job_create(imgid, mip));
-    else
-      return;
   }
   else if(flags == DT_MIPMAP_BLOCKING)
   {
@@ -1365,7 +1347,6 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
     *width = *height = 0;
     *iscale = 0.0f;
     *color_space = DT_COLORSPACE_NONE;
-    return;
   }
 }
 
