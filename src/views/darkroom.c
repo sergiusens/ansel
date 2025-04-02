@@ -401,10 +401,8 @@ void expose(
     {
       cairo_save(cr);
       cairo_scale(cr, 1./ darktable.gui->ppd, 1. / darktable.gui->ppd);
-      dt_focuspeaking(cr, wd, ht, cairo_image_surface_get_data(surface),
-                                  cairo_image_surface_get_width(surface),
-                                  cairo_image_surface_get_height(surface),
-                                TRUE, NULL, NULL);
+      dt_focuspeaking(cr, cairo_image_surface_get_data(surface), cairo_image_surface_get_width(surface),
+                      cairo_image_surface_get_height(surface), TRUE, NULL, NULL);
       cairo_restore(cr);
     }
 

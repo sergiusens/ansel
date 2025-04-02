@@ -34,14 +34,14 @@ static inline float uint8_to_float(const uint8_t i)
   return (float)i / 255.0f;
 }
 
-void dt_focuspeaking(cairo_t *cr, int width, int height,
+void dt_focuspeaking(cairo_t *cr,
                      uint8_t *const restrict image,
                      const int buf_width, const int buf_height,
                      gboolean draw,
                      float *x, float *y)
 {
   float *const restrict luma = dt_alloc_align_float((size_t)buf_width * buf_height);
-  uint8_t *const restrict focus_peaking = dt_alloc_align(sizeof(uint8_t) * buf_width * buf_height * 4);
+  float *const restrict luma_ds =  dt_alloc_align_float((size_t)buf_width * buf_height);
 
   const size_t npixels = (size_t)buf_height * buf_width;
   // Create a luma buffer as the euclidian norm of RGB channels
@@ -66,7 +66,6 @@ void dt_focuspeaking(cairo_t *cr, int width, int height,
   fast_eigf_surface_blur(luma, buf_width, buf_height, 12, 0.00005f, 4, DT_GF_BLENDING_LINEAR, 1, 0.0f, exp2f(-8.0f), 1.0f);
 
   // Compute the laplacian of a gaussian
-  float *const restrict luma_ds =  dt_alloc_align_float((size_t)buf_width * buf_height);
   float mass = 0.f;
   float x_integral = 0.f;
   float y_integral = 0.f;
@@ -148,7 +147,14 @@ schedule(static) collapse(2) reduction(+:mass, x_integral, y_integral)
   if(x) *x = CLAMP(x_integral / mass, 0, buf_height);
   if(y) *y = CLAMP(y_integral / mass, 0, buf_height);
 
-  if(!draw) return;
+  if(!draw)
+  {
+    dt_free_align(luma);
+    dt_free_align(luma_ds);
+    return;
+  }
+
+  uint8_t *const restrict focus_peaking = dt_alloc_align(sizeof(uint8_t) * buf_width * buf_height * 4);
 
   // Dilate the mask to improve connectivity
 #ifdef _OPENMP

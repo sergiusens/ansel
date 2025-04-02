@@ -768,9 +768,8 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
   cairo_paint(cr);
 
-  if((zoom > DT_THUMBTABLE_ZOOM_FIT || darktable.gui->show_focus_peaking)
-     && mip == buf.size)
-    dt_focuspeaking(cr, img_width, img_height, rgbbuf, buf_wd, buf_ht, darktable.gui->show_focus_peaking, x_center, y_center);
+  if(zoom > DT_THUMBTABLE_ZOOM_FIT || darktable.gui->show_focus_peaking)
+    dt_focuspeaking(cr, rgbbuf, buf_wd, buf_ht, darktable.gui->show_focus_peaking, x_center, y_center);
 
   cairo_surface_destroy(tmp_surface);
   cairo_destroy(cr);

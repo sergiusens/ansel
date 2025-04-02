@@ -20,7 +20,7 @@
 
 #pragma once
 
-void dt_focuspeaking(cairo_t *cr, int width, int height, uint8_t *const restrict image, const int buf_width,
+void dt_focuspeaking(cairo_t *cr, uint8_t *const restrict image, const int buf_width,
                      const int buf_height, gboolean draw, float *x, float *y);
 
 // clang-format off
