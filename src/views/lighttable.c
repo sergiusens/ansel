@@ -165,7 +165,7 @@ void enter(dt_view_t *self)
 
   // Attach shortcuts
   dt_accels_connect_accels(darktable.gui->accels);
-  dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "lighttable");
+  dt_accels_connect_active_group(darktable.gui->accels, "lighttable");
 
   dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_lighttable);
   dt_thumbtable_show(darktable.gui->ui->thumbtable_lighttable);
@@ -205,7 +205,7 @@ void init(dt_view_t *self)
 void leave(dt_view_t *self)
 {
   // Detach shortcuts
-  dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active", TRUE);
+  dt_accels_disconnect_active_group(darktable.gui->accels);
 
   // ensure we have no active image remaining
   dt_view_active_images_reset(FALSE);

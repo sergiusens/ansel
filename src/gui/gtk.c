@@ -1839,17 +1839,13 @@ GtkBox * attach_help_popover(GtkWidget *widget, const char *label)
 
 static gboolean _text_entry_focus_in_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  if(!darktable.gui->ui || !dt_ui_main_window(darktable.gui->ui)) return FALSE;
-  dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "global", FALSE);
-  dt_accels_disconnect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active", FALSE);
+  dt_accels_disable(darktable.gui->accels, TRUE);
   return FALSE;
 }
 
 static gboolean _text_entry_focus_out_event(GtkWidget *self, GdkEventFocus event, gpointer user_data)
 {
-  if(!darktable.gui->ui || !dt_ui_main_window(darktable.gui->ui)) return FALSE;
-  dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "global");
-  dt_accels_connect_window(darktable.gui->accels, dt_gtk_get_window(dt_ui_main_window(darktable.gui->ui)), "active");
+  dt_accels_disable(darktable.gui->accels, FALSE);
   return FALSE;
 }
 

@@ -54,6 +54,9 @@ typedef struct dt_accels_t
   // between key_pressed and key_release events, this stores the active key strokes
   GtkAccelKey active_key;
 
+  // Temporarily disable accelerators
+  gboolean disable_accels;
+
   // Views can register a global callback to handle scroll events
   // for example while keystrokes are on.
   struct scroll
@@ -108,25 +111,21 @@ void dt_accels_connect_accels(dt_accels_t *accels);
 
 
 /**
- * @brief Connect the accels group to the window
+ * @brief Connect the contextual active accels group to the window.
+ * Views can declare their own set of contextual accels, which can
+ * override the global accels, in case they use the same keys.
  *
  * @param accels
- * @param group any of the following: "global", "darkroom", "lighttable", "active".
- * "darkroom" or "lighttable" will set their group the active one, that can be later
- * retrieved with "active". The "active" option will not work on the first call of this function.
+ * @param group any of the following: "darkroom", "lighttable".
  */
-void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group);
+void dt_accels_connect_active_group(dt_accels_t *accels, const gchar *group);
 
 /**
- * @brief Disconnect the global accels group to the window
+ * @brief Disconnect the contextual active accels group from the window
  *
  * @param accels
- * @param group any of the following: "global", "active". The active group is tracked internally when connecting
- * windows
- * @param reset set to TRUE if the active group should be reset. This will prevent later calls of
- * `dt_accels_connect_window()` using "active". This has no effect when disconnecting the global group.
  */
-void dt_accels_disconnect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group, const gboolean reset);
+void dt_accels_disconnect_active_group(dt_accels_t *accels);
 
 /**
  * @brief Register a new shortcut for a widget, setting up its path, default keys and accel group.
@@ -196,3 +195,11 @@ void dt_accels_attach_scroll_handler(dt_accels_t *accels, gboolean (*callback)(G
                                      void *data);
 
 void dt_accels_detach_scroll_handler(dt_accels_t *accels);
+
+
+// Temporarily enable/disable keyboard accels, for example during GtkEntry typing.
+// Connect it from Gtk focus in/out event handlers
+static inline void dt_accels_disable(dt_accels_t *accels, gboolean state)
+{
+  accels->disable_accels = state;
+}

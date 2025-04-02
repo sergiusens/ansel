@@ -32,6 +32,7 @@ dt_accels_t * dt_accels_init(char *config_file)
   accels->active_key.accel_mods = 0;
   accels->scroll.callback = NULL;
   accels->scroll.data = NULL;
+  accels->disable_accels = FALSE;
   return accels;
 }
 
@@ -56,58 +57,31 @@ void dt_accels_cleanup(dt_accels_t *accels)
 }
 
 
-void dt_accels_connect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group)
+void dt_accels_connect_active_group(dt_accels_t *accels, const gchar *group)
 {
-  if(!accels || !win) return;
+  if(!accels) return;
 
-  if(!g_strcmp0(group, "global") && accels->global_accels)
+  if(!g_strcmp0(group, "lighttable") && accels->lighttable_accels)
   {
-    gtk_window_add_accel_group(win, accels->global_accels);
-    accels->reset--;
-    // global is always active
-  }
-  else if(!g_strcmp0(group, "lighttable") && accels->lighttable_accels)
-  {
-    gtk_window_add_accel_group(win, accels->lighttable_accels);
     accels->reset--;
     accels->active_group = accels->lighttable_accels;
   }
   else if(!g_strcmp0(group, "darkroom") && accels->darkroom_accels)
   {
-    gtk_window_add_accel_group(win, accels->darkroom_accels);
     accels->reset--;
     accels->active_group = accels->darkroom_accels;
   }
-  else if(!g_strcmp0(group, "active") && accels->active_group)
-  {
-    gtk_window_add_accel_group(win, accels->active_group);
-    accels->reset--;
-  }
   else
   {
-    fprintf(stderr, "[dt_accels_connect_window] INFO: unknown value: `%s'\n", group);
+    fprintf(stderr, "[dt_accels_connect_active_group] INFO: unknown value: `%s'\n", group);
   }
 }
 
 
-void dt_accels_disconnect_window(dt_accels_t *accels, GtkWindow *win, const gchar *group, const gboolean reset)
+void dt_accels_disconnect_active_group(dt_accels_t *accels)
 {
-  if(!accels || !win) return;
-
-  if(!g_strcmp0(group, "global") && accels->global_accels)
-  {
-    gtk_window_remove_accel_group(win, accels->global_accels);
-  }
-  else if(!g_strcmp0(group, "active") && accels->active_group)
-  {
-    gtk_window_remove_accel_group(win, accels->active_group);
-    if(reset) accels->active_group = NULL;
-  }
-  else
-  {
-    fprintf(stderr, "[dt_accels_disconnect_window] INFO: unknown value: `%s'\n", group);
-  }
-
+  if(!accels) return;
+  accels->active_group = NULL;
   accels->reset++;
 }
 
@@ -496,6 +470,7 @@ gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels, guint 
 gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
 {
   dt_accels_t *accels = (dt_accels_t *)user_data;
+  if(accels->disable_accels) return FALSE;
 
   // Ditch everything that is not a key stroke or key strokes that are modifiers alone
   // Abort early for performance.
