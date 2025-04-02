@@ -486,6 +486,24 @@ static void _lib_duplicate_preview_updated_callback(gpointer instance, dt_lib_mo
   dt_control_queue_redraw_center();
 }
 
+static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, dt_lib_module_t *self)
+{
+  if(!self) return;
+  dt_lib_duplicate_t *d = (dt_lib_duplicate_t *)self->data;
+
+  for(GList *l = g_list_first(d->thumbs); l; l = g_list_next(l))
+  {
+    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
+    if(thumb->imgid == imgid)
+    {
+      thumb->image_inited = FALSE;
+      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh_real, thumb);
+      break;
+    }
+  }
+}
+
+
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -519,6 +537,9 @@ void gui_init(dt_lib_module_t *self)
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, G_CALLBACK(_lib_duplicate_mipmap_updated_callback), (gpointer)self);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED,
                             G_CALLBACK(_lib_duplicate_preview_updated_callback), self);
+
+  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
+                                  G_CALLBACK(_dt_mipmaps_updated_callback), self);
 }
 
 void gui_cleanup(dt_lib_module_t *self)
@@ -526,6 +547,8 @@ void gui_cleanup(dt_lib_module_t *self)
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_lib_duplicate_init_callback), self);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_lib_duplicate_mipmap_updated_callback), self);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_lib_duplicate_preview_updated_callback), self);
+  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_mipmaps_updated_callback), self);
+
   g_free(self->data);
   self->data = NULL;
 }
