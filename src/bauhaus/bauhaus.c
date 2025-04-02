@@ -1009,8 +1009,8 @@ static void _bauhaus_widget_init(dt_bauhaus_t *bauhaus, dt_bauhaus_widget_t *w, 
                                        | darktable.gui->scroll_mask);
 
   gtk_widget_set_can_focus(GTK_WIDGET(w), TRUE);
-  gtk_widget_set_halign(GTK_WIDGET(w), GTK_ALIGN_START);
-  gtk_widget_set_hexpand(GTK_WIDGET(w), FALSE);
+  gtk_widget_set_halign(GTK_WIDGET(w), GTK_ALIGN_FILL);
+  gtk_widget_set_hexpand(GTK_WIDGET(w), TRUE);
   g_signal_connect(G_OBJECT(w), "focus-in-event", G_CALLBACK(dt_bauhaus_focus_in_callback), NULL);
   g_signal_connect(G_OBJECT(w), "focus-out-event", G_CALLBACK(dt_bauhaus_focus_out_callback), NULL);
   g_signal_connect(G_OBJECT(w), "focus", G_CALLBACK(dt_bauhaus_focus_callback), NULL);

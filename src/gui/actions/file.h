@@ -107,7 +107,7 @@ void init_collection_line(gpointer instance,
 
 void import_files_callback()
 {
-    dt_images_import();
+  dt_images_import();
 }
 
 void _close_export_popup(GtkWidget *dialog, gint response_id, gpointer data)
@@ -126,6 +126,7 @@ void export_files_callback()
   if(darktable.gui->export_popup.window)
   {
     // if not NULL, we already have a popup open and can't re-instanciate a live GtkWidget
+    gtk_window_present_with_time(GTK_WINDOW(darktable.gui->export_popup.window), GDK_CURRENT_TIME);
     return;
   }
 
@@ -155,14 +156,14 @@ void export_files_callback()
 #endif
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_modal(GTK_WINDOW(dialog), FALSE);
-  gtk_window_set_transient_for(GTK_WINDOW(dialog), NULL);
+  gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
   gtk_window_set_title(GTK_WINDOW(dialog), _("Ansel - Export images"));
   g_signal_connect(G_OBJECT(dialog), "response", G_CALLBACK(_close_export_popup), NULL);
 
   // Ensure the module is expanded
   dt_lib_gui_set_expanded(module, TRUE);
   dt_gui_add_help_link(w, dt_get_help_url(module->plugin_name));
-  gtk_widget_set_size_request(w, DT_PIXEL_APPLY_DPI(360), -1);
+  gtk_widget_set_size_request(w, DT_PIXEL_APPLY_DPI(450), -1);
 
   // Populate popup and fire everything
   GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
