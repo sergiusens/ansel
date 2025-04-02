@@ -179,6 +179,8 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
 
 static void _rowid_to_position(dt_thumbtable_t *table, int rowid, int *x, int *y)
 {
+  if(table->thumbs_per_row < 1) return;
+
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
     int row = rowid / table->thumbs_per_row;  // euclidean division
@@ -604,9 +606,15 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
   dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
 
   if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
+  {
     dt_thumbnail_update_selection(thumb, dt_view_active_images_has_imgid(thumb->imgid));
+    thumb->disable_actions = TRUE;
+  }
   else if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
+  {
     dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
+    thumb->disable_actions = FALSE;
+  }
 }
 
 
