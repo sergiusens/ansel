@@ -2017,18 +2017,6 @@ void enter(dt_view_t *self)
                             G_CALLBACK(_view_darkroom_filmstrip_activate_callback), self);
 }
 
-static void _free_module(gpointer data)
-{
-  if(!data) return;
-  dt_iop_module_t *module = (dt_iop_module_t *)data;
-
-  if(!dt_iop_is_hidden(module))
-    dt_iop_gui_cleanup_module(module);
-
-  dt_iop_cleanup_module(module);
-  free(module);
-}
-
 void leave(dt_view_t *self)
 {
   dt_develop_t *dev = (dt_develop_t *)self->data;
@@ -2093,8 +2081,21 @@ void leave(dt_view_t *self)
   dt_dev_history_free_history(dev);
   dt_pthread_mutex_unlock(&dev->history_mutex);
 
-  g_list_free_full(g_steal_pointer(&dev->iop), _free_module);
-  g_list_free_full(g_steal_pointer(&dev->alliop), _free_module);
+  // Not sure why using g_list_free_full() here shits the bed
+  while(dev->iop)
+  {
+    dt_iop_module_t *module = (dt_iop_module_t *)(dev->iop->data);
+    if(!dt_iop_is_hidden(module)) dt_iop_gui_cleanup_module(module);
+    dt_iop_cleanup_module(module);
+    free(module);
+    dev->iop = g_list_delete_link(dev->iop, dev->iop);
+  }
+  while(dev->alliop)
+  {
+    dt_iop_cleanup_module((dt_iop_module_t *)dev->alliop->data);
+    free(dev->alliop->data);
+    dev->alliop = g_list_delete_link(dev->alliop, dev->alliop);
+  }
   dev->iop = dev->alliop = NULL;
 
   // cleanup visible masks
