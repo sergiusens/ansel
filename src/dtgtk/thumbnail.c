@@ -631,7 +631,6 @@ static gboolean _event_star_enter(GtkWidget *widget, GdkEventCrossing *event, gp
     // it makes the feature hard to read/understand.
     _set_flag(thumb->w_stars[i], GTK_STATE_FLAG_ACTIVE, FALSE);
 
-    gtk_widget_queue_draw(thumb->w_stars[i]);
     if(thumb->w_stars[i] == widget) pre = FALSE;
   }
   return TRUE;
@@ -650,7 +649,6 @@ static gboolean _event_star_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 
     // restore active state
     _set_flag(thumb->w_stars[i], GTK_STATE_FLAG_ACTIVE, i < thumb->rating && thumb->rating < DT_VIEW_REJECT);
-    gtk_widget_queue_draw(thumb->w_stars[i]);
   }
   return TRUE;
 }
@@ -680,7 +678,6 @@ static gboolean _event_main_motion(GtkWidget *widget, GdkEventMotion *event, gpo
       dt_control_set_mouse_over_id(thumb->imgid);
 
     dt_thumbnail_set_mouseover(thumb, TRUE);
-    gtk_widget_queue_draw(thumb->widget);
   }
   return FALSE;
 }
@@ -697,7 +694,6 @@ static gboolean _event_main_enter(GtkWidget *widget, GdkEventCrossing *event, gp
     dt_control_set_mouse_over_id(thumb->imgid);
 
   dt_thumbnail_set_mouseover(thumb, TRUE);
-  gtk_widget_queue_draw(thumb->widget);
   return FALSE;
 }
 
@@ -713,7 +709,6 @@ static gboolean _event_main_leave(GtkWidget *widget, GdkEventCrossing *event, gp
     dt_control_set_mouse_over_id(-1);
 
   dt_thumbnail_set_mouseover(thumb, FALSE);
-  gtk_widget_queue_draw(thumb->widget);
   return FALSE;
 }
 
