@@ -167,9 +167,9 @@ void enter(dt_view_t *self)
   dt_accels_connect_accels(darktable.gui->accels);
   dt_accels_connect_active_group(darktable.gui->accels, "lighttable");
 
-  dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_lighttable);
-  dt_thumbtable_show(darktable.gui->ui->thumbtable_lighttable);
   gtk_widget_hide(dt_ui_center(darktable.gui->ui));
+  dt_thumbtable_show(darktable.gui->ui->thumbtable_lighttable);
+  dt_thumbtable_update_parent(darktable.gui->ui->thumbtable_lighttable);
 
   /* connect signal for thumbnail image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
