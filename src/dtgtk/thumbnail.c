@@ -477,6 +477,7 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
   // raise signal on double click
   if(event->button == 1 && event->type == GDK_2BUTTON_PRESS)
   {
+    thumb->dragging = FALSE;
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, thumb->imgid);
     return TRUE;
   }
@@ -488,6 +489,7 @@ static gboolean _event_main_release(GtkWidget *widget, GdkEventButton *event, gp
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
+  thumb->dragging = FALSE;
 
   // select on single click only in filemanager mode. Filmstrip mode only raises ACTIVATE signals.
   if(event->button == 1
@@ -764,10 +766,7 @@ static gboolean _event_image_release(GtkWidget *widget, GdkEventButton *event, g
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
-
-  if(event->button == 1 && thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
-    thumb->dragging = FALSE;
-
+  thumb->dragging = FALSE;
   return FALSE;
 }
 
