@@ -625,9 +625,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
 
   gtk_widget_set_can_focus(widget, TRUE);
   gtk_widget_set_visible(widget, TRUE);
-  gtk_widget_set_can_default(widget, TRUE);
-  gtk_widget_set_receives_default(widget, TRUE);
-  gtk_widget_grab_default(widget);
   gtk_widget_grab_focus(widget);
 
   g_signal_connect(G_OBJECT(widget), "configure-event", G_CALLBACK(_configure), gui);
@@ -639,12 +636,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   g_signal_connect(G_OBJECT(widget), "button-press-event", G_CALLBACK(_button_pressed), NULL);
   g_signal_connect(G_OBJECT(widget), "button-release-event", G_CALLBACK(_button_released), NULL);
   g_signal_connect(G_OBJECT(widget), "scroll-event", G_CALLBACK(_scrolled), NULL);
-
-
-  dt_thumbtable_t *table = gui->ui->thumbtable_lighttable;
-  gtk_widget_set_can_default(table->grid, TRUE);
-  gtk_widget_set_receives_default(table->grid, TRUE);
-  gtk_widget_grab_default(table->grid);
 
   dt_gui_presets_init();
 
@@ -1878,12 +1869,10 @@ void dt_gui_refocus_center()
   if(g_strcmp0(current_view, "lighttable"))
   {
     gtk_widget_grab_focus(darktable.gui->ui->thumbtable_lighttable->grid);
-    gtk_widget_grab_default(darktable.gui->ui->thumbtable_lighttable->grid);
   }
   else
   {
     gtk_widget_grab_focus(dt_ui_center(darktable.gui->ui));
-    gtk_widget_grab_default(dt_ui_center(darktable.gui->ui));
   }
 
   // Be sure to re-enable accelerators
