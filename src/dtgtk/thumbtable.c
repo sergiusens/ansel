@@ -1157,14 +1157,6 @@ static void _event_dnd_end(GtkWidget *widget, GdkDragContext *context, gpointer 
   dt_gui_remove_class(table->grid, "dt_thumbtable_reorder");
 }
 
-
-void _adjust_value_changed(GtkAdjustment *self, gpointer user_data)
-{
-  if(!user_data) return;
-  dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-  dt_thumbtable_redraw(table);
-}
-
 int _imgid_to_rowid(dt_thumbtable_t *table, int32_t imgid)
 {
   if(!table->lut) return UNKNOWN_IMAGE;
@@ -1472,8 +1464,6 @@ dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
 
   table->v_scrollbar = gtk_scrolled_window_get_vadjustment(GTK_SCROLLED_WINDOW(table->scroll_window));
   table->h_scrollbar = gtk_scrolled_window_get_hadjustment(GTK_SCROLLED_WINDOW(table->scroll_window));
-  g_signal_connect(G_OBJECT(table->v_scrollbar), "value-changed", G_CALLBACK(_adjust_value_changed), table);
-  g_signal_connect(G_OBJECT(table->h_scrollbar), "value-changed", G_CALLBACK(_adjust_value_changed), table);
 
   table->grid = gtk_fixed_new();
   dt_gui_add_class(table->grid, "dt_thumbtable");
