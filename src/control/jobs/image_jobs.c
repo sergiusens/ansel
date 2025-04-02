@@ -33,13 +33,14 @@ static int32_t dt_image_load_job_run(dt_job_t *job)
   // hook back into mipmap_cache:
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf, params->imgid, params->mip, DT_MIPMAP_BLOCKING, 'r');
-
-  // drop read lock, as this is only speculative async loading.
-  // moved this after the if, because the if never worked because the cache was released.
   dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
 
   // Signal we need to reload the mipmap in thumbtable
-  dt_mipmap_ready_idle_signal(GINT_TO_POINTER(params->imgid));
+  if(params->mip < DT_MIPMAP_F)
+  {
+    g_idle_add((GSourceFunc)dt_mipmap_ready_idle_signal, GINT_TO_POINTER(params->imgid));
+  }
+
   return 0;
 }
 

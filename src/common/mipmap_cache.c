@@ -737,8 +737,6 @@ static gboolean _query_cache(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, 
     dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
             imgid, buf->width, buf->height);
 
-    /* raise signal that mipmaps have been flushed to cache */
-    g_idle_add((GSourceFunc)dt_mipmap_ready_idle_signal, GINT_TO_POINTER(imgid));
     return 1;
   }
   return 0;

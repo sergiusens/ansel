@@ -253,20 +253,6 @@ static gboolean _event_cursor_draw(GtkWidget *widget, cairo_t *cr, gpointer user
   return TRUE;
 }
 
-#if 0
-// zoom_ratio is 0-1 based, where 0 is "img to fit" and 1 "zoom to 100%". returns a thumb->zoom value
-static float _zoom_ratio_to_thumb_zoom(float zoom_ratio, float zoom_100)
-{
-  return (zoom_100 - 1) * zoom_ratio + 1;
-}
-
-// converts a thumb->zoom value based on it's zoom_100 (max value) to a 0-1 based zoom_ratio.
-static float _thumb_zoom_to_zoom_ratio(float zoom, float zoom_100)
-{
-  return (zoom - 1) / (zoom_100 - 1);
-}
-#endif
-
 static void _thumb_set_image_area(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb);
@@ -390,7 +376,6 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   // don't query a new image buffer.
   if((!thumb->image_inited || !thumb->img_surf) && !thumb->busy)
   {
-    thumb->busy = TRUE;
     _get_image_buffer(thumb);
   }
 
