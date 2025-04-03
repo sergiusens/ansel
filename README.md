@@ -217,9 +217,11 @@ All runtimes computed on a Lenovo Thinkpad P51 laptop (Intel Xeon CPU E3-1505M v
 
 | Description | Ansel Master | Darktable 5.0 |
 | ----------- | ------------ | ------------- |
-| Time from app startup to last lighttable thumbnail drawing (same collection) | 2.66 s | 7.49 s |
+| Time from app startup to last lighttable thumbnail drawing (same collection) | 2.75 s | 7.49 s |
 | Time to switch from lighttable to darkroom (same image) | 0.2 s | 1.2 s |
-| Time to scroll (start->end) the same collection of 471 images (thumbnails preloaded in disk cache) | 3.9 s | 5.0 s |
+| Time to scroll (start->end) through the same collection of 471 images* | 0.7 s | 5.0 s |
+
+*: thumbnails preloaded in disk cache in both cases, 5 thumbs columns/row, 4K resolution, no right sidebar.
 
 The following have been measured on battery, in powersave mode, with the application sitting idle (no user interaction) for 5 minutes, using Intel Powertop. The baseline consumption of the whole idle OS is 1.6 % CPU. (Power is given for the app only, % CPU is given for the whole system):
 
