@@ -167,7 +167,7 @@ void export_files_callback()
 
   // Populate popup and fire everything
   GtkWidget *content = gtk_dialog_get_content_area(GTK_DIALOG(dialog));
-  gtk_box_pack_start(GTK_BOX(content), w, FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(content), w, TRUE, TRUE, 0);
   gtk_widget_set_visible(w, TRUE);
   gtk_widget_show_all(dialog);
 
