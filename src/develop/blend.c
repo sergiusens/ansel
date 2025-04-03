@@ -666,15 +666,6 @@ int dt_develop_blend_process(struct dt_iop_module_t *self, struct dt_dev_pixelpi
     g_hash_table_replace(piece->raster_masks, GINT_TO_POINTER(0), _mask);
     dt_print(DT_DEBUG_MASKS, "[raster masks] replacing raster mask id 0 for module %s (%s) for pipe %i with hash %lu\n", piece->module->op,
              piece->module->multi_name, piece->pipe->type, piece->global_mask_hash);
-
-    // ...which is why we need to copy to global pipeline cache
-    if(!dt_dev_pixelpipe_cache_available(&(piece->pipe->cache), piece->global_mask_hash))
-    {
-      dt_iop_buffer_dsc_t *out_format = &piece->dsc_mask;
-      float *cache_mask;
-      dt_dev_pixelpipe_cache_get(&(piece->pipe->cache), piece->global_mask_hash, buffsize * sizeof(float), (void **)&cache_mask, &out_format);
-      memcpy(cache_mask, _mask, buffsize * sizeof(float));
-    }
   }
   else
   {
@@ -1265,15 +1256,6 @@ int dt_develop_blend_process_cl(struct dt_iop_module_t *self, struct dt_dev_pixe
 
     // The hash table does not survive to a pipeline restart...
     g_hash_table_replace(piece->raster_masks, GINT_TO_POINTER(0), _mask);
-
-    // ...which is why we need to copy to global pipeline cache
-    if(!dt_dev_pixelpipe_cache_available(&(piece->pipe->cache), piece->global_mask_hash))
-    {
-      dt_iop_buffer_dsc_t *out_format = &piece->dsc_mask;
-      float *cache_mask;
-      dt_dev_pixelpipe_cache_get(&(piece->pipe->cache), piece->global_mask_hash, buffsize * sizeof(float), (void **)&cache_mask, &out_format);
-      memcpy(cache_mask, _mask, buffsize * sizeof(float));
-    }
   }
   else
   {

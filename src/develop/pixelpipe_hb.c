@@ -2748,47 +2748,22 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
   if(!err_ret)
   {
     const uint64_t raster_hash = current_piece->global_mask_hash;
-    const size_t raster_size
-        = current_piece->processed_roi_out.width * current_piece->processed_roi_out.height * sizeof(float);
-    dt_iop_buffer_dsc_t *out_format = &current_piece->dsc_mask;
-
+    
     gchar *clean_source_name = delete_underscore(source_piece->module->name());
     gchar *source_name = g_strdup_printf("%s (%s)", clean_source_name, source_piece->module->multi_name);
-
-    gboolean cache = FALSE;
-
-    if(dt_dev_pixelpipe_cache_available(&(pipe->cache), raster_hash))
-    {
-      // Try to get the mask from the global cache, in case the module flushed its reference
-      dt_dev_pixelpipe_cache_get(&(pipe->cache), raster_hash, raster_size, (void **)&raster_mask, &out_format);
-      cache = TRUE;
-    }
-    else
-    {
-      // No luck on global cache, try internal reference.
-      raster_mask = g_hash_table_lookup(source_piece->raster_masks, GINT_TO_POINTER(raster_mask_id));
-    }
+    raster_mask = g_hash_table_lookup(source_piece->raster_masks, GINT_TO_POINTER(raster_mask_id));
 
     // Print debug stuff
     if(raster_mask)
     {
       dt_print(DT_DEBUG_MASKS,
         "[raster masks] found in %s mask id %i from %s (%s) for module %s (%s) in pipe %i with hash %lu\n",
-        (cache) ? "cache" : "internal",
+        "internal",
         raster_mask_id, source_name, source_piece->module->multi_name, target_name, target_module->multi_name,
         pipe->type, raster_hash);
 
       // Disable re-entry if any
       dt_dev_pixelpipe_unset_reentry(pipe, raster_hash);
-
-      // cached masks are already distorted, our work is done here
-      if(cache)
-      {
-        g_free(clean_target_name);
-        g_free(target_name);
-        return raster_mask;
-      }
-      // else : carry on with geometric distortions below
     }
     else
     {
