@@ -1038,10 +1038,12 @@ void gui_update(struct dt_iop_module_t *self)
 void init(dt_iop_module_t *module)
 {
   dt_iop_default_init(module);
+}
 
+void reload_defaults(dt_iop_module_t *module)
+{
   dt_iop_watermark_params_t *d = module->default_params;
-
-  g_strlcpy(d->filename, "darktable.svg", sizeof(d->filename));
+  g_strlcpy(d->filename, "simple-text.svg", sizeof(d->filename));
   g_strlcpy(d->font, "DejaVu Sans 10", sizeof(d->font));
 }
 
