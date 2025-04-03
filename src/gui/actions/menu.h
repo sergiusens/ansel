@@ -136,8 +136,10 @@ void update_entry(dt_menu_entry_t *entry)
 
   if(entry->active_callback)
   {
-    if(entry->active_callback(entry->widget)) dt_gui_add_class(entry->widget, "menu-active");
-    else dt_gui_remove_class(entry->widget, "menu-active");
+    if(entry->active_callback(entry->widget))
+      dt_gui_add_class(entry->widget, "menu-active");
+    else
+      dt_gui_remove_class(entry->widget, "menu-active");
   }
 }
 

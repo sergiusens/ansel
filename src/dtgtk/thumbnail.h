@@ -120,6 +120,7 @@ typedef struct
   char datetime[200];
   char camera[128];
   char lens[128];
+  char folder[PATH_MAX];
 
   GtkWidget *w_exposure;
   GtkWidget *w_exposure_bias;
@@ -128,9 +129,13 @@ typedef struct
   GtkWidget *w_datetime;
   GtkWidget *w_lens;
   GtkWidget *w_focal;
+  GtkWidget *w_folder;
 
   gboolean busy; // should we show the busy message ?
   gboolean drawn; // image already drawn, nothing more to do
+
+  // Context menu
+  GtkWidget *menu;
 
 } dt_thumbnail_t;
 

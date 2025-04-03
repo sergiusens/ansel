@@ -35,6 +35,7 @@
 #include "control/control.h"
 #include "dtgtk/button.h"
 #include "dtgtk/icon.h"
+#include "dtgtk/preview_window.h"
 #include "dtgtk/thumbnail_btn.h"
 #include "gui/drag_and_drop.h"
 
@@ -150,6 +151,96 @@ static void _thumb_write_extension(dt_thumbnail_t *thumb)
   g_free(uext);
 }
 
+static GtkWidget *_gtk_menu_item_new_with_markup(const char *label, GtkWidget *menu,
+                                                 void (*activate_callback)(GtkWidget *widget,
+                                                                           dt_thumbnail_t *thumb),
+                                                 dt_thumbnail_t *thumb)
+{
+  GtkWidget *menu_item = gtk_menu_item_new_with_label("");
+  GtkWidget *child = gtk_bin_get_child(GTK_BIN(menu_item));
+  gtk_label_set_markup(GTK_LABEL(child), label);
+  gtk_menu_item_set_reserve_indicator(GTK_MENU_ITEM(menu_item), FALSE);
+  gtk_menu_shell_append(GTK_MENU_SHELL(menu), menu_item);
+
+  if(activate_callback) g_signal_connect(G_OBJECT(menu_item), "activate", G_CALLBACK(activate_callback), thumb);
+
+  return menu_item;
+}
+
+static GtkWidget *_menuitem_from_text(const char *label, const char *value, GtkWidget *menu,
+                                      void (*activate_callback)(GtkWidget *widget, dt_thumbnail_t *thumb),
+                                      dt_thumbnail_t *thumb)
+{
+  gchar *text = g_strdup_printf("%s%s", label, value);
+  GtkWidget *menu_item = _gtk_menu_item_new_with_markup(text, menu, activate_callback, thumb);
+  g_free(text);
+  return menu_item;
+}
+
+static void _color_label_callback(GtkWidget *widget, dt_thumbnail_t *thumb)
+{
+  int color = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(widget), "custom-data"));
+  dt_colorlabels_toggle_label_on_list(g_list_append(NULL, GINT_TO_POINTER(thumb->imgid)), color, TRUE);
+}
+
+static void _preview_window_open(GtkWidget *widget, dt_thumbnail_t *thumb)
+{
+  dt_preview_window_spawn(thumb->imgid);
+}
+
+static void _create_menu(dt_thumbnail_t *thumb)
+{
+  thumb->menu = gtk_menu_new();
+
+  // Filename: insensitive header to mean that the context menu is for this picture only
+  GtkWidget *menu_item = _gtk_menu_item_new_with_markup(thumb->filename, thumb->menu, NULL, thumb);
+  gtk_widget_set_sensitive(menu_item, FALSE);
+
+  GtkWidget *sep = gtk_separator_menu_item_new();
+  gtk_menu_shell_append(GTK_MENU_SHELL(thumb->menu), sep);
+
+  /** image info */
+  menu_item = _gtk_menu_item_new_with_markup(_("Image info"), thumb->menu, NULL, thumb);
+  GtkWidget *sub_menu = gtk_menu_new();
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), sub_menu);
+
+  _menuitem_from_text(_("Folder : "), thumb->folder, sub_menu, NULL, thumb);
+  _menuitem_from_text(_("Date : "), thumb->datetime, sub_menu, NULL, thumb);
+
+  if(thumb->camera[0])
+    _menuitem_from_text(_("Camera : "), thumb->camera, sub_menu, NULL, thumb);
+
+  if(thumb->lens[0])
+    _menuitem_from_text(_("Lens : "), thumb->lens, sub_menu, NULL, thumb);
+
+  sep = gtk_separator_menu_item_new();
+  gtk_menu_shell_append(GTK_MENU_SHELL(thumb->menu), sep);
+
+  /** color labels  */
+  menu_item = _gtk_menu_item_new_with_markup(_("Assign color labels"), thumb->menu, NULL, thumb);
+  sub_menu = gtk_menu_new();
+  gtk_menu_item_set_submenu(GTK_MENU_ITEM(menu_item), sub_menu);
+
+  menu_item = _gtk_menu_item_new_with_markup("<span foreground='#BB2222'>\342\254\244</span> Red", sub_menu, _color_label_callback, thumb);
+  g_object_set_data(G_OBJECT(menu_item), "custom-data", GINT_TO_POINTER(0));
+
+  menu_item = _gtk_menu_item_new_with_markup("<span foreground='#BBBB22'>\342\254\244</span> Yellow", sub_menu, _color_label_callback, thumb);
+  g_object_set_data(G_OBJECT(menu_item), "custom-data", GINT_TO_POINTER(1));
+
+  menu_item = _gtk_menu_item_new_with_markup("<span foreground='#22BB22'>\342\254\244</span> Green", sub_menu, _color_label_callback, thumb);
+  g_object_set_data(G_OBJECT(menu_item), "custom-data", GINT_TO_POINTER(2));
+
+  menu_item = _gtk_menu_item_new_with_markup("<span foreground='#2222BB'>\342\254\244</span> Blue", sub_menu, _color_label_callback, thumb);
+  g_object_set_data(G_OBJECT(menu_item), "custom-data", GINT_TO_POINTER(3));
+
+  menu_item = _gtk_menu_item_new_with_markup("<span foreground='#BB22BB'>\342\254\244</span> Purple", sub_menu, _color_label_callback, thumb);
+  g_object_set_data(G_OBJECT(menu_item), "custom-data", GINT_TO_POINTER(4));
+
+  menu_item = _gtk_menu_item_new_with_markup(_("Open in preview window…"), thumb->menu, _preview_window_open, thumb);
+
+  gtk_widget_show_all(thumb->menu);
+}
+
 
 static void _image_get_infos(dt_thumbnail_t *thumb)
 {
@@ -167,6 +258,8 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
     thumb->is_bw_flow = dt_image_use_monochrome_workflow(img);
     thumb->is_hdr = dt_image_is_hdr(img);
     thumb->filename = g_strdup(img->filename);
+    memset(thumb->folder, 0, PATH_MAX);
+    dt_image_film_roll_directory(img, thumb->folder, PATH_MAX);
     thumb->has_audio = (img->flags & DT_IMAGE_HAS_WAV);
 
     thumb->iso = img->exif_iso;
@@ -211,6 +304,9 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
   _image_update_group_tooltip(thumb);
 
   _thumb_write_extension(thumb);
+
+  if(!thumb->menu)
+    _create_menu(thumb);
 }
 
 static void _thumb_retrieve_margins(dt_thumbnail_t *thumb)
@@ -481,6 +577,11 @@ static gboolean _event_main_press(GtkWidget *widget, GdkEventButton *event, gpoi
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE, thumb->imgid);
     return TRUE;
   }
+  else if(event->button == GDK_BUTTON_SECONDARY && event->type == GDK_BUTTON_PRESS)
+  {
+    gtk_menu_popup_at_pointer(GTK_MENU(thumb->menu), NULL);
+    return TRUE;
+  }
 
   return FALSE;
 }
@@ -591,6 +692,7 @@ void _create_alternative_view(dt_thumbnail_t *thumb)
   thumb_return_if_fails(thumb);
   gtk_label_set_text(GTK_LABEL(thumb->w_filename), thumb->filename);
   gtk_label_set_text(GTK_LABEL(thumb->w_datetime), thumb->datetime);
+  gtk_label_set_text(GTK_LABEL(thumb->w_folder), thumb->folder);
 
   const gchar *exposure_field = g_strdup_printf("%.0f ISO - f/%.1f - %s", thumb->iso, thumb->aperture,
                                                 dt_util_format_exposure(thumb->speed));
@@ -951,6 +1053,9 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_filename, FALSE, FALSE, 0);
   thumb->w_datetime = gtk_label_new("");
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_datetime, FALSE, FALSE, 0);
+  thumb->w_folder = gtk_label_new("");
+  gtk_label_set_ellipsize(GTK_LABEL(thumb->w_folder), PANGO_ELLIPSIZE_MIDDLE);
+  gtk_box_pack_start(GTK_BOX(bbox), thumb->w_folder, FALSE, FALSE, 0);
 
   bbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_widget_set_valign(bbox, GTK_ALIGN_CENTER);
@@ -971,6 +1076,8 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   thumb->w_focal = gtk_label_new("");
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_focal, FALSE, FALSE, 0);
   //gtk_widget_set_no_show_all(thumb->w_alternative, TRUE);
+
+  thumb->menu = NULL;
 
   return thumb->widget;
 }
