@@ -1410,6 +1410,12 @@
     <longdescription/>
   </dtconfig>
   <dtconfig>
+    <name>plugins/lighttable/export/metadata_flags</name>
+    <type>int</type>
+    <default>43</default>
+    <shortdescription>metadata fields to write in files when exporting images</shortdescription>
+  </dtconfig>
+  <dtconfig>
     <name>plugins/lighttable/metadata/creator_text_height</name>
     <type>int</type>
     <default>1</default>

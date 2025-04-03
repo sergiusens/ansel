@@ -22,7 +22,7 @@
 
 uint32_t dt_lib_export_metadata_default_flags(void)
 {
-  const uint32_t flags = DT_META_EXIF | DT_META_METADATA | DT_META_GEOTAG | DT_META_TAG | DT_META_DT_HISTORY;
+  const uint32_t flags = DT_META_EXIF | DT_META_METADATA | DT_META_TAG | DT_META_DT_HISTORY;
   return flags;
 }
 
@@ -120,4 +120,3 @@ void dt_lib_export_metadata_set_conf(const char *metadata_presets)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
