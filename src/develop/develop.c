@@ -287,14 +287,20 @@ void dt_dev_pixelpipe_resync_main(dt_develop_t *dev)
   dt_atomic_set_int(&dev->pipe->shutdown, TRUE);
 }
 
-void dt_dev_pixelpipe_resync_all(dt_develop_t *dev)
+void dt_dev_pixelpipe_resync_preview(dt_develop_t *dev)
 {
-  if(!dev || !dev->gui_attached || !dev->pipe || !dev->preview_pipe) return;
+  if(!dev || !dev->gui_attached || !dev->preview_pipe) return;
 
   _dev_pixelpipe_set_dirty(dev->preview_pipe);
   dev->preview_pipe->changed |= DT_DEV_PIPE_SYNCH;
   dt_atomic_set_int(&dev->preview_pipe->shutdown, TRUE);
+}
 
+void dt_dev_pixelpipe_resync_all(dt_develop_t *dev)
+{
+  if(!dev || !dev->gui_attached || !dev->pipe || !dev->preview_pipe) return;
+
+  dt_dev_pixelpipe_resync_preview(dev);
   dt_dev_pixelpipe_resync_main(dev);
 }
 

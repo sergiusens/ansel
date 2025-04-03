@@ -1861,6 +1861,7 @@ void process(struct dt_iop_module_t *self, dt_dev_pixelpipe_iop_t *piece,
       dt_iop_gui_enter_critical_section(self);
       extract_color_checker(in, out, roi_in, g, RGB_to_XYZ, XYZ_to_RGB, XYZ_to_CAM, data->adaptation);
       g->run_profile = FALSE;
+      dt_iop_set_cache_bypass(self, FALSE);
       dt_iop_gui_leave_critical_section(self);
     }
 
@@ -2575,9 +2576,10 @@ static void run_profile_callback(GtkWidget *widget, GdkEventButton *event, gpoin
 
   dt_iop_gui_enter_critical_section(self);
   g->run_profile = TRUE;
+  dt_iop_set_cache_bypass(self, TRUE);
   dt_iop_gui_leave_critical_section(self);
 
-  dt_dev_invalidate_preview(self->dev);
+  dt_dev_pixelpipe_resync_preview(self->dev);
   dt_dev_refresh_ui_images(self->dev);
 }
 
@@ -2589,9 +2591,10 @@ static void run_validation_callback(GtkWidget *widget, GdkEventButton *event, gp
 
   dt_iop_gui_enter_critical_section(self);
   g->run_validation = TRUE;
+  dt_iop_set_cache_bypass(self, TRUE);
   dt_iop_gui_leave_critical_section(self);
 
-  dt_dev_invalidate_preview(self->dev);
+  dt_dev_pixelpipe_resync_preview(self->dev);
   dt_dev_refresh_ui_images(self->dev);
 }
 

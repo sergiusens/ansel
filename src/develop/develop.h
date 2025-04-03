@@ -379,6 +379,7 @@ void dt_dev_pixelpipe_resync_all(dt_develop_t *dev);
 // Resync the whole history, which may be expensive.
 void dt_dev_pixelpipe_resync_main(dt_develop_t *dev);
 
+void dt_dev_pixelpipe_resync_preview(dt_develop_t *dev);
 
 void dt_dev_set_histogram(dt_develop_t *dev);
 void dt_dev_set_histogram_pre(dt_develop_t *dev);
