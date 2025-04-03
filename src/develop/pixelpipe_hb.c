@@ -2629,13 +2629,13 @@ void dt_dev_pixelpipe_get_roi_in(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *
 /**
  * @brief Checks the validity of the raster mask source and target modules,
  * outputs errors if necessary. Also tells the user what to do.
- * 
+ *
  * @param source_piece
  * @param current_piece
  * @param target_module
  * @return gboolean TRUE when all is good, FALSE otherwise.
  */
-static gboolean _dt_dev_raster_mask_check(dt_dev_pixelpipe_iop_t *source_piece, dt_dev_pixelpipe_iop_t 
+static gboolean _dt_dev_raster_mask_check(dt_dev_pixelpipe_iop_t *source_piece, dt_dev_pixelpipe_iop_t
   *current_piece, const dt_iop_module_t *target_module)
 {
   gboolean success = TRUE;
@@ -2644,13 +2644,15 @@ static gboolean _dt_dev_raster_mask_check(dt_dev_pixelpipe_iop_t *source_piece, 
 
   if(source_piece == NULL || current_piece == NULL)
   {
-    fprintf(stderr,"[raster masks] Source: %d, current: %d\n", source_piece != NULL , current_piece != NULL);
+    fprintf(stderr,"[raster masks] ERROR: source: %s, current: %s\n",
+            (source_piece != NULL) ? "is defined" : "is undefined",
+            (current_piece != NULL) ? "is definded" : "is undefined");
 
     gchar *hint = NULL;
     if(source_piece == NULL)
     {
       // The loop searching linked modules to the raster masks
-      // terminated without finding the source module. 
+      // terminated without finding the source module.
       // that means the source module has been deleted.
       hint = g_strdup_printf(
             _("\n- Check if the module providing the masks for the module %s has not been deleted.\n"),
@@ -2662,7 +2664,7 @@ static gboolean _dt_dev_raster_mask_check(dt_dev_pixelpipe_iop_t *source_piece, 
       // has stopped when it finds the source module but before it has
       // found the current module:
       // That means the raster mask is above current module.
-      hint = g_strdup_printf(_("\n- Check if the module %s (%s) providing the masks has not been moved above %s.\n"), 
+      hint = g_strdup_printf(_("\n- Check if the module %s (%s) providing the masks has not been moved above %s.\n"),
                       delete_underscore(source_piece->module->name()), source_piece->module->multi_name, clean_target_name);
     }
 
@@ -2712,12 +2714,15 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
   if(!raster_mask_source)
   {
     fprintf(stderr, "[raster masks] The source module of the mask for %s was not found\n", target_name);
+    g_free(clean_target_name);
+    g_free(target_name);
     return NULL;
   }
 
   *free_mask = FALSE;
   float *raster_mask = NULL;
 
+  // Find the module objects associated with mask provider and consumer
   dt_dev_pixelpipe_iop_t *source_piece = NULL;
   dt_dev_pixelpipe_iop_t *current_piece = NULL;
   GList *source_iter = NULL;
@@ -2735,9 +2740,12 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
     }
   }
 
-  if(error) *error = !_dt_dev_raster_mask_check(source_piece, current_piece, target_module); 
+  int err_ret = !_dt_dev_raster_mask_check(source_piece, current_piece, target_module);
 
-  if(error && *error == 0)
+  // Pass on the error to the returning pointer
+  if(error) *error = err_ret;
+
+  if(!err_ret)
   {
     const uint64_t raster_hash = current_piece->global_mask_hash;
     const size_t raster_size
@@ -2765,7 +2773,7 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
     if(raster_mask)
     {
       dt_print(DT_DEBUG_MASKS,
-        "[raster masks] found in %s mask id %i from %s (%s) for module %s (%s) in pipe %i with hash %llu\n",
+        "[raster masks] found in %s mask id %i from %s (%s) for module %s (%s) in pipe %i with hash %lu\n",
         (cache) ? "cache" : "internal",
         raster_mask_id, source_name, source_piece->module->multi_name, target_name, target_module->multi_name,
         pipe->type, raster_hash);
@@ -2773,8 +2781,13 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
       // Disable re-entry if any
       dt_dev_pixelpipe_unset_reentry(pipe, raster_hash);
 
-      // cached masks are already distorted
-      if(cache) return raster_mask;
+      // cached masks are already distorted, our work is done here
+      if(cache)
+      {
+        g_free(clean_target_name);
+        g_free(target_name);
+        return raster_mask;
+      }
       // else : carry on with geometric distortions below
     }
     else
@@ -2789,6 +2802,9 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
 
       // This should terminate the pipeline now:
       if(error) *error = 1;
+
+      g_free(clean_target_name);
+      g_free(target_name);
       return NULL;
     }
 
@@ -2841,6 +2857,8 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
     }
   }
 
+  g_free(clean_target_name);
+  g_free(target_name);
   return raster_mask;
 }
 
