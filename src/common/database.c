@@ -3147,15 +3147,50 @@ start:
     return NULL;
   }
 
+  sqlite3_stmt *stmt;
+  int rc;
+
+  if(sqlite3_db_readonly(db->handle, "main") != 0)
+  {
+    fprintf(stderr, "%s database is read only. Abort...\n", db->dbfilename_library);
+
+    GtkWidget *dialog;
+    GtkDialogFlags dflags = GTK_DIALOG_MODAL | GTK_DIALOG_DESTROY_WITH_PARENT;
+
+    dialog = gtk_dialog_new_with_buttons(_("Ansel - Database is read-only"),
+                                           NULL, dflags,
+                                           _("Close Ansel"), GTK_RESPONSE_CLOSE, NULL);
+    gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CLOSE);
+    char *label_options
+        = g_strdup_printf(_("<span weight='bold'>Ansel library database is read-only</span>\n\n"
+                            "This happens if you don't have permissions to write on the filesystem\n"
+                            "or if you have restored a write-protected backup snapshot.\n\n"
+                            "Please change the filesystem access permissions for:\n\n"
+                            "\t<span style='italic'>%s</span>"),
+                          db->dbfilename_library);
+
+    GtkWidget *content_area = gtk_dialog_get_content_area(GTK_DIALOG (dialog));
+    GtkWidget *label = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(label), label_options);
+    gtk_container_add(GTK_CONTAINER (content_area), label);
+    gtk_widget_show_all(content_area);
+    gtk_dialog_run(GTK_DIALOG(dialog));
+    gtk_widget_destroy(dialog);
+    dt_database_destroy(db);
+    g_free(dbname);
+    g_free(label_options);
+    db = NULL;
+    return NULL;
+  }
+
   /* attach a memory database to db connection for use with temporary tables
      used during instance life time, which is discarded on exit.
   */
   sqlite3_exec(db->handle, "attach database ':memory:' as memory", NULL, NULL, NULL);
 
   // attach the data database which contains presets, styles, tags and similar things not tied to single images
-  sqlite3_stmt *stmt;
   gboolean have_data_db = load_data && g_file_test(dbfilename_data, G_FILE_TEST_EXISTS);
-  int rc = sqlite3_prepare_v2(db->handle, "ATTACH DATABASE ?1 AS data", -1, &stmt, NULL);
+  rc = sqlite3_prepare_v2(db->handle, "ATTACH DATABASE ?1 AS data", -1, &stmt, NULL);
   sqlite3_bind_text(stmt, 1, dbfilename_data, -1, SQLITE_TRANSIENT);
   if(rc != SQLITE_OK || sqlite3_step(stmt) != SQLITE_DONE)
   {
