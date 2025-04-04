@@ -32,7 +32,7 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   {
      gtk_main_iteration();
   }
-  
+
   const double start = dt_get_wtime();
 
   int32_t imgid = GPOINTER_TO_INT(user_data);
@@ -40,7 +40,7 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   int h = gtk_widget_get_allocated_height(widget);
 
   cairo_surface_t *surface = NULL;
-  dt_view_surface_value_t res = dt_view_image_get_surface(imgid, w, h, &surface, 0, NULL, NULL);
+  dt_view_surface_value_t res = dt_view_image_get_surface(imgid, w, h, &surface, 0);
 
   if(surface && res == DT_VIEW_SURFACE_OK)
   {

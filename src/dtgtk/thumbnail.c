@@ -396,26 +396,14 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
   gtk_widget_get_size_request(thumb->w_image, &image_w, &image_h);
 
   int zoom = (thumb->table) ? thumb->table->zoom : DT_THUMBTABLE_ZOOM_FIT;
-  float x_center = 0.f;
-  float y_center = 0.f;
 
-  dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, zoom, &x_center, &y_center);
+  dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, zoom);
 
   if(thumb->img_surf && res == DT_VIEW_SURFACE_OK)
   {
     // The image is immediately available
     thumb->img_width = cairo_image_surface_get_width(thumb->img_surf);
     thumb->img_height = cairo_image_surface_get_height(thumb->img_surf);
-
-    // Init the zoom offset using the barycenter of details, to center
-    // the zoomed-in image on content that matters: details.
-    // Offset is expressed from the center of the image
-    if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT
-       && x_center > 0.f && y_center > 0.f)
-    {
-      thumb->zoomx = (double)thumb->img_width / 2. - x_center;
-      thumb->zoomy = (double)thumb->img_height / 2. - y_center;
-    }
   }
   else
   {
@@ -428,6 +416,30 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
     // the corresponding thumb will be set to thumb->busy = FALSE
     // by the signal handler.
     return G_SOURCE_REMOVE;
+  }
+
+  if(zoom > DT_THUMBTABLE_ZOOM_FIT || darktable.gui->show_focus_peaking)
+  {
+    // Note: we compute the "sharpness density" unconditionnaly if the image is zoomed-in
+    // in order to get the details barycenter to init centering.
+    // Actual density are drawn only if the focus peaking mode is enabled.
+    float x_center = 0.f;
+    float y_center = 0.f;
+    cairo_t *cri = cairo_create(thumb->img_surf);
+    unsigned char *rgbbuf = cairo_image_surface_get_data(thumb->img_surf);
+    if(rgbbuf)
+      dt_focuspeaking(cri, rgbbuf, cairo_image_surface_get_width(thumb->img_surf), cairo_image_surface_get_height(thumb->img_surf), darktable.gui->show_focus_peaking, &x_center, &y_center);
+    cairo_destroy(cri);
+
+    // Init the zoom offset using the barycenter of details, to center
+    // the zoomed-in image on content that matters: details.
+    // Offset is expressed from the center of the image
+    if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT
+      && x_center > 0.f && y_center > 0.f)
+    {
+      thumb->zoomx = (double)thumb->img_width / 2. - x_center;
+      thumb->zoomy = (double)thumb->img_height / 2. - y_center;
+    }
   }
 
   // if needed we compute and draw here the big rectangle to show focused areas

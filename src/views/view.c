@@ -23,7 +23,6 @@
 #include "common/collection.h"
 #include "common/darktable.h"
 #include "common/debug.h"
-#include "common/focus_peaking.h"
 #include "common/image_cache.h"
 #include "common/mipmap_cache.h"
 #include "common/module.h"
@@ -611,7 +610,7 @@ int dt_view_manager_scrolled(dt_view_manager_t *vm, double x, double y, int up, 
 }
 
 dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int height, cairo_surface_t **surface,
-                                                  int zoom, float *x_center, float *y_center)
+                                                  int zoom)
 {
   double tt = 0;
   if((darktable.unmuted & (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF)) == (DT_DEBUG_LIGHTTABLE | DT_DEBUG_PERF))
@@ -767,10 +766,6 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
     cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_GOOD);
 
   cairo_paint(cr);
-
-  if(zoom > DT_THUMBTABLE_ZOOM_FIT || darktable.gui->show_focus_peaking)
-    dt_focuspeaking(cr, rgbbuf, buf_wd, buf_ht, darktable.gui->show_focus_peaking, x_center, y_center);
-
   cairo_surface_destroy(tmp_surface);
   cairo_destroy(cr);
 
