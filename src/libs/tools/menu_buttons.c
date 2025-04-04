@@ -95,7 +95,8 @@ void gui_init(dt_lib_module_t *self)
 
   /* Init container widget */
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_halign(GTK_WIDGET(self->widget), GTK_ALIGN_END);
+  gtk_widget_set_halign(self->widget, GTK_ALIGN_END);
+  gtk_widget_set_hexpand(self->widget, FALSE);
 
   d->home = gtk_button_new_from_icon_name("go-home", GTK_ICON_SIZE_LARGE_TOOLBAR);
   gtk_widget_set_tooltip_text(d->home, _("Go back to lighttable"));

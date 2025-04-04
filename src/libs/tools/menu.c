@@ -62,7 +62,8 @@ void gui_init(dt_lib_module_t *self)
 
   /* Init container widget */
   self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_halign(GTK_WIDGET(self->widget), GTK_ALIGN_START);
+  gtk_widget_set_halign(self->widget, GTK_ALIGN_START);
+  gtk_widget_set_hexpand(self->widget, FALSE);
 
   d->icon = gtk_button_new_from_icon_name("ansel", GTK_ICON_SIZE_LARGE_TOOLBAR);
   dt_gui_add_class(d->icon, "window-button");
@@ -80,6 +81,8 @@ void gui_init(dt_lib_module_t *self)
   }
 
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->menu_bar), FALSE, FALSE, 0);
+  gtk_widget_set_halign(d->menu_bar, GTK_ALIGN_START);
+  gtk_widget_set_hexpand(d->menu_bar, FALSE);
 
   /* Populate file menu */
   append_file(d->menus, &d->item_lists[DT_MENU_FILE], DT_MENU_FILE);

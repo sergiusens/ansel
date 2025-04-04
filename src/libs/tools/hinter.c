@@ -44,7 +44,7 @@ const char *name(struct dt_lib_module_t *self)
 
 const char **views(dt_lib_module_t *self)
 {
-  static const char *v[] = {"lighttable", "map", "tethering", NULL};
+  static const char *v[] = {"lighttable", "darkroom", "map", "tethering", NULL};
   return v;
 }
 
@@ -70,15 +70,17 @@ void gui_init(dt_lib_module_t *self)
   dt_lib_hinter_t *d = (dt_lib_hinter_t *)g_malloc0(sizeof(dt_lib_hinter_t));
   self->data = (void *)d;
 
-  self->widget = gtk_event_box_new();
+  self->widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   d->label = gtk_label_new("");
   gtk_label_set_ellipsize(GTK_LABEL(d->label), PANGO_ELLIPSIZE_END);
-  gtk_container_add(GTK_CONTAINER(self->widget), d->label);
+  gtk_box_pack_start(GTK_BOX(self->widget), d->label, TRUE, TRUE, 0);
   gtk_widget_set_name(d->label, "hinter");
 
-  gtk_widget_set_halign(GTK_WIDGET(self->widget), GTK_ALIGN_END);
-  gtk_widget_set_hexpand(GTK_WIDGET(self->widget), TRUE);
-  gtk_label_set_justify(GTK_LABEL(d->label), GTK_JUSTIFY_RIGHT);
+  gtk_widget_set_halign(self->widget, GTK_ALIGN_CENTER);
+  gtk_widget_set_hexpand(self->widget, TRUE);
+  gtk_widget_set_halign(d->label, GTK_ALIGN_CENTER);
+  gtk_widget_set_hexpand(d->label, FALSE);
+  gtk_label_set_justify(GTK_LABEL(d->label), GTK_JUSTIFY_CENTER);
   gtk_label_set_line_wrap(GTK_LABEL(d->label), TRUE);
 
   darktable.control->proxy.hinter.module = self;
