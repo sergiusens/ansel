@@ -418,7 +418,8 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
     return G_SOURCE_REMOVE;
   }
 
-  if(zoom > DT_THUMBTABLE_ZOOM_FIT || darktable.gui->show_focus_peaking)
+  gboolean show_focus_peaking = (thumb->table && thumb->table->focus_peaking);
+  if(zoom > DT_THUMBTABLE_ZOOM_FIT || show_focus_peaking)
   {
     // Note: we compute the "sharpness density" unconditionnaly if the image is zoomed-in
     // in order to get the details barycenter to init centering.
@@ -428,7 +429,7 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
     cairo_t *cri = cairo_create(thumb->img_surf);
     unsigned char *rgbbuf = cairo_image_surface_get_data(thumb->img_surf);
     if(rgbbuf)
-      dt_focuspeaking(cri, rgbbuf, cairo_image_surface_get_width(thumb->img_surf), cairo_image_surface_get_height(thumb->img_surf), darktable.gui->show_focus_peaking, &x_center, &y_center);
+      dt_focuspeaking(cri, rgbbuf, cairo_image_surface_get_width(thumb->img_surf), cairo_image_surface_get_height(thumb->img_surf), show_focus_peaking, &x_center, &y_center);
     cairo_destroy(cri);
 
     // Init the zoom offset using the barycenter of details, to center
@@ -443,7 +444,7 @@ static int _get_image_buffer(dt_thumbnail_t *thumb)
   }
 
   // if needed we compute and draw here the big rectangle to show focused areas
-  if(thumb->table && thumb->table->focus)
+  if(thumb->table && thumb->table->focus_regions)
   {
     uint8_t *full_res_thumb = NULL;
     int32_t full_res_thumb_wd, full_res_thumb_ht;

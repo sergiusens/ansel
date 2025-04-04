@@ -25,7 +25,6 @@
 #include "common/darktable.h"
 #include "common/debug.h"
 #include "common/file_location.h"
-#include "common/focus_peaking.h"
 #include "common/history.h"
 #include "common/image_cache.h"
 #include "common/imageio.h"
@@ -396,15 +395,6 @@ void expose(
     cairo_set_source_surface(cr, surface, 0, 0);
     cairo_pattern_set_filter(cairo_get_source(cr), _get_filtering_level(dev, zoom, closeup));
     cairo_paint(cr);
-
-    if(darktable.gui->show_focus_peaking)
-    {
-      cairo_save(cr);
-      cairo_scale(cr, 1./ darktable.gui->ppd, 1. / darktable.gui->ppd);
-      dt_focuspeaking(cr, cairo_image_surface_get_data(surface), cairo_image_surface_get_width(surface),
-                      cairo_image_surface_get_height(surface), TRUE, NULL, NULL);
-      cairo_restore(cr);
-    }
 
     cairo_surface_destroy(surface);
     dt_pthread_mutex_unlock(mutex);

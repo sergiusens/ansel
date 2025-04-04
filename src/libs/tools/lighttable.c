@@ -192,7 +192,7 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
 
 void _focus_toggled(GtkToggleButton *self, gpointer user_data)
 {
-  dt_thumbtable_set_focus(darktable.gui->ui->thumbtable_lighttable, gtk_toggle_button_get_active(self));
+  dt_thumbtable_set_focus_regions(darktable.gui->ui->thumbtable_lighttable, gtk_toggle_button_get_active(self));
 }
 
 void gui_init(dt_lib_module_t *self)

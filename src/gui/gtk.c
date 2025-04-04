@@ -607,9 +607,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // The GtkWidget capturing scrolling events will write its address in this pointer
   gui->has_scroll_focus = NULL;
 
-  // Init focus peaking
-  gui->show_focus_peaking = FALSE;
-
   // Initializing widgets
   _init_widgets(gui);
 

@@ -345,14 +345,15 @@ static gboolean collapse_grouped_checked_callback()
 
 static void focus_peaking_callback()
 {
-  darktable.gui->show_focus_peaking = !darktable.gui->show_focus_peaking;
-  // Redraw all thumbnails
-  dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, -1, TRUE);
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
+  gboolean focus_peaking = dt_thumbtable_get_focus_peaking(table);
+  dt_thumbtable_set_focus_peaking(table, !focus_peaking);
 }
 
 static gboolean focus_peaking_checked_callback()
 {
-  return darktable.gui->show_focus_peaking;
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
+  return dt_thumbtable_get_focus_peaking(table);
 }
 
 void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)

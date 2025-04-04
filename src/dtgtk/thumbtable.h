@@ -133,7 +133,8 @@ typedef struct dt_thumbtable_t
   dt_thumbtable_zoom_t zoom;
 
   // Show focus regions on thumbnails
-  gboolean focus;
+  gboolean focus_regions;
+  gboolean focus_peaking;
 
 } dt_thumbtable_t;
 
@@ -157,7 +158,12 @@ void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level);
 // offset all the zoomed thumbnails by the same amount
 void dt_thumbtable_offset_zoom(dt_thumbtable_t *table, const double delta_x, const double delta_y);
 
-void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable);
+void dt_thumbtable_set_focus_regions(dt_thumbtable_t *table, gboolean enable);
+gboolean dt_thumbtable_get_focus_regions(dt_thumbtable_t *table);
+
+void dt_thumbtable_set_focus_peaking(dt_thumbtable_t *table, gboolean enable);
+gboolean dt_thumbtable_get_focus_peaking(dt_thumbtable_t *table);
+
 
 // signal that the current collection needs to be flushed entirely before being reloaded
 void dt_thumbtable_reset_collection(dt_thumbtable_t *table);

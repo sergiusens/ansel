@@ -113,7 +113,6 @@ typedef struct dt_gui_gtk_t
   GList *input_devices;
 
   gboolean show_overlays;
-  gboolean show_focus_peaking;
   double overlay_red, overlay_blue, overlay_green, overlay_contrast;
 
   double dpi, dpi_factor, ppd;

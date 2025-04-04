@@ -743,10 +743,26 @@ void dt_thumbtable_offset_zoom(dt_thumbtable_t *table, const double delta_x, con
 }
 
 
-void dt_thumbtable_set_focus(dt_thumbtable_t *table, gboolean enable)
+void dt_thumbtable_set_focus_regions(dt_thumbtable_t *table, gboolean enable)
 {
-  table->focus = enable;
+  table->focus_regions = enable;
   dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
+}
+
+gboolean dt_thumbtable_get_focus_regions(dt_thumbtable_t *table)
+{
+  return table->focus_regions;
+}
+
+void dt_thumbtable_set_focus_peaking(dt_thumbtable_t *table, gboolean enable)
+{
+  table->focus_peaking = enable;
+  dt_thumbtable_refresh_thumbnail(table, UNKNOWN_IMAGE, TRUE);
+}
+
+gboolean dt_thumbtable_get_focus_peaking(dt_thumbtable_t *table)
+{
+  return table->focus_peaking;
 }
 
 // can be called with imgid = -1, in that case we reload all mipmaps
