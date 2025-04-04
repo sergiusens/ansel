@@ -1230,6 +1230,7 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   {
     dt_accels_load_user_config(darktable.gui->accels);
     dt_accels_connect_accels(darktable.gui->accels);
+    gtk_window_add_accel_group(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), darktable.gui->accels->global_accels);
   }
 
   dt_print(DT_DEBUG_CONTROL, "[init] startup took %f seconds\n", dt_get_wtime() - start_wtime);
