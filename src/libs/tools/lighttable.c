@@ -227,13 +227,13 @@ static gboolean focus_peaking_checked_callback()
 void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index, GtkAccelGroup *accel_group)
 {
   // Submenu embedded JPEG
-  add_generic_top_submenu_entry(menus, lists, _("Embedded JPEG"), index, accel_group);
+  add_generic_top_submenu_entry(menus, lists, _("Show embedded JPEG"), index, accel_group);
   GtkWidget *parent = get_last_widget(lists);
-  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Never"), index, GINT_TO_POINTER(0),
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Never, always process the raw"), index, GINT_TO_POINTER(0),
                                  _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
-  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Unedited"), index, GINT_TO_POINTER(1),
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("For unedited pictures"), index, GINT_TO_POINTER(1),
                                  _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
-  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Always"), index, GINT_TO_POINTER(2),
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Always, never process the raw"), index, GINT_TO_POINTER(2),
                                  _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
 
   // Focusing options
