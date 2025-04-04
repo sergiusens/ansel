@@ -133,10 +133,6 @@ typedef struct dt_gui_gtk_t
   cairo_filter_t filter_image;    // filtering used for all modules expect darkroom
   cairo_filter_t dr_filter_image; // filtering used in the darkroom
 
-  // Widgets capturing key shortcuts
-  GtkWidget *grab_widget;
-  GtkWidget *grab_window;
-
   // Export popup window
   struct {
     GtkWidget *window;

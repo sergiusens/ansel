@@ -581,6 +581,16 @@ menubar menuitem label
   margin: 12px; /* not real pixels. This is used as a percent extra space and couldn't be scalable */
 }
 
+.window-button
+{
+  border-radius: 50%;
+  background-color: transparent;
+  border: 0;
+  color: white;
+  caret-color: transparent;
+  outline-offset: 0;
+}
+
 /*---------------------------
   - Side panels and modules -
   ---------------------------*/

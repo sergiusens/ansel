@@ -474,7 +474,7 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
 
   // Ditch everything that is not a key stroke or key strokes that are modifiers alone
   // Abort early for performance.
-  if(event->key.is_modifier || accels->active_group == NULL || accels->reset > 0)
+  if(event->key.is_modifier || accels->active_group == NULL || accels->reset > 0 || !gtk_window_is_active(GTK_WINDOW(w)))
     return FALSE;
 
   if(!(event->type == GDK_KEY_PRESS || event->type == GDK_KEY_RELEASE || event->type == GDK_SCROLL))

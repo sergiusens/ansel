@@ -641,11 +641,6 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   widget = dt_ui_main_window(darktable.gui->ui);
   g_signal_connect(G_OBJECT(widget), "configure-event", G_CALLBACK(_window_configure), NULL);
 
-  // Init the shortcuts dispatcher
-  gtk_window_set_role(GTK_WINDOW(widget), "main-app");
-  darktable.gui->grab_window = widget;
-  darktable.gui->grab_widget = NULL;
-
   darktable.gui->reset = 0;
 
   // load theme
@@ -812,15 +807,20 @@ static void _init_widgets(dt_gui_gtk_t *gui)
   // Creating the main window
   widget = gtk_window_new(GTK_WINDOW_TOPLEVEL);
   gtk_widget_set_name(widget, "main_window");
+  gtk_window_set_role(GTK_WINDOW(widget), "main-app");
+  gtk_window_set_icon_name(GTK_WINDOW(widget), "ansel");
+  gtk_window_set_title(GTK_WINDOW(widget), "Ansel");
+
+  // Remove useless desktop environment titlebar. We will handle closing buttons internally
+  gtk_window_set_titlebar(GTK_WINDOW(widget), NULL);
+  gtk_window_set_hide_titlebar_when_maximized(GTK_WINDOW(widget), TRUE);
+
   gui->ui->main_window = widget;
 
   dt_configure_ppd_dpi(gui);
 
-  gtk_window_set_default_size(GTK_WINDOW(widget), DT_PIXEL_APPLY_DPI(900), DT_PIXEL_APPLY_DPI(500));
+  gtk_window_set_default_size(GTK_WINDOW(widget), DT_PIXEL_APPLY_DPI(900), DT_PIXEL_APPLY_DPI(600));
   dt_gui_gtk_load_config();
-
-  gtk_window_set_icon_name(GTK_WINDOW(widget), "ansel");
-  gtk_window_set_title(GTK_WINDOW(widget), "Ansel");
 
   g_signal_connect(G_OBJECT(widget), "delete_event", G_CALLBACK(dt_gui_quit_callback), NULL);
   g_signal_connect(G_OBJECT(widget), "focus-in-event", G_CALLBACK(_focus_in_out_event), widget);
@@ -1860,6 +1860,10 @@ void dt_gui_refocus_center()
 {
   // Refocus window, useful if we just closed a popup/modal/transient
   gtk_window_present_with_time(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), GDK_CURRENT_TIME);
+
+  // Desperate measure to refocus the window
+  gtk_grab_add(dt_ui_main_window(darktable.gui->ui));
+  gtk_grab_remove(dt_ui_main_window(darktable.gui->ui));
   gtk_widget_grab_focus(dt_ui_main_window(darktable.gui->ui));
 
   const char *current_view = dt_view_manager_name(darktable.view_manager);
