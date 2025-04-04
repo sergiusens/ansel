@@ -134,9 +134,6 @@ typedef struct
   gboolean busy; // should we show the busy message ?
   gboolean drawn; // image already drawn, nothing more to do
 
-  // Context menu
-  GtkWidget *menu;
-
 } dt_thumbnail_t;
 
 dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
