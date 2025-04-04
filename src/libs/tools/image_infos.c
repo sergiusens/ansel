@@ -45,7 +45,7 @@ const char **views(dt_lib_module_t *self)
   /* we handle the hidden case here */
   const gboolean is_hidden =
     dt_conf_is_equal("plugins/darkroom/image_infos_position", "hidden");
-  if(is_hidden)
+  if(is_hidden || TRUE)
   {
     static const char *vv[] = { NULL };
     return vv;
