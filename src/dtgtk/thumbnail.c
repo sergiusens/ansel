@@ -207,12 +207,8 @@ static GtkWidget *_create_menu(dt_thumbnail_t *thumb)
 
   _menuitem_from_text(_("Folder : "), thumb->folder, sub_menu, NULL, thumb);
   _menuitem_from_text(_("Date : "), thumb->datetime, sub_menu, NULL, thumb);
-
-  if(thumb->camera[0] != "\0")
-    _menuitem_from_text(_("Camera : "), thumb->camera, sub_menu, NULL, thumb);
-
-  if(thumb->lens[0] != "\0")
-    _menuitem_from_text(_("Lens : "), thumb->lens, sub_menu, NULL, thumb);
+  _menuitem_from_text(_("Camera : "), thumb->camera, sub_menu, NULL, thumb);
+  _menuitem_from_text(_("Lens : "), thumb->lens, sub_menu, NULL, thumb);
 
   sep = gtk_separator_menu_item_new();
   gtk_menu_shell_append(GTK_MENU_SHELL(menu), sep);
