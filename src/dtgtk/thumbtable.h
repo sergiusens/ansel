@@ -154,6 +154,7 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
 
 // set zoom level
 void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level);
+dt_thumbtable_zoom_t dt_thumbtable_get_zoom(dt_thumbtable_t *table);
 
 // offset all the zoomed thumbnails by the same amount
 void dt_thumbtable_offset_zoom(dt_thumbtable_t *table, const double delta_x, const double delta_y);

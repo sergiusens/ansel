@@ -728,6 +728,10 @@ void dt_thumbtable_set_zoom(dt_thumbtable_t *table, dt_thumbtable_zoom_t level)
   g_idle_add((GSourceFunc)_grab_focus, table);
 }
 
+dt_thumbtable_zoom_t dt_thumbtable_get_zoom(dt_thumbtable_t *table)
+{
+  return table->zoom;
+}
 
 void dt_thumbtable_offset_zoom(dt_thumbtable_t *table, const double delta_x, const double delta_y)
 {

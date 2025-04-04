@@ -26,6 +26,7 @@
 #include "dtgtk/button.h"
 #include "dtgtk/thumbtable.h"
 #include "dtgtk/togglebutton.h"
+#include "gui/actions/menu.h"
 
 #include "gui/gtk.h"
 #include "libs/lib.h"
@@ -35,17 +36,12 @@ DT_MODULE(1)
 
 typedef struct dt_lib_tool_lighttable_t
 {
-  GtkWidget *jpg;
-  GtkWidget *focus;
   GtkWidget *columns;
-  GtkWidget *zoom;
-  int current_columns;
-  gboolean combo_evt_reset;
+  GList *menu_items;
 } dt_lib_tool_lighttable_t;
 
 /* set columns proxy function */
 static void _lib_lighttable_set_columns(dt_lib_module_t *self, gint columns);
-static gint _lib_lighttable_get_columns(dt_lib_module_t *self);
 
 /* columns slider change callback */
 static void _lib_lighttable_columns_slider_changed(GtkWidget *widget, gpointer user_data);
@@ -82,7 +78,7 @@ gboolean _columns_in_action(GtkAccelGroup *accel_group, GObject *accelerable, gu
                          GdkModifierType modifier, gpointer data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
-  int current_level = _lib_lighttable_get_columns(self);
+  int current_level = dt_conf_get_int("plugins/lighttable/images_in_row");
   int new_level = CLAMP(current_level - 1, 1, 12);
   _lib_lighttable_set_columns(self, new_level);
   dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
@@ -93,7 +89,7 @@ gboolean _columns_out_action(GtkAccelGroup *accel_group, GObject *accelerable, g
                           GdkModifierType modifier, gpointer data)
 {
   dt_lib_module_t *self = (dt_lib_module_t *)data;
-  int current_level = _lib_lighttable_get_columns(self);
+  int current_level = dt_conf_get_int("plugins/lighttable/images_in_row");
   int new_level = CLAMP(current_level + 1, 1, 12);
   _lib_lighttable_set_columns(self, new_level);
   dt_conf_set_int("plugins/lighttable/images_in_row_backup", new_level);
@@ -109,7 +105,7 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
   if(darktable.gui->culling_mode)
   {
-    int current_level = _lib_lighttable_get_columns(self);
+    int current_level = dt_conf_get_int("plugins/lighttable/images_in_row");
     int num_images = dt_collection_get_count(darktable.collection);
 
     switch(num_images)
@@ -152,22 +148,34 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   }
 
   // Reset zoom
-  dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  gtk_combo_box_set_active(GTK_COMBO_BOX(d->zoom), 0);
   dt_thumbtable_set_zoom(darktable.gui->ui->thumbtable_lighttable, 0);
 }
 
-static void _zoom_combobox_changed(GtkWidget *widget, gpointer user_data)
+static void _zoom_combobox_changed(GtkWidget *widget)
 {
-  int level = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
+  const int level = GPOINTER_TO_INT(get_custom_data(widget));
   dt_thumbtable_set_zoom(darktable.gui->ui->thumbtable_lighttable, level);
 }
 
-static void _jpg_combobox_changed(GtkWidget *widget, gpointer user_data)
+static gboolean _zoom_checked(GtkWidget *widget)
 {
-  int mode = gtk_combo_box_get_active(GTK_COMBO_BOX(widget));
-  if(mode == dt_conf_get_int("lighttable/embedded_jpg")) return;
-  dt_conf_set_int("lighttable/embedded_jpg", mode);
+  const int level = GPOINTER_TO_INT(get_custom_data(widget));
+  return dt_thumbtable_get_zoom(darktable.gui->ui->thumbtable_lighttable) == level;
+}
+
+static gboolean _jpg_checked(GtkWidget *widget)
+{
+  const int item = GPOINTER_TO_INT(get_custom_data(widget));
+  return item == dt_conf_get_int("lighttable/embedded_jpg");
+}
+
+static void _jpg_combobox_changed(GtkWidget *widget)
+{
+  const int mode = GPOINTER_TO_INT(get_custom_data(widget));
+  if(mode == dt_conf_get_int("lighttable/embedded_jpg"))
+    return;
+  else
+    dt_conf_set_int("lighttable/embedded_jpg", mode);
 }
 
 // Ctrl + Scroll changes the number of columns
@@ -180,7 +188,7 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
     int scroll_y;
     dt_gui_get_scroll_unit_deltas(event, NULL, &scroll_y);
 
-    int current_level = _lib_lighttable_get_columns(self);
+    int current_level = dt_conf_get_int("plugins/lighttable/images_in_row");
     int new_level = CLAMP(current_level + CLAMP(scroll_y, -1, 1), 1, 12);
 
     _lib_lighttable_set_columns(self, new_level);
@@ -190,9 +198,63 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
   return FALSE;
 }
 
-void _focus_toggled(GtkToggleButton *self, gpointer user_data)
+void _focus_toggled(GtkWidget *widget)
 {
-  dt_thumbtable_set_focus_regions(darktable.gui->ui->thumbtable_lighttable, gtk_toggle_button_get_active(self));
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
+  gboolean state = dt_thumbtable_get_focus_regions(table);
+  dt_thumbtable_set_focus_regions(table, !state);
+}
+
+gboolean _focus_checked(GtkWidget *widget)
+{
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
+  return dt_thumbtable_get_focus_regions(table);
+}
+
+static void focus_peaking_callback()
+{
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
+  gboolean focus_peaking = dt_thumbtable_get_focus_peaking(table);
+  dt_thumbtable_set_focus_peaking(table, !focus_peaking);
+}
+
+static gboolean focus_peaking_checked_callback()
+{
+  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
+  return dt_thumbtable_get_focus_peaking(table);
+}
+
+void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index, GtkAccelGroup *accel_group)
+{
+  // Submenu embedded JPEG
+  add_generic_top_submenu_entry(menus, lists, _("Embedded JPEG"), index, accel_group);
+  GtkWidget *parent = get_last_widget(lists);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Never"), index, GINT_TO_POINTER(0),
+                                 _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Unedited"), index, GINT_TO_POINTER(1),
+                                 _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Always"), index, GINT_TO_POINTER(2),
+                                 _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
+
+  // Focusing options
+  add_generic_sub_menu_entry(menus, lists, _("Overlay focus zones"), index, NULL, _focus_toggled, _focus_checked, NULL,
+                             NULL, 0, 0, accel_group);
+
+  add_generic_sub_menu_entry(menus, lists, _("Overlay focus peaking"), index, NULL, focus_peaking_callback,
+                             focus_peaking_checked_callback, NULL, NULL, GDK_KEY_p,
+                             GDK_CONTROL_MASK | GDK_SHIFT_MASK, accel_group);
+
+  // Zoom
+  add_generic_top_submenu_entry(menus, lists, _("Zoom"), index, accel_group);
+  parent = get_last_widget(lists);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Fit"), index, GINT_TO_POINTER(0), _zoom_combobox_changed,
+                                 _zoom_checked, NULL, NULL, 0, 0, accel_group);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("50 %"), index, GINT_TO_POINTER(1), _zoom_combobox_changed,
+                                 _zoom_checked, NULL, NULL, 0, 0, accel_group);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("100 %"), index, GINT_TO_POINTER(2), _zoom_combobox_changed,
+                                 _zoom_checked, NULL, NULL, 0, 0, accel_group);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, _("200 %"), index, GINT_TO_POINTER(3), _zoom_combobox_changed,
+                                 _zoom_checked, NULL, NULL, 0, 0, accel_group);
 }
 
 void gui_init(dt_lib_module_t *self)
@@ -205,58 +267,27 @@ void gui_init(dt_lib_module_t *self)
   dt_gui_add_class(self->widget, "lighttable_box");
   gtk_widget_set_halign(self->widget, GTK_ALIGN_END);
 
-  GtkWidget *label = gtk_label_new(C_("quickfilter", "Embedded JPEG"));
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
-
-  d->jpg = gtk_combo_box_text_new();
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Never"));
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Unedited"));
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->jpg), _("Always"));
-  gtk_box_pack_start(GTK_BOX(self->widget), d->jpg, FALSE, FALSE, 0);
-  gtk_combo_box_set_active(GTK_COMBO_BOX(d->jpg), dt_conf_get_int("lighttable/embedded_jpg"));
-  g_signal_connect(G_OBJECT(d->jpg), "changed", G_CALLBACK(_jpg_combobox_changed), (gpointer)self);
-  gtk_widget_set_tooltip_markup(
-      d->jpg, _("Choose if the raw embedded thumbnail should be displayed\n"
-                "in the lightttable instead of a full rendering from raw.\n"
-                "\"Never\" always renders thumbnails from raw (slow but consistent with darkroom)\n"
-                "\"Unedited\" uses the embedded JPG for unedited pictures (faster)\n"
-                "\"Always\" uses the embedded JPG for all pictures (fast but inconsistent with darkroom)"));
+  // Thumbnail menu
+  GtkAccelGroup *accel_group = darktable.gui->accels->lighttable_accels;
+  GtkWidget *menu_bar = gtk_menu_bar_new();
+  GtkWidget *menus[1];
+  const int index = 0;
+  d->menu_items = NULL;
+  add_generic_top_menu_entry(menu_bar, menus, &d->menu_items, index, _("_Thumbnails"), accel_group, "Lighttable");
+  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(menu_bar), FALSE, FALSE, 0);
+  append_thumbnails(menus, &d->menu_items, index, accel_group);
 
   // dumb empty flexible spacer at the end
   GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
   gtk_widget_set_hexpand(spacer, TRUE);
   gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
 
-  d->focus = gtk_toggle_button_new_with_label(_("Focus zones"));
-  gtk_box_pack_start(GTK_BOX(self->widget), d->focus, FALSE, FALSE, 0);
-  g_signal_connect(G_OBJECT(d->focus), "toggled", G_CALLBACK(_focus_toggled), NULL);
-  gtk_widget_set_name(d->focus, "quickfilter-culling");
-
-  // dumb empty flexible spacer at the end
-  spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-  gtk_widget_set_hexpand(spacer, TRUE);
-  gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
-
-  label = gtk_label_new(C_("quickfilter", "Zoom"));
-  gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
-
-  d->zoom = gtk_combo_box_text_new();
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("Fit"));
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("50 %"));
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("100 %"));
-  gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(d->zoom), _("200 %"));
-  gtk_box_pack_start(GTK_BOX(self->widget), d->zoom, FALSE, FALSE, 0);
-  gtk_combo_box_set_active(GTK_COMBO_BOX(d->zoom), 0);
-  g_signal_connect(G_OBJECT(d->zoom), "changed", G_CALLBACK(_zoom_combobox_changed), (gpointer)self);
-
-  d->current_columns = dt_conf_get_int("plugins/lighttable/images_in_row");
-
-  label = gtk_label_new(C_("quickfilter", "Columns"));
+  GtkWidget *label = gtk_label_new(C_("quickfilter", "Columns"));
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(label), FALSE, FALSE, 0);
 
   d->columns = gtk_spin_button_new_with_range(1., 12., 1.);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->columns), FALSE, FALSE, 0);
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->columns), d->current_columns);
+  gtk_spin_button_set_value(GTK_SPIN_BUTTON(d->columns), dt_conf_get_int("plugins/lighttable/images_in_row"));
   dt_accels_disconnect_on_text_input(d->columns);
 
   g_signal_connect(G_OBJECT(d->columns), "value-changed", G_CALLBACK(_lib_lighttable_columns_slider_changed), self);
@@ -287,14 +318,11 @@ void gui_cleanup(dt_lib_module_t *self)
 
 static void _set_columns(dt_lib_module_t *self, int columns)
 {
-  dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
   dt_conf_set_int("plugins/lighttable/images_in_row", columns);
   dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
-
   dt_thumbtable_set_active_rowid(table);
   dt_thumbtable_redraw(table);
   g_idle_add((GSourceFunc) dt_thumbtable_scroll_to_active_rowid, table);
-  d->current_columns = columns;
 }
 
 static void _lib_lighttable_columns_slider_changed(GtkWidget *widget, gpointer user_data)
@@ -313,18 +341,12 @@ static void _lib_lighttable_set_columns(dt_lib_module_t *self, gint columns)
   _set_columns(self, columns);
 }
 
-static gint _lib_lighttable_get_columns(dt_lib_module_t *self)
-{
-  dt_lib_tool_lighttable_t *d = (dt_lib_tool_lighttable_t *)self->data;
-  return d->current_columns;
-}
-
 #ifdef USE_LUA
 
 static int columns_level_cb(lua_State *L)
 {
   dt_lib_module_t *self = lua_touserdata(L, lua_upvalueindex(1));
-  const gint tmp = _lib_lighttable_get_columns(self);
+  const gint tmp = dt_conf_get_int("plugins/lighttable/images_in_row");
   if(lua_gettop(L) > 0){
     int value;
     luaA_to(L, int, &value, 1);

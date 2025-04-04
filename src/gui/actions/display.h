@@ -343,19 +343,6 @@ static gboolean collapse_grouped_checked_callback()
   return dt_conf_get_bool("ui_last/grouping");
 }
 
-static void focus_peaking_callback()
-{
-  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
-  gboolean focus_peaking = dt_thumbtable_get_focus_peaking(table);
-  dt_thumbtable_set_focus_peaking(table, !focus_peaking);
-}
-
-static gboolean focus_peaking_checked_callback()
-{
-  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
-  return dt_thumbtable_get_focus_peaking(table);
-}
-
 void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   // Parent sub-menu color profile
@@ -424,7 +411,6 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL, 0, 0);
 
-  add_sub_menu_entry(menus, lists, _("Overlay focus peaking"), index, NULL, focus_peaking_callback, focus_peaking_checked_callback, NULL, NULL, GDK_KEY_p, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
