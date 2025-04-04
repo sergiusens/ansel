@@ -69,7 +69,9 @@ static dt_menu_entry_t * set_menu_entry(GtkWidget **menus, GList **items_list, c
                                         gboolean (*checked_callback)(GtkWidget *widget),
                                         gboolean (*active_callback)(GtkWidget *widget),
                                         gboolean (*sensitive_callback)(GtkWidget *widget),
-                                        guint key_val, GdkModifierType mods)
+                                        guint key_val, GdkModifierType mods,
+                                        GtkAccelGroup *accel_group
+                                      )
 {
   // Alloc and set to 0
   dt_menu_entry_t *entry = calloc(1, sizeof(dt_menu_entry_t));
@@ -108,13 +110,14 @@ static dt_menu_entry_t * set_menu_entry(GtkWidget **menus, GList **items_list, c
 
   // Publish a new accel to the global map and attach it to the menu entry widget
   dt_accels_new_widget_shortcut(darktable.gui->accels, entry->widget, "activate",
-                                darktable.gui->accels->global_accels, accel_path, key_val, mods, FALSE);
+                                accel_group, accel_path, key_val, mods, FALSE);
 
   g_free(accel_path);
   g_free(clean_label);
 
   // Add it to the list of menus items for easy sequential access later
   *items_list = g_list_append(*items_list, entry);
+  //fprintf(stdout, "menu %s, ref is at %p, list it as %p\n", label, items_list, *items_list);
 
   return entry;
 }
@@ -147,25 +150,30 @@ void update_menu_entries(GtkWidget *widget, gpointer user_data)
 {
   // Update the graphic state of all sub-menu entries from the current top-level menu
   // but only when it is opened.
-  GList **entries = (GList **)user_data;
-  if(*entries)
+  GList **lists = (GList **)user_data;
+  //fprintf(stdout, "ref is at %p, list it at %p\n", lists, *lists);
+
+  if(lists && *lists)
   {
-    for(GList *entry_iter = g_list_first(*entries); entry_iter; entry_iter = g_list_next(entry_iter))
+    GList *entries = *lists;
+    for(GList *entry_iter = g_list_first(entries); entry_iter; entry_iter = g_list_next(entry_iter))
     {
-      dt_menu_entry_t *entry = (dt_menu_entry_t *)(entry_iter)->data;
+      dt_menu_entry_t *entry = (dt_menu_entry_t *)(entry_iter->data);
       if(entry) update_entry(entry);
     }
   }
 }
 
-void add_top_menu_entry(GtkWidget *menu_bar, GtkWidget **menus, GList **lists, const dt_menus_t index, gchar *label)
+// Use for first-level entries in any menubar
+void add_generic_top_menu_entry(GtkWidget *menu_bar, GtkWidget **menus, GList **lists, const dt_menus_t index,
+                                gchar *label, GtkAccelGroup *accel_group, const char *accel_path_prefix)
 {
   // Top menus belong to menu bar : file, edit, display, etc.
   menus[index] = gtk_menu_new();
-  gtk_menu_set_accel_group(GTK_MENU(menus[index]), darktable.gui->accels->global_accels);
+  gtk_menu_set_accel_group(GTK_MENU(menus[index]), accel_group);
 
   gchar *clean_label = delete_underscore(label);
-  gchar *accel_path = dt_accels_build_path("Global/Menu", clean_label);
+  gchar *accel_path = dt_accels_build_path(accel_path_prefix, clean_label);
   gtk_menu_set_accel_path(GTK_MENU(menus[index]), accel_path);
   g_free(clean_label);
   g_free(accel_path);
@@ -177,36 +185,80 @@ void add_top_menu_entry(GtkWidget *menu_bar, GtkWidget **menus, GList **lists, c
   g_signal_connect(G_OBJECT(menu_label), "activate", G_CALLBACK(update_menu_entries), lists);
 }
 
-void add_top_submenu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index)
-{
-  // Special submenus entries that only open a sub-submenu
-  GtkWidget *submenu = gtk_menu_new();
-  gtk_menu_set_accel_group(GTK_MENU(submenu), darktable.gui->accels->global_accels);
 
-  dt_menu_entry_t *entry = set_menu_entry(menus, lists, label, NULL, index, NULL, NULL, NULL, NULL, NULL, 0, 0);
+// Use for first-level entries in the global menubar
+void add_top_menu_entry(GtkWidget *menu_bar, GtkWidget **menus, GList **lists, const dt_menus_t index, gchar *label)
+{
+  // Top menus belong to menu bar : file, edit, display, etc.
+  add_generic_top_menu_entry(menu_bar, menus, lists, index, label, darktable.gui->accels->global_accels, "Global/Menu");
+}
+
+// Special submenus entries that only open a sub-submenu
+void add_generic_top_submenu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index, GtkAccelGroup *accel_group)
+{
+  GtkWidget *submenu = gtk_menu_new();
+  gtk_menu_set_accel_group(GTK_MENU(submenu), accel_group);
+
+  dt_menu_entry_t *entry = set_menu_entry(menus, lists, label, NULL, index, NULL, NULL, NULL, NULL, NULL, 0, 0, accel_group);
   gtk_menu_item_set_submenu(GTK_MENU_ITEM(entry->widget), submenu);
   gtk_menu_shell_append(GTK_MENU_SHELL(menus[index]), entry->widget);
   // We don't take callbacks for top submenus, they do nothing more than opening sub-submenues.
 }
 
-void add_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index,
+// Global menu only
+void add_top_submenu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index)
+{
+  add_generic_top_submenu_entry(menus, lists, label, index, darktable.gui->accels->global_accels);
+}
+
+void add_generic_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index,
                         void *data,
                         void (*action_callback)(GtkWidget *widget),
                         gboolean (*checked_callback)(GtkWidget *widget),
                         gboolean (*active_callback)(GtkWidget *widget),
                         gboolean (*sensitive_callback)(GtkWidget *widget),
                         guint key_val,
-                        GdkModifierType mods)
+                        GdkModifierType mods, GtkAccelGroup *accel_group)
 {
   // Default submenu entries
   dt_menu_entry_t *entry = set_menu_entry(menus, lists, label, NULL, index,
                                           data,
                                           action_callback, checked_callback,
                                           active_callback, sensitive_callback,
-                                          key_val, mods);
+                                          key_val, mods, accel_group);
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menus[index]), entry->widget);
   gtk_menu_item_set_reserve_indicator(GTK_MENU_ITEM(entry->widget), TRUE);
+
+  if(action_callback)
+    g_signal_connect(G_OBJECT(entry->widget), "activate", G_CALLBACK(entry->action_callback), NULL);
+}
+
+
+void add_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index, void *data,
+                        void (*action_callback)(GtkWidget *widget),
+                        gboolean (*checked_callback)(GtkWidget *widget),
+                        gboolean (*active_callback)(GtkWidget *widget),
+                        gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val, GdkModifierType mods)
+{
+  add_generic_sub_menu_entry(menus, lists, label, index, data, action_callback, checked_callback, active_callback,
+                             sensitive_callback, key_val, mods, darktable.gui->accels->global_accels);
+}
+
+
+void add_generic_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList **lists, const gchar *label,
+                                    const dt_menus_t index, void *data,
+                                    void (*action_callback)(GtkWidget *widget),
+                                    gboolean (*checked_callback)(GtkWidget *widget),
+                                    gboolean (*active_callback)(GtkWidget *widget),
+                                    gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val,
+                                    GdkModifierType mods, GtkAccelGroup *accel_group)
+{
+  // Submenus of submenus entries
+  dt_menu_entry_t *entry = set_menu_entry(menus, lists, label, NULL, index, data, action_callback, checked_callback,
+                                          active_callback, sensitive_callback, key_val, mods, accel_group);
+
+  gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_item_get_submenu(GTK_MENU_ITEM(parent))), entry->widget);
 
   if(action_callback)
     g_signal_connect(G_OBJECT(entry->widget), "activate", G_CALLBACK(entry->action_callback), NULL);
@@ -221,17 +273,8 @@ void add_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList **lists,
                             guint key_val,
                             GdkModifierType mods)
 {
-  // Submenus of submenus entries
-  dt_menu_entry_t *entry = set_menu_entry(menus, lists, label, NULL, index,
-                                          data,
-                                          action_callback, checked_callback,
-                                          active_callback, sensitive_callback,
-                                          key_val, mods);
-
-  gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_item_get_submenu(GTK_MENU_ITEM(parent))), entry->widget);
-
-  if(action_callback)
-    g_signal_connect(G_OBJECT(entry->widget), "activate", G_CALLBACK(entry->action_callback), NULL);
+  add_generic_sub_sub_menu_entry(menus, parent, lists, label, index, data, action_callback, checked_callback,
+                                 active_callback, sensitive_callback, key_val, mods, darktable.gui->accels->global_accels);
 }
 
 // We don't go further than 3 levels of menus. This is not a Dassault Systems software.
