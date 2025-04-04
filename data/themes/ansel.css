@@ -502,34 +502,34 @@ separator
   background-color: @bg_color;
 }
 
-#menu-bar menuitem
+menuitem
 {
   padding: 0.25em 0.5em;
 }
 
-#menu-bar menuitem menu menuitem
+menuitem menu menuitem
 {
   padding: 0.25em;
 }
 
-#menu-bar separator
+menu separator
 {
   margin: 0.25em 0;
   padding: 0;
   border-top: 1px solid @grey_50;
 }
 
-#menu-bar menuitem label
+menubar menuitem label
 {
   font-weight: 600;
 }
 
-#menu-bar menuitem menu menuitem label
+menuitem menu menuitem label
 {
   font-weight: 400;
 }
 
-#menu-bar menuitem menu menuitem.menu-active label,
+menuitem menu menuitem.menu-active label,
 menuitem.menu-active label
 {
   font-weight: 800;
@@ -948,14 +948,6 @@ tooltip label,
 #range-current label
 {
   color: @tooltip_fg_color;
-}
-
-menu separator,
-popover separator
-{
-  margin: 0.6em 2em;
-  padding-bottom: 0.07em;
-  background-color: @selected_bg_color;
 }
 
 combobox separator
