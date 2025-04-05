@@ -149,13 +149,13 @@ gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key, gbool
 void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
 {
   gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, key->accel_key,
-                              key->accel_mods, GTK_ACCEL_VISIBLE);
+                              key->accel_mods, 0);
 
   // Numpad numbers register as different keys. Find the numpad equivalent key here, if any.
   guint alt_char = dt_keys_numpad_alternatives(key->accel_key);
   if(key->accel_key != alt_char)
     gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, alt_char,
-                                key->accel_mods, GTK_ACCEL_VISIBLE);
+                                key->accel_mods, 0);
 }
 
 
@@ -230,7 +230,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
 }
 
 
-void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
+const dt_shortcut_t *dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
                                    GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
                                    guint key_val, GdkModifierType accel_mods, const gboolean lock)
 {
@@ -241,7 +241,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), 
   if(shortcut && shortcut->closure->data == data)
   {
     // reference is still up-to-date: nothing to do.
-    return;
+    return shortcut;
   }
   else if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
   {
@@ -272,6 +272,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), 
   }
 
   g_free(accel_path);
+  return shortcut;
 }
 
 
