@@ -105,16 +105,17 @@ static dt_menu_entry_t * set_menu_entry(GtkWidget **menus, GList **items_list, c
   entry->active_callback = active_callback;
 
   // Wire the accelerator
-  gchar *clean_label = delete_underscore(label);
-  gchar *accel_path = g_strdup_printf("%s/%s", gtk_menu_get_accel_path(GTK_MENU(menus[menu_index])), clean_label);
-
   // Publish a new accel to the global map and attach it to the menu entry widget
-  dt_accels_new_widget_shortcut(darktable.gui->accels, entry->widget, "activate",
-                                accel_group, accel_path, key_val, mods, FALSE);
+  if(action_callback)
+  {
+    gchar *clean_label = delete_underscore(label);
+    dt_accels_new_action_shortcut(darktable.gui->accels,
+                                  action_callback, entry->widget,
+                                  accel_group, gtk_menu_get_accel_path(GTK_MENU(menus[menu_index])), clean_label, key_val, mods, FALSE);
 
-  g_free(accel_path);
-  g_free(clean_label);
-
+    g_free(clean_label);
+  }
+  
   // Add it to the list of menus items for easy sequential access later
   *items_list = g_list_append(*items_list, entry);
   //fprintf(stdout, "menu %s, ref is at %p, list it as %p\n", label, items_list, *items_list);
