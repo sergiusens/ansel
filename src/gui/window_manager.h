@@ -17,8 +17,6 @@ typedef enum dt_ui_panel_t
 {
   /* the header panel */
   DT_UI_PANEL_TOP,
-  /* center top toolbar panel */
-  DT_UI_PANEL_CENTER_TOP,
   /* center bottom toolbar panel */
   DT_UI_PANEL_CENTER_BOTTOM,
   /* left panel */
@@ -70,10 +68,6 @@ typedef enum dt_ui_container_t
 
   // The following are special containers linked to the header bar,
   // they will never be destroyed in loops, so put them after the container "size"
-
-  /* the top header bar, left slot where darktable name is placed */
-  DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW_LEFT,
-  DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW_RIGHT,
 } dt_ui_container_t;
 
 
@@ -102,9 +96,6 @@ typedef struct dt_ui_t
   /* main widget */
   GtkWidget *main_window;
 
-  /* header bar */
-  GtkWidget *header;
-
   /* thumb table */
   dt_thumbtable_t *thumbtable_lighttable;
   dt_thumbtable_t *thumbtable_filmstrip;
@@ -114,6 +105,9 @@ typedef struct dt_ui_t
 
   /* keep track of sizes for sanitization */
   dt_window_manager_t manager;
+
+  /* Header/title bar */
+  struct dt_header_t *header;
 } dt_ui_t;
 
 gchar *panels_get_view_path(char *suffix);
@@ -139,6 +133,13 @@ GtkBox *dt_ui_get_container(dt_ui_t *ui, const dt_ui_container_t c);
 void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidget *w);
 
 void dt_ui_restore_panels(dt_ui_t *ui);
+
+void dt_ui_init_titlebar(dt_ui_t *ui);
+void dt_ui_cleanup_titlebar(dt_ui_t *ui);
+void dt_ui_init_global_menu(dt_ui_t *ui);
+
+void dt_hinter_set_message(dt_ui_t *ui, const char *message);
+
 
 #ifdef __cplusplus
 }

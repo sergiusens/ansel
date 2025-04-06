@@ -174,7 +174,7 @@ Why that? Just because it's a developer choice and most classes use underscore i
 @define-color field_hover_fg @grey_35;
 
 /* Tooltips and contextual helpers */
-@define-color tooltip_bg_color @grey_35;
+@define-color tooltip_bg_color @grey_25;
 @define-color tooltip_fg_color @grey_80;
 @define-color really_dark_bg_color @grey_05;
 @define-color log_fg_color @grey_95;
@@ -497,7 +497,10 @@ separator
 #top-first-line
 {
   background-color: @grey_35;
-  border-bottom: 2px solid @grey_35;
+}
+
+#top-first-line label {
+  background-color: transparent;
 }
 
 #top-second-line {
@@ -506,6 +509,16 @@ separator
   padding-right: 0.25em;
   border-top: 1px solid @grey_30;
   background-color: @bg_color;
+}
+
+#menu-bar,
+#menu-bar menuitem,
+#menu-bar menuitem label {
+  background-color: transparent;
+}
+
+#menu-bar menuitem:hover {
+  background-color: alpha(@button_hover_bg, 0.5);
 }
 
 menuitem
@@ -540,10 +553,6 @@ menuitem.menu-active label
 {
   font-weight: 800;
   color: @grey_100;
-}
-
-#menu-bar {
-	margin-left: -1em;
 }
 
 menubar menuitem,

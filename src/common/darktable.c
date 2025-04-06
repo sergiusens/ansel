@@ -1183,6 +1183,10 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
 
     // initialize undo struct
     darktable.undo = dt_undo_init();
+
+    // Global menu inherits many parts of the GUI,
+    // so it should be inited last
+    dt_ui_init_global_menu(darktable.gui->ui);
   }
 
   if(darktable.unmuted & DT_DEBUG_MEMORY)

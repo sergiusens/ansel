@@ -391,7 +391,6 @@ int dt_lua_init_gui(lua_State *L)
 
     luaA_enum(L, dt_ui_panel_t);
     luaA_enum_value(L, dt_ui_panel_t, DT_UI_PANEL_TOP);
-    luaA_enum_value(L, dt_ui_panel_t, DT_UI_PANEL_CENTER_TOP);
     luaA_enum_value(L, dt_ui_panel_t, DT_UI_PANEL_CENTER_BOTTOM);
     luaA_enum_value(L, dt_ui_panel_t, DT_UI_PANEL_LEFT);
     luaA_enum_value(L, dt_ui_panel_t, DT_UI_PANEL_RIGHT);
