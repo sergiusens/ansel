@@ -169,7 +169,11 @@ static void sanitize_manager_size(dt_ui_t *ui)
 static void reset_manager_sizes(dt_ui_t *ui)
 {
   dt_window_manager_t *manager = &ui->manager;
-  gtk_window_resize(GTK_WINDOW(dt_ui_main_window(ui)), manager->window.width, manager->window.height);
+  int width, height;
+  gtk_window_get_size(GTK_WINDOW(dt_ui_main_window(ui)), &width, &height);
+
+  if(width != manager->window.width || height != manager->window.height)
+    gtk_window_resize(GTK_WINDOW(dt_ui_main_window(ui)), manager->window.width, manager->window.height);
 }
 
 
@@ -268,7 +272,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
     s = DT_UI_PANEL_BOTTOM_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 64, darktable.gui->ui->manager.window.height / 3);
+      s = CLAMP(dt_conf_get_int(key), 32, darktable.gui->ui->manager.window.height / 3);
     if(key) gtk_widget_set_size_request(widget, -1, s);
   }
 
@@ -380,7 +384,7 @@ static gboolean _panel_handle_motion_callback(GtkWidget *w, GdkEventButton *e, g
     }
     else if(strcmp(gtk_widget_get_name(w), "panel-handle-bottom") == 0)
     {
-      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 64, darktable.gui->ui->manager.window.height / 2);
+      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 32, darktable.gui->ui->manager.window.height / 3.);
       key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
       gtk_widget_set_size_request(widget, -1, sx);
     }

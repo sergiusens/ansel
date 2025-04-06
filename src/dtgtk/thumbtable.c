@@ -463,7 +463,7 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
   {
     new_width = gtk_widget_get_allocated_width(table->parent_overlay);
-    new_height = dt_conf_get_int("darkroom/ui/0/bottom_size");
+    new_height = gtk_widget_get_allocated_height(table->parent_overlay);
     GtkWidget *h_scroll = gtk_scrolled_window_get_hscrollbar(GTK_SCROLLED_WINDOW(table->scroll_window));
     new_height -= gtk_widget_get_allocated_height(h_scroll);
     cols = table->thumbs_per_row; // whatever that doesn't make the next if think layout changed
