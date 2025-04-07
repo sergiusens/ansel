@@ -42,6 +42,13 @@
     <shortdescription>Invert the direction of the mouse horizontal scroll</shortdescription>
     <longdescription>Check this if your OS/desktop environment is configured to scroll the view instead of the content, so scrolling over sliders yields the right value. This does not affect vertical scrolling.</longdescription>
   </dtconfig>
+  <dtconfig prefs="misc" section="interface">
+    <name>accels/mask</name>
+    <type>bool</type>
+    <default>false</default>
+    <shortdescription>Let the OS mask Ansel shortcuts</shortdescription>
+    <longdescription>Check this if you want your OS to process keyboard shortcuts first, and dispatch only the ones it didn't use to Ansel. Otherwise, Ansel will capture all key strokes as long as it is active, which may prevent system-wide shortcuts from working at all on some OS.</longdescription>
+  </dtconfig>
   <dtconfig prefs="storage" section="database">
     <name>database</name>
     <type>string</type>

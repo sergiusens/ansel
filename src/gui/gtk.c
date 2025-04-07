@@ -583,7 +583,10 @@ int dt_gui_gtk_init(dt_gui_gtk_t *gui)
   // NOTE: needs to be inited before widgets, more specifically before the global menu
   gchar *keyboardrc = g_strdup_printf("keyboardrc.%s", dt_l10n_get_current_lang(darktable.l10n));
   gchar *keyboardrc_path = g_build_filename(configdir, keyboardrc, NULL);
-  gui->accels = dt_accels_init(keyboardrc_path);
+
+  GtkAccelFlags flags = 0;
+  if(dt_conf_get_bool("accels/mask")) flags |= GTK_ACCEL_MASK;
+  gui->accels = dt_accels_init(keyboardrc_path, flags);
   g_free(keyboardrc);
   g_free(keyboardrc_path);
 
