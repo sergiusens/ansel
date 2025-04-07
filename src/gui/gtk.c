@@ -788,7 +788,7 @@ static void _init_widgets(dt_gui_gtk_t *gui)
 
   dt_configure_ppd_dpi(gui);
 
-  gtk_window_set_default_size(GTK_WINDOW(gui->ui->main_window), DT_PIXEL_APPLY_DPI(900), DT_PIXEL_APPLY_DPI(600));
+  gtk_window_set_default_size(GTK_WINDOW(gui->ui->main_window), DT_PIXEL_APPLY_DPI(800), DT_PIXEL_APPLY_DPI(500));
   dt_gui_gtk_load_config();
 
   g_signal_connect(G_OBJECT(gui->ui->main_window ), "delete_event", G_CALLBACK(dt_gui_quit_callback), NULL);
