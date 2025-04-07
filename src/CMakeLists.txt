@@ -19,10 +19,6 @@ add_custom_target(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
-add_library(help_menu "gui/actions/help.c")
-add_dependencies(help_menu generate_authors_h)
-
-
 #
 # Add files for libansel
 #
@@ -951,6 +947,9 @@ endif(BUILD_CMSTEST)
 if(BUILD_TESTING)
   add_subdirectory(tests)
 endif(BUILD_TESTING)
+
+add_library(help_menu "gui/actions/help.c")
+add_dependencies(help_menu generate_authors_h)
 
 #
 # build ansel executable
