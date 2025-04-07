@@ -38,6 +38,9 @@
 #include "osx/osx.h"
 #endif
 
+#include <glib-object.h>
+
+
 // 420 = 3*4*5*7, so we ensure full rows for 1-10 and 12 thumbs/row.
 #define MAX_THUMBNAILS 420
 
@@ -586,17 +589,16 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
     dt_thumbnail_set_overlay(thumb, table->overlays);
   }
 
-  // Reposition: cheap to recompute
-  _set_thumb_position(table, thumb);
-
   // Actually moving the widgets in the grid is more expensive, do it only if necessary
   if(new_item)
   {
+    _set_thumb_position(table, thumb);
     gtk_fixed_put(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
     //fprintf(stdout, "adding new thumb at #%lu: %i, %i\n", rowid, thumb->x, thumb->y);
   }
   else if(new_position || size_changed)
   {
+    _set_thumb_position(table, thumb);
     gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
     //fprintf(stdout, "moving new thumb at #%lu: %i, %i\n", rowid, thumb->x, thumb->y);
   }
@@ -615,6 +617,8 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
     dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
     thumb->disable_actions = FALSE;
   }
+
+  dt_thumbnail_unblock_redraw(thumb);
 }
 
 
@@ -648,9 +652,83 @@ void _resize_thumbnails(dt_thumbtable_t *table)
   }
 }
 
+#if 0
+// Don't redraw the visible thumbs while we allocate new ones,
+// because we allocate them out of the visible area.
+void _disable_redraws(dt_thumbtable_t *table)
+{
+  g_signal_handler_block(G_OBJECT(table->grid), table->draw_signal_id);
+  table->no_drawing = TRUE;
+}
+
+// Restore the redraw on allocate default behaviour to follow window resizing.
+void _enable_redraws(dt_thumbtable_t *table)
+{
+  g_signal_handler_unblock(G_OBJECT(table->grid), table->draw_signal_id);
+  table->no_drawing = FALSE;
+  gtk_widget_queue_draw(table->grid);
+}
+#endif
+
+// Populate the immediate next and previous thumbs
+int dt_thumbtable_prefetch(dt_thumbtable_t *table)
+{
+  if(table->thumb_nb == table->collection_count || table->collection_count == MAX_THUMBNAILS)
+    return G_SOURCE_REMOVE;
+
+  const int32_t mouse_over = dt_control_get_mouse_over_id();
+
+  dt_pthread_mutex_lock(&table->lock);
+
+  const int page_size = table->max_row_id - table->min_row_id + 1;
+
+  // We prefetch only up to 2 full pages before and after
+  const int min_range = table->min_row_id - 2 * page_size - 1;
+  const int max_range = table->max_row_id + 2 * page_size + 1;
+
+  // Populate the previous thumb
+  gboolean full_before = TRUE;
+  for(int rowid = CLAMP(table->min_row_id, 0, table->collection_count - 1);
+      rowid >= MAX(0, min_range); rowid--)
+    if(table->lut[rowid].thumb == NULL)
+    {
+      fprintf(stdout, "adding thumb id %i at position %i\n", table->lut[rowid].imgid, rowid);
+      _add_thumbnail_at_rowid(table, rowid, mouse_over);
+      dt_thumbnail_get_image_buffer(table->lut[rowid].thumb);
+      full_before = FALSE;
+      break;
+    }
+
+  // Populate the next thumb
+  gboolean full_after = TRUE;
+  for(int rowid = CLAMP(table->max_row_id, 0, table->collection_count - 1);
+      rowid < MIN(table->collection_count, max_range); rowid++)
+    if(table->lut[rowid].thumb == NULL)
+    {
+      fprintf(stdout, "adding thumb id %i at position %i\n", table->lut[rowid].imgid, rowid);
+      _add_thumbnail_at_rowid(table, rowid, mouse_over);
+      dt_thumbnail_get_image_buffer(table->lut[rowid].thumb);
+      full_after = FALSE;
+      break;
+    }
+
+  dt_pthread_mutex_unlock(&table->lock);
+
+  if(table->thumb_nb == table->collection_count || table->collection_count == MAX_THUMBNAILS || (full_before && full_after))
+    return G_SOURCE_REMOVE;
+
+  return G_SOURCE_CONTINUE;
+}
+
+unsigned long timeout_handle = 0;
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
+  if(timeout_handle != 0)
+  {
+    g_source_remove(timeout_handle);
+    timeout_handle = 0;
+  }
   _update_row_ids(table);
 
   if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
@@ -682,8 +760,10 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
 
   dt_pthread_mutex_unlock(&table->lock);
 
+  timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
 
-  dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb, table->min_row_id, table->max_row_id, dt_get_wtime() - start);
+  dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb,
+           table->min_row_id, table->max_row_id, dt_get_wtime() - start);
 }
 
 
@@ -777,6 +857,17 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
   dt_thumbtable_refresh_thumbnail(table, imgid, FALSE);
 }
 
+// Because dt_thumbnail_image_refresh_real calls a redraw and that redraw
+// calls dt_thumbnail_get_image_buffer later on, only if the thumb is visible,
+// we need to force the thumb to grap a Cairo source image ASAP so scrolling
+// over that thumbnail later will not induce latencies
+int _thumbnail_refresh(dt_thumbnail_t *thumb)
+{
+  dt_thumbnail_image_refresh_real(thumb);
+  dt_thumbnail_get_image_buffer(thumb);
+  return G_SOURCE_REMOVE;
+}
+
 // can be called with imgid = -1, in that case we reload all mipmaps
 // reinit = FALSE should be called when the mipmap is ready to redraw,
 // reinit = TRUE should be called when a refreshed mipmap has been requested but we have nothing yet to draw
@@ -789,13 +880,13 @@ void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid,
     if(thumb->imgid == imgid)
     {
       if(reinit) thumb->image_inited = FALSE;
-      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh_real, thumb);
+      g_idle_add((GSourceFunc)_thumbnail_refresh, thumb);
       break;
     }
     else if(imgid == UNKNOWN_IMAGE)
     {
       if(reinit) thumb->image_inited = FALSE;
-      g_idle_add((GSourceFunc)dt_thumbnail_image_refresh_real, thumb);
+      g_idle_add((GSourceFunc)_thumbnail_refresh, thumb);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);
@@ -1513,7 +1604,7 @@ dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
   g_signal_connect(table->grid, "drag-data-received", G_CALLBACK(dt_thumbtable_event_dnd_received), table);
 
   gtk_widget_add_events(table->grid, GDK_STRUCTURE_MASK | GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
-  g_signal_connect(table->grid, "draw", G_CALLBACK(_draw_callback), table);
+  table->draw_signal_id = g_signal_connect(table->grid, "draw", G_CALLBACK(_draw_callback), table);
   g_signal_connect(table->grid, "key-press-event", G_CALLBACK(dt_thumbtable_key_pressed_grid), table);
   g_signal_connect(table->grid, "key-release-event", G_CALLBACK(dt_thumbtable_key_released_grid), table);
   gtk_widget_show(table->grid);

@@ -136,6 +136,10 @@ typedef struct dt_thumbtable_t
   gboolean focus_regions;
   gboolean focus_peaking;
 
+  // Gtk signal id for the redraw event
+  unsigned long draw_signal_id;
+  gboolean no_drawing;
+
 } dt_thumbtable_t;
 
 

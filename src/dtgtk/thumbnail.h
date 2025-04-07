@@ -134,6 +134,13 @@ typedef struct
   gboolean busy; // should we show the busy message ?
   gboolean drawn; // image already drawn, nothing more to do
 
+  // Gtk signal id for the redraw event
+  unsigned long draw_signal_id;
+  unsigned long img_draw_signal_id;
+
+  // Redraw events are blocked
+  gboolean no_draw;
+
 } dt_thumbnail_t;
 
 dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
@@ -161,7 +168,16 @@ int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb);
 // force reloading image infos
 void dt_thumbnail_reload_infos(dt_thumbnail_t *thumb);
 
-void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean nable);
+void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean enable);
+
+// If prefetching, Gtk won't redraw the invisible thumbnails so we need to manually call this ahead.
+int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb);
+
+// temporarily block all redraw events
+int dt_thumbnail_block_redraw(dt_thumbnail_t *thumb);
+
+// unblock previously-blocked redraw events
+int dt_thumbnail_unblock_redraw(dt_thumbnail_t *thumb);
 
 static inline dt_thumbnail_overlay_t sanitize_overlays(dt_thumbnail_overlay_t overlays)
 {
