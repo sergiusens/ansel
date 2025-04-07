@@ -25,24 +25,29 @@ static void full_screen_callback()
     gtk_window_unfullscreen(GTK_WINDOW(widget));
 
     // workaround for GTK Quartz backend bug
-    #ifdef __APPLE__
     gtk_window_set_title(GTK_WINDOW(widget), "Ansel");
-    #endif
   }
   else
   {
     gtk_window_fullscreen(GTK_WINDOW(widget));
 
     // workaround for GTK Quartz backend bug
-    #ifdef __APPLE__
     gtk_window_set_title(GTK_WINDOW(widget), "Ansel Preview");
-    #endif
   }
+
+  // Mac OS workaround: always re-anchor the window to the bottom of the screen
+  GdkWindow *window = gtk_widget_get_window(widget);
+  GdkDisplay *display = gtk_widget_get_display(widget);
+  GdkMonitor *monitor = gdk_display_get_monitor_at_window(display, window);
+  GdkRectangle geometry;
+  gdk_monitor_get_geometry(monitor, &geometry);
+
+  int w, h;
+  gtk_window_get_size(GTK_WINDOW(widget), &w, &h);
+  gtk_window_move(GTK_WINDOW(widget), geometry.width - geometry.x - w, geometry.height - geometry.y - h);
 
   dt_dev_invalidate_zoom(darktable.develop);
   dt_dev_refresh_ui_images(darktable.develop);
-
-
 }
 
 /** SIDE PANELS COLLAPSE **/
@@ -68,8 +73,6 @@ static gboolean _toggle_side_borders_accel_callback(GtkAccelGroup *accel_group, 
   /* trigger invalidation of centerview to reprocess pipe */
   dt_dev_invalidate_zoom(darktable.develop);
   dt_dev_refresh_ui_images(darktable.develop);
-  gtk_widget_queue_draw(dt_ui_center(darktable.gui->ui));
-
   return TRUE;
 }
 
