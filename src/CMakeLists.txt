@@ -19,6 +19,9 @@ add_custom_target(
   WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
 )
 
+add_library(help_menu "gui/actions/help.c")
+add_dependencies(help_menu generate_authors_h)
+
 
 #
 # Add files for libansel
@@ -172,8 +175,6 @@ FILE(GLOB SOURCE_FILES
   )
 FILE(GLOB HEADER_FILES "*.h" "common/*.h" "external/OpenCL/CL/*.h" "control/*.h" "iop/*.h" "libs/*.h" "views/*.h")
 
-add_custom_target(help_menu "gui/actions/help.c")
-add_dependencies(help_menu generate_authors_h)
 
 if(APPLE)
   list(APPEND SOURCE_FILES "osx/osx.mm")
