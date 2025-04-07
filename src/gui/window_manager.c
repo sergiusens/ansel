@@ -72,19 +72,6 @@ int dt_ui_panel_get_size(dt_ui_t *ui, const dt_ui_panel_t p)
   return -1;
 }
 
-void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s)
-{
-  gchar *key = NULL;
-
-  if(p == DT_UI_PANEL_LEFT || p == DT_UI_PANEL_RIGHT || p == DT_UI_PANEL_BOTTOM)
-  {
-    const int width = CLAMP(s, dt_conf_get_int("min_panel_width"), dt_conf_get_int("max_panel_width"));
-    gtk_widget_set_size_request(ui->panels[p], width, -1);
-    key = panels_get_panel_path(p, "_size");
-    dt_conf_set_int(key, width);
-    g_free(key);
-  }
-}
 
 static void update_manager_sizes(dt_ui_t *ui)
 {
@@ -187,7 +174,6 @@ void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidge
       break;
 
     /* if box is center we want it to fill as much as it can */
-    case DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW:
     case DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER:
     case DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW:
       gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, TRUE, TRUE, 0);
@@ -531,12 +517,6 @@ static void _ui_init_panel_top(dt_ui_t *ui, GtkWidget *container)
   gtk_widget_set_name(ui->containers[DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW], "top-second-line");
   gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW], FALSE, FALSE,
                      DT_UI_PANEL_MODULE_SPACING);
-
-  /* add container for top right */
-  ui->containers[DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_name(ui->containers[DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW], "top-third-line");
-  gtk_box_pack_end(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW], FALSE, FALSE,
-                   DT_UI_PANEL_MODULE_SPACING);
 }
 
 /* initialize the center bottom panel */

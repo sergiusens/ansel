@@ -56,12 +56,10 @@ typedef enum dt_ui_container_t
 
   /* center which is expanded as wide it can */
   DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW = 6,
-  /* right side were the different views are accessed */
-  DT_UI_CONTAINER_PANEL_TOP_THIRD_ROW = 7,
 
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT = 8,
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER = 9,
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT = 10,
+  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT = 7,
+  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER = 8,
+  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT = 9,
 
   /* Count of containers */
   DT_UI_CONTAINER_SIZE,
@@ -114,7 +112,6 @@ gchar *panels_get_view_path(char *suffix);
 gchar *panels_get_panel_path(dt_ui_panel_t panel, char *suffix);
 
 int dt_ui_panel_get_size(dt_ui_t *ui, const dt_ui_panel_t p);
-void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s);
 
 gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w);
 
