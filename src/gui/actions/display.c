@@ -21,21 +21,28 @@ static void full_screen_callback()
   GtkWidget *widget = dt_ui_main_window(darktable.gui->ui);
 
   if(full_screen_checked_callback(widget))
+  {
     gtk_window_unfullscreen(GTK_WINDOW(widget));
+
+    // workaround for GTK Quartz backend bug
+    #ifdef __APPLE__
+    gtk_window_set_title(GTK_WINDOW(widget), "Ansel");
+    #endif
+  }
   else
+  {
     gtk_window_fullscreen(GTK_WINDOW(widget));
 
-  dt_dev_invalidate(darktable.develop);
+    // workaround for GTK Quartz backend bug
+    #ifdef __APPLE__
+    gtk_window_set_title(GTK_WINDOW(widget), "Ansel Preview");
+    #endif
+  }
+
+  dt_dev_invalidate_zoom(darktable.develop);
   dt_dev_refresh_ui_images(darktable.develop);
 
-  /* redraw center view */
-  gtk_widget_queue_draw(widget);
 
-#ifdef __APPLE__
-  // workaround for GTK Quartz backend bug
-  gtk_window_set_title(GTK_WINDOW(widget), widget == dt_ui_main_window(darktable.gui->ui)
-                                         ? "Ansel" : _("Ansel - Darkroom preview"));
-#endif
 }
 
 /** SIDE PANELS COLLAPSE **/
