@@ -86,7 +86,7 @@ void dt_ui_panel_set_size(dt_ui_t *ui, const dt_ui_panel_t p, int s)
   }
 }
 
-static void refresh_manager_sizes(dt_ui_t *ui)
+static void update_manager_sizes(dt_ui_t *ui)
 {
   // GUI sizes to data representation
 
@@ -138,40 +138,6 @@ static void refresh_manager_sizes(dt_ui_t *ui)
 #endif
 
 }
-
-/*
-* Problem :
-*  Gtk sets the size of containers by adding the size of their children,
-*  with zero fuck given for the ability of the final window to fit within the screen area.
-*  When users resize sidebars, the window width may increase indefinitely.
-*  There is nothing we can do here, because widget_set_size_request defines a wish,
-*  and widget_get_allocation defines the finally rendered size, but nothing advertised the
-*  minimal size. So we can't fetch the min width of the central area and sanitize sidebars widths
-*  as to ensure `window width - min central width = left sidebar width + right sidebar width`.
-*/
-
-static void sanitize_manager_size(dt_ui_t *ui)
-{
-  dt_window_manager_t *manager = &ui->manager;
-
-  // Ensure window fits in viewport NOT taking top-left corner position into account
-  manager->window.width = MIN(manager->window.width, manager->viewport.width);
-  manager->window.height = MIN(manager->window.height, manager->viewport.height);
-
-#if WINDOW_DEBUG
-  fprintf(stdout, "new window size: %i x %i\n", manager->window.width, manager->window.height);
-#endif
-  // Warning : the window.height doesn't account for the titlebar/decoration set by desktop manager.
-  // The code above assumes zero titlebar height because Gtk doesn't have a way of retrieving this info.
-  // Setting window.height to viewport.height doesn't guarantee it fits.
-}
-
-static void update_manager_sizes(dt_ui_t *ui)
-{
-  refresh_manager_sizes(ui);
-  sanitize_manager_size(ui);
-}
-
 
 gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w)
 {
