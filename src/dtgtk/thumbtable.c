@@ -670,11 +670,16 @@ void _enable_redraws(dt_thumbtable_t *table)
 }
 #endif
 
+unsigned long timeout_handle = 0;
+
 // Populate the immediate next and previous thumbs
 int dt_thumbtable_prefetch(dt_thumbtable_t *table)
 {
   if(table->thumb_nb == table->collection_count || table->collection_count == MAX_THUMBNAILS)
+  {
+    timeout_handle = 0;
     return G_SOURCE_REMOVE;
+  }
 
   const int32_t mouse_over = dt_control_get_mouse_over_id();
 
@@ -715,20 +720,17 @@ int dt_thumbtable_prefetch(dt_thumbtable_t *table)
   dt_pthread_mutex_unlock(&table->lock);
 
   if(table->thumb_nb == table->collection_count || table->collection_count == MAX_THUMBNAILS || (full_before && full_after))
+  {
+    timeout_handle = 0;
     return G_SOURCE_REMOVE;
+  }
 
   return G_SOURCE_CONTINUE;
 }
 
-unsigned long timeout_handle = 0;
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
-  if(timeout_handle != 0)
-  {
-    g_source_remove(timeout_handle);
-    timeout_handle = 0;
-  }
   _update_row_ids(table);
 
   if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
@@ -739,6 +741,14 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   {
     _dt_thumbtable_empty_list(table);
     table->reset_collection = FALSE;
+  }
+
+  // Priority to live events: if a prefetch async job is running, kill it now
+  // to process scroll, resize or new collection events
+  if(timeout_handle != 0)
+  {
+    g_source_remove(timeout_handle);
+    timeout_handle = 0;
   }
 
   const double start = dt_get_wtime();
