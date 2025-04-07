@@ -110,7 +110,6 @@ void add_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList **lists,
 void add_menu_separator(GtkWidget *menu);
 
 void add_sub_menu_separator(GtkWidget *parent);
-const char *get_label_text(GtkWidget *widget);
 
 void *get_custom_data(GtkWidget *widget);
 

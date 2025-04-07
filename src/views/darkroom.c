@@ -1492,7 +1492,7 @@ void gui_init(dt_view_t *self)
                      G_CALLBACK(_guides_quickbutton_clicked), dev);
     connect_button_press_release(darktable.view_manager->guides_toggle, darktable.view_manager->guides_popover);
     dt_view_manager_module_toolbox_add(darktable.view_manager, darktable.view_manager->guides_toggle,
-                                       DT_VIEW_DARKROOM | DT_VIEW_TETHERING);
+                                       DT_VIEW_DARKROOM);
     // we want to update button state each time the view change
     DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED,
                                     G_CALLBACK(_guides_view_changed), dev);

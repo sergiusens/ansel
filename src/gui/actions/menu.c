@@ -255,13 +255,6 @@ void add_sub_menu_separator(GtkWidget *parent)
   gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_item_get_submenu(GTK_MENU_ITEM(parent))), sep);
 }
 
-const char * get_label_text(GtkWidget *widget)
-{
-  // Helper to get the text label from a menuitem
-  GtkWidget *child = gtk_bin_get_child(GTK_BIN(widget));
-  return gtk_label_get_label(GTK_LABEL(child));
-}
-
 void * get_custom_data(GtkWidget *widget)
 {
   // Grab custom data optionnaly passed by pointer to the menuitem widget
