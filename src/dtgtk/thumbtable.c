@@ -697,7 +697,6 @@ int dt_thumbtable_prefetch(dt_thumbtable_t *table)
       rowid >= MAX(0, min_range); rowid--)
     if(table->lut[rowid].thumb == NULL)
     {
-      fprintf(stdout, "adding thumb id %i at position %i\n", table->lut[rowid].imgid, rowid);
       _add_thumbnail_at_rowid(table, rowid, mouse_over);
       dt_thumbnail_get_image_buffer(table->lut[rowid].thumb);
       full_before = FALSE;
@@ -710,7 +709,6 @@ int dt_thumbtable_prefetch(dt_thumbtable_t *table)
       rowid < MIN(table->collection_count, max_range); rowid++)
     if(table->lut[rowid].thumb == NULL)
     {
-      fprintf(stdout, "adding thumb id %i at position %i\n", table->lut[rowid].imgid, rowid);
       _add_thumbnail_at_rowid(table, rowid, mouse_over);
       dt_thumbnail_get_image_buffer(table->lut[rowid].thumb);
       full_after = FALSE;
