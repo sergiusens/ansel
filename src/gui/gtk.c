@@ -283,14 +283,6 @@ int dt_gui_gtk_load_config()
 {
   // Warning : needs to be called within a dt_pthread_mutex_lock(&darktable.gui->mutex) section
   GtkWidget *widget = dt_ui_main_window(darktable.gui->ui);
-  const int width = dt_conf_get_int("ui_last/window_w");
-  const int height = dt_conf_get_int("ui_last/window_h");
-  const gint x = MAX(0, dt_conf_get_int("ui_last/window_x"));
-  const gint y = MAX(0, dt_conf_get_int("ui_last/window_y"));
-
-  gtk_window_move(GTK_WINDOW(widget), x, y);
-  gtk_window_resize(GTK_WINDOW(widget), width, height);
-  gtk_window_unfullscreen(GTK_WINDOW(widget));
   // NOTE: allowing full-screen on startup shits the bed with MacOS
 
   if(dt_conf_get_bool("ui_last/maximized"))
@@ -306,14 +298,6 @@ int dt_gui_gtk_write_config()
   dt_pthread_mutex_lock(&darktable.gui->mutex);
 
   GtkWidget *widget = dt_ui_main_window(darktable.gui->ui);
-  GtkAllocation allocation;
-  gtk_widget_get_allocation(widget, &allocation);
-  gint x, y;
-  gtk_window_get_position(GTK_WINDOW(widget), &x, &y);
-  dt_conf_set_int("ui_last/window_x", x);
-  dt_conf_set_int("ui_last/window_y", y);
-  dt_conf_set_int("ui_last/window_w", allocation.width);
-  dt_conf_set_int("ui_last/window_h", allocation.height);
   dt_conf_set_bool("ui_last/maximized",
                    (gdk_window_get_state(gtk_widget_get_window(widget)) & GDK_WINDOW_STATE_MAXIMIZED));
   dt_pthread_mutex_unlock(&darktable.gui->mutex);

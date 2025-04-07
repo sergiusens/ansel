@@ -166,22 +166,10 @@ static void sanitize_manager_size(dt_ui_t *ui)
   // Setting window.height to viewport.height doesn't guarantee it fits.
 }
 
-static void reset_manager_sizes(dt_ui_t *ui)
-{
-  dt_window_manager_t *manager = &ui->manager;
-  int width, height;
-  gtk_window_get_size(GTK_WINDOW(dt_ui_main_window(ui)), &width, &height);
-
-  if(width != manager->window.width || height != manager->window.height)
-    gtk_window_resize(GTK_WINDOW(dt_ui_main_window(ui)), manager->window.width, manager->window.height);
-}
-
-
 static void update_manager_sizes(dt_ui_t *ui)
 {
   refresh_manager_sizes(ui);
   sanitize_manager_size(ui);
-  reset_manager_sizes(ui);
 }
 
 

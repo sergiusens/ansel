@@ -590,34 +590,6 @@
     <longdescription/>
   </dtconfig>
   <dtconfig>
-    <name>ui_last/window_x</name>
-    <type>int</type>
-    <default>0</default>
-    <shortdescription/>
-    <longdescription/>
-  </dtconfig>
-  <dtconfig>
-    <name>ui_last/window_y</name>
-    <type>int</type>
-    <default>0</default>
-    <shortdescription/>
-    <longdescription/>
-  </dtconfig>
-  <dtconfig>
-    <name>ui_last/window_w</name>
-    <type>int</type>
-    <default>900</default>
-    <shortdescription/>
-    <longdescription/>
-  </dtconfig>
-  <dtconfig>
-    <name>ui_last/window_h</name>
-    <type>int</type>
-    <default>500</default>
-    <shortdescription/>
-    <longdescription/>
-  </dtconfig>
-  <dtconfig>
     <name>ui_last/panel_left</name>
     <type>int</type>
     <default>-1</default>
