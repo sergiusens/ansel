@@ -59,7 +59,6 @@ typedef struct
   int rating;
   int colorlabels;
   gchar *filename;
-  gchar *info_line;
   gboolean is_altered;
   gboolean has_audio;
   gboolean is_grouped;
@@ -71,19 +70,19 @@ typedef struct
   // all widget components
   GtkWidget *widget;               // GtkEventbox -- parent of all others
   GtkWidget *w_main;               // GtkOverlay --
+  GtkWidget *w_background;         // GtkBox, because a GtkOverlay can't get styling apparently
   GtkWidget *w_ext;                // GtkLabel -- thumbnail extension
 
   GtkWidget *w_image;        // GtkDrawingArea -- thumbnail image
-  GtkBorder *img_margin;     // in percentage of the main widget size
   cairo_surface_t *img_surf; // cached surface at exact dimensions to speed up redraw
 
   GtkWidget *w_cursor;    // GtkDrawingArea -- triangle to show current image(s) in filmstrip
   GtkWidget *w_bottom_eb; // GtkEventBox -- background of the bottom infos area (contains w_bottom)
-  GtkWidget *w_bottom;    // GtkLabel -- text of the bottom infos area, just with #thumb-bottom
   GtkWidget *w_reject;    // GtkDarktableThumbnailBtn -- Reject icon
   GtkWidget *w_stars[MAX_STARS];  // GtkDarktableThumbnailBtn -- Stars icons
   GtkWidget *w_color;     // GtkDarktableThumbnailBtn -- Colorlabels "flower" icon
 
+  GtkWidget *w_top_eb;  
   GtkWidget *w_local_copy; // GtkDarktableThumbnailBtn -- localcopy triangle
   GtkWidget *w_altered;    // GtkDarktableThumbnailBtn -- Altered icon
   GtkWidget *w_group;      // GtkDarktableThumbnailBtn -- Grouping icon

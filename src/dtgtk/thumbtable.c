@@ -133,28 +133,14 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
   dt_conf_set_int("plugins/lighttable/overlays/global", sanitize_overlays(over));
   gchar *cl0 = _thumbs_get_overlays_class(table->overlays);
   gchar *cl1 = _thumbs_get_overlays_class(over);
-
   dt_gui_remove_class(table->grid, cl0);
   dt_gui_add_class(table->grid, cl1);
-  dt_thumbtable_redraw(table);
-
-  // we need to change the overlay content if we pass from normal to extended overlays
-  // this is not done on the fly with css to avoid computing extended msg for nothing and to reserve space if needed
-  dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
-  {
-    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
-    // and we resize the bottom area
-    dt_thumbnail_set_overlay(thumb, table->overlays);
-    dt_thumbnail_resize(thumb, thumb->width, thumb->height, TRUE);
-    dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
-    gtk_widget_queue_draw(thumb->widget);
-  }
-  dt_pthread_mutex_unlock(&table->lock);
-
-  table->overlays = over;
   g_free(cl0);
   g_free(cl1);
+
+  table->thumbs_inited = FALSE;
+  table->overlays = over;
+  dt_thumbtable_redraw(table);
 }
 
 // We can't trust the mouse enter/leave events on thumnbails to properly
@@ -583,10 +569,10 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
 
   // Resize
   gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
-  if(new_item || size_changed)
+  if(new_item || size_changed || table->overlays != thumb->over)
   {
-    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE);
     dt_thumbnail_set_overlay(thumb, table->overlays);
+    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE);
   }
 
   // Actually moving the widgets in the grid is more expensive, do it only if necessary
@@ -640,12 +626,15 @@ void _resize_thumbnails(dt_thumbtable_t *table)
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;
     gboolean size_changed = (table->thumb_height != thumb->height || table->thumb_width != thumb->width);
 
-    if(size_changed)
+    if(size_changed || table->overlays != thumb->over)
     {
       dt_thumbnail_set_overlay(thumb, table->overlays);
-      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, FALSE);
-      _set_thumb_position(table, thumb);
-      gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
+      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE);
+      if(size_changed)
+      {
+        _set_thumb_position(table, thumb);
+        gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
+      }
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
       gtk_widget_queue_draw(thumb->widget);
     }
