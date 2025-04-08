@@ -346,6 +346,15 @@ int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
   int image_h = 0;
   gtk_widget_get_size_request(thumb->w_image, &image_w, &image_h);
 
+  if(image_w < 32 || image_h < 32)
+  {
+    // IF wrong size alloc, we will never get an image, so abort and flag the buffer as valid.
+    // This happens because Gtk doesn't alloc size for invisible containers anyway.
+    thumb->image_inited = TRUE;
+    thumb->busy = FALSE;
+    return G_SOURCE_REMOVE;
+  }
+
   int zoom = (thumb->table) ? thumb->table->zoom : DT_THUMBTABLE_ZOOM_FIT;
 
   dt_view_surface_value_t res = dt_view_image_get_surface(thumb->imgid, image_w, image_h, &thumb->img_surf, zoom);
@@ -432,16 +441,25 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
   thumb_return_if_fails(thumb, TRUE);
 
+  int w = 0;
+  int h = 0;
+  gtk_widget_get_size_request(thumb->w_image, &w, &h);
+
+  if(w < 32 || h < 32)
+  {
+    // IF wrong size alloc, we will never get an image, so abort and flag the buffer as valid.
+    // This happens because Gtk doesn't alloc size for invisible containers anyway.
+    thumb->image_inited = TRUE;
+    thumb->busy = FALSE;
+    return TRUE;
+  }
+
   // Image is already available or pending a pipe rendering/cache fetching:
   // don't query a new image buffer.
   if((!thumb->image_inited || !thumb->img_surf) && !thumb->busy)
     dt_thumbnail_get_image_buffer(thumb);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
-
-  int w = 0;
-  int h = 0;
-  gtk_widget_get_size_request(thumb->w_image, &w, &h);
 
   if(thumb->busy || !thumb->image_inited || !thumb->img_surf || cairo_surface_get_reference_count(thumb->img_surf) < 1)
   {
@@ -1182,7 +1200,8 @@ void _widget_set_size(GtkWidget *w, int *parent_width, int *parent_height, const
   int width = *parent_width - margins.left - margins.right;
   int height = *parent_height - margins.top - margins.bottom;
 
-  gtk_widget_set_size_request(w, width, height);
+  if(width > 0 && height > 0)
+    gtk_widget_set_size_request(w, width, height);
 
   if(update)
   {
@@ -1252,6 +1271,8 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   thumb_return_if_fails(thumb);
   //fprintf(stdout, "calling resize on %i with overlay %i\n", thumb->imgid, thumb->over);
 
+  if(width < 1 || height < 1) return;
+
   // widget resizing
   thumb->width = width;
   thumb->height = height;
@@ -1275,6 +1296,10 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   // Proceed with overlays resizing
   int icon_size = _thumb_resize_overlays(thumb, width, height);
 
+  // Remember image allocation
+  int img_h = gtk_widget_get_allocated_height(thumb->w_image);
+  int img_w = gtk_widget_get_allocated_width(thumb->w_image);
+
   // Finish with updating the image size
   if(thumb->over == DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL)
   {
@@ -1289,9 +1314,13 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   _widget_set_size(thumb->w_image, &width, &height, FALSE);
 
   // Nuke the image entirely if the size changed
-  thumb->image_inited = FALSE;
-  _free_image_surface(thumb);
-  gtk_widget_queue_draw(thumb->w_image);
+  if(img_h != gtk_widget_get_allocated_height(thumb->w_image)
+     || img_w != gtk_widget_get_allocated_width(thumb->w_image))
+  {
+    thumb->image_inited = FALSE;
+    _free_image_surface(thumb);
+    gtk_widget_queue_draw(thumb->w_image);
+  }
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)

@@ -428,6 +428,16 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     _grid_configure(table, new_width, new_height, cols);
     _update_grid_area(table);
   }
+  else if(new_width < 32 || new_height < 32)
+  {
+    // Parent is not allocated or something went wrong:
+    // ensure to reset everything so no further code will run
+    table->thumbs_inited = FALSE;
+    table->configured = FALSE;
+    table->thumbs_per_row = 0;
+    table->thumb_height = 0;
+    table->thumb_width = 0;
+  }
 }
 
 // Remove invisible thumbs at current scrolling level, only when we have more than we can manage.
@@ -621,6 +631,8 @@ void _populate_thumbnails(dt_thumbtable_t *table)
 // Resize the thumbnails that are still existing but outside of visible viewport at current scroll level
 void _resize_thumbnails(dt_thumbtable_t *table)
 {
+  if(!table->configured) return;
+  
   for(GList *link = g_list_first(table->list); link; link = g_list_next(link))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;
