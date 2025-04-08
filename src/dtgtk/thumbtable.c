@@ -99,50 +99,6 @@ static int _grab_focus(dt_thumbtable_t *table)
   return 0;
 }
 
-// get the class name associated with the overlays mode
-static gchar *_thumbs_get_overlays_class(dt_thumbnail_overlay_t over)
-{
-  switch(over)
-  {
-    case DT_THUMBNAIL_OVERLAYS_NONE:
-      return g_strdup("dt_overlays_none");
-    case DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL:
-      return g_strdup("dt_overlays_always");
-    case DT_THUMBNAIL_OVERLAYS_HOVER_NORMAL:
-    default:
-      return g_strdup("dt_overlays_hover");
-  }
-}
-
-// update thumbtable class and overlays mode, depending on size category
-static void _thumbs_update_overlays_mode(dt_thumbtable_t *table)
-{
-  // we change the overlay mode
-  gchar *txt = g_strdup("plugins/lighttable/overlays/global");
-  dt_thumbnail_overlay_t over = sanitize_overlays(dt_conf_get_int(txt));
-  g_free(txt);
-
-  dt_thumbtable_set_overlays_mode(table, over);
-}
-
-// change the type of overlays that should be shown
-void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overlay_t over)
-{
-  if(!table) return;
-  if(over == table->overlays) return;
-  dt_conf_set_int("plugins/lighttable/overlays/global", sanitize_overlays(over));
-  gchar *cl0 = _thumbs_get_overlays_class(table->overlays);
-  gchar *cl1 = _thumbs_get_overlays_class(over);
-  dt_gui_remove_class(table->grid, cl0);
-  dt_gui_add_class(table->grid, cl1);
-  g_free(cl0);
-  g_free(cl1);
-
-  table->thumbs_inited = FALSE;
-  table->overlays = over;
-  dt_thumbtable_redraw(table);
-}
-
 // We can't trust the mouse enter/leave events on thumnbails to properly
 // update active thumbnail styling, so we need to catch the signal here and update the whole list.
 void _mouse_over_image_callback(gpointer instance, gpointer user_data)
@@ -572,7 +528,7 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
   if(new_item || size_changed || table->overlays != thumb->over)
   {
     dt_thumbnail_set_overlay(thumb, table->overlays);
-    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE);
+    dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height);
   }
 
   // Actually moving the widgets in the grid is more expensive, do it only if necessary
@@ -628,8 +584,10 @@ void _resize_thumbnails(dt_thumbtable_t *table)
 
     if(size_changed || table->overlays != thumb->over)
     {
+      // Overlay modes may change the height of the image
+      // to accommodate buttons. We need to resize on overlay changes.
       dt_thumbnail_set_overlay(thumb, table->overlays);
-      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height, TRUE);
+      dt_thumbnail_resize(thumb, table->thumb_width, table->thumb_height);
       if(size_changed)
       {
         _set_thumb_position(table, thumb);
@@ -757,7 +715,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
 
   dt_pthread_mutex_unlock(&table->lock);
 
-  timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
+  timeout_handle = g_timeout_add(50, (GSourceFunc)dt_thumbtable_prefetch, table);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb,
            table->min_row_id, table->max_row_id, dt_get_wtime() - start);
@@ -1071,6 +1029,57 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
 
     g_idle_add((GSourceFunc)_grab_focus, table);
   }
+}
+
+// get the class name associated with the overlays mode
+static gchar *_thumbs_get_overlays_class(dt_thumbnail_overlay_t over)
+{
+  switch(over)
+  {
+    case DT_THUMBNAIL_OVERLAYS_NONE:
+      return g_strdup("dt_overlays_none");
+    case DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL:
+      return g_strdup("dt_overlays_always");
+    case DT_THUMBNAIL_OVERLAYS_HOVER_NORMAL:
+    default:
+      return g_strdup("dt_overlays_hover");
+  }
+}
+
+// update thumbtable class and overlays mode, depending on size category
+static void _thumbs_update_overlays_mode(dt_thumbtable_t *table)
+{
+  // we change the overlay mode
+  gchar *txt = g_strdup("plugins/lighttable/overlays/global");
+  dt_thumbnail_overlay_t over = sanitize_overlays(dt_conf_get_int(txt));
+  g_free(txt);
+
+  dt_thumbtable_set_overlays_mode(table, over);
+}
+
+// change the type of overlays that should be shown
+void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overlay_t over)
+{
+  if(!table) return;
+  if(over == table->overlays) return;
+
+  // Cleanup old Darktable stupid modes
+  dt_conf_set_int("plugins/lighttable/overlays/global", sanitize_overlays(over));
+
+  gchar *cl0 = _thumbs_get_overlays_class(table->overlays);
+  gchar *cl1 = _thumbs_get_overlays_class(over);
+  dt_gui_remove_class(table->grid, cl0);
+  dt_gui_add_class(table->grid, cl1);
+  g_free(cl0);
+  g_free(cl1);
+
+  table->thumbs_inited = FALSE;
+  table->overlays = over;
+
+  dt_pthread_mutex_lock(&table->lock);
+  _resize_thumbnails(table);
+  dt_pthread_mutex_unlock(&table->lock);
+  dt_thumbtable_redraw(table);
 }
 
 static void _event_dnd_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data,

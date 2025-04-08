@@ -82,7 +82,7 @@ typedef struct
   GtkWidget *w_stars[MAX_STARS];  // GtkDarktableThumbnailBtn -- Stars icons
   GtkWidget *w_color;     // GtkDarktableThumbnailBtn -- Colorlabels "flower" icon
 
-  GtkWidget *w_top_eb;  
+  GtkWidget *w_top_eb;
   GtkWidget *w_local_copy; // GtkDarktableThumbnailBtn -- localcopy triangle
   GtkWidget *w_altered;    // GtkDarktableThumbnailBtn -- Altered icon
   GtkWidget *w_group;      // GtkDarktableThumbnailBtn -- Grouping icon
@@ -145,7 +145,7 @@ typedef struct
 dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid, dt_thumbnail_overlay_t over, struct dt_thumbtable_t *table);
 int dt_thumbnail_destroy(dt_thumbnail_t *thumb);
 GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb);
-void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force);
+void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height);
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border);
 void dt_thumbnail_set_mouseover(dt_thumbnail_t *thumb, gboolean over);
 void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode);

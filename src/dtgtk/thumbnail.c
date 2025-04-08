@@ -148,7 +148,7 @@ static void _thumb_write_extension(dt_thumbnail_t *thumb)
   while(ext > thumb->filename && *ext != '.') ext--;
   ext++;
   gchar *uext = dt_view_extend_modes_str(ext, thumb->is_hdr, thumb->is_bw, thumb->is_bw_flow);
-  gchar *label = g_strdup_printf("%s #%i", uext, thumb->rowid);
+  gchar *label = g_strdup_printf("%s #%i", uext, thumb->rowid + 1);
   gtk_label_set_text(GTK_LABEL(thumb->w_ext), label);
   g_free(uext);
   g_free(label);
@@ -444,9 +444,7 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   // Image is already available or pending a pipe rendering/cache fetching:
   // don't query a new image buffer.
   if((!thumb->image_inited || !thumb->img_surf) && !thumb->busy)
-  {
     dt_thumbnail_get_image_buffer(thumb);
-  }
 
   dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
 
@@ -461,14 +459,15 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   }
 
   // we draw the image
-  GtkStyleContext *context = gtk_widget_get_style_context(thumb->w_image);
-
   cairo_save(cr);
   const float scaler = 1.0f / darktable.gui->ppd;
   cairo_scale(cr, scaler, scaler);
 
-  double x_offset = (w * darktable.gui->ppd - thumb->img_width) / 2.;
-  double y_offset = (h * darktable.gui->ppd - thumb->img_height) / 2.;
+  // Correct allocation size for HighDPI scaling
+  w *= darktable.gui->ppd;
+  h *= darktable.gui->ppd;
+  double x_offset = (w - thumb->img_width) / 2.;
+  double y_offset = (h - thumb->img_height) / 2.;
 
   // Sanitize zoom offsets
   if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
@@ -484,13 +483,14 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 
   cairo_set_source_surface(cr, thumb->img_surf, thumb->zoomx + x_offset, thumb->zoomy + y_offset);
 
-  // get the transparency value
+  // Paint background with CSS transparency
   GdkRGBA im_color;
+  GtkStyleContext *context = gtk_widget_get_style_context(thumb->w_image);
   gtk_style_context_get_color(context, gtk_widget_get_state_flags(thumb->w_image), &im_color);
   cairo_paint_with_alpha(cr, im_color.alpha);
 
-  // and eventually the image border
-  gtk_render_frame(context, cr, 0, 0, w * darktable.gui->ppd, h * darktable.gui->ppd);
+  // Paint CSS borders
+  gtk_render_frame(context, cr, 0, 0, w, h);
   cairo_restore(cr);
 
   return TRUE;
@@ -1089,7 +1089,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_lens, FALSE, FALSE, 0);
   thumb->w_focal = gtk_label_new("");
   gtk_box_pack_start(GTK_BOX(bbox), thumb->w_focal, FALSE, FALSE, 0);
-  //gtk_widget_set_no_show_all(thumb->w_alternative, TRUE);
+  gtk_widget_set_no_show_all(thumb->w_alternative, TRUE);
 
   return thumb->widget;
 }
@@ -1183,9 +1183,9 @@ void _widget_set_size(GtkWidget *w, int *parent_width, int *parent_height, const
 }
 
 
-static void _thumb_resize_overlays(dt_thumbnail_t *thumb, int width, int height)
+static int _thumb_resize_overlays(dt_thumbnail_t *thumb, int width, int height)
 {
-  thumb_return_if_fails(thumb);
+  thumb_return_if_fails(thumb, 0);
 
   // we need to squeeze reject + space + stars + space + colorlabels icons on a thumbnail width
   // that means a width of 4 + MAX_STARS icons size
@@ -1228,48 +1228,65 @@ static void _thumb_resize_overlays(dt_thumbnail_t *thumb, int width, int height)
   pango_attr_list_insert(attrlist, attr);
   gtk_label_set_attributes(GTK_LABEL(thumb->w_ext), attrlist);
   pango_attr_list_unref(attrlist);
+
+  return icon_size;
 }
 
 // This function is called only from the thumbtable, when the grid size changed.
 // NOTE: thumb->widget is a grid cell. It should not get styled, especially not with margins/padding.
 // Styling starts at thumb->w_main, aka .thumb-main in CSS, which gets centered in the grid cell.
-// Overlays need to be set prior to calling this
-void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height, gboolean force)
+// Overlays need to be set prior to calling this function because they can change internal sizings.
+// It is expected that this function is called only when needed, that is if the size requirements actually
+// changed, meaning this check needs to be done upstream because we internally nuke the image surface on every call.
+void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
 {
   thumb_return_if_fails(thumb);
-  //fprintf(stdout, "calling resize on %i\n", thumb->imgid);
+  //fprintf(stdout, "calling resize on %i with overlay %i\n", thumb->imgid, thumb->over);
 
   // widget resizing
   thumb->width = width;
   thumb->height = height;
   gtk_widget_set_size_request(thumb->widget, width, height);
 
+  // Calling gtk_widget_size_allocate is just a trick to force Gtk to update
+  // allocations now, in case the widget is not already visible.
+  // Otherwise, invisible widgets will lead to 0-sized allocations,
+  // and image size needed now will be improperly set.
+  GtkAllocation alloc = { .x = 0, .y = 0, .width = width, .height = height };
+  gtk_widget_size_allocate(thumb->widget, &alloc);
+
   // Apply margins & borders on the main widget
   _widget_set_size(thumb->w_main, &width, &height, TRUE);
 
-  // Proceed with overlays
-  _thumb_resize_overlays(thumb, width, height);
+  // Update show/hide status for overlays now, because we pack them in boxes
+  // so the children need to be sized before their parents for the boxes to have proper size.
+  gtk_widget_show_all(thumb->widget);
+  _thumb_update_icons(thumb);
 
-  // Finish with the image
+  // Proceed with overlays resizing
+  int icon_size = _thumb_resize_overlays(thumb, width, height);
+
+  // Remember previous image size
+  int img_w = gtk_widget_get_allocated_width(thumb->w_image);
+  int img_h = gtk_widget_get_allocated_height(thumb->w_image);
+
+  // Finish with updating the image size
   if(thumb->over == DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL)
   {
     // Persistent overlays shouldn't overlap with image, so resize it.
+    // NOTE: this is why we need to allocate above
     int margin_bottom = gtk_widget_get_allocated_height(thumb->w_bottom_eb);
     int margin_top = gtk_widget_get_allocated_height(thumb->w_top_eb);
-    height -= 2 * MAX(margin_top, margin_bottom);
-    _widget_set_size(thumb->w_image, &width, &height, FALSE);
+    height -= 2 * MAX(MAX(margin_top, margin_bottom), icon_size);
+    // In case top and bottom bars of overlays have different sizes,
+    // we resize symetrically to the largest.
   }
-  else
-  {
-    _widget_set_size(thumb->w_image, &width, &height, FALSE);
-  }
+  _widget_set_size(thumb->w_image, &width, &height, FALSE);
 
-  // Update show/hide status for overlays
-  _thumb_update_icons(thumb);
-
-  // Flush the image surface in case its size changed
+  // Nuke the image entirely if the size changed
   thumb->image_inited = FALSE;
-  dt_thumbnail_image_refresh(thumb);
+  _free_image_surface(thumb);
+  gtk_widget_queue_draw(thumb->w_image);
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
