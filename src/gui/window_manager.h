@@ -68,17 +68,6 @@ typedef enum dt_ui_container_t
   // they will never be destroyed in loops, so put them after the container "size"
 } dt_ui_container_t;
 
-
-typedef struct dt_window_manager_t
-{
-  // Convenience list of GUI sizes for easy sizes sanitization
-  GtkAllocation containers[DT_UI_CONTAINER_SIZE];
-  GtkAllocation panels[DT_UI_PANEL_SIZE];
-  GtkAllocation center;
-  GtkAllocation window;
-  GtkAllocation viewport;
-} dt_window_manager_t;
-
 typedef struct dt_ui_t
 {
   /* container widgets */
@@ -100,9 +89,6 @@ typedef struct dt_ui_t
 
   /* log msg and toast labels */
   GtkWidget *log_msg, *toast_msg;
-
-  /* keep track of sizes for sanitization */
-  dt_window_manager_t manager;
 
   /* Header/title bar */
   struct dt_header_t *header;

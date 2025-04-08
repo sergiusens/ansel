@@ -72,60 +72,6 @@ int dt_ui_panel_get_size(dt_ui_t *ui, const dt_ui_panel_t p)
   return -1;
 }
 
-
-static void update_manager_sizes(dt_ui_t *ui)
-{
-  // GUI sizes to data representation
-
-  dt_window_manager_t *manager = &ui->manager;
-  GtkWidget *window = dt_ui_main_window(ui);
-  GdkWindow *win = gtk_widget_get_window(window);
-  GdkMonitor *monitor = gdk_display_get_monitor_at_window(gdk_window_get_display(win), win);
-
-  // Note : all sizes are in viewport pixels, not physical pixels.
-  // physical pix = viewport pix * gdk_monitor_get_scale_factor(monitor);
-  // the scale factor is the highDPI factor set on desktop environment if any.
-
-  // Display in which the current window fits
-  gdk_monitor_get_geometry(monitor, &manager->viewport);
-
-#if WINDOW_DEBUG
-  fprintf(stdout, "viewport: %i x %i\n", manager->viewport.width, manager->viewport.height);
-#endif
-
-  // Main window
-  gtk_window_get_size(GTK_WINDOW(window), &manager->window.width, &manager->window.height);
-
-#if WINDOW_DEBUG
-  fprintf(stdout, "main window: %i x %i\n", manager->window.width, manager->window.height);
-#endif
-
-  gdk_window_get_origin(gtk_widget_get_window(window), &manager->window.x, &manager->window.y);
-  //gtk_window_get_position(GTK_WINDOW(window), &manager->window.x, &manager->window.y);
-
-#if WINDOW_DEBUG
-  fprintf(stdout, "position : %i, %i\n", manager->window.x, manager->window.y);
-#endif
-
-  // Panels (sidebars, menubar, toolbars, filmstrip)
-  for(int i = 0; i < DT_UI_PANEL_SIZE; i++)
-  {
-    gtk_widget_get_allocation(GTK_WIDGET(ui->panels[i]), &manager->panels[i]);
-
-#if WINDOW_DEBUG
-    fprintf(stdout, "panel %i : %i x %i\n", i, manager->panels[i].width, manager->panels[i].height);
-#endif
-  }
-
-  // Center view
-  gtk_widget_get_allocation(dt_ui_center(ui), &manager->center);
-
-#if WINDOW_DEBUG
-  fprintf(stdout, "center: %i x %i\n", manager->center.width, manager->center.height);
-#endif
-
-}
-
 gboolean dt_ui_panel_ancestor(dt_ui_t *ui, const dt_ui_panel_t p, GtkWidget *w)
 {
   g_return_val_if_fail(GTK_IS_WIDGET(ui->panels[p]), FALSE);
@@ -190,13 +136,17 @@ static void _ui_init_panel_size(GtkWidget *widget)
 {
   gchar *key = NULL;
 
+  GtkWidget *window = dt_ui_main_window(darktable.gui->ui);
+  int win_w, win_h;
+  gtk_window_get_size(GTK_WINDOW(window), &win_w, &win_h);
+
   int s = 128;
   if(strcmp(gtk_widget_get_name(widget), "right") == 0)
   {
     key = panels_get_panel_path(DT_UI_PANEL_RIGHT, "_size");
     s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 120, darktable.gui->ui->manager.window.width / 3);
+      s = CLAMP(dt_conf_get_int(key), 120, win_w / 2.);
     if(key) gtk_widget_set_size_request(widget, s, -1);
   }
   else if(strcmp(gtk_widget_get_name(widget), "left") == 0)
@@ -204,7 +154,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_LEFT, "_size");
     s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 120, darktable.gui->ui->manager.window.width / 3);
+      s = CLAMP(dt_conf_get_int(key), 120, win_w / 2.);
     if(key) gtk_widget_set_size_request(widget, s, -1);
   }
   else if(strcmp(gtk_widget_get_name(widget), "bottom") == 0)
@@ -212,7 +162,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
     s = DT_UI_PANEL_BOTTOM_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 32, darktable.gui->ui->manager.window.height / 3);
+      s = CLAMP(dt_conf_get_int(key), 32, win_h / 2.);
     if(key) gtk_widget_set_size_request(widget, -1, s);
   }
 
@@ -253,8 +203,6 @@ void dt_ui_restore_panels(dt_ui_t *ui)
     // Coming to Ansel, they don't realize there is a menu there.
     dt_ui_panel_show(ui, DT_UI_PANEL_TOP, TRUE, TRUE);
   }
-
-  update_manager_sizes(ui);
 }
 
 static gboolean _panel_handle_button_callback(GtkWidget *w, GdkEventButton *e, gpointer user_data)
@@ -300,6 +248,8 @@ static gboolean _panel_handle_motion_callback(GtkWidget *w, GdkEventButton *e, g
   {
     gint x, y, sx, sy;
     GtkWidget *window = dt_ui_main_window(darktable.gui->ui);
+    int win_w, win_h;
+    gtk_window_get_size(GTK_WINDOW(window), &win_w, &win_h);
 
     // FIXME: can work with the event x,y to skip the gdk_window_get_device_position() call?
     gdk_window_get_device_position(e->window,
@@ -312,19 +262,19 @@ static gboolean _panel_handle_motion_callback(GtkWidget *w, GdkEventButton *e, g
     gchar *key = NULL;
     if(strcmp(gtk_widget_get_name(w), "panel-handle-right") == 0)
     {
-      sx = CLAMP(sx + darktable.gui->widgets.panel_handle_x - x, 150, darktable.gui->ui->manager.window.width / 2);
+      sx = CLAMP(sx + darktable.gui->widgets.panel_handle_x - x, 150, win_w / 2);
       key = panels_get_panel_path(DT_UI_PANEL_RIGHT, "_size");
       gtk_widget_set_size_request(widget, sx, -1);
     }
     else if(strcmp(gtk_widget_get_name(w), "panel-handle-left") == 0)
     {
-      sx = CLAMP(sx - darktable.gui->widgets.panel_handle_x + x, 150, darktable.gui->ui->manager.window.width / 2);
+      sx = CLAMP(sx - darktable.gui->widgets.panel_handle_x + x, 150, win_w / 2);
       key = panels_get_panel_path(DT_UI_PANEL_LEFT, "_size");
       gtk_widget_set_size_request(widget, sx, -1);
     }
     else if(strcmp(gtk_widget_get_name(w), "panel-handle-bottom") == 0)
     {
-      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 32, darktable.gui->ui->manager.window.height / 3.);
+      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 32, win_h / 3.);
       key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
       gtk_widget_set_size_request(widget, -1, sx);
     }
@@ -332,8 +282,6 @@ static gboolean _panel_handle_motion_callback(GtkWidget *w, GdkEventButton *e, g
     // we store and apply the new value
     dt_conf_set_int(key, sx);
     g_free(key);
-
-    update_manager_sizes(darktable.gui->ui);
 
     return TRUE;
   }
