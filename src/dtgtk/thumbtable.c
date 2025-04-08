@@ -493,7 +493,7 @@ void _add_thumbnail_group_borders(dt_thumbtable_t *table, dt_thumbnail_t *thumb)
   const int32_t groupid = thumb->groupid;
 
   // Ungrouped image: abort
-  if(table->lut[rowid].group_members < 2) return;
+  if(table->lut[rowid].group_members < 2 || !table->draw_group_borders) return;
 
   if(table->lut[CLAMP_ROW(rowid - table->thumbs_per_row)].groupid != groupid
     || IS_COLLECTION_EDGE(rowid - table->thumbs_per_row))
@@ -849,6 +849,19 @@ void dt_thumbtable_set_focus_peaking(dt_thumbtable_t *table, gboolean enable)
 gboolean dt_thumbtable_get_focus_peaking(dt_thumbtable_t *table)
 {
   return table->focus_peaking;
+}
+
+void dt_thumbtable_set_draw_group_borders(dt_thumbtable_t *table, gboolean enable)
+{
+  table->draw_group_borders = enable;
+  dt_pthread_mutex_lock(&table->lock);
+  _resize_thumbnails(table);
+  dt_pthread_mutex_unlock(&table->lock);
+}
+
+gboolean dt_thumbtable_get_draw_group_borders(dt_thumbtable_t *table)
+{
+  return table->draw_group_borders;
 }
 
 // can be called with imgid = -1, in that case we reload all mipmaps
@@ -1692,6 +1705,7 @@ dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
   table->alternate_mode = FALSE;
   table->rowid = -1;
   table->collapse_groups = dt_conf_get_bool("ui_last/grouping");
+  table->draw_group_borders = dt_conf_get_bool("plugins/lighttable/group_borders");
 
   dt_pthread_mutex_init(&table->lock, NULL);
 
