@@ -281,9 +281,7 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
   }
   // if the rating as changed, update the rejected
   if(old_rating != thumb->rating)
-  {
     _thumb_update_rating_class(thumb);
-  }
 
   // colorlabels
   if(thumb->w_color)
@@ -293,7 +291,7 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
   }
 
   // altered
-  thumb->is_altered = dt_image_altered(thumb->imgid);
+  thumb->is_altered = (thumb->table) ? thumb->table->lut[thumb->rowid].history_items > 0 : FALSE;
 
   // grouping
   thumb->is_grouped = (thumb->table) ? thumb->table->lut[thumb->rowid].group_members > 1 : FALSE;

@@ -49,6 +49,7 @@ typedef struct dt_thumbtable_cache_t
   int32_t groupid;        // image group ID as found in database
   dt_thumbnail_t *thumb;  // reference to the thumbnail object
   uint32_t group_members; // numbers of images in the same group
+  uint32_t history_items; 
 } dt_thumbtable_cache_t;
 
 typedef struct dt_thumbtable_t

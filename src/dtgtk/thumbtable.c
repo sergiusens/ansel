@@ -910,6 +910,10 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
       dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
       if(thumb->imgid == imgid_to_update)
       {
+        // Update infos reads the content of the LUT, for performance at init time,
+        // but then we need to keep it updated during the lifetime of the thumbnail.
+        table->lut[thumb->rowid].history_items = dt_image_altered(thumb->imgid);
+        // TODO: update group id too.
         dt_thumbnail_update_infos(thumb);
         gtk_widget_queue_draw(thumb->widget);
         break;
@@ -927,7 +931,9 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   // In-memory collected images don't store group_id, so we need to fetch it again from DB
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-    "SELECT im.id, im.group_id, c.rowid, (SELECT COUNT(id) FROM main.images WHERE group_id=im.group_id)"
+    "SELECT im.id, im.group_id, c.rowid, "
+    "(SELECT COUNT(id) FROM main.images WHERE group_id=im.group_id), "
+    "(SELECT COUNT(imgid) FROM main.history WHERE imgid=c.imgid) "
     " FROM main.images as im, memory.collected_images as c"
     " WHERE im.id=c.imgid"
     " ORDER BY c.rowid ASC",
@@ -944,7 +950,8 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   {
     int32_t imgid = sqlite3_column_int(stmt, 0);
     int32_t groupid = sqlite3_column_int(stmt, 1);
-    int32_t items = sqlite3_column_int(stmt, 3);
+    int32_t group_items = sqlite3_column_int(stmt, 3);
+    int32_t history_items = sqlite3_column_int(stmt, 4);
 
     if(table->collapse_groups && imgid != groupid)
     {
@@ -958,10 +965,11 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
       continue;
     }
 
-      int32_t *data = malloc(3 * sizeof(int32_t));
+      int32_t *data = malloc(4 * sizeof(int32_t));
     data[0] = imgid;
     data[1] = groupid;
-    data[2] = items;
+    data[2] = group_items;
+    data[3] = history_items;
     collection = g_list_prepend(collection, data);
   }
   sqlite3_finalize(stmt);
@@ -1000,6 +1008,7 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
     table->lut[i].imgid = data[0];
     table->lut[i].groupid = data[1];
     table->lut[i].group_members = data[2];
+    table->lut[i].history_items = data[3];
 
     // This will be updated when initing/freeing a new GUI thumbnail
     table->lut[i].thumb = NULL;
