@@ -58,12 +58,6 @@ static void dt_view_unload_module(dt_view_t *view);
 
 void dt_view_manager_init(dt_view_manager_t *vm)
 {
-  /* prepare statements */
-  DT_DEBUG_SQLITE3_PREPARE_V2(
-      dt_database_get(darktable.db),
-      "SELECT id FROM main.images WHERE group_id = (SELECT group_id FROM main.images WHERE id=?1) AND id != ?2",
-      -1, &vm->statements.get_grouped, NULL);
-
   dt_view_manager_load_modules(vm);
 
   // Modules loaded, let's handle specific cases

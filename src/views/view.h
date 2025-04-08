@@ -152,12 +152,6 @@ typedef struct dt_view_manager_t
    */
   struct
   {
-    /* select images in group from images where imgid=?1 (also bind to ?2) */
-    sqlite3_stmt *get_grouped;
-  } statements;
-
-  struct
-  {
     GPid audio_player_pid;   // the pid of the child process
     int32_t audio_player_id; // the imgid of the image the audio is played for
     guint audio_player_event_source;

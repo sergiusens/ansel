@@ -296,14 +296,7 @@ static void _image_get_infos(dt_thumbnail_t *thumb)
   thumb->is_altered = dt_image_altered(thumb->imgid);
 
   // grouping
-  DT_DEBUG_SQLITE3_CLEAR_BINDINGS(darktable.view_manager->statements.get_grouped);
-  DT_DEBUG_SQLITE3_RESET(darktable.view_manager->statements.get_grouped);
-  DT_DEBUG_SQLITE3_BIND_INT(darktable.view_manager->statements.get_grouped, 1, thumb->imgid);
-  DT_DEBUG_SQLITE3_BIND_INT(darktable.view_manager->statements.get_grouped, 2, thumb->imgid);
-  thumb->is_grouped = (sqlite3_step(darktable.view_manager->statements.get_grouped) == SQLITE_ROW);
-
-  // grouping tooltip
-  _image_update_group_tooltip(thumb);
+  thumb->is_grouped = (thumb->table) ? thumb->table->lut[thumb->rowid].group_members > 1 : FALSE;
 
   _thumb_write_extension(thumb);
 }
@@ -833,6 +826,16 @@ static gboolean _altered_enter(GtkWidget *widget, GdkEventCrossing *event, gpoin
   return FALSE;
 }
 
+
+static gboolean _group_enter(GtkWidget *widget, GdkEventCrossing *event, gpointer user_data)
+{
+  dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
+  thumb_return_if_fails(thumb, TRUE);
+  _image_update_group_tooltip(thumb);
+  return FALSE;
+}
+
+
 static gboolean _event_image_press(GtkWidget *widget, GdkEventButton *event, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
@@ -1038,6 +1041,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   thumb->w_group = dtgtk_thumbnail_btn_new(dtgtk_cairo_paint_grouping, 0, NULL);
   dt_gui_add_class(thumb->w_group, "thumb-group");
   g_signal_connect(G_OBJECT(thumb->w_group), "button-release-event", G_CALLBACK(_event_grouping_release), thumb);
+  g_signal_connect(G_OBJECT(thumb->w_group), "enter-notify-event", G_CALLBACK(_group_enter), thumb);
   gtk_widget_set_valign(thumb->w_group, GTK_ALIGN_CENTER);
   gtk_widget_set_no_show_all(thumb->w_group, TRUE);
   gtk_box_pack_end(GTK_BOX(top_box), thumb->w_group, FALSE, FALSE, 0);
