@@ -677,9 +677,15 @@ void dt_thumbnail_alternative_mode(dt_thumbnail_t *thumb, gboolean enable)
   if(thumb->alternative_mode == enable) return;
   thumb->alternative_mode = enable;
   if(enable)
+  {
+    gtk_widget_set_no_show_all(thumb->w_alternative, FALSE);
     gtk_widget_show_all(thumb->w_alternative);
+  }
   else
+  {
+    gtk_widget_set_no_show_all(thumb->w_alternative, TRUE);
     gtk_widget_hide(thumb->w_alternative);
+  }
   gtk_widget_queue_draw(thumb->widget);
 }
 
