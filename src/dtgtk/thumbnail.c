@@ -896,6 +896,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   // so we don't have to wire leave/enter events to all of them individually.
   // Children buttons will mostly only use button pressed/released events
   thumb->widget = gtk_event_box_new();
+  dt_gui_add_class(thumb->widget, "thumb-cell");
   gtk_widget_set_events(thumb->widget, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_STRUCTURE_MASK | GDK_POINTER_MOTION_MASK | GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
   // this is only here to ensure that mouse-over value is updated correctly
@@ -1246,7 +1247,7 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   // widget resizing
   thumb->width = width;
   thumb->height = height;
-  gtk_widget_set_size_request(thumb->widget, width, height);
+  _widget_set_size(thumb->widget, &width, &height, TRUE);
 
   // Calling gtk_widget_size_allocate is just a trick to force Gtk to update
   // allocations now, in case the widget is not already visible.
@@ -1265,10 +1266,6 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
 
   // Proceed with overlays resizing
   int icon_size = _thumb_resize_overlays(thumb, width, height);
-
-  // Remember previous image size
-  int img_w = gtk_widget_get_allocated_width(thumb->w_image);
-  int img_h = gtk_widget_get_allocated_height(thumb->w_image);
 
   // Finish with updating the image size
   if(thumb->over == DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL)
@@ -1295,21 +1292,21 @@ void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t 
 
   if(border == DT_THUMBNAIL_BORDER_NONE)
   {
-    dt_gui_remove_class(thumb->w_main, "dt_group_left");
-    dt_gui_remove_class(thumb->w_main, "dt_group_top");
-    dt_gui_remove_class(thumb->w_main, "dt_group_right");
-    dt_gui_remove_class(thumb->w_main, "dt_group_bottom");
+    dt_gui_remove_class(thumb->widget, "dt_group_left");
+    dt_gui_remove_class(thumb->widget, "dt_group_top");
+    dt_gui_remove_class(thumb->widget, "dt_group_right");
+    dt_gui_remove_class(thumb->widget, "dt_group_bottom");
     thumb->group_borders = DT_THUMBNAIL_BORDER_NONE;
     return;
   }
-  else if(border & DT_THUMBNAIL_BORDER_LEFT)
-    dt_gui_add_class(thumb->w_main, "dt_group_left");
-  else if(border & DT_THUMBNAIL_BORDER_TOP)
-    dt_gui_add_class(thumb->w_main, "dt_group_top");
-  else if(border & DT_THUMBNAIL_BORDER_RIGHT)
-    dt_gui_add_class(thumb->w_main, "dt_group_right");
-  else if(border & DT_THUMBNAIL_BORDER_BOTTOM)
-    dt_gui_add_class(thumb->w_main, "dt_group_bottom");
+  if(border & DT_THUMBNAIL_BORDER_LEFT)
+    dt_gui_add_class(thumb->widget, "dt_group_left");
+  if(border & DT_THUMBNAIL_BORDER_TOP)
+    dt_gui_add_class(thumb->widget, "dt_group_top");
+  if(border & DT_THUMBNAIL_BORDER_RIGHT)
+    dt_gui_add_class(thumb->widget, "dt_group_right");
+  if(border & DT_THUMBNAIL_BORDER_BOTTOM)
+    dt_gui_add_class(thumb->widget, "dt_group_bottom");
 
   thumb->group_borders |= border;
 }

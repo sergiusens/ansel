@@ -480,6 +480,49 @@ dt_thumbnail_t *_find_thumb_by_imgid(dt_thumbtable_t *table, const int32_t imgid
   return NULL;
 }
 
+#define CLAMP_ROW(rowid) CLAMP(rowid, 0, table->collection_count - 1)
+#define IS_COLLECTION_EDGE(rowid) (rowid < 0 || rowid >= table->collection_count)
+
+void _add_thumbnail_group_borders(dt_thumbtable_t *table, dt_thumbnail_t *thumb)
+{
+  // Reset all CSS classes
+  dt_thumbnail_border_t borders = 0;
+  dt_thumbnail_set_group_border(thumb, borders);
+
+  const int32_t rowid = thumb->rowid;
+  const int32_t groupid = thumb->groupid;
+
+  // Ungrouped image: abort
+  if(table->lut[rowid].group_members < 2) return;
+
+  if(table->lut[CLAMP_ROW(rowid - table->thumbs_per_row)].groupid != groupid
+    || IS_COLLECTION_EDGE(rowid - table->thumbs_per_row))
+    borders |= DT_THUMBNAIL_BORDER_TOP;
+
+  if(table->lut[CLAMP_ROW(rowid + table->thumbs_per_row)].groupid != groupid
+    || IS_COLLECTION_EDGE(rowid + table->thumbs_per_row))
+    borders |= DT_THUMBNAIL_BORDER_BOTTOM;
+
+  if(table->lut[CLAMP_ROW(rowid - 1)].groupid != groupid
+    || IS_COLLECTION_EDGE(rowid - 1))
+    borders |= DT_THUMBNAIL_BORDER_LEFT;
+
+  if(table->lut[CLAMP_ROW(rowid + 1)].groupid != groupid
+     || IS_COLLECTION_EDGE(rowid + 1))
+    borders |= DT_THUMBNAIL_BORDER_RIGHT;
+
+  // If the group spans over more than a full row,
+  // close the row ends. Otherwise, we leave orphans opened at the row ends.
+  if(table->lut[rowid].group_members > table->thumbs_per_row)
+  {
+    if(rowid % table->thumbs_per_row == 0)
+      borders |= DT_THUMBNAIL_BORDER_LEFT;
+    if(rowid % table->thumbs_per_row == table->thumbs_per_row - 1)
+      borders |= DT_THUMBNAIL_BORDER_RIGHT;
+  }
+
+  dt_thumbnail_set_group_border(thumb, borders);
+}
 
 void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const int32_t mouse_over)
 {
@@ -560,6 +603,7 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
     thumb->disable_actions = FALSE;
   }
 
+  _add_thumbnail_group_borders(table, thumb);
   dt_thumbnail_unblock_redraw(thumb);
 }
 
@@ -594,8 +638,11 @@ void _resize_thumbnails(dt_thumbtable_t *table)
         gtk_fixed_move(GTK_FIXED(table->grid), thumb->widget, thumb->x, thumb->y);
       }
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
-      gtk_widget_queue_draw(thumb->widget);
     }
+
+    _add_thumbnail_group_borders(table, thumb);
+    dt_thumbnail_update_infos(thumb);
+    gtk_widget_queue_draw(thumb->widget);
   }
 }
 
@@ -880,7 +927,7 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   // In-memory collected images don't store group_id, so we need to fetch it again from DB
   sqlite3_stmt *stmt;
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-    "SELECT im.id, im.group_id, c.rowid"
+    "SELECT im.id, im.group_id, c.rowid, (SELECT COUNT(id) FROM main.images WHERE group_id=im.group_id)"
     " FROM main.images as im, memory.collected_images as c"
     " WHERE im.id=c.imgid"
     " ORDER BY c.rowid ASC",
@@ -889,6 +936,7 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   // NOTE: non-grouped images have group_id equal to their own id
   // grouped images have group_id equal to the id of the "group leader".
   // In old database versions, it's possible that group_id may have been set to -1 for non-grouped images.
+  // That would actually make group detection much easier...
 
   // Convert SQL imgids into C objects we can work with
   GList *collection = NULL;
@@ -896,6 +944,7 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
   {
     int32_t imgid = sqlite3_column_int(stmt, 0);
     int32_t groupid = sqlite3_column_int(stmt, 1);
+    int32_t items = sqlite3_column_int(stmt, 3);
 
     if(table->collapse_groups && imgid != groupid)
     {
@@ -909,9 +958,10 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
       continue;
     }
 
-      int32_t *data = malloc(2 * sizeof(int32_t));
+      int32_t *data = malloc(3 * sizeof(int32_t));
     data[0] = imgid;
     data[1] = groupid;
+    data[2] = items;
     collection = g_list_prepend(collection, data);
   }
   sqlite3_finalize(stmt);
@@ -949,6 +999,7 @@ static void _dt_collection_lut(dt_thumbtable_t *table)
     int32_t *data = (int32_t *)collection_item->data;
     table->lut[i].imgid = data[0];
     table->lut[i].groupid = data[1];
+    table->lut[i].group_members = data[2];
 
     // This will be updated when initing/freeing a new GUI thumbnail
     table->lut[i].thumb = NULL;

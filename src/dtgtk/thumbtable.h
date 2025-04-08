@@ -45,9 +45,10 @@ typedef enum dt_thumbtable_zoom_t
 
 typedef struct dt_thumbtable_cache_t
 {
-  int32_t imgid;
-  int32_t groupid;
-  dt_thumbnail_t *thumb;
+  int32_t imgid;          // image ID as found in database
+  int32_t groupid;        // image group ID as found in database
+  dt_thumbnail_t *thumb;  // reference to the thumbnail object
+  uint32_t group_members; // numbers of images in the same group
 } dt_thumbtable_cache_t;
 
 typedef struct dt_thumbtable_t

@@ -212,6 +212,9 @@ Why that? Just because it's a developer choice and most classes use underscore i
 @define-color graph_overlay @grey_50;
 @define-color inset_histogram alpha(@grey_95, 0.50);
 
+/* */
+@define-color group_border #997D00;
+
 /* Adjust middle grey picker on levels and rgb levels modules to make it visible */
 #picker-grey
 {
@@ -1967,13 +1970,13 @@ Details :
 }
 
 .thumb-main {
-  margin: 3px;
+  margin: 4px;
 }
 
 .thumb-background
 {
   background-color: shade(@lighttable_bg_color, .93);
-  border: 3px solid shade(@lighttable_bg_color, .93);
+  border: 4px solid shade(@lighttable_bg_color, .93);
 }
 
 /* set hover effect */
@@ -1996,7 +1999,7 @@ Details :
   -----------------*/
 .thumb-image
 {
-  margin: 3px; /* needs to be set equal to .thumb-background border to avoid overlap */
+  margin: 4px; /* needs to be set equal to .thumb-background border to avoid overlap */
 }
 
 #thumbtable-filmstrip .thumb-main:selected
@@ -2017,33 +2020,38 @@ Details :
 }
 
 /* Set border color around thumbnails */
+.thumb-cell {
+  border: 4px solid transparent;
+  margin: -2px;
+}
+
 .dt_group_left,
 .thumb-main.dt_group_left:selected
 {
-  border-left: 0.1em solid rgb(255, 187, 0);
+  border-left: 4px solid @group_border;
 }
 
-.dt_group_top  ,
+.dt_group_top,
 .thumb-main.dt_group_top:selected
 {
-  border-top: 0.1em solid rgb(255, 187, 0);
+  border-top: 4px solid @group_border;
 }
 
-.dt_group_right  ,
+.dt_group_right,
 .thumb-main.dt_group_right:selected
 {
-  border-right: 0.1em solid rgb(255, 187, 0);
+  border-right: 4px solid @group_border;
 }
 
-.dt_group_bottom  ,
+.dt_group_bottom,
 .thumb-main.dt_group_bottom:selected
 {
-  border-bottom: 0.1em solid rgb(255, 187, 0);
+  border-bottom: 4px solid @group_border;
 }
 
 .dt_thumbtable_reorder .thumb-main:hover
 {
-  border-left : 4px solid rgb(255, 187, 0);
+  border-left : 4px solid @group_border;
 }
 
 /*----------------------------------------
@@ -2073,14 +2081,14 @@ Details :
 {
   border: 0;
   margin: 0;
-  padding: 3px;
+  padding: 0 4px 4px 4px;
 }
 
 .thumb-top
 {
   border: 0;
   margin: 0;
-  padding: 3px;
+  padding: 4px 4px 0 4px;
 }
 
 /* Set background on thumbnails hover overlays */
