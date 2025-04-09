@@ -155,7 +155,7 @@ static void _ui_init_panel_size(GtkWidget *widget, dt_ui_t *ui)
     key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
     s = DT_UI_PANEL_BOTTOM_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = MAX(dt_conf_get_int(key), 72);
+      s = MAX(dt_conf_get_int(key), 48);
     if(key) gtk_widget_set_size_request(widget, -1, s);
   }
 
@@ -268,7 +268,7 @@ static gboolean _panel_handle_motion_callback(GtkWidget *w, GdkEventButton *e, g
     else if(strcmp(gtk_widget_get_name(w), "panel-handle-bottom") == 0)
     {
       // yes, we write sx for uniformity with the others
-      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 72, win_h / 3.);
+      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 48, win_h / 3.);
       key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
       gtk_widget_set_size_request(widget, -1, sx);
     }

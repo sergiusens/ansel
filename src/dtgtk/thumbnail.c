@@ -1296,10 +1296,6 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   // Proceed with overlays resizing
   int icon_size = _thumb_resize_overlays(thumb, width, height);
 
-  // Remember image allocation
-  int img_h = gtk_widget_get_allocated_height(thumb->w_image);
-  int img_w = gtk_widget_get_allocated_width(thumb->w_image);
-
   // Finish with updating the image size
   if(thumb->over == DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL)
   {
@@ -1314,13 +1310,9 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   _widget_set_size(thumb->w_image, &width, &height, FALSE);
 
   // Nuke the image entirely if the size changed
-  if(img_h != gtk_widget_get_allocated_height(thumb->w_image)
-     || img_w != gtk_widget_get_allocated_width(thumb->w_image))
-  {
-    thumb->image_inited = FALSE;
-    _free_image_surface(thumb);
-    gtk_widget_queue_draw(thumb->w_image);
-  }
+  thumb->image_inited = FALSE;
+  _free_image_surface(thumb);
+  gtk_widget_queue_draw(thumb->w_image);
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
