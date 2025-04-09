@@ -187,7 +187,11 @@ int dt_collection_update(const dt_collection_t *collection)
 
   /* build where part */
   gchar *where_ext = dt_collection_get_extended_where(collection, -1);
-  if(!(collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT))
+  if(collection->params.query_flags & COLLECTION_QUERY_USE_ONLY_WHERE_EXT)
+  {
+    wq = g_strdup(where_ext);
+  }
+  else if(collection->params.filter_flags > COLLECTION_FILTER_NONE)
   {
     char *rejected_check = g_strdup_printf("((flags & %d) = %d)", DT_IMAGE_REJECTED, DT_IMAGE_REJECTED);
     int and_term = 1; // that effectively makes the use of and_operator() useless
@@ -333,7 +337,11 @@ int dt_collection_update(const dt_collection_t *collection)
     g_free(rejected_check);
   }
   else
-    wq = g_strdup(where_ext);
+  {
+    // No filter set: no collection, because filters are toggle in.
+    // Just setup some bullshit condition impossible to match.
+    wq = g_strdup(" id=0");
+  }
 
   g_free(where_ext);
 

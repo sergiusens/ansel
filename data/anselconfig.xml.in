@@ -439,7 +439,7 @@
   <dtconfig>
     <name>plugins/collection/filter_flags</name>
     <type>int</type>
-    <default>3</default>
+    <default>32767</default>
     <shortdescription/>
     <longdescription/>
   </dtconfig>
