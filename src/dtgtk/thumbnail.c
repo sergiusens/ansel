@@ -629,6 +629,7 @@ static gboolean _event_grouping_release(GtkWidget *widget, GdkEventButton *event
   thumb_return_if_fails(thumb, TRUE);
   if(thumb->disable_actions) return FALSE;
   if(dtgtk_thumbnail_btn_is_hidden(widget)) return FALSE;
+  dt_grouping_change_representative(thumb->imgid);
   return FALSE;
 }
 

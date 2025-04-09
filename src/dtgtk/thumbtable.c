@@ -24,6 +24,7 @@
 #include "common/colorlabels.h"
 #include "common/history.h"
 #include "common/image_cache.h"
+#include "common/grouping.h"
 #include "common/ratings.h"
 #include "common/selection.h"
 #include "common/undo.h"
@@ -667,8 +668,8 @@ void _resize_thumbnails(dt_thumbtable_t *table)
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
     }
 
-    _add_thumbnail_group_borders(table, thumb);
     dt_thumbnail_update_infos(thumb);
+    _add_thumbnail_group_borders(table, thumb);
     gtk_widget_queue_draw(thumb->widget);
   }
 }
@@ -942,6 +943,28 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
 
   dt_pthread_mutex_lock(&table->lock);
+
+  // Update the LUT infos ahead, because group borders need their neighbours inited first
+  for(int rowid = 0; rowid < table->collection_count; rowid++)
+  {
+    for(GList *l = g_list_first(imgs); l; l = g_list_next(l))
+    {
+      const int32_t imgid_to_update = GPOINTER_TO_INT(l->data);
+      if(table->lut[rowid].imgid == imgid_to_update)
+      {
+        // Update infos reads the content of the LUT, for performance at init time,
+        // but then we need to keep it updated during the lifetime of the thumbnail.
+        table->lut[rowid].history_items = dt_image_altered(imgid_to_update);
+
+        // This is overkill in grouping/ungrouping since grouping operations necessarily refresh the collection
+        // and we already refresh the image group as part of collection_changed signal handler.
+        // Needed when changing image representative though.
+        table->lut[rowid].groupid = dt_grouping_get_image_group(imgid_to_update);
+        break;
+      }
+    }
+  }
+
   for(GList *i = g_list_first(imgs); i; i = g_list_next(i))
   {
     const int32_t imgid_to_update = GPOINTER_TO_INT(i->data);
@@ -950,11 +973,8 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
       dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
       if(thumb->imgid == imgid_to_update)
       {
-        // Update infos reads the content of the LUT, for performance at init time,
-        // but then we need to keep it updated during the lifetime of the thumbnail.
-        table->lut[thumb->rowid].history_items = dt_image_altered(thumb->imgid);
-        // TODO: update group id too.
         dt_thumbnail_update_infos(thumb);
+        _add_thumbnail_group_borders(table, thumb);
         gtk_widget_queue_draw(thumb->widget);
         break;
       }
@@ -1102,7 +1122,8 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   dt_thumbtable_set_active_rowid(table);
 
   // See if the collection changed
-  gboolean changed = _dt_collection_get_hash(table) || collapsing_changed;
+  gboolean grouping_changed = changed_property == DT_COLLECTION_PROP_GROUPING;
+  gboolean changed = _dt_collection_get_hash(table) || collapsing_changed || grouping_changed;
   if(changed)
   {
     // If groups are collapsed, we add only the group leader image to the collection

@@ -25,8 +25,16 @@
 #include "control/signal.h"
 #include "gui/gtk.h"
 
+int32_t dt_grouping_get_image_group(const int32_t image_id)
+{
+  const dt_image_t *img = dt_image_cache_get(darktable.image_cache, image_id, 'r');
+  const int img_group_id = img->group_id;
+  dt_image_cache_read_release(darktable.image_cache, img);
+  return img_group_id;
+}
+
 /** add an image to a group */
-void dt_grouping_add_to_group(const int group_id, const int32_t image_id)
+void dt_grouping_add_to_group(const int32_t group_id, const int32_t image_id)
 {
   // remove from old group
   dt_grouping_remove_from_group(image_id);

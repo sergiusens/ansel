@@ -21,8 +21,11 @@
 #include <glib.h>
 #include <stdint.h>
 
+/** util to get the group ID of any image */
+int32_t dt_grouping_get_image_group(const int32_t image_id);
+
 /** add an image to a group */
-void dt_grouping_add_to_group(int group_id, int32_t image_id);
+void dt_grouping_add_to_group(int32_t group_id, int32_t image_id);
 
 /** remove an image from a group. returns the new group_id of the other images. */
 int dt_grouping_remove_from_group(int32_t image_id);
@@ -41,4 +44,3 @@ void dt_grouping_add_grouped_images(GList **images);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
