@@ -432,6 +432,10 @@ int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
   thumb->busy = FALSE;
   thumb->image_inited = TRUE;
 
+  // Because this function is called asynchronously to avoid lags in the main thread,
+  // we need to call a redraw once we have a buffer
+  gtk_widget_queue_draw(thumb->w_main);
+
   return G_SOURCE_REMOVE;
 }
 
