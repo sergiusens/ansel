@@ -52,8 +52,9 @@ typedef enum dt_ui_container_t
   DT_UI_CONTAINER_PANEL_RIGHT_CENTER = 4,
   DT_UI_CONTAINER_PANEL_RIGHT_BOTTOM = 5,
 
-  /* center which is expanded as wide it can */
-  DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW = 6,
+  /* menu bar and toolbar */
+  DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW = 6,
+  DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW = 7,
 
   /* Count of containers */
   DT_UI_CONTAINER_SIZE,
@@ -114,6 +115,7 @@ void dt_ui_restore_panels(dt_ui_t *ui);
 void dt_ui_init_titlebar(dt_ui_t *ui);
 void dt_ui_cleanup_titlebar(dt_ui_t *ui);
 void dt_ui_init_global_menu(dt_ui_t *ui);
+void dt_ui_set_window_buttons_visible(dt_ui_t *ui, gboolean visible);
 
 void dt_hinter_set_message(dt_ui_t *ui, const char *message);
 

@@ -16,7 +16,6 @@ typedef struct dt_header_t
   GtkWidget *home;
   GtkWidget *close;
   GtkWidget *iconify;
-  GtkWidget *restore;
 } dt_header_t;
 
 const char *_ui_panel_config_names[]
@@ -446,6 +445,11 @@ static void _ui_init_panel_top(dt_ui_t *ui, GtkWidget *container)
   gtk_grid_attach(GTK_GRID(container), widget, 1, 0, 3, 1);
 
   /* add container for top center */
+  ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_widget_set_name(ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW], "top-first-line");
+  gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW], FALSE, FALSE,
+                     DT_UI_PANEL_MODULE_SPACING);
+
   ui->containers[DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_widget_set_name(ui->containers[DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW], "top-second-line");
   gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW], FALSE, FALSE,
@@ -559,13 +563,16 @@ void dt_ui_init_titlebar(dt_ui_t *ui)
 
   // Remove useless desktop environment titlebar. We will handle closing buttons internally
   ui->header->titlebar = gtk_header_bar_new();
-  gtk_widget_set_name(ui->header->titlebar, "top-first-line");
   gtk_widget_set_size_request(ui->header->titlebar, -1, -1);
-  gtk_window_set_titlebar(GTK_WINDOW(ui->main_window), ui->header->titlebar);
+
+  /* if user_pref == merge menubar in titlebar */
+  //gtk_window_set_titlebar(GTK_WINDOW(ui->main_window), ui->header->titlebar);
 
   // Reset header bar properties
-  gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(ui->header->titlebar), FALSE);
-  gtk_header_bar_set_decoration_layout(GTK_HEADER_BAR(ui->header->titlebar), NULL);
+  // gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(ui->header->titlebar), FALSE);
+  // gtk_header_bar_set_decoration_layout(GTK_HEADER_BAR(ui->header->titlebar), NULL);
+
+  /* endif */
 
   // Gtk mandatorily adds an empty label that is still "visible" for the title.
   // Since it's centered, it can collide with the hinter width.
@@ -573,9 +580,6 @@ void dt_ui_init_titlebar(dt_ui_t *ui)
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_header_bar_set_custom_title(GTK_HEADER_BAR(ui->header->titlebar), box);
   gtk_widget_set_no_show_all(box, TRUE);
-
-  ui->header->menu_bar = gtk_menu_bar_new();
-  gtk_widget_set_name(ui->header->menu_bar, "menu-bar");
 }
 
 void _home_callback()
@@ -588,15 +592,6 @@ void _close_callback(GtkWidget *w, gpointer data)
   gtk_window_close(GTK_WINDOW((GtkWidget *)data));
 }
 
-void _restore_callback(GtkWidget *w, gpointer data)
-{
-  GtkWindow *window = GTK_WINDOW((GtkWidget *)data);
-  if(gtk_window_is_maximized(window))
-    gtk_window_unmaximize(window);
-  else
-    gtk_window_maximize(window);
-}
-
 void _iconify_callback(GtkWidget *w, gpointer data)
 {
   gtk_window_iconify(GTK_WINDOW((GtkWidget *)data));
@@ -604,6 +599,15 @@ void _iconify_callback(GtkWidget *w, gpointer data)
 
 void dt_ui_init_global_menu(dt_ui_t *ui)
 {
+  /* if user_pref != merge menubar in titlebar */
+  GtkWidget *parent = ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW];
+  gtk_box_pack_start(GTK_BOX(parent), ui->header->titlebar, TRUE, TRUE, 0);
+  /* endif */
+
+  gtk_widget_show(ui->header->titlebar);
+
+  ui->header->menu_bar = gtk_menu_bar_new();
+  gtk_widget_set_name(ui->header->menu_bar, "menu-bar");
 
   /* Init top-level menus */
   gchar *labels [DT_MENU_LAST] = { _("_File"), _("_Edit"), _("_Selection"), _("_Image"), _("_Styles"), _("_Run"), _("_Display"), _("_Ateliers"), _("_Help") };
@@ -635,21 +639,12 @@ void dt_ui_init_global_menu(dt_ui_t *ui)
   gtk_widget_set_size_request(ui->header->close, 24, 24);
   dt_gui_add_class(ui->header->close, "window-button");
   gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->close);
-  gtk_widget_show(ui->header->close);
-
-  ui->header->restore = gtk_button_new_from_icon_name("window-restore", GTK_ICON_SIZE_LARGE_TOOLBAR);
-  g_signal_connect(G_OBJECT(ui->header->restore), "clicked", G_CALLBACK(_restore_callback), ui->main_window);
-  gtk_widget_set_size_request(ui->header->restore, 24, 24);
-  dt_gui_add_class(ui->header->restore, "window-button");
-  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->restore);
-  gtk_widget_show(ui->header->restore);
 
   ui->header->iconify = gtk_button_new_from_icon_name("window-minimize", GTK_ICON_SIZE_LARGE_TOOLBAR);
   g_signal_connect(G_OBJECT(ui->header->iconify), "clicked", G_CALLBACK(_iconify_callback), ui->main_window);
   gtk_widget_set_size_request(ui->header->iconify, 24, 24);
   dt_gui_add_class(ui->header->iconify, "window-button");
   gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->iconify);
-  gtk_widget_show(ui->header->iconify);
 
   ui->header->home = gtk_button_new_from_icon_name("go-home", GTK_ICON_SIZE_LARGE_TOOLBAR);
   gtk_widget_set_tooltip_text(ui->header->home, _("Go back to lighttable"));
@@ -672,6 +667,12 @@ void dt_ui_init_global_menu(dt_ui_t *ui)
   gtk_label_set_line_wrap(GTK_LABEL(ui->header->hinter), TRUE);
   gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->hinter);
   gtk_widget_show(ui->header->hinter);
+}
+
+void dt_ui_set_window_buttons_visible(dt_ui_t *ui, gboolean visible)
+{
+  gtk_widget_set_visible(ui->header->close, visible);
+  gtk_widget_set_visible(ui->header->iconify, visible);
 }
 
 void dt_hinter_set_message(dt_ui_t *ui, const char *message)

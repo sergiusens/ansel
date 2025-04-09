@@ -26,6 +26,9 @@ static void full_screen_callback()
 
     // workaround for GTK Quartz backend bug
     gtk_window_set_title(GTK_WINDOW(widget), "Ansel");
+
+    // Hide window controls
+    dt_ui_set_window_buttons_visible(darktable.gui->ui, FALSE);
   }
   else
   {
@@ -33,6 +36,9 @@ static void full_screen_callback()
 
     // workaround for GTK Quartz backend bug
     gtk_window_set_title(GTK_WINDOW(widget), "Ansel Preview");
+
+    // Show window controls
+    dt_ui_set_window_buttons_visible(darktable.gui->ui, TRUE);
   }
 
   // Mac OS workaround: always re-anchor the window to the bottom of the screen
