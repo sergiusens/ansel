@@ -1201,7 +1201,13 @@ void _widget_set_size(GtkWidget *w, int *parent_width, int *parent_height, const
   int height = *parent_height - margins.top - margins.bottom;
 
   if(width > 0 && height > 0)
+  {
     gtk_widget_set_size_request(w, width, height);
+
+    // unvisible widgets need to be allocated to be able to measure the size of flexible boxes.
+    GtkAllocation alloc = { .x = 0, .y = 0, .width = width, .height = height };
+    gtk_widget_size_allocate(w, &alloc);
+  }
 
   if(update)
   {
@@ -1277,13 +1283,6 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   thumb->width = width;
   thumb->height = height;
   _widget_set_size(thumb->widget, &width, &height, TRUE);
-
-  // Calling gtk_widget_size_allocate is just a trick to force Gtk to update
-  // allocations now, in case the widget is not already visible.
-  // Otherwise, invisible widgets will lead to 0-sized allocations,
-  // and image size needed now will be improperly set.
-  GtkAllocation alloc = { .x = 0, .y = 0, .width = width, .height = height };
-  gtk_widget_size_allocate(thumb->widget, &alloc);
 
   // Apply margins & borders on the main widget
   _widget_set_size(thumb->w_main, &width, &height, TRUE);
