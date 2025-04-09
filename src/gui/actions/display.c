@@ -315,6 +315,7 @@ static gboolean intent_checked_callback(GtkWidget *widget)
 static void always_hide_overlays_callback()
 {
   dt_thumbtable_set_overlays_mode(darktable.gui->ui->thumbtable_lighttable, DT_THUMBNAIL_OVERLAYS_NONE);
+  dt_thumbtable_set_overlays_mode(darktable.gui->ui->thumbtable_filmstrip, DT_THUMBNAIL_OVERLAYS_NONE);
 }
 
 static gboolean always_hide_overlays_checked_callback(GtkWidget *widget)
@@ -325,6 +326,7 @@ static gboolean always_hide_overlays_checked_callback(GtkWidget *widget)
 static void hover_overlays_callback()
 {
   dt_thumbtable_set_overlays_mode(darktable.gui->ui->thumbtable_lighttable, DT_THUMBNAIL_OVERLAYS_HOVER_NORMAL);
+  dt_thumbtable_set_overlays_mode(darktable.gui->ui->thumbtable_filmstrip, DT_THUMBNAIL_OVERLAYS_HOVER_NORMAL);
 }
 
 static gboolean hover_overlays_checked_callback(GtkWidget *widget)
@@ -335,6 +337,7 @@ static gboolean hover_overlays_checked_callback(GtkWidget *widget)
 static void always_show_overlays_callback()
 {
   dt_thumbtable_set_overlays_mode(darktable.gui->ui->thumbtable_lighttable, DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL);
+  dt_thumbtable_set_overlays_mode(darktable.gui->ui->thumbtable_filmstrip, DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL);
 }
 
 static gboolean always_show_overlays_checked_callback(GtkWidget *widget)
