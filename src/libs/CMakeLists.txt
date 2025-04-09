@@ -13,7 +13,6 @@ set(MODULES export styles tagging collect metadata metadata_view navigation hist
 set(MODULES ${MODULES} filter)
 set(MODULES ${MODULES} lighttable_mode)
 set(MODULES ${MODULES} module_toolbox)
-set(MODULES ${MODULES} image_infos)
 set(MODULES ${MODULES} masktoolbar)
 
 # modules
@@ -38,7 +37,6 @@ add_library(ioporder MODULE "ioporder.c")
 add_library(filter MODULE "tools/filter.c")
 add_library(lighttable_mode MODULE "tools/lighttable.c")
 add_library(module_toolbox MODULE "tools/module_toolbox.c")
-add_library(image_infos MODULE "tools/image_infos.c")
 add_library(masktoolbar MODULE "tools/mask_toolbar.c")
 
 # the modules specific to map mode

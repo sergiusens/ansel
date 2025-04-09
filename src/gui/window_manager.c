@@ -16,6 +16,7 @@ typedef struct dt_header_t
   GtkWidget *home;
   GtkWidget *close;
   GtkWidget *iconify;
+  GtkWidget *image_info;
 } dt_header_t;
 
 const char *_ui_panel_config_names[]
@@ -684,6 +685,22 @@ void dt_ui_init_global_menu(dt_ui_t *ui)
   gtk_label_set_line_wrap(GTK_LABEL(ui->header->hinter), TRUE);
   dt_ui_titlebar_pack_end(ui, ui->header->hinter);
   gtk_widget_show(ui->header->hinter);
+
+  spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
+  dt_ui_titlebar_pack_end(ui, spacer);
+  gtk_widget_show(spacer);
+
+  /* Image info */
+  ui->header->image_info = gtk_label_new("");
+  gtk_label_set_ellipsize(GTK_LABEL(ui->header->image_info), PANGO_ELLIPSIZE_MIDDLE);
+  gtk_widget_set_name(ui->header->image_info, "image-info");
+  dt_ui_titlebar_pack_end(ui, ui->header->image_info);
+  gtk_widget_show(ui->header->image_info);
+}
+
+void dt_ui_set_image_info_label(dt_ui_t *ui, const char *label)
+{
+  gtk_label_set_markup(GTK_LABEL(ui->header->image_info), label);
 }
 
 void dt_ui_set_window_buttons_visible(dt_ui_t *ui, gboolean visible)

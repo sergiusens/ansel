@@ -1892,11 +1892,10 @@ gboolean _scroll_on_focus(GdkEventScroll event, void *data)
 
 void enter(dt_view_t *self)
 {
-
   dt_print(DT_DEBUG_CONTROL, "[run_job+] 11 %f in darkroom mode\n", dt_get_wtime());
   dt_develop_t *dev = (dt_develop_t *)self->data;
   dev->exit = 0;
-  
+
   // We need to init forms before we init module blending GUI
   if(!dev->form_gui)
   {
@@ -2006,6 +2005,8 @@ void enter(dt_view_t *self)
   /* connect signal for filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
                             G_CALLBACK(_view_darkroom_filmstrip_activate_callback), self);
+
+  dt_view_image_info_update(dev->image_storage.id);
 }
 
 void leave(dt_view_t *self)

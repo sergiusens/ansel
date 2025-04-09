@@ -1039,6 +1039,42 @@ void dt_view_audio_stop(dt_view_manager_t *vm)
   g_spawn_close_pid(vm->audio.audio_player_pid);
   vm->audio.audio_player_id = -1;
 }
+
+
+void dt_view_image_info_update(int32_t imgid)
+{
+  darktable.view_manager->image_info_id = imgid;
+
+  if(imgid == UNKNOWN_IMAGE)
+  {
+    dt_ui_set_image_info_label(darktable.gui->ui, "");
+    return;
+  }
+
+  char input_dir[512] = { 0 };
+  gboolean from_cache = TRUE;
+  dt_image_full_path(imgid,  input_dir,  sizeof(input_dir),  &from_cache, __FUNCTION__);
+
+  dt_variables_params_t *vp;
+  dt_variables_params_init(&vp);
+
+  vp->filename = input_dir;
+  vp->jobcode = "infos";
+  vp->imgid = imgid;
+  vp->sequence = 0;
+  vp->escape_markup = TRUE;
+
+  gchar *pattern = dt_conf_get_string("plugins/darkroom/image_infos_pattern");
+  gchar *msg = dt_variables_expand(vp, pattern, TRUE);
+  g_free(pattern);
+  dt_variables_params_destroy(vp);
+
+  dt_ui_set_image_info_label(darktable.gui->ui, msg);
+
+  g_free(msg);
+}
+
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

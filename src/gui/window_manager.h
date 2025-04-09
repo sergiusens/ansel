@@ -120,6 +120,7 @@ void dt_ui_init_global_menu(dt_ui_t *ui);
 void dt_ui_set_window_buttons_visible(dt_ui_t *ui, gboolean visible);
 
 void dt_hinter_set_message(dt_ui_t *ui, const char *message);
+void dt_ui_set_image_info_label(dt_ui_t *ui, const char *label);
 
 
 #ifdef __cplusplus

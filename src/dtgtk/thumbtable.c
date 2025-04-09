@@ -822,6 +822,7 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
       // Sync the row id of the first thumb in selection
       table->rowid = thumb->rowid;
       first = FALSE;
+      dt_view_image_info_update(thumb->imgid);
     }
 
     if(thumb->selected != selected)
@@ -976,6 +977,10 @@ static void _dt_image_info_changed_callback(gpointer instance, gpointer imgs, gp
         dt_thumbnail_update_infos(thumb);
         _add_thumbnail_group_borders(table, thumb);
         gtk_widget_queue_draw(thumb->widget);
+
+        if(darktable.view_manager->image_info_id == imgid_to_update)
+          dt_view_image_info_update(imgid_to_update);
+
         break;
       }
     }

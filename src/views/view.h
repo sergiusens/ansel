@@ -146,10 +146,9 @@ typedef struct dt_view_manager_t
   // copy/paste history structure
   dt_history_copy_item_t copy_paste;
 
-  /* reusable db statements
-   * TODO: reconsider creating a common/database helper API
-   *       instead of having this spread around in sources..
-   */
+  // The imgid of the image for which we currently show the image info
+  int32_t image_info_id;
+
   struct
   {
     GPid audio_player_pid;   // the pid of the child process
@@ -263,6 +262,8 @@ const char *dt_view_tethering_get_job_code(const dt_view_manager_t *vm);
 
 /** update the collection module */
 void dt_view_collection_update(const dt_view_manager_t *vm);
+
+void dt_view_image_info_update(const int32_t imgid);
 
 // active images functions
 void dt_view_active_images_reset(gboolean raise);

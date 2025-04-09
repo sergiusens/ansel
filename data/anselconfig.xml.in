@@ -833,21 +833,6 @@
     <shortdescription>pattern for the image information line</shortdescription>
     <longdescription>see manual for a list of the tags you can use.</longdescription>
   </dtconfig>
-  <dtconfig prefs="darkroom" section="general">
-    <name>plugins/darkroom/image_infos_position</name>
-    <type>
-      <enum>
-        <option>top left</option>
-        <option>top right</option>
-        <option>top center</option>
-        <option>bottom</option>
-        <option>hidden</option>
-      </enum>
-    </type>
-    <default>bottom</default>
-    <shortdescription>position of the image information line</shortdescription>
-    <longdescription/>
-  </dtconfig>
   <dtconfig>
     <name>database_cache_quality</name>
     <type>int</type>

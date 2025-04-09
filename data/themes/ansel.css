@@ -1553,9 +1553,8 @@ border-bottom: 0.07em solid alpha(@selected_bg_color, 0.75);
 }
 
 /* Special modules: image infos, navigation and search ones */
-#image-info /* in darkroom footerbar */
+#image-info
 {
-  font-size: 1.1em;
 }
 
 #navigation-module
