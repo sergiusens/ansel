@@ -1896,9 +1896,7 @@ void enter(dt_view_t *self)
   dt_print(DT_DEBUG_CONTROL, "[run_job+] 11 %f in darkroom mode\n", dt_get_wtime());
   dt_develop_t *dev = (dt_develop_t *)self->data;
   dev->exit = 0;
-
-  dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_TOP, FALSE, TRUE);
-
+  
   // We need to init forms before we init module blending GUI
   if(!dev->form_gui)
   {

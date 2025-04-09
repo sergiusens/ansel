@@ -53,8 +53,7 @@ typedef enum dt_ui_container_t
   DT_UI_CONTAINER_PANEL_RIGHT_BOTTOM = 5,
 
   /* menu bar and toolbar */
-  DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW = 6,
-  DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW = 7,
+  DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW = 6,
 
   /* Count of containers */
   DT_UI_CONTAINER_SIZE,
@@ -70,6 +69,9 @@ typedef struct dt_ui_t
 
   /* panel widgets */
   GtkWidget *panels[DT_UI_PANEL_SIZE];
+
+  /* The top panel contains the global menu and is not to be deleted/recreated between each view change */
+  GtkWidget *top_panel;
 
   /* center widget */
   GtkWidget *center;

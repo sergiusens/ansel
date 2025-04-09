@@ -445,9 +445,9 @@ static void _ui_init_panel_top(dt_ui_t *ui, GtkWidget *container)
   gtk_grid_attach(GTK_GRID(container), widget, 1, 0, 3, 1);
 
   /* add container for top center */
-  ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_name(ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW], "top-first-line");
-  gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW], FALSE, FALSE,
+  ui->top_panel = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_widget_set_name(ui->top_panel, "top-first-line");
+  gtk_box_pack_start(GTK_BOX(widget), ui->top_panel, FALSE, FALSE,
                      DT_UI_PANEL_MODULE_SPACING);
 
   ui->containers[DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -561,18 +561,15 @@ void dt_ui_init_titlebar(dt_ui_t *ui)
 {
   ui->header = g_malloc0(sizeof(dt_header_t));
 
+#ifdef MERGE_MENUBAR
   // Remove useless desktop environment titlebar. We will handle closing buttons internally
   ui->header->titlebar = gtk_header_bar_new();
   gtk_widget_set_size_request(ui->header->titlebar, -1, -1);
-
-  /* if user_pref == merge menubar in titlebar */
-  //gtk_window_set_titlebar(GTK_WINDOW(ui->main_window), ui->header->titlebar);
+  gtk_window_set_titlebar(GTK_WINDOW(ui->main_window), ui->header->titlebar);
 
   // Reset header bar properties
-  // gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(ui->header->titlebar), FALSE);
-  // gtk_header_bar_set_decoration_layout(GTK_HEADER_BAR(ui->header->titlebar), NULL);
-
-  /* endif */
+  gtk_header_bar_set_show_close_button(GTK_HEADER_BAR(ui->header->titlebar), FALSE);
+  gtk_header_bar_set_decoration_layout(GTK_HEADER_BAR(ui->header->titlebar), NULL);
 
   // Gtk mandatorily adds an empty label that is still "visible" for the title.
   // Since it's centered, it can collide with the hinter width.
@@ -580,6 +577,29 @@ void dt_ui_init_titlebar(dt_ui_t *ui)
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
   gtk_header_bar_set_custom_title(GTK_HEADER_BAR(ui->header->titlebar), box);
   gtk_widget_set_no_show_all(box, TRUE);
+#else
+  ui->header->titlebar = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+#endif
+
+  gtk_widget_show(ui->header->titlebar);
+}
+
+void dt_ui_titlebar_pack_start(dt_ui_t *ui, GtkWidget *widget)
+{
+#ifdef MERGE_MENUBAR
+  gtk_header_bar_pack_start(GTK_HEADER_BAR(ui->header->titlebar), widget);
+#else
+  gtk_box_pack_start(GTK_BOX(ui->header->titlebar), widget, FALSE, FALSE, 0);
+#endif
+}
+
+void dt_ui_titlebar_pack_end(dt_ui_t *ui, GtkWidget *widget)
+{
+#ifdef MERGE_MENUBAR
+  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), widget);
+#else
+  gtk_box_pack_end(GTK_BOX(ui->header->titlebar), widget, FALSE, FALSE, 0);
+#endif
 }
 
 void _home_callback()
@@ -600,16 +620,13 @@ void _iconify_callback(GtkWidget *w, gpointer data)
 void dt_ui_init_global_menu(dt_ui_t *ui)
 {
   /* if user_pref != merge menubar in titlebar */
-  GtkWidget *parent = ui->containers[DT_UI_CONTAINER_PANEL_TOP_FIRST_ROW];
+  GtkWidget *parent = ui->top_panel;
   gtk_box_pack_start(GTK_BOX(parent), ui->header->titlebar, TRUE, TRUE, 0);
   /* endif */
 
-  gtk_widget_show(ui->header->titlebar);
-
+  /* Init top-level menus */
   ui->header->menu_bar = gtk_menu_bar_new();
   gtk_widget_set_name(ui->header->menu_bar, "menu-bar");
-
-  /* Init top-level menus */
   gchar *labels [DT_MENU_LAST] = { _("_File"), _("_Edit"), _("_Selection"), _("_Image"), _("_Styles"), _("_Run"), _("_Display"), _("_Ateliers"), _("_Help") };
   for(int i = 0; i < DT_MENU_LAST; i++)
   {
@@ -630,7 +647,7 @@ void dt_ui_init_global_menu(dt_ui_t *ui)
   append_views(ui->header->menus, &ui->header->item_lists[DT_MENU_ATELIERS], DT_MENU_ATELIERS);
   append_help(ui->header->menus, &ui->header->item_lists[DT_MENU_HELP], DT_MENU_HELP);
 
-  gtk_header_bar_pack_start(GTK_HEADER_BAR(ui->header->titlebar), ui->header->menu_bar);
+  dt_ui_titlebar_pack_start(ui, ui->header->menu_bar);
   gtk_widget_show_all(ui->header->menu_bar);
 
   // From there, we pack_end meaning it should be done in reverse order of appearance
@@ -638,24 +655,24 @@ void dt_ui_init_global_menu(dt_ui_t *ui)
   g_signal_connect(G_OBJECT(ui->header->close), "clicked", G_CALLBACK(_close_callback), ui->main_window);
   gtk_widget_set_size_request(ui->header->close, 24, 24);
   dt_gui_add_class(ui->header->close, "window-button");
-  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->close);
+  dt_ui_titlebar_pack_end(ui, ui->header->close);
 
   ui->header->iconify = gtk_button_new_from_icon_name("window-minimize", GTK_ICON_SIZE_LARGE_TOOLBAR);
   g_signal_connect(G_OBJECT(ui->header->iconify), "clicked", G_CALLBACK(_iconify_callback), ui->main_window);
   gtk_widget_set_size_request(ui->header->iconify, 24, 24);
   dt_gui_add_class(ui->header->iconify, "window-button");
-  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->iconify);
+  dt_ui_titlebar_pack_end(ui, ui->header->iconify);
 
   ui->header->home = gtk_button_new_from_icon_name("go-home", GTK_ICON_SIZE_LARGE_TOOLBAR);
   gtk_widget_set_tooltip_text(ui->header->home, _("Go back to lighttable"));
   g_signal_connect(G_OBJECT(ui->header->home), "clicked", _home_callback, NULL);
   gtk_widget_set_size_request(ui->header->home, 24, 24);
   dt_gui_add_class(ui->header->home, "window-button");
-  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->home);
+  dt_ui_titlebar_pack_end(ui, ui->header->home);
   gtk_widget_show(ui->header->home);
 
   GtkWidget *spacer = gtk_separator_new(GTK_ORIENTATION_HORIZONTAL);
-  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), spacer);
+  dt_ui_titlebar_pack_end(ui, spacer);
   gtk_widget_show(spacer);
 
   /* Init hinter */
@@ -665,7 +682,7 @@ void dt_ui_init_global_menu(dt_ui_t *ui)
   gtk_widget_set_halign(ui->header->hinter, GTK_ALIGN_END);
   gtk_label_set_justify(GTK_LABEL(ui->header->hinter), GTK_JUSTIFY_RIGHT);
   gtk_label_set_line_wrap(GTK_LABEL(ui->header->hinter), TRUE);
-  gtk_header_bar_pack_end(GTK_HEADER_BAR(ui->header->titlebar), ui->header->hinter);
+  dt_ui_titlebar_pack_end(ui, ui->header->hinter);
   gtk_widget_show(ui->header->hinter);
 }
 
