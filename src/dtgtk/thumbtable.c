@@ -817,12 +817,13 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
     const gboolean selected = thumb->selected;
     dt_thumbnail_update_selection(thumb, dt_selection_is_id_selected(darktable.selection, thumb->imgid));
 
-    if(first)
+    if(thumb->selected && first)
     {
+      dt_view_image_info_update(thumb->imgid);
+
       // Sync the row id of the first thumb in selection
       table->rowid = thumb->rowid;
       first = FALSE;
-      dt_view_image_info_update(thumb->imgid);
     }
 
     if(thumb->selected != selected)
