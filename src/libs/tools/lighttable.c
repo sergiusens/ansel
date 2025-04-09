@@ -224,20 +224,6 @@ static gboolean focus_peaking_checked_callback()
   return dt_thumbtable_get_focus_peaking(table);
 }
 
-static void group_borders_callback()
-{
-  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
-  gboolean borders = dt_conf_get_bool("plugins/lighttable/group_borders");
-  dt_conf_set_bool("plugins/lighttable/group_borders", !borders);
-  dt_thumbtable_set_draw_group_borders(table, !borders);
-}
-
-static gboolean group_borders_checked_callback()
-{
-  dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
-  return dt_thumbtable_get_draw_group_borders(table);
-}
-
 void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index, GtkAccelGroup *accel_group)
 {
   // Submenu embedded JPEG
@@ -256,10 +242,6 @@ void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index,
 
   add_generic_sub_menu_entry(menus, lists, _("Overlay focus peaking"), index, NULL, focus_peaking_callback,
                              focus_peaking_checked_callback, NULL, NULL, GDK_KEY_p,
-                             GDK_CONTROL_MASK | GDK_SHIFT_MASK, accel_group);
-
-  add_generic_sub_menu_entry(menus, lists, _("Show group borders"), index, NULL, group_borders_callback,
-                             group_borders_checked_callback, NULL, NULL, GDK_KEY_p,
                              GDK_CONTROL_MASK | GDK_SHIFT_MASK, accel_group);
 
   // Zoom

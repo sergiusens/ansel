@@ -505,29 +505,44 @@ void _add_thumbnail_group_borders(dt_thumbtable_t *table, dt_thumbnail_t *thumb)
   // Ungrouped image: abort
   if(table->lut[rowid].group_members < 2 || !table->draw_group_borders) return;
 
-  if(table->lut[CLAMP_ROW(rowid - table->thumbs_per_row)].groupid != groupid
-    || IS_COLLECTION_EDGE(rowid - table->thumbs_per_row))
-    borders |= DT_THUMBNAIL_BORDER_TOP;
-
-  if(table->lut[CLAMP_ROW(rowid + table->thumbs_per_row)].groupid != groupid
-    || IS_COLLECTION_EDGE(rowid + table->thumbs_per_row))
-    borders |= DT_THUMBNAIL_BORDER_BOTTOM;
-
-  if(table->lut[CLAMP_ROW(rowid - 1)].groupid != groupid
-    || IS_COLLECTION_EDGE(rowid - 1))
-    borders |= DT_THUMBNAIL_BORDER_LEFT;
-
-  if(table->lut[CLAMP_ROW(rowid + 1)].groupid != groupid
-     || IS_COLLECTION_EDGE(rowid + 1))
-    borders |= DT_THUMBNAIL_BORDER_RIGHT;
-
-  // If the group spans over more than a full row,
-  // close the row ends. Otherwise, we leave orphans opened at the row ends.
-  if(table->lut[rowid].group_members > table->thumbs_per_row)
+  if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
-    if(rowid % table->thumbs_per_row == 0)
+    if(table->lut[CLAMP_ROW(rowid - table->thumbs_per_row)].groupid != groupid
+      || IS_COLLECTION_EDGE(rowid - table->thumbs_per_row))
+      borders |= DT_THUMBNAIL_BORDER_TOP;
+
+    if(table->lut[CLAMP_ROW(rowid + table->thumbs_per_row)].groupid != groupid
+      || IS_COLLECTION_EDGE(rowid + table->thumbs_per_row))
+      borders |= DT_THUMBNAIL_BORDER_BOTTOM;
+
+    if(table->lut[CLAMP_ROW(rowid - 1)].groupid != groupid
+      || IS_COLLECTION_EDGE(rowid - 1))
       borders |= DT_THUMBNAIL_BORDER_LEFT;
-    if(rowid % table->thumbs_per_row == table->thumbs_per_row - 1)
+
+    if(table->lut[CLAMP_ROW(rowid + 1)].groupid != groupid
+      || IS_COLLECTION_EDGE(rowid + 1))
+      borders |= DT_THUMBNAIL_BORDER_RIGHT;
+
+    // If the group spans over more than a full row,
+    // close the row ends. Otherwise, we leave orphans opened at the row ends.
+    if(table->lut[rowid].group_members > table->thumbs_per_row)
+    {
+      if(rowid % table->thumbs_per_row == 0)
+        borders |= DT_THUMBNAIL_BORDER_LEFT;
+      if(rowid % table->thumbs_per_row == table->thumbs_per_row - 1)
+        borders |= DT_THUMBNAIL_BORDER_RIGHT;
+    }
+  }
+  else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
+  {
+    borders |= DT_THUMBNAIL_BORDER_BOTTOM | DT_THUMBNAIL_BORDER_TOP;
+
+    if(table->lut[CLAMP_ROW(rowid - 1)].groupid != groupid
+      || IS_COLLECTION_EDGE(rowid - 1))
+      borders |= DT_THUMBNAIL_BORDER_LEFT;
+
+    if(table->lut[CLAMP_ROW(rowid + 1)].groupid != groupid
+      || IS_COLLECTION_EDGE(rowid + 1))
       borders |= DT_THUMBNAIL_BORDER_RIGHT;
   }
 
@@ -632,7 +647,7 @@ void _populate_thumbnails(dt_thumbtable_t *table)
 void _resize_thumbnails(dt_thumbtable_t *table)
 {
   if(!table->configured) return;
-  
+
   for(GList *link = g_list_first(table->list); link; link = g_list_next(link))
   {
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)link->data;

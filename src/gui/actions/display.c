@@ -345,6 +345,19 @@ static gboolean always_show_overlays_checked_callback(GtkWidget *widget)
   return dt_conf_get_int("plugins/lighttable/overlays/global") == DT_THUMBNAIL_OVERLAYS_ALWAYS_NORMAL;
 }
 
+static void group_borders_callback()
+{
+  gboolean borders = !dt_conf_get_bool("plugins/lighttable/group_borders");
+  dt_conf_set_bool("plugins/lighttable/group_borders", borders);
+  dt_thumbtable_set_draw_group_borders(darktable.gui->ui->thumbtable_lighttable, borders);
+  dt_thumbtable_set_draw_group_borders(darktable.gui->ui->thumbtable_filmstrip, borders);
+}
+
+static gboolean group_borders_checked_callback()
+{
+  return dt_conf_get_bool("plugins/lighttable/group_borders");
+}
+
 static void collapse_grouped_callback()
 {
   dt_conf_set_bool("ui_last/grouping", !dt_conf_get_bool("ui_last/grouping"));
@@ -424,6 +437,8 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL, 0, 0);
 
+  add_sub_menu_entry(menus, lists, _("Show group borders"), index, NULL, group_borders_callback,
+                     group_borders_checked_callback, NULL, NULL, GDK_KEY_p, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
