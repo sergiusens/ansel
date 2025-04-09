@@ -154,8 +154,11 @@ void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode
 // note that it's just cosmetic as dropping occurs in thumbtable in any case
 void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop);
 
-// update the information of the image and update icons accordingly
+// Full update of the image information and update icons accordingly, using the image cache
 void dt_thumbnail_update_infos(dt_thumbnail_t *thumb);
+
+// Partial (quick) update of the image information from the thumbtable LUT, avoiding image cache lock
+void dt_thumbnail_update_partial_infos(dt_thumbnail_t *thumb);
 
 // check if the image is selected and set its state and background
 void dt_thumbnail_update_selection(dt_thumbnail_t *thumb, gboolean selected);

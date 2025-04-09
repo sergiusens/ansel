@@ -42,8 +42,8 @@
 #include <glib-object.h>
 
 
-// 420 = 3*4*5*7, so we ensure full rows for 1-10 and 12 thumbs/row.
-#define MAX_THUMBNAILS 420
+// 210 = 2*3*5*7, so we ensure full rows for 1-10 and 12 thumbs/row.
+#define MAX_THUMBNAILS 210
 
 /**
  * @file thumbtable.c
@@ -132,32 +132,35 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
   }
 
   // Now, we update all the thumbs of the same image group
-  for(int rowid = row_start; rowid <= row_end; rowid++)
+  if(table->draw_group_borders)
   {
-    dt_thumbnail_t *thumb = table->lut[rowid].thumb;
-    if(!thumb) continue; // thumb object not inited
+    for(int rowid = row_start; rowid <= row_end; rowid++)
+    {
+      dt_thumbnail_t *thumb = table->lut[rowid].thumb;
+      if(!thumb) continue; // thumb object not inited
 
-    // In CSS:
-    // images borders from non-grouped images are transparent (default),
-    // images borders from non-hovered groups, when there is none, are dark orange (base border classes)
-    // images borders from the hovered group, when there is one, are bright orange (overwrite base border classes)
-    // images borders from non-hovered groups, when there is one, are transparent (overwrite base border classes width default)
-    // Here we dispatch the additional CSS classes alloying to overwrite
-    // the base border classes.
-    if(thumb->groupid == group_id)
-    {
-      dt_gui_add_class(thumb->widget, "hovered-group");
-      dt_gui_remove_class(thumb->widget, "non-hovered-group");
-    }
-    else if(group_id == UNKNOWN_IMAGE)
-    {
-      dt_gui_remove_class(thumb->widget, "hovered-group");
-      dt_gui_remove_class(thumb->widget, "non-hovered-group");
-    }
-    else
-    {
-      dt_gui_remove_class(thumb->widget, "hovered-group");
-      dt_gui_add_class(thumb->widget, "non-hovered-group");
+      // In CSS:
+      // images borders from non-grouped images are transparent (default),
+      // images borders from non-hovered groups, when there is none, are dark orange (base border classes)
+      // images borders from the hovered group, when there is one, are bright orange (overwrite base border classes)
+      // images borders from non-hovered groups, when there is one, are transparent (overwrite base border classes width default)
+      // Here we dispatch the additional CSS classes alloying to overwrite
+      // the base border classes.
+      if(thumb->groupid == group_id)
+      {
+        dt_gui_add_class(thumb->widget, "hovered-group");
+        dt_gui_remove_class(thumb->widget, "non-hovered-group");
+      }
+      else if(group_id == UNKNOWN_IMAGE)
+      {
+        dt_gui_remove_class(thumb->widget, "hovered-group");
+        dt_gui_remove_class(thumb->widget, "non-hovered-group");
+      }
+      else
+      {
+        dt_gui_remove_class(thumb->widget, "hovered-group");
+        dt_gui_add_class(thumb->widget, "non-hovered-group");
+      }
     }
   }
 
@@ -710,7 +713,7 @@ void _resize_thumbnails(dt_thumbtable_t *table)
       dt_thumbnail_alternative_mode(thumb, table->alternate_mode);
     }
 
-    dt_thumbnail_update_infos(thumb);
+    dt_thumbnail_update_partial_infos(thumb);
     _add_thumbnail_group_borders(table, thumb);
     gtk_widget_queue_draw(thumb->widget);
   }
@@ -751,9 +754,9 @@ int dt_thumbtable_prefetch(dt_thumbtable_t *table)
 
   const int page_size = table->max_row_id - table->min_row_id + 1;
 
-  // We prefetch only up to 2 full pages before and after
-  const int min_range = table->min_row_id - 2 * page_size - 1;
-  const int max_range = table->max_row_id + 2 * page_size + 1;
+  // We prefetch only up to 1 full pagebefore and after
+  const int min_range = table->min_row_id - page_size;
+  const int max_range = table->max_row_id + page_size;
 
   // Populate the previous thumb
   gboolean full_before = TRUE;
@@ -793,24 +796,27 @@ int dt_thumbtable_prefetch(dt_thumbtable_t *table)
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
-  _update_row_ids(table);
-
-  if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
-     || table->thumbs_inited || table->collection_count == 0)
-    return;
-
-  if(table->reset_collection)
-  {
-    _dt_thumbtable_empty_list(table);
-    table->reset_collection = FALSE;
-  }
-
   // Priority to live events: if a prefetch async job is running, kill it now
   // to process scroll, resize or new collection events
   if(timeout_handle != 0)
   {
     g_source_remove(timeout_handle);
     timeout_handle = 0;
+  }
+
+  _update_row_ids(table);
+
+  if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
+     || table->thumbs_inited || table->collection_count == 0)
+  {
+    //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
+    return;
+  }
+
+  if(table->reset_collection)
+  {
+    _dt_thumbtable_empty_list(table);
+    table->reset_collection = FALSE;
   }
 
   const double start = dt_get_wtime();
@@ -832,7 +838,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
 
   dt_pthread_mutex_unlock(&table->lock);
 
-  timeout_handle = g_timeout_add(50, (GSourceFunc)dt_thumbtable_prefetch, table);
+  //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb,
            table->min_row_id, table->max_row_id, dt_get_wtime() - start);
@@ -1194,7 +1200,10 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
     // Number of images may have changed, size of grid too:
     _update_grid_area(table);
 
-    dt_thumbtable_redraw(table);
+    // Update without waiting for the next redraw event,
+    // improves subjective responsiveness and makes auto-scrolling to
+    // selected image more reliable.
+    dt_thumbtable_update(table);
 
     g_idle_add((GSourceFunc)_grab_focus, table);
   }
@@ -1248,7 +1257,6 @@ void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overla
   dt_pthread_mutex_lock(&table->lock);
   _resize_thumbnails(table);
   dt_pthread_mutex_unlock(&table->lock);
-  dt_thumbtable_redraw(table);
 }
 
 static void _event_dnd_get(GtkWidget *widget, GdkDragContext *context, GtkSelectionData *selection_data,

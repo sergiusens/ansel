@@ -1187,6 +1187,20 @@ void dt_thumbnail_update_infos(dt_thumbnail_t *thumb)
   _create_alternative_view(thumb);
 }
 
+void dt_thumbnail_update_partial_infos(dt_thumbnail_t *thumb)
+{
+  thumb_return_if_fails(thumb);
+
+  // altered
+  thumb->is_altered = (thumb->table) ? thumb->table->lut[thumb->rowid].history_items > 0 : FALSE;
+
+  // grouping
+  thumb->is_grouped = (thumb->table) ? thumb->table->lut[thumb->rowid].group_members > 1 : FALSE;
+  thumb->groupid = (thumb->table) ? thumb->table->lut[thumb->rowid].groupid : UNKNOWN_IMAGE;
+
+  _thumb_update_icons(thumb);
+}
+
 void dt_thumbnail_set_overlay(dt_thumbnail_t *thumb, dt_thumbnail_overlay_t mode)
 {
   thumb_return_if_fails(thumb);
