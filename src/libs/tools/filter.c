@@ -560,7 +560,7 @@ void gui_init(dt_lib_module_t *self)
   gtk_widget_set_hexpand(spacer, TRUE);
   gtk_box_pack_start(GTK_BOX(self->widget), spacer, TRUE, TRUE, 0);
 
-  label = gtk_label_new(_("Filter"));
+  label = gtk_label_new(_("Include"));
   gtk_box_pack_start(GTK_BOX(self->widget), label, FALSE, FALSE, 0);
 
   GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
@@ -639,7 +639,7 @@ void gui_init(dt_lib_module_t *self)
   _update_altered_filters(self);
 
   // Culling mode
-  d->culling = gtk_toggle_button_new_with_label(_("Selected"));
+  d->culling = gtk_toggle_button_new_with_label(_("Restrict to selection"));
   gtk_widget_set_tooltip_text(d->culling, _("Restrict the current view to only selected pictures"));
   g_signal_connect(G_OBJECT(d->culling), "toggled", G_CALLBACK(_culling_mode), (gpointer)self);
   gtk_box_pack_start(GTK_BOX(self->widget), GTK_WIDGET(d->culling), FALSE, FALSE, 0);
