@@ -457,7 +457,7 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   // Image is already available or pending a pipe rendering/cache fetching:
   // don't query a new image buffer.
   if((!thumb->image_inited || !thumb->img_surf) && !thumb->busy)
-    dt_thumbnail_get_image_buffer(thumb);
+    g_idle_add((GSourceFunc)dt_thumbnail_get_image_buffer, thumb);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
 
