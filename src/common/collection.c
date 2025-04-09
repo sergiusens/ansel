@@ -643,20 +643,20 @@ gchar *dt_collection_get_sort_query(const dt_collection_t *collection)
         default: colname = "";
       }
       // clang-format off
-      sq = g_strdup_printf("ORDER BY %s %s, filename %s, version %s", colname, order, order, order);
+      sq = g_strdup_printf("ORDER BY %s %s", colname, order);
       // clang-format on
       break;
     }
 
     case DT_COLLECTION_SORT_RATING:
       // clang-format off
-      sq = g_strdup_printf("ORDER BY CASE WHEN flags & 8 = 8 THEN -1 ELSE flags & 7 END %s, filename %s, version %s, mi.id %s", order, order, order, order);
+      sq = g_strdup_printf("ORDER BY CASE WHEN flags & 8 = 8 THEN -1 ELSE flags & 7 END %s", order);
       // clang-format on
       break;
 
     case DT_COLLECTION_SORT_FILENAME:
       // clang-format off
-      sq = g_strdup_printf("ORDER BY filename %s, version %s, mi.id %s", order, order, order);
+      sq = g_strdup_printf("ORDER BY filename %s", order);
       // clang-format on
       break;
 
@@ -668,25 +668,25 @@ gchar *dt_collection_get_sort_query(const dt_collection_t *collection)
 
     case DT_COLLECTION_SORT_COLOR:
       // clang-format off
-      sq = g_strdup_printf("ORDER BY color %s, filename %s, version %s, mi.id %s", order, order, order, order);
+      sq = g_strdup_printf("ORDER BY color %s", order);
       // clang-format on
       break;
 
     case DT_COLLECTION_SORT_GROUP:
       // clang-format off
-      sq = g_strdup_printf("ORDER BY group_id %s, mi.id-group_id != 0, mi.id %s", order, order);
+      sq = g_strdup_printf("ORDER BY group_id %s, mi.id-group_id != 0", order);
       // clang-format on
       break;
 
     case DT_COLLECTION_SORT_PATH:
       // clang-format off
-      sq = g_strdup_printf("ORDER BY folder %s, filename %s, version %s, mi.id %s", order, order, order, order);
+      sq = g_strdup_printf("ORDER BY folder %s", order);
       // clang-format on
       break;
 
     case DT_COLLECTION_SORT_TITLE:
       // clang-format off
-      sq = g_strdup_printf("ORDER BY m.value %s, filename %s, version %s, mi.id %s", order, order, order, order);
+      sq = g_strdup_printf("ORDER BY m.value %s", order);
       // clang-format on
       break;
 
@@ -698,6 +698,10 @@ gchar *dt_collection_get_sort_query(const dt_collection_t *collection)
       // clang-format on
       break;
   }
+
+  // Finish with unique IDs in case we have aliasing
+  // try to keep grouped images next to each other, then similar files
+  sq = dt_util_dstrcat(sq, ", group_id ASC, mi.id-group_id != 0, filename ASC, version ASC, mi.id ASC");
 
   return sq;
 }
