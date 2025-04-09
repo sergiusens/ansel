@@ -165,14 +165,6 @@ typedef struct dt_view_manager_t
    */
   struct
   {
-
-    /* view toolbox proxy object */
-    struct
-    {
-      struct dt_lib_module_t *module;
-      void (*add)(struct dt_lib_module_t *, GtkWidget *, dt_view_type_flags_t );
-    } view_toolbox;
-
     /* module toolbox proxy object */
     struct
     {

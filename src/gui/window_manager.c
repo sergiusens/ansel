@@ -115,12 +115,7 @@ void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidge
     *  maybe because they will get added to boxes at the end, and Gtk heuristics to decide final width are weird.
     */
     /* if box is right lets pack at end for nicer alignment */
-    case DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT:
-      gtk_box_pack_end(GTK_BOX(ui->containers[c]), w, FALSE, FALSE, 0);
-      break;
-
     /* if box is center we want it to fill as much as it can */
-    case DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER:
     case DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW:
       gtk_box_pack_start(GTK_BOX(ui->containers[c]), w, TRUE, TRUE, 0);
       break;
@@ -191,10 +186,6 @@ void dt_ui_restore_panels(dt_ui_t *ui)
 
       g_free(key);
     }
-
-    // Force main menu to remain visible. Many users hide the top header bar in Darktable.
-    // Coming to Ansel, they don't realize there is a menu there.
-    dt_ui_panel_show(ui, DT_UI_PANEL_TOP, TRUE, TRUE);
   }
 }
 
@@ -461,32 +452,6 @@ static void _ui_init_panel_top(dt_ui_t *ui, GtkWidget *container)
                      DT_UI_PANEL_MODULE_SPACING);
 }
 
-/* initialize the center bottom panel */
-static void _ui_init_panel_center_bottom(dt_ui_t *ui, GtkWidget *container)
-{
-  GtkWidget *widget;
-
-  /* create the panel box */
-  ui->panels[DT_UI_PANEL_CENTER_BOTTOM] = widget = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_widget_set_name(widget, "footer-toolbar");
-  dt_gui_add_class(widget, "dt_big_btn_canvas");
-  gtk_box_pack_start(GTK_BOX(container), widget, FALSE, TRUE, 0);
-
-  /* adding the center bottom left toolbox */
-  ui->containers[DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT], TRUE, TRUE,
-                     DT_UI_PANEL_MODULE_SPACING);
-
-  /* adding the center box */
-  ui->containers[DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER] = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-  gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER], FALSE, TRUE,
-                     DT_UI_PANEL_MODULE_SPACING);
-
-  /* adding the right toolbox */
-  ui->containers[DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT] = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  gtk_box_pack_start(GTK_BOX(widget), ui->containers[DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT], TRUE, TRUE,
-                     DT_UI_PANEL_MODULE_SPACING);
-}
 
 /* initialize the bottom panel */
 static void _ui_init_panel_bottom(dt_ui_t *ui, GtkWidget *container)
@@ -574,7 +539,6 @@ void dt_ui_init_main_table(GtkWidget *parent, dt_ui_t *ui)
                             G_CALLBACK(_ui_widget_redraw_callback), ui->center);
 
   /* initialize panels */
-  _ui_init_panel_center_bottom(ui, widget);
   _ui_init_panel_bottom(ui, container);
   _ui_init_panel_left(ui, container);
   _ui_init_panel_right(ui, container);

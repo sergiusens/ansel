@@ -891,12 +891,6 @@ void dt_view_active_images_set(GList *images, gboolean raise)
     DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_ACTIVE_IMAGES_CHANGE);
 }
 
-void dt_view_manager_view_toolbox_add(dt_view_manager_t *vm, GtkWidget *tool, dt_view_type_flags_t views)
-{
-  if(vm->proxy.view_toolbox.module)
-    vm->proxy.view_toolbox.add(vm->proxy.view_toolbox.module, tool, views);
-}
-
 void dt_view_manager_module_toolbox_add(dt_view_manager_t *vm, GtkWidget *tool, dt_view_type_flags_t views)
 {
   if(vm->proxy.module_toolbox.module)

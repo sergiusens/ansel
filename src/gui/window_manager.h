@@ -17,8 +17,6 @@ typedef enum dt_ui_panel_t
 {
   /* the header panel */
   DT_UI_PANEL_TOP,
-  /* center bottom toolbar panel */
-  DT_UI_PANEL_CENTER_BOTTOM,
   /* left panel */
   DT_UI_PANEL_LEFT,
   /* right panel */
@@ -56,10 +54,6 @@ typedef enum dt_ui_container_t
 
   /* center which is expanded as wide it can */
   DT_UI_CONTAINER_PANEL_TOP_SECOND_ROW = 6,
-
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_LEFT = 7,
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_CENTER = 8,
-  DT_UI_CONTAINER_PANEL_CENTER_BOTTOM_RIGHT = 9,
 
   /* Count of containers */
   DT_UI_CONTAINER_SIZE,

@@ -209,17 +209,6 @@ static gboolean panel_right_checked_callback(GtkWidget *widget)
   return dt_ui_panel_visible(darktable.gui->ui, DT_UI_PANEL_RIGHT);
 }
 
-void panel_bottom_callback()
-{
-  if(available_in_lighttable_callback())
-    dt_ui_panel_show(darktable.gui->ui, DT_UI_PANEL_CENTER_BOTTOM, !_panel_is_visible(DT_UI_PANEL_CENTER_BOTTOM), TRUE);
-}
-
-static gboolean panel_bottom_checked_callback(GtkWidget *widget)
-{
-  return dt_ui_panel_visible(darktable.gui->ui, DT_UI_PANEL_CENTER_BOTTOM);
-}
-
 static void filmstrip_callback()
 {
   if(available_in_lighttable_callback())
@@ -413,9 +402,6 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Right"), index, NULL,
                          panel_right_callback, panel_right_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_r, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
-
-  add_sub_sub_menu_entry(menus, parent, lists, _("Bottom"), index, NULL,
-                         panel_bottom_callback, panel_bottom_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_b, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Filmstrip"), index, NULL,
                          filmstrip_callback, filmstrip_checked_callback, NULL, available_in_lighttable_callback, GDK_KEY_f, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
