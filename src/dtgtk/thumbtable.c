@@ -110,15 +110,57 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
   const int32_t imgid = dt_control_get_mouse_over_id();
 
   dt_pthread_mutex_lock(&table->lock);
-  for(GList *l = g_list_first(table->list); l; l = g_list_next(l))
+
+  int32_t group_id = UNKNOWN_IMAGE;
+
+  // We iterate and update only over the visible range of thumbs + 2 rows as a safety margin
+  int32_t row_start = CLAMP(table->min_row_id - table->thumbs_per_row, 0, table->collection_count - 1);
+  int32_t row_end = CLAMP(table->max_row_id + table->thumbs_per_row, 0, table->collection_count - 1);
+  for(int rowid = row_start; rowid <= row_end; rowid++)
   {
-    dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
-    const gboolean over = thumb->over;
+    dt_thumbnail_t *thumb = table->lut[rowid].thumb;
+    if(!thumb) continue; // thumb object not inited
+
+    const gboolean mouse_over = thumb->mouse_over;
     dt_thumbnail_set_mouseover(thumb, thumb->imgid == imgid);
 
-    if(thumb->over != over)
+    if(thumb->imgid == imgid && table->lut[rowid].group_members > 1)
+      group_id = thumb->groupid;
+
+    if(thumb->mouse_over != mouse_over)
       gtk_widget_queue_draw(thumb->widget);
   }
+
+  // Now, we update all the thumbs of the same image group
+  for(int rowid = row_start; rowid <= row_end; rowid++)
+  {
+    dt_thumbnail_t *thumb = table->lut[rowid].thumb;
+    if(!thumb) continue; // thumb object not inited
+
+    // In CSS:
+    // images borders from non-grouped images are transparent (default),
+    // images borders from non-hovered groups, when there is none, are dark orange (base border classes)
+    // images borders from the hovered group, when there is one, are bright orange (overwrite base border classes)
+    // images borders from non-hovered groups, when there is one, are transparent (overwrite base border classes width default)
+    // Here we dispatch the additional CSS classes alloying to overwrite
+    // the base border classes.
+    if(thumb->groupid == group_id)
+    {
+      dt_gui_add_class(thumb->widget, "hovered-group");
+      dt_gui_remove_class(thumb->widget, "non-hovered-group");
+    }
+    else if(group_id == UNKNOWN_IMAGE)
+    {
+      dt_gui_remove_class(thumb->widget, "hovered-group");
+      dt_gui_remove_class(thumb->widget, "non-hovered-group");
+    }
+    else
+    {
+      dt_gui_remove_class(thumb->widget, "hovered-group");
+      dt_gui_add_class(thumb->widget, "non-hovered-group");
+    }
+  }
+
   dt_pthread_mutex_unlock(&table->lock);
 }
 

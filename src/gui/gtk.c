@@ -72,13 +72,21 @@ static void _ui_toast_redraw_callback(gpointer instance, GtkWidget *widget);
 void dt_gui_add_class(GtkWidget *widget, const gchar *class_name)
 {
   GtkStyleContext *context = gtk_widget_get_style_context(widget);
-  gtk_style_context_add_class(context, class_name);
+  if(!gtk_style_context_has_class(context, class_name))
+  {
+    gtk_style_context_add_class(context, class_name);
+    gtk_widget_queue_draw(widget);
+  }
 }
 
 void dt_gui_remove_class(GtkWidget *widget, const gchar *class_name)
 {
   GtkStyleContext *context = gtk_widget_get_style_context(widget);
-  gtk_style_context_remove_class(context, class_name);
+  if(gtk_style_context_has_class(context, class_name))
+  {
+    gtk_style_context_remove_class(context, class_name);
+    gtk_widget_queue_draw(widget);
+  }
 }
 
 /*
