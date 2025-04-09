@@ -812,7 +812,7 @@ static void _init_widgets(dt_gui_gtk_t *gui)
   container = widget;
 
   // Initializing the main table
-  dt_ui_init_main_table(container, darktable.gui->ui);
+  dt_ui_init_main_table(container, gui->ui);
 
   /* the log message */
   GtkWidget *eb = gtk_event_box_new();

@@ -132,32 +132,22 @@ void dt_ui_container_add_widget(dt_ui_t *ui, const dt_ui_container_t c, GtkWidge
   gtk_widget_show_all(w);
 }
 
-static void _ui_init_panel_size(GtkWidget *widget)
+static void _ui_init_panel_size(GtkWidget *widget, dt_ui_t *ui)
 {
   gchar *key = NULL;
-
-  GtkWidget *window = dt_ui_main_window(darktable.gui->ui);
-  int win_w, win_h;
-  gtk_window_get_size(GTK_WINDOW(window), &win_w, &win_h);
-
-  if(win_w < 64) win_w = 64;
-  if(win_h < 64) win_h = 64;
-
-  int s = 128;
+  int s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
   if(strcmp(gtk_widget_get_name(widget), "right") == 0)
   {
     key = panels_get_panel_path(DT_UI_PANEL_RIGHT, "_size");
-    s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 120, win_w / 2.);
+      s = MAX(dt_conf_get_int(key), 120);
     if(key) gtk_widget_set_size_request(widget, s, -1);
   }
   else if(strcmp(gtk_widget_get_name(widget), "left") == 0)
   {
     key = panels_get_panel_path(DT_UI_PANEL_LEFT, "_size");
-    s = DT_UI_PANEL_SIDE_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 120, win_w / 2.);
+      s = MAX(dt_conf_get_int(key), 120);
     if(key) gtk_widget_set_size_request(widget, s, -1);
   }
   else if(strcmp(gtk_widget_get_name(widget), "bottom") == 0)
@@ -165,7 +155,7 @@ static void _ui_init_panel_size(GtkWidget *widget)
     key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
     s = DT_UI_PANEL_BOTTOM_DEFAULT_SIZE; // default panel size
     if(key && dt_conf_key_exists(key))
-      s = CLAMP(dt_conf_get_int(key), 64, win_h / 2.);
+      s = MAX(dt_conf_get_int(key), 72);
     if(key) gtk_widget_set_size_request(widget, -1, s);
   }
 
@@ -175,9 +165,9 @@ static void _ui_init_panel_size(GtkWidget *widget)
 void dt_ui_restore_panels(dt_ui_t *ui)
 {
   /* restore left & right panel size */
-  _ui_init_panel_size(ui->panels[DT_UI_PANEL_LEFT]);
-  _ui_init_panel_size(ui->panels[DT_UI_PANEL_RIGHT]);
-  _ui_init_panel_size(ui->panels[DT_UI_PANEL_BOTTOM]);
+  _ui_init_panel_size(ui->panels[DT_UI_PANEL_LEFT], ui);
+  _ui_init_panel_size(ui->panels[DT_UI_PANEL_RIGHT], ui);
+  _ui_init_panel_size(ui->panels[DT_UI_PANEL_BOTTOM], ui);
 
   /* restore from a previous collapse all panel state if enabled */
   gchar *key = panels_get_view_path("panel_collaps_state");
@@ -277,9 +267,10 @@ static gboolean _panel_handle_motion_callback(GtkWidget *w, GdkEventButton *e, g
     }
     else if(strcmp(gtk_widget_get_name(w), "panel-handle-bottom") == 0)
     {
-      sy = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 64, win_h / 3.);
+      // yes, we write sx for uniformity with the others
+      sx = CLAMP((sy + darktable.gui->widgets.panel_handle_y - y), 72, win_h / 3.);
       key = panels_get_panel_path(DT_UI_PANEL_BOTTOM, "_size");
-      gtk_widget_set_size_request(widget, -1, sy);
+      gtk_widget_set_size_request(widget, -1, sx);
     }
 
     // we store and apply the new value
@@ -379,7 +370,7 @@ static void _ui_init_panel_left(dt_ui_t *ui, GtkWidget *container)
   darktable.gui->widgets.panel_handle_dragging = FALSE;
   widget = ui->panels[DT_UI_PANEL_LEFT] = dtgtk_side_panel_new();
   gtk_widget_set_name(widget, "left");
-  _ui_init_panel_size(widget);
+  _ui_init_panel_size(widget, ui);
 
   GtkWidget *over = gtk_overlay_new();
   gtk_container_add(GTK_CONTAINER(over), widget);
@@ -420,7 +411,7 @@ static void _ui_init_panel_right(dt_ui_t *ui, GtkWidget *container)
   darktable.gui->widgets.panel_handle_dragging = FALSE;
   widget = ui->panels[DT_UI_PANEL_RIGHT] = dtgtk_side_panel_new();
   gtk_widget_set_name(widget, "right");
-  _ui_init_panel_size(widget);
+  _ui_init_panel_size(widget, ui);
 
   GtkWidget *over = gtk_overlay_new();
   gtk_container_add(GTK_CONTAINER(over), widget);
@@ -507,7 +498,7 @@ static void _ui_init_panel_bottom(dt_ui_t *ui, GtkWidget *container)
 
   ui->panels[DT_UI_PANEL_BOTTOM] = ui->thumbtable_filmstrip->parent_overlay;
   gtk_widget_set_name(ui->thumbtable_filmstrip->parent_overlay, "bottom");
-  _ui_init_panel_size(ui->thumbtable_filmstrip->parent_overlay);
+  _ui_init_panel_size(ui->thumbtable_filmstrip->parent_overlay, ui);
   gtk_grid_attach(GTK_GRID(container), over, 1, 2, 3, 1);
 
   // we add a transparent overlay over the modules margins to resize the panel
