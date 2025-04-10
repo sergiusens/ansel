@@ -112,6 +112,7 @@ void _mouse_over_image_callback(gpointer instance, gpointer user_data)
 {
   if(!user_data) return;
   dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
+  if(!table->lut || table->collection_count == 0) return;
 
   const int32_t imgid = dt_control_get_mouse_over_id();
 
