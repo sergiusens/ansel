@@ -31,11 +31,9 @@ void _close_preview_popup(GtkWidget *dialog, gint response_id, gpointer data)
 static gboolean
 _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
 {
+  if(!user_data) return TRUE;
 
-  while(gtk_events_pending())
-  {
-     gtk_main_iteration();
-  }
+  while(gtk_events_pending()) gtk_main_iteration();
 
   const double start = dt_get_wtime();
 
