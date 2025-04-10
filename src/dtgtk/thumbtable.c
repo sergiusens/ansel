@@ -315,7 +315,7 @@ static gboolean _get_row_ids(dt_thumbtable_t *table, int *rowid_min, int *rowid_
     // don't preload next/previous rows because, when in 1 thumb/column,
     // that can be quite slow
     int row_min = floorf(position / (float)table->thumb_height);
-    int row_max = ceilf((position + page_size) / (float)table->thumb_height) + 1;
+    int row_max = ceilf((position + page_size) / (float)table->thumb_height);
 
     // rowid is the positional ID of the image in the SQLite collection, indexed from 0.
     // SQLite indexes from 1 but then be use our own array to cache results.
@@ -811,7 +811,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
      || table->thumbs_inited || table->collection_count == 0)
   {
-    timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
+    //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
     return;
   }
 
@@ -840,7 +840,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
 
   dt_pthread_mutex_unlock(&table->lock);
 
-  timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
+  //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb,
            table->min_row_id, table->max_row_id, dt_get_wtime() - start);
