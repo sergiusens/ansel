@@ -746,6 +746,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   if(!tmp_surface)
   {
     free(rgbbuf);
+    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
     return ret;
   }
 

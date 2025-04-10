@@ -296,6 +296,7 @@ int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table)
   int id = dt_selection_get_first_id(darktable.selection);
   if(id < 0) id = dt_control_get_keyboard_over_id();
   if(id < 0) id = dt_control_get_mouse_over_id();
+  fprintf(stdout, "scrolling to %i\n", id);
   dt_thumbtable_scroll_to_imgid(table, id);
   return 0;
 }
@@ -505,16 +506,23 @@ int _garbage_collection(dt_thumbtable_t *table)
 
     // if current imgid stored at previously-known position in LUT doesn't match our imgid:
     // this thumb belongs to a previous collection
-    gboolean is_in_collection = (thumb->imgid == table->lut[thumb->rowid].imgid);
+    int32_t new_rowid = _find_rowid_from_imgid(table, thumb->imgid);
+    gboolean is_in_collection = new_rowid != UNKNOWN_IMAGE;
+    gboolean is_moved = (thumb->imgid != table->lut[thumb->rowid].imgid);
 
     if(collect_garbage && is_in_collection) table->lut[thumb->rowid].thumb = NULL;
     // else if(collect_garbage && !is_incollection)
     // the cache was reinited when loading the new collection, so it's NULL already
 
+    // Update the position if it moved
+    if(is_moved) thumb->rowid = new_rowid;
+
     // Don't delete thumbnails that still have a background job running,
     // because it would return its output buffer to a NULL pointer.
     if((collect_garbage || !is_in_collection) && dt_thumbnail_get_background_jobs(thumb) == 0)
     {
+      // Hide now, delete when we can
+      gtk_widget_hide(thumb->widget);
       g_idle_add((GSourceFunc)dt_thumbnail_destroy, thumb);
       table->list = g_list_delete_link(table->list, l);
       table->thumb_nb -= 1;
@@ -677,6 +685,7 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
   }
 
   _add_thumbnail_group_borders(table, thumb);
+  gtk_widget_show(thumb->widget);
   dt_thumbnail_unblock_redraw(thumb);
 }
 
@@ -798,22 +807,11 @@ int dt_thumbtable_prefetch(dt_thumbtable_t *table)
 
 void dt_thumbtable_update(dt_thumbtable_t *table)
 {
-  // Priority to live events: if a prefetch async job is running, kill it now
-  // to process scroll, resize or new collection events
-  if(timeout_handle != 0)
-  {
-    g_source_remove(timeout_handle);
-    timeout_handle = 0;
-  }
-
   _update_row_ids(table);
 
   if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
      || table->thumbs_inited || table->collection_count == 0)
-  {
-    //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
     return;
-  }
 
   if(table->reset_collection)
   {
@@ -839,8 +837,6 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   table->thumbs_inited = TRUE;
 
   dt_pthread_mutex_unlock(&table->lock);
-
-  //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb,
            table->min_row_id, table->max_row_id, dt_get_wtime() - start);
@@ -871,7 +867,7 @@ static void _dt_selection_changed_callback(gpointer instance, gpointer user_data
     {
       dt_view_image_info_update(thumb->imgid);
 
-      // Sync the row id of the first thumb in selection
+      // Sync the table active row id with the first thumb in selection
       table->rowid = thumb->rowid;
       first = FALSE;
     }
@@ -1382,11 +1378,6 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
       files = _thumbtable_dnd_import_check(files, pathname, &elements);
       g_object_unref(filepath);
     }
-
-    /*GList *check_list = NULL;
-    for (check_list = g_list_first(files); check_list; check_list = g_list_next(check_list))
-      fprintf(stdout,"dnd list check: %s\n", (char *)check_list->data);
-    g_list_free(check_list);*/
 
     if(elements > 0)
     {
