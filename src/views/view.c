@@ -714,6 +714,8 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
     assert(buf.color_space == DT_COLORSPACE_DISPLAY);
   }
 
+  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
 #ifdef _OPENMP
 #pragma omp parallel for schedule(static) default(none) dt_omp_firstprivate(buf, rgbbuf, transform)
 #endif
@@ -766,6 +768,8 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
   cairo_paint(cr);
   cairo_surface_destroy(tmp_surface);
   cairo_destroy(cr);
+
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
   // we consider skull as ok as the image hasn't to be reloaded
   if(buf_wd <= 8 && buf_ht <= 8)
