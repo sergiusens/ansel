@@ -88,6 +88,12 @@ void _dt_thumbtable_empty_list(dt_thumbtable_t *table);
 
 static int _grab_focus(dt_thumbtable_t *table)
 {
+  // Ensure all previous Gtk events are finished,
+  // aka the scrolled window widget inits or else the scroll
+  // will have no effect
+  while(gtk_events_pending())
+    gtk_main_iteration();
+
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
     // Grab focus here otherwise, on first click over the grid,
