@@ -327,33 +327,24 @@ static void _free_image_surface(dt_thumbnail_t *thumb)
   {
     if(cairo_surface_get_reference_count(thumb->img_surf) > 0)
       cairo_surface_destroy(thumb->img_surf);
-
-    thumb->img_surf = NULL;
   }
+  thumb->img_surf = NULL;
 }
 
-int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
+int _main_context_draw(dt_thumbnail_t *thumb)
 {
-  thumb_return_if_fails(thumb, FALSE);
+  gtk_widget_queue_draw(thumb->w_image);
+  return G_SOURCE_REMOVE;
+}
 
-  // If image inited, it means we already have a cached image surface at the proper
-  // size. The resizing handlers should reset this flag when size changes.
-  if(thumb->image_inited && thumb->img_surf) return G_SOURCE_REMOVE;
-
-  _free_image_surface(thumb);
+int32_t _get_image_buffer(dt_job_t *job)
+{
+  dt_thumbnail_t *thumb = dt_control_job_get_params(job);
+  thumb_return_if_fails(thumb, 1);
 
   int image_w = 0;
   int image_h = 0;
   gtk_widget_get_size_request(thumb->w_image, &image_w, &image_h);
-
-  if(image_w < 32 || image_h < 32)
-  {
-    // IF wrong size alloc, we will never get an image, so abort and flag the buffer as valid.
-    // This happens because Gtk doesn't alloc size for invisible containers anyway.
-    thumb->image_inited = TRUE;
-    thumb->busy = FALSE;
-    return G_SOURCE_REMOVE;
-  }
 
   int zoom = (thumb->table) ? thumb->table->zoom : DT_THUMBTABLE_ZOOM_FIT;
 
@@ -371,11 +362,15 @@ int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
     // Nothing more we can do here but wait for it to return.
     thumb->busy = TRUE;
     thumb->image_inited = FALSE;
+
     // When the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal will be raised,
     // once the export pipeline will be done generating our image,
     // the corresponding thumb will be set to thumb->busy = FALSE
     // by the signal handler.
-    return G_SOURCE_REMOVE;
+    dt_pthread_mutex_lock(&thumb->lock);
+    thumb->background_jobs--;
+    dt_pthread_mutex_unlock(&thumb->lock);
+    return 0;
   }
 
   gboolean show_focus_peaking = (thumb->table && thumb->table->focus_peaking);
@@ -431,12 +426,60 @@ int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
 
   thumb->busy = FALSE;
   thumb->image_inited = TRUE;
+  
+  dt_pthread_mutex_lock(&thumb->lock);
+  thumb->background_jobs--;
+  dt_pthread_mutex_unlock(&thumb->lock);
 
-  // Because this function is called asynchronously to avoid lags in the main thread,
-  // we need to call a redraw once we have a buffer
-  gtk_widget_queue_draw(thumb->w_main);
+  // Redraw events need to be sent from the main GUI thread
+  // though we may not have a target widget anymore...
+  if(thumb->widget && thumb->w_image)
+    g_main_context_invoke(NULL, (GSourceFunc)_main_context_draw, thumb);
 
-  return G_SOURCE_REMOVE;
+  return 0;
+}
+
+int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
+{
+  thumb_return_if_fails(thumb, 1);
+
+  // - image inited: the cached buffer has a valid size. Invalid this flag when size changes.
+  // - img_surf: we have a cached buffer (cairo surface), regardless of its validity.
+  // - busy: the mipmap cache is already busy computing a new thumbnail at requested size,
+  // there is nothing more we can do until the MIPMAP_UPDATED signal is raised.
+  // That flag will be reset in the MIPMAP_UPDATED signal handler.
+  // - background jobs: a job that will free/recreate the cairo surface is already running.
+  // Since those recreations are not thread-safe, we can't have more than one concurrent job per thumbnail.
+  if((thumb->image_inited && thumb->img_surf) || thumb->busy || dt_thumbnail_get_background_jobs(thumb) > 0)
+    return 0;
+
+  _free_image_surface(thumb);
+
+  int w = 0;
+  int h = 0;
+  gtk_widget_get_size_request(thumb->w_image, &w, &h);
+
+  if(w < 32 || h < 32)
+  {
+    // IF wrong size alloc, we will never get an image, so abort and flag the buffer as valid.
+    // This happens because Gtk doesn't alloc size for invisible containers anyway.
+    thumb->image_inited = TRUE;
+    thumb->busy = FALSE;
+    return 1;
+  }
+
+  // Drawing the focus peaking and doing the color conversions
+  // can be expensive on large thumbnails. Do it in a background job,
+  // so the thumbtable stays responsive.
+  dt_pthread_mutex_lock(&thumb->lock);
+  thumb->background_jobs++;
+  dt_pthread_mutex_unlock(&thumb->lock);
+
+  dt_job_t *job = dt_control_job_create(&_get_image_buffer, "get image");
+  dt_control_job_set_params(job, thumb, NULL);
+  dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_FG, job);
+
+  return 0;
 }
 
 static gboolean
@@ -449,19 +492,7 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   int h = 0;
   gtk_widget_get_size_request(thumb->w_image, &w, &h);
 
-  if(w < 32 || h < 32)
-  {
-    // IF wrong size alloc, we will never get an image, so abort and flag the buffer as valid.
-    // This happens because Gtk doesn't alloc size for invisible containers anyway.
-    thumb->image_inited = TRUE;
-    thumb->busy = FALSE;
-    return TRUE;
-  }
-
-  // Image is already available or pending a pipe rendering/cache fetching:
-  // don't query a new image buffer.
-  if((!thumb->image_inited || !thumb->img_surf) && !thumb->busy)
-    g_idle_add((GSourceFunc)dt_thumbnail_get_image_buffer, thumb);
+  if(dt_thumbnail_get_image_buffer(thumb)) return TRUE;
 
   dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
 
@@ -1139,6 +1170,8 @@ dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid,
   thumb->zoomx = 0.;
   thumb->zoomy = 0.;
 
+  dt_pthread_mutex_init(&thumb->lock, NULL);
+
   // we create the widget
   dt_thumbnail_create_widget(thumb);
 
@@ -1161,6 +1194,14 @@ int dt_thumbnail_destroy(dt_thumbnail_t *thumb)
   ;
   while(g_idle_remove_by_data(thumb->widget))
   ;
+  while(g_idle_remove_by_data(thumb->w_image))
+  ;
+
+  // Wait for background jobs to finish before deleting the buffers they write in
+  while(dt_thumbnail_get_background_jobs(thumb))
+    g_usleep(20000);
+
+  dt_pthread_mutex_destroy(&thumb->lock);
 
   if(thumb->img_surf && cairo_surface_get_reference_count(thumb->img_surf) > 0)
     cairo_surface_destroy(thumb->img_surf);
@@ -1392,7 +1433,7 @@ int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb)
   thumb->busy = FALSE;
   thumb->drawn = FALSE;
   dt_thumbnail_unblock_redraw(thumb);
-  gtk_widget_queue_draw(thumb->w_image);
+  dt_thumbnail_get_image_buffer(thumb);
   return G_SOURCE_REMOVE;
 }
 

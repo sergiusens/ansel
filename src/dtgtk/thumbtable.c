@@ -511,7 +511,9 @@ int _garbage_collection(dt_thumbtable_t *table)
     // else if(collect_garbage && !is_incollection)
     // the cache was reinited when loading the new collection, so it's NULL already
 
-    if(collect_garbage || !is_in_collection)
+    // Don't delete thumbnails that still have a background job running,
+    // because it would return its output buffer to a NULL pointer.
+    if((collect_garbage || !is_in_collection) && dt_thumbnail_get_background_jobs(thumb) == 0)
     {
       g_idle_add((GSourceFunc)dt_thumbnail_destroy, thumb);
       table->list = g_list_delete_link(table->list, l);
@@ -809,7 +811,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
   if(!gtk_widget_is_visible(table->scroll_window) || !table->lut || !table->configured || !table->collection_inited
      || table->thumbs_inited || table->collection_count == 0)
   {
-    //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
+    timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
     return;
   }
 
@@ -838,7 +840,7 @@ void dt_thumbtable_update(dt_thumbtable_t *table)
 
   dt_pthread_mutex_unlock(&table->lock);
 
-  //timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
+  timeout_handle = g_timeout_add(100, (GSourceFunc)dt_thumbtable_prefetch, table);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "Populated %d thumbs between %i and %i in %0.04f sec \n", table->thumb_nb,
            table->min_row_id, table->max_row_id, dt_get_wtime() - start);
@@ -950,17 +952,6 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
   dt_thumbtable_refresh_thumbnail(table, imgid, FALSE);
 }
 
-// Because dt_thumbnail_image_refresh_real calls a redraw and that redraw
-// calls dt_thumbnail_get_image_buffer later on, only if the thumb is visible,
-// we need to force the thumb to grap a Cairo source image ASAP so scrolling
-// over that thumbnail later will not induce latencies
-int _thumbnail_refresh(dt_thumbnail_t *thumb)
-{
-  dt_thumbnail_image_refresh_real(thumb);
-  dt_thumbnail_get_image_buffer(thumb);
-  return G_SOURCE_REMOVE;
-}
-
 // can be called with imgid = -1, in that case we reload all mipmaps
 // reinit = FALSE should be called when the mipmap is ready to redraw,
 // reinit = TRUE should be called when a refreshed mipmap has been requested but we have nothing yet to draw
@@ -973,13 +964,13 @@ void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid,
     if(thumb->imgid == imgid)
     {
       if(reinit) thumb->image_inited = FALSE;
-      g_idle_add((GSourceFunc)_thumbnail_refresh, thumb);
+      dt_thumbnail_image_refresh(thumb);
       break;
     }
     else if(imgid == UNKNOWN_IMAGE)
     {
       if(reinit) thumb->image_inited = FALSE;
-      g_idle_add((GSourceFunc)_thumbnail_refresh, thumb);
+      dt_thumbnail_image_refresh(thumb);
     }
   }
   dt_pthread_mutex_unlock(&table->lock);
