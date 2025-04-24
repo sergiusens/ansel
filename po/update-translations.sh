@@ -1,10 +1,13 @@
 
 # Update from source code
+intltool-update -m
 intltool-update -p -g ansel
 
 # Remove old translations
 for f in *.po ; do
-  msgattrib --translated --no-obsolete -o $f $f
+  echo "$f"
+  msgmerge -U $f ansel.pot
+  msgattrib --translated --no-obsolete --no-fuzzy -o $f $f
 done
 
 # Report
