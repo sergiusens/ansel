@@ -6,8 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: darktable\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-24 22:20+0200\n"
-"PO-Revision-Date: 2025-02-05 17:57+0100\n"
+"POT-Creation-Date: 2025-04-24 22:26+0200\n"
+"PO-Revision-Date: 2025-04-10 21:00+0200\n"
 "Last-Translator: Jobst Hoffmann <jobst.hoffmann@fh-aachen.de>, 2025\n"
 "Language-Team: German <>\n"
 "Language: de_DE\n"
@@ -15,7 +15,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Poedit 3.5\n"
+"X-Generator: Poedit 3.6\n"
 "X-Poedit-Bookmarks: 3066,376,-1,-1,-1,-1,-1,-1,-1,-1\n"
 
 #: ../build/src/conf_gen.h:182 ../build/src/conf_gen.h:202
@@ -24,7 +24,7 @@ msgstr ""
 #: ../build/src/preferences_gen.h:5186 ../build/src/preferences_gen.h:5251
 msgctxt "preferences"
 msgid "never"
-msgstr "nie"
+msgstr "niemals"
 
 #: ../build/src/conf_gen.h:183 ../build/src/preferences_gen.h:4933
 msgctxt "preferences"
@@ -77,48 +77,48 @@ msgstr "täglich"
 #: ../build/src/conf_gen.h:297 ../build/src/preferences_gen.h:3868
 msgctxt "preferences"
 msgid "12 Mpx"
-msgstr ""
+msgstr "12 Mpx"
 
 #: ../build/src/conf_gen.h:298 ../build/src/preferences_gen.h:3873
 msgctxt "preferences"
 msgid "16 Mpx"
-msgstr ""
+msgstr "16 Mpx"
 
 #: ../build/src/conf_gen.h:299 ../build/src/preferences_gen.h:3878
 msgctxt "preferences"
 msgid "24 Mpx"
-msgstr ""
+msgstr "24 Mpx"
 
 #: ../build/src/conf_gen.h:300 ../build/src/preferences_gen.h:3883
 #: ../build/src/preferences_gen.h:3927
 msgctxt "preferences"
 msgid "36 Mpx"
-msgstr ""
+msgstr "36 Mpx"
 
 #: ../build/src/conf_gen.h:301 ../build/src/preferences_gen.h:3888
 msgctxt "preferences"
 msgid "46 Mpx"
-msgstr ""
+msgstr "46 Mpx"
 
 #: ../build/src/conf_gen.h:302 ../build/src/preferences_gen.h:3893
 msgctxt "preferences"
 msgid "52 Mpx"
-msgstr ""
+msgstr "52 Mpx"
 
 #: ../build/src/conf_gen.h:303 ../build/src/preferences_gen.h:3898
 msgctxt "preferences"
 msgid "72 Mpx"
-msgstr ""
+msgstr "72 Mpx"
 
 #: ../build/src/conf_gen.h:304 ../build/src/preferences_gen.h:3903
 msgctxt "preferences"
 msgid "100 Mpx"
-msgstr ""
+msgstr "100 Mpx"
 
 #: ../build/src/conf_gen.h:305 ../build/src/preferences_gen.h:3908
 msgctxt "preferences"
 msgid "150 Mpx"
-msgstr ""
+msgstr "150 Mpx"
 
 #: ../build/src/conf_gen.h:366 ../build/src/preferences_gen.h:5191
 msgctxt "preferences"
@@ -187,7 +187,7 @@ msgstr "keines"
 #: ../build/src/conf_gen.h:591
 msgctxt "preferences"
 msgid "mean"
-msgstr "Mittel"
+msgstr "Durchschnittswert"
 
 #: ../build/src/conf_gen.h:592
 msgctxt "preferences"
@@ -863,7 +863,7 @@ msgstr "CPU/GPU/Speicher"
 
 #: ../build/src/preferences_gen.h:3677
 msgid "CPU cores"
-msgstr ""
+msgstr "CPU Kerne"
 
 #: ../build/src/preferences_gen.h:3697 ../build/src/preferences_gen.h:3742
 #: ../build/src/preferences_gen.h:3787 ../build/src/preferences_gen.h:3832
@@ -881,11 +881,13 @@ msgid ""
 "Number of CPU cores to use for image processing, including virtual cores "
 "(hyperthreading). -1 or 0 uses all available/detected cores."
 msgstr ""
+"Anzahl der für die Bildverarbeitung zu verwendenden CPU-Kerne, "
+"einschließlich virtueller Kerne (Hyperthreading). -1 oder 0 verwendet alle "
+"verfügbaren/erfassten Kerne."
 
 #: ../build/src/preferences_gen.h:3722
-#, fuzzy
 msgid "Background workers"
-msgstr "Hintergrundjobs"
+msgstr "Hintergrundprozesse"
 
 #: ../build/src/preferences_gen.h:3745
 msgid ""
@@ -893,37 +895,47 @@ msgid ""
 "example to export images, resynchronize XMP, fetch thumbnails, etc. "
 "Increasing this number will increase the memory consumption."
 msgstr ""
+"Anzahl gleichzeitiger Hintergrund-Threads, die parallel laufen können, z. B. "
+"zum Exportieren von Bildern, Resynchronisieren von XMP, Abrufen von "
+"Miniaturansichten usw. Wenn Sie diese Zahl erhöhen, steigt der "
+"Speicherbedarf."
 
 #: ../build/src/preferences_gen.h:3767
 msgid "Memory headrom for OS/application (MiB)"
-msgstr ""
+msgstr "Speicherkapazität für Betriebssystem/Anwendung (MiB)"
 
 #: ../build/src/preferences_gen.h:3790
 msgid ""
 "This is the amount of memory that Ansel will leave to the operating system "
 "and other applications"
 msgstr ""
+"Dies ist die Menge an Speicher, die Ansel dem Betriebssystem und anderen "
+"Anwendungen überlässt"
 
 #: ../build/src/preferences_gen.h:3812
-#, fuzzy
 msgid "Memory reserved for lighttable thumbnail cache (MiB)"
-msgstr "erzeuge vollständigen Leuchttisch-Vorschau-Cache\n"
+msgstr ""
+"Für den Zwischenspeicher für Vorschaubilder reservierter Speicher (MiB)"
 
 #: ../build/src/preferences_gen.h:3835
 msgid ""
 "This is the amount of memory that Ansel will use to keep lighttable "
 "thumbnails quickly accessible when scrolling back"
 msgstr ""
+"Dies ist die Menge an Speicher, die Ansel verwendet, um beim Zurückblättern "
+"schnell auf Vorschaubilder auf dem Leuchttisch zugreifen zu können"
 
 #: ../build/src/preferences_gen.h:3857
 msgid "Maximum RAW resolution to edit"
-msgstr ""
+msgstr "Maximale RAW-Auflösung für die Bearbeitung"
 
 #: ../build/src/preferences_gen.h:3930
 msgid ""
 "This is the maximum resolution for your RAW images. It will be used to "
 "compute the required pixelpipe memory."
 msgstr ""
+"Dies ist die maximale Auflösung für Ihre RAW-Bilder. Sie wird für die "
+"Berechnung des erforderlichen Pixelpipe-Speicherplatzes verwendet."
 
 #: ../build/src/preferences_gen.h:3952
 msgid "Pipe recompute timeout (milliseconds)"
@@ -987,17 +999,19 @@ msgstr "auf diesem System nicht verfügbar"
 
 #: ../build/src/preferences_gen.h:4075
 msgid "GPU vRAM headroom (MiB)"
-msgstr ""
+msgstr "GPU vRAM Reserve (MiB)"
 
 #: ../build/src/preferences_gen.h:4098
 msgid ""
 "This is the amount of GPU memory that Ansel will leave to other GPU-"
 "accelerated applications, OpenGL, X server, etc."
 msgstr ""
+"Dies ist die Menge an GPU-Speicher, die Ansel für andere GPU-beschleunigte "
+"Anwendungen, OpenGL, X-Server usw. zur Verfügung stellt."
 
 #: ../build/src/preferences_gen.h:4126
 msgid "system library with OpenCL runtime"
-msgstr ""
+msgstr "Systembibliothek mit OpenCL-Laufzeitumgebung"
 
 #: ../build/src/preferences_gen.h:4144
 msgid ""
@@ -1005,6 +1019,10 @@ msgid ""
 "OpenCL runtime is at an unusual place and cannot be detected, enter the full "
 "pathname here. leave empty for default behavior."
 msgstr ""
+"Die OpenCL-Laufzeitbibliothek wird normalerweise automatisch von ansel "
+"erkannt. Wenn sich Ihre OpenCL-Laufzeitbibliothek an einem ungewöhnlichen "
+"Ort befindet und nicht erkannt werden kann, geben Sie hier den vollständigen "
+"Pfadnamen ein. Für das Standardverhalten leer lassen."
 
 #: ../build/src/preferences_gen.h:4161 ../src/common/image.h:188
 #: ../tools/generate_prefs.xsl:314
@@ -1202,15 +1220,16 @@ msgid "database"
 msgstr "Datenbank"
 
 #: ../build/src/preferences_gen.h:4877
-#, fuzzy
 msgid "database location"
-msgstr "Ort löschen"
+msgstr "Ort der Datenbank"
 
 #: ../build/src/preferences_gen.h:4895
 msgid ""
 "filename relative to ~/.config/ansel or starting with a slash (needs a "
 "restart)."
 msgstr ""
+"Dateiname relativ zu ~/.config/ansel oder beginnend mit einem Schrägstrich "
+"(erfordert einen Neustart)."
 
 #: ../build/src/preferences_gen.h:4917
 msgid "check for database maintenance"
@@ -1346,7 +1365,7 @@ msgstr "Benutzeroberfläche"
 
 #: ../build/src/preferences_gen.h:5370
 msgid "Invert the direction of the mouse vertical scroll"
-msgstr ""
+msgstr "Die Richtung des vertikalen Bildlaufs der Maus umkehren"
 
 #: ../build/src/preferences_gen.h:5384
 msgid ""
@@ -1354,10 +1373,14 @@ msgid ""
 "instead of the content, so scrolling over sliders yields the right value. "
 "This does not affect horizontal scrolling."
 msgstr ""
+"Überprüfen Sie, ob Ihr Betriebssystem/Desktop so konfiguriert ist, dass die "
+"Ansicht anstelle des Inhalts gescrollt wird, so dass Scrollen über "
+"Schieberegler in der richtigen Richtung erfolgt. Der horizontale Bildlauf "
+"ist davon nicht betroffen."
 
 #: ../build/src/preferences_gen.h:5406
 msgid "Invert the direction of the mouse horizontal scroll"
-msgstr ""
+msgstr "Die Richtung des horizontalen Bildlaufs der Maus umkehren"
 
 #: ../build/src/preferences_gen.h:5420
 msgid ""
@@ -1365,10 +1388,14 @@ msgid ""
 "instead of the content, so scrolling over sliders yields the right value. "
 "This does not affect vertical scrolling."
 msgstr ""
+"Überprüfen Sie, ob Ihr Betriebssystem/Desktop so konfiguriert ist, dass die "
+"Ansicht anstelle des Inhalts gescrollt wird, so dass Scrollen über "
+"Schieberegler in der richtigen Richtung erfolgt. Der vertikale Bildlauf ist "
+"davon nicht betroffen."
 
 #: ../build/src/preferences_gen.h:5442
 msgid "Let the OS mask Ansel shortcuts"
-msgstr ""
+msgstr "Lassen Sie das Betriebssystem Ansel-Kurzbefehle maskieren"
 
 #: ../build/src/preferences_gen.h:5456
 msgid ""
@@ -1377,6 +1404,11 @@ msgid ""
 "all key strokes as long as it is active, which may prevent system-wide "
 "shortcuts from working at all on some OS."
 msgstr ""
+"Aktivieren Sie diese Option, wenn Sie möchten, dass Ihr Betriebssystem die "
+"Tastenkombinationen zuerst verarbeitet und nur die nicht verwendeten an "
+"Ansel weiterleitet. Andernfalls erfasst Ansel alle Tastenanschläge, solange "
+"es aktiv ist, was bei einigen Betriebssystemen dazu führen kann, dass "
+"systemweite Tastenkombinationen überhaupt nicht funktionieren."
 
 #: ../build/src/preferences_gen.h:5478
 msgid "sort built-in presets first"
@@ -1660,7 +1692,7 @@ msgstr "erhalte Farben"
 #: ../src/libs/collect.c:1859 ../src/libs/colorpicker.c:51
 #: ../src/libs/export.c:1006 ../src/libs/print_settings.c:2646
 msgid "none"
-msgstr "keine"
+msgstr "kein"
 
 #: ../build/src/iop/introspection_basecurve.c:263
 #: ../build/src/iop/introspection_basicadj.c:250
@@ -3861,9 +3893,8 @@ msgstr "Mitwirkende bei OpenCL"
 
 #: ../build/src/tools/darktable_authors.h:31
 #: ../src/tools/darktable_authors.h:31
-#, fuzzy
 msgid "libxcf contributors"
-msgstr "Mitwirkende bei LibRaw"
+msgstr "Mitwirkende bei libxcf"
 
 #: ../build/src/tools/darktable_authors.h:36
 #: ../src/tools/darktable_authors.h:36
@@ -4067,7 +4098,7 @@ msgstr ""
 #: ../src/cli/main.c:633
 msgid "failed to get parameters from storage module, aborting export ..."
 msgstr ""
-"Konnte keine Einstellungen vom Speicher-Modul bekommen, breche Export ab …"
+"Konnte keine Einstellungen vom Speicher-Modul bekommen, breche Export ab…"
 
 #: ../src/cli/main.c:649
 #, c-format
@@ -4077,7 +4108,7 @@ msgstr "unbekannte Datei-Erweiterung „.%s”"
 #: ../src/cli/main.c:659
 msgid "failed to get parameters from format module, aborting export ..."
 msgstr ""
-"Konnte keine Einstellungen vom Format-Modul bekommen, breche Export ab …"
+"Konnte keine Einstellungen vom Format-Modul bekommen, breche Export ab…"
 
 #: ../src/common/collection.c:574
 msgid "film roll"
@@ -4231,8 +4262,8 @@ msgstr "%d Bild von %d (#%d) ist in der aktuellen Sammlung ausgewählt"
 #, c-format
 msgid "%d image of %d in current collection is selected"
 msgid_plural "%d images of %d in current collection are selected"
-msgstr[0] "%d Bild von %d ist in der aktuellen Sammlung ausgewählt"
-msgstr[1] "%d Bilder von %d sind in der aktuellen Sammlung ausgewählt"
+msgstr[0] "%d von %d Bild(ern) ist in der aktuellen Sammlung ausgewählt"
+msgstr[1] "%d von %d Bildern sind in der aktuellen Sammlung ausgewählt"
 
 # doesn’t make sense at all
 #: ../src/common/color_vocabulary.c:81
@@ -4534,17 +4565,16 @@ msgstr "Farbe nicht gefunden"
 
 #: ../src/common/colorlabels.c:52 ../src/common/ratings.c:48
 msgid "empty"
-msgstr ""
+msgstr "leer"
 
 #: ../src/common/colorlabels.c:54 ../src/common/ratings.c:62
-#, fuzzy
 msgid "unknown/invalid"
-msgstr "unbekannt"
+msgstr "unbekannt/ungültig"
 
 #: ../src/common/colorlabels.c:267 ../src/common/colorlabels.c:293
 #, c-format
 msgid "Color label set to %s for %i image(s)"
-msgstr ""
+msgstr "Farbmarkierung auf %s bei %i Bild(ern) gesetzt"
 
 #. init the category profile with NULL profile, the actual profile must be retrieved dynamically by the caller
 #: ../src/common/colorspaces.c:1598 ../src/common/colorspaces.c:1850
@@ -4719,43 +4749,49 @@ msgstr "Fehler beim Laden von Datei „%s”"
 #: ../src/common/darktable.c:1583
 #, c-format
 msgid "[MEMORY CONFIGURATION] Total system RAM: %lu MiB\n"
-msgstr ""
+msgstr "[SPEICHERKONFIGURATION] Gesamtsystem-RAM: %lu MiB\n"
 
 #: ../src/common/darktable.c:1586
 #, c-format
 msgid "[MEMORY CONFIGURATION] OS & Apps RAM headroom: %lu MiB\n"
-msgstr ""
+msgstr "[SPEICHERKONFIGURATION] OS & Apps RAM-Reserve: %lu MiB\n"
 
 #: ../src/common/darktable.c:1589
 #, c-format
 msgid "[MEMORY CONFIGURATION] Lightable thumbnails cache size: %lu MiB\n"
 msgstr ""
+"[SPEICHERKONFIGURATION] Cache-Größe der Vorschaubilder auf dem Leuchttisch: "
+"%lu MiB\n"
 
 #: ../src/common/darktable.c:1592
 #, c-format
 msgid "[MEMORY CONFIGURATION] Pixelpipe cache size: %lu MiB\n"
-msgstr ""
+msgstr "[SPEICHERKONFIGURATION] Pixelpipe-Cache-Größe: %lu MiB\n"
 
 #: ../src/common/darktable.c:1595
 #, c-format
 msgid "[MEMORY CONFIGURATION] Pixelpipe cache lines: %i\n"
-msgstr ""
+msgstr "[SPEICHERKONFIGURATION] Pixelpipe-Cache-Zeilen: %i\n"
 
 #: ../src/common/darktable.c:1598
 #, c-format
 msgid "[MEMORY CONFIGURATION] Available RAM for pixel processing: %lu MiB\n"
 msgstr ""
+"[SPEICHERKONFIGURATION] Verfügbarer Arbeitsspeicher für Pixelverarbeitung: "
+"%lu MiB\n"
 
 #: ../src/common/darktable.c:1601
 #, c-format
 msgid ""
 "[MEMORY CONFIGURATION] Max pixel buffer size: %lu MiB (%s RGBA float32)\n"
 msgstr ""
+"[SPEICHERKONFIGURATION] Maximale Pixelpuffergröße: %lu MiB (%s RGBA "
+"float32)\n"
 
 #: ../src/common/darktable.c:1604
 #, c-format
 msgid "[MEMORY CONFIGURATION] Worker threads: %i\n"
-msgstr ""
+msgstr "[SPEICHERKONFIGURATION] Worker-Threads: %i\n"
 
 #: ../src/common/database.c:2716
 #, c-format
@@ -4947,10 +4983,9 @@ msgstr "Datenbank aktualisieren"
 
 #: ../src/common/database.c:3160
 msgid "Ansel - Database is read-only"
-msgstr ""
+msgstr "Ansel - Datenbank ist schreibgeschützt"
 
 #: ../src/common/database.c:3162
-#, fuzzy
 msgid "Close Ansel"
 msgstr "Ansel beenden"
 
@@ -4966,6 +5001,16 @@ msgid ""
 "\n"
 "\t<span style='italic'>%s</span>"
 msgstr ""
+"<span weight='bold'>Die Datenbank der Ansel-Bibliothek ist schreibgeschützt</"
+"span>\n"
+"\n"
+"Dies geschieht, wenn Sie keine Schreibrechte für das Dateisystem haben\n"
+"oder wenn Sie einen schreibgeschützten Sicherungs-Schnappschuss "
+"wiederhergestellt haben.\n"
+"\n"
+"Bitte ändern Sie die Zugriffsrechte für das Dateisystem:\n"
+"\n"
+"\t<span style='italic'>%s</span>"
 
 #: ../src/common/database.c:3271 ../src/common/database.c:3451
 #, c-format
@@ -5332,6 +5377,8 @@ msgid ""
 "failed to allocate memory for %s, please verify your memory settings or "
 "close some applications on your system."
 msgstr ""
+"Es konnte kein Speicher für %s zugewiesen werden. Bitte überprüfen Sie Ihre "
+"Speichereinstellungen oder schließen Sie einige Anwendungen auf Ihrem System."
 
 #: ../src/common/imageio.c:1099
 msgctxt "noun"
@@ -5347,12 +5394,12 @@ msgstr "Exportieren"
 #: ../src/common/imageio.c:1343
 #, c-format
 msgid "The file `%s` is corrupted."
-msgstr ""
+msgstr "Die Datei `%s` ist beschädigt."
 
 #: ../src/common/imageio.c:1363
 #, c-format
 msgid "The file `%s` is supported by none of our decoders."
-msgstr ""
+msgstr "Die Datei `%s` wird von keinem unserer Decoder unterstützt."
 
 #: ../src/common/import.c:460
 msgid "All image files"
@@ -5360,11 +5407,11 @@ msgstr "Alle Bilddateien"
 
 #: ../src/common/import.c:472
 msgid "Raw image files"
-msgstr "Rohdaten-Bild-Dateien"
+msgstr "Rohdaten-Bilddateien"
 
 #: ../src/common/import.c:478
 msgid "Raster image files"
-msgstr "Raster-Bild-Dateien"
+msgstr "Raster-Bilddateien"
 
 #: ../src/common/import.c:584
 msgid "No"
@@ -5651,16 +5698,16 @@ msgstr "Rauschprofildatei „%s“ ist defekt"
 #: ../src/common/opencl.c:791
 #, c-format
 msgid "Benchmarking CPU @%i×%ipx..."
-msgstr ""
+msgstr "Leistungsvergleich CPU @%i×%ipx..."
 
 #: ../src/common/opencl.c:820
 #, c-format
 msgid "Benchmarking %s %s @%i×%ipx..."
-msgstr ""
+msgstr "Leistungsvergleich %s %s @%i×%ipx..."
 
 #: ../src/common/opencl.c:946
 msgid "Tuning OpenCL parameters..."
-msgstr ""
+msgstr "OpenCL Parameter einstellen..."
 
 #: ../src/common/opencl.c:958
 msgid ""
@@ -5670,6 +5717,11 @@ msgid ""
 "This happens when a new GPU is connected and when an OpenCL driver is "
 "updated."
 msgstr ""
+"Ansel sucht nach den optimalen Parametern für die Konfiguration Ihrer GPU. "
+"Das wird einige Zeit dauern.\n"
+"\n"
+"Dies geschieht, wenn eine neue GPU angeschlossen wird und wenn ein OpenCL-"
+"Treiber aktualisiert wird."
 
 #: ../src/common/pdf.h:88 ../src/iop/lens.cc:1900
 #: ../src/libs/print_settings.c:83
@@ -5712,35 +5764,33 @@ msgstr ""
 "anderes"
 
 #: ../src/common/ratings.c:50
-#, fuzzy
 msgid "1 star"
-msgstr "beim Start"
+msgstr "1 Stern"
 
 #: ../src/common/ratings.c:52
 msgid "2 stars"
-msgstr ""
+msgstr "2 Sterne"
 
 #: ../src/common/ratings.c:54
 msgid "3 stars"
-msgstr ""
+msgstr "3 Sterne"
 
 #: ../src/common/ratings.c:56
 msgid "4 stars"
-msgstr ""
+msgstr "4 Sterne"
 
 #: ../src/common/ratings.c:58
 msgid "5 stars"
-msgstr ""
+msgstr "5 Sterne"
 
 #: ../src/common/ratings.c:60
-#, fuzzy
 msgid "rejected"
-msgstr "Bild abgelehnt"
+msgstr "abgelehnt"
 
 #: ../src/common/ratings.c:198
-#, fuzzy, c-format
+#, c-format
 msgid "Rating set to %s for %i image(s)"
-msgstr "füge Zeitversatz zu %d Bildern hinzu"
+msgstr "Bewertung auf %s gesetzt bei %i Bild(ern)"
 
 #: ../src/common/ratings.c:220
 #, c-format
@@ -6162,8 +6212,8 @@ msgstr[1] "Informationen der Bilder %d aktualisieren"
 #, c-format
 msgid "exporting %d image.."
 msgid_plural "exporting %d images.."
-msgstr[0] "exportiere %d Bild ..."
-msgstr[1] "exportiere %d Bilder ..."
+msgstr[0] "exportiere %d Bild..."
+msgstr[1] "exportiere %d Bilder..."
 
 #: ../src/control/jobs/control_jobs.c:1355
 msgid "no image to export"
@@ -6217,7 +6267,7 @@ msgstr[0] ""
 "Die Datei wird nicht von der Festplatte gelöscht werden."
 msgstr[1] ""
 "Sollen %d Bilder wirklich aus der Ansel Bibliothek gelöscht werden?\n"
-"Die Dateien werd nicht von der Festplatte gelöscht werden."
+"Die Dateien werden nicht von der Festplatte gelöscht werden."
 
 #: ../src/control/jobs/control_jobs.c:1573
 msgid "Remove image from library ?"
@@ -6393,7 +6443,7 @@ msgstr "XMP schreiben"
 #: ../src/control/jobs/control_jobs.c:2347
 #, c-format
 msgid "Error importing file in collection: %s"
-msgstr ""
+msgstr "Fehler beim Importieren der Datei in die Sammlung: %s"
 
 #: ../src/control/jobs/control_jobs.c:2366
 #, c-format
@@ -7304,6 +7354,9 @@ msgid ""
 "Image #%i history is storing %d mask states. nConsider compressing history "
 "and removing unused masks to keep reads/writes manageable."
 msgstr ""
+"Der Bearbeitungsverlauf von Bild #%i enthält %d Maskenzustände. \n"
+"Komprimieren Sie den Bearbeitungsverlauf und entfernen Sie unbenutzte "
+"Masken, um die Lese-/Schreibvorgänge zu begrenzen."
 
 # Translation rather lengthly.
 #. Duplicate and alias for auto-apply in develop.c
@@ -7317,14 +7370,14 @@ msgid "scene-referred default"
 msgstr "Vorgabe szenenbezogene Bearbeitung"
 
 #: ../src/develop/dev_history.c:1361
-#, fuzzy, c-format
+#, c-format
 msgid "from preset %s"
-msgstr "Voreinstellungen"
+msgstr "aus der Voreinstellung %s"
 
 #: ../src/develop/dev_history.c:1367
-#, fuzzy, c-format
+#, c-format
 msgid "module `%s' %s version mismatch: %d != %d"
-msgstr "Modul „%s” hat Versionskonflikt: %d ≠ %d"
+msgstr "Modul „%s” %s hat einen Versionskonflikt: %d ≠ %d"
 
 #: ../src/develop/imageop.c:433 ../src/views/darkroom.c:87
 msgid "Darkroom"
@@ -7379,7 +7432,7 @@ msgstr "gezeichnete & parametrische Maske"
 #: ../src/develop/imageop.c:2115
 #, c-format
 msgid "this module has a '%s'"
-msgstr ""
+msgstr "Dieses Modul hat eine `%s’"
 
 #: ../src/develop/imageop.c:2120
 #, c-format
@@ -7668,6 +7721,9 @@ msgid ""
 "- Check if the module providing the masks for the module %s has not been "
 "deleted.\n"
 msgstr ""
+"\n"
+"- Prüfen Sie, ob das Modul, das die Masken für das Modul %s bereitstellt, "
+"nicht gelöscht wurde.\n"
 
 #. The loop searching linked modules to the raster masks
 #. has stopped when it finds the source module but before it has
@@ -7680,19 +7736,23 @@ msgid ""
 "- Check if the module %s (%s) providing the masks has not been moved above "
 "%s.\n"
 msgstr ""
+"\n"
+"- Prüfen Sie, ob das Modul %s (%s), das die Masken bereitstellt, nicht nach "
+"oberhalb von %s verschoben wurde.\n"
 
 #: ../src/develop/pixelpipe_hb.c:2673
-#, fuzzy, c-format
+#, c-format
 msgid ""
 "The %s module is trying to reuse a mask from a module but it can't be "
 "found.\n"
 "Masking in %s will be disabled until a mask is available.\n"
 "%s"
 msgstr ""
-"Das Modul `%s` versucht, eine Maske des deaktivierten Moduls `%s` "
-"wiederzuverwenden.\n"
-"Deaktivierte Module können ihre Masken nicht an andere Module weitergeben.\n"
-"Die Maskierung in `%s` wird deaktiviert, bis `%s` wieder aktiviert wird."
+"Das Modul %s versucht, eine Maske aus einem anderen Modul wiederzuverwenden, "
+"diese kann aber nicht gefunden werden.\n"
+"Die Maskierung in %s wird deaktiviert, bis eine passende Maske verfügbar "
+"ist.\n"
+"%s"
 
 #. there might be stale masks from disabled modules left over. don't use those!
 #: ../src/develop/pixelpipe_hb.c:2688
@@ -7720,7 +7780,7 @@ msgstr "Doppelklick zum Zurücksetzen"
 #: ../src/dtgtk/preview_window.c:90
 #, c-format
 msgid "Ansel - Preview : %s"
-msgstr ""
+msgstr "Ansel - Vorschau: %s"
 
 #: ../src/dtgtk/thumbnail.c:79 ../src/dtgtk/thumbnail.c:109
 msgid "current"
@@ -7745,53 +7805,52 @@ msgstr "gruppierte Bilder"
 
 #. * image info
 #: ../src/dtgtk/thumbnail.c:207
-#, fuzzy
 msgid "Image info"
-msgstr "Bild-Hinweis"
+msgstr "Bildinformation"
 
 #: ../src/dtgtk/thumbnail.c:211
-#, fuzzy
 msgid "Folder : "
-msgstr "Verzeichnis"
+msgstr "Verzeichnis: "
 
 #: ../src/dtgtk/thumbnail.c:212
 msgid "Date : "
-msgstr ""
+msgstr "Datum: "
 
 #: ../src/dtgtk/thumbnail.c:213
-#, fuzzy
 msgid "Camera : "
-msgstr "Kamera:"
+msgstr "Kamera: "
 
 #: ../src/dtgtk/thumbnail.c:214
-#, fuzzy
 msgid "Lens : "
-msgstr "Objektiv:"
+msgstr "Objektiv: "
 
 #. * color labels
 #: ../src/dtgtk/thumbnail.c:220
-#, fuzzy
 msgid "Assign color labels"
-msgstr "Farbmarkierung"
+msgstr "Farbmarkierungen zuweisen"
 
 #: ../src/dtgtk/thumbnail.c:239
 msgid "Open in preview window…"
-msgstr ""
+msgstr "Im Vorschaufenster öffnen…"
 
 #: ../src/dtgtk/thumbnail.c:1089
 msgid "This picture is locally copied on your disk cache"
-msgstr ""
+msgstr "Dieses Bild wird lokal auf Ihren Festplattencache kopiert"
 
 #: ../src/dtgtk/thumbtable.c:1188
 msgid ""
 "The current filtered collection contains no image. Relax your filters or "
 "fetch a non-empty collection"
 msgstr ""
+"Die aktuelle gefilterte Sammlung enthält kein Bild. Fassen Sie Ihre Filter "
+"weiter oder wählen Sie eine nicht leere Sammlung aus"
 
 #: ../src/dtgtk/thumbtable.c:1362
 #, c-format
 msgid "'%s': Please use 'File > Import' to import a folder."
 msgstr ""
+"'%s': Bitte verwenden Sie 'Datei > Importieren', um einen Ordner zu "
+"importieren."
 
 #: ../src/dtgtk/thumbtable.c:1911
 msgid ""
@@ -7799,6 +7858,10 @@ msgid ""
 "Selecting all images will only target visible members of image groups.\n"
 "Uncollapse groups to select all their members"
 msgstr ""
+"Bildgruppen werden in der Ansicht zusammengeklappt.\n"
+"Wenn Sie alle Bilder auswählen, werden nur die sichtbaren Mitglieder von "
+"Bildgruppen ausgewählt.\n"
+"Klappen Sie Gruppen aus, um alle Mitglieder auszuwählen"
 
 #: ../src/dtgtk/thumbtable.c:1935
 msgid ""
@@ -7807,6 +7870,10 @@ msgid ""
 "groups.\n"
 "Uncollapse groups to select all their members"
 msgstr ""
+"Bildgruppen werden in der Ansicht zusammengeklappt.\n"
+"Wenn Sie einen Bereich von Bildern auswählen, werden nur die sichtbaren "
+"Mitglieder von Bildgruppen ausgewählt.\n"
+"Klappen Sie Gruppen aus, um alle Mitglieder auszuwählen"
 
 #. Column 1 - "make" of the camera.
 #. * Column 2 - "model" (use the "make" and "model" as provided by DCRaw).
@@ -8008,14 +8075,12 @@ msgid "Sans %s"
 msgstr "Sans %s"
 
 #: ../src/gui/gtkentry.c:172
-#, fuzzy
 msgid "$(FOLDER.NAME) - name of the folder containing the input image"
-msgstr "$(FILE.NAME) – Basisname des Input Bildes"
+msgstr "$(FOLDER.NAME) – Name des Verzeichnis, das das Eingabebild enthält"
 
 #: ../src/gui/gtkentry.c:173
-#, fuzzy
 msgid "$(FILE.FOLDER) - directory structure containing the input image"
-msgstr "$(FILE.YEAR) - Jahr der Änderung des Eingabebildes"
+msgstr "$(FILE.FOLDER) – Verzeichnisstruktur des Eingabebildes"
 
 #: ../src/gui/gtkentry.c:174
 msgid "$(FILE.NAME) - basename of the input image"
@@ -8321,14 +8386,12 @@ msgid "$(TAGS) - tags as set in metadata settings"
 msgstr "$(TAGS) – Tags gemäß den Metadateneinstellungen"
 
 #: ../src/gui/gtkentry.c:248
-#, fuzzy
 msgid "$(ANSEL.NAME) - Ansel name"
-msgstr "$(USERNAME) - Login-Name"
+msgstr "$(ANSEL.NAME) - Ansel-Name"
 
 #: ../src/gui/gtkentry.c:249
-#, fuzzy
 msgid "$(ANSEL.VERSION) - current Ansel version"
-msgstr "$(VERSION) – Version des Duplikats"
+msgstr "$(ANSEL.VERSION) - aktuelle Ansel-Version"
 
 #: ../src/gui/guides.c:32
 msgid "grid"
@@ -9025,9 +9088,8 @@ msgid "Collapse grouped images"
 msgstr "Gruppierte Bilder zusammenfassen"
 
 #: ../src/gui/actions/display.c:432
-#, fuzzy
 msgid "Show group borders"
-msgstr "Gruppenführer"
+msgstr "Gruppenrahmen anzeigen"
 
 #: ../src/gui/actions/display.c:437
 msgid "Full screen"
@@ -9158,7 +9220,7 @@ msgstr "Neueste Sammlung #%i"
 
 #: ../src/gui/actions/file.c:211
 msgid "Copy files on disk..."
-msgstr "Dateien auf Festplatte Kopieren..."
+msgstr "Dateien auf Festplatte kopieren..."
 
 #: ../src/gui/actions/file.c:214
 msgid "Move files on disk..."
@@ -9304,9 +9366,8 @@ msgid "<span foreground='#2222BB'>⬤</span> Blue"
 msgstr "<span foreground='#2222BB'>⬤</span> Blau"
 
 #: ../src/gui/actions/image.c:193
-#, fuzzy
 msgid "<span foreground='#BB22BB'>⬤</span> Purple"
-msgstr "<span foreground='#2222BB'>⬤</span> Blau"
+msgstr "<span foreground='#2222BB'>⬤</span> Lila"
 
 #: ../src/gui/actions/image.c:198
 msgid "<span foreground='#BBBBBB'>⬤</span> Clear labels"
@@ -9365,16 +9426,15 @@ msgstr "Vorabladen des Cache für die aktuelle Kollektion"
 
 #: ../src/gui/actions/run.c:99
 msgid "Clear darkroom pipeline caches"
-msgstr ""
+msgstr "Dunkelkammer Pipeline-Caches löschen"
 
 #: ../src/gui/actions/run.c:100
-#, fuzzy
 msgid "Preload selected thumbnails in cache"
-msgstr "Festplattencache für Vorschaubilder benutzen"
+msgstr "Ausgewählte Vorschaubilder vorab in den Cache laden"
 
 #: ../src/gui/actions/run.c:101
 msgid "Purge selected thumbnails from cache"
-msgstr ""
+msgstr "Ausgewählte Vorschaubilder aus dem Cache löschen"
 
 #: ../src/gui/actions/run.c:103
 msgid "Defragment the library"
@@ -9394,7 +9454,7 @@ msgstr "Ausgewählte Entwicklungen in XMP speichern"
 
 #: ../src/gui/actions/run.c:109
 msgid "Resynchronize database with distant XMP for local copies"
-msgstr ""
+msgstr "Die Datenbank mit entferntem XMP für lokale Kopien resynchronisieren"
 
 #: ../src/gui/actions/select.c:47
 msgid "Clear selection"
@@ -9441,9 +9501,8 @@ msgid "_Help"
 msgstr "_Hilfe"
 
 #: ../src/gui/window_manager.c:668
-#, fuzzy
 msgid "Go back to lighttable"
-msgstr "Leuchttisch"
+msgstr "Zurück zum Leuchttisch"
 
 #: ../src/imageio/format/avif.c:91 ../src/imageio/format/pdf.c:79
 #: ../src/imageio/format/png.c:535 ../src/imageio/format/tiff.c:802
@@ -9931,7 +9990,7 @@ msgstr ""
 
 #: ../src/imageio/storage/disk.c:194
 msgid "on conflict"
-msgstr "bei Konflikten"
+msgstr "Bei Konflikten"
 
 #: ../src/imageio/storage/disk.c:195
 msgid ""
@@ -9943,7 +10002,7 @@ msgstr ""
 
 #: ../src/imageio/storage/disk.c:197
 msgid "create unique filename"
-msgstr "umbenennen"
+msgstr "einen eindeutigen Dateinamen erzeugen"
 
 #: ../src/imageio/storage/disk.c:198 ../src/libs/styles.c:426
 #: ../src/libs/styles.c:609
@@ -14429,7 +14488,7 @@ msgstr ""
 #: ../src/iop/filmic.c:1702 ../src/libs/export.c:1230
 #: ../src/libs/print_settings.c:2305 ../src/libs/print_settings.c:2628
 msgid "intent"
-msgstr "Vorsatz"
+msgstr "Intention"
 
 #: ../src/iop/filmic.c:1703
 msgid "contrasted"
@@ -17827,7 +17886,7 @@ msgstr "Filmrolle suchen ..."
 
 #: ../src/libs/collect.c:603
 msgid "remove..."
-msgstr "entfernen ..."
+msgstr "entfernen..."
 
 #: ../src/libs/collect.c:1221
 msgid "uncategorized"
@@ -17961,7 +18020,7 @@ msgstr "Sammlung suchen..."
 
 #: ../src/libs/collect.c:2362 ../src/libs/collect.c:3200
 msgid "Search..."
-msgstr "Suchen ..."
+msgstr "Suchen..."
 
 #: ../src/libs/collect.c:2998
 msgid "narrow down search"
@@ -18262,7 +18321,7 @@ msgstr "Wahrnehmung"
 #: ../src/libs/export.c:1233 ../src/libs/print_settings.c:2307
 #: ../src/libs/print_settings.c:2632
 msgid "relative colorimetric"
-msgstr "relativ Farbmetrisch"
+msgstr "relativ farbmetrisch"
 
 #: ../src/libs/export.c:1234 ../src/libs/print_settings.c:2308
 #: ../src/libs/print_settings.c:2633
@@ -18273,7 +18332,7 @@ msgstr "Sättigung"
 #: ../src/libs/export.c:1235 ../src/libs/print_settings.c:2309
 #: ../src/libs/print_settings.c:2634
 msgid "absolute colorimetric"
-msgstr "absolut Farbmetrisch"
+msgstr "absolut farbmetrisch"
 
 #: ../src/libs/export.c:1238
 #, c-format
@@ -19150,7 +19209,6 @@ msgid "filmroll"
 msgstr "Filmrolle"
 
 #: ../src/libs/metadata_view.c:129
-#, fuzzy
 msgid "filmroll id"
 msgstr "Filmrolle"
 
@@ -19164,7 +19222,7 @@ msgstr "Version"
 
 #: ../src/libs/metadata_view.c:134 ../src/libs/tools/filter.c:102
 msgid "full path"
-msgstr "voller Pfad"
+msgstr "vollständiger Pfad"
 
 #: ../src/libs/metadata_view.c:140
 msgid "flags"
@@ -19370,7 +19428,7 @@ msgstr ""
 
 #: ../src/libs/modulegroups.c:504
 msgid "Modules applying special effects."
-msgstr "Module zur Anwendung spezieller Effekte"
+msgstr "Module zur Anwendung spezieller Effekte."
 
 #: ../src/libs/modulegroups.c:505
 msgid "Technical modules that can be ignored in most situations."
@@ -19411,9 +19469,7 @@ msgstr "Fokus auf die nächste Modulsteuerung"
 
 #: ../src/libs/modulegroups.c:550
 msgid "Focus on the previous module control"
-msgstr ""
-"zum vorherigen Bild gehen\n"
-"Fokus auf das vorherige Kontrollmodul legen"
+msgstr "Fokus auf das vorherige Kontrollmodul legen"
 
 #: ../src/libs/modulegroups.c:552
 msgid "Search a module"
@@ -19992,7 +20048,7 @@ msgstr "Oberbegriff löschen"
 
 #: ../src/libs/tagging.c:2237
 msgid "change path..."
-msgstr "ändere Hierarchie …"
+msgstr "ändere Hierarchie…"
 
 #: ../src/libs/tagging.c:2247
 msgid "set as a tag"
@@ -20000,7 +20056,7 @@ msgstr "als Tag verwenden"
 
 #: ../src/libs/tagging.c:2258
 msgid "copy to entry"
-msgstr "Kopieren in den Eintrag"
+msgstr "in das Eingabefeld kopieren"
 
 #: ../src/libs/tagging.c:2275
 msgid "go to tag collection"
@@ -20144,7 +20200,7 @@ msgstr ""
 "Umschalttaste+Klick, um das ausgewählte Stichwort vollständig zu erweitern,\n"
 "Rechtsklick für weitere Aktionen auf das ausgewählte Stichwort,\n"
 "Drücken Sie Umschalt+Tab, um den Fokus auf das Eingabefeld zu legen.\n"
-"Strg+Rad, um die Größe des Fensters zu ändern."
+"Strg+Rad, um die Größe des Fensters zu ändern"
 
 #: ../src/libs/tagging.c:3226
 msgid "new"
@@ -20198,29 +20254,24 @@ msgid "tagging settings"
 msgstr "Tagging Einstellungen"
 
 #: ../src/libs/tools/filter.c:93
-#, fuzzy
 msgid "captured"
-msgstr "Blende"
+msgstr "Aufnahmedatum"
 
 #: ../src/libs/tools/filter.c:94
-#, fuzzy
 msgid "imported"
-msgstr "Importieren"
+msgstr "Importdatum"
 
 #: ../src/libs/tools/filter.c:95
-#, fuzzy
 msgid "modified"
-msgstr "manuell angepasst"
+msgstr "Änderungsdatum"
 
 #: ../src/libs/tools/filter.c:96
-#, fuzzy
 msgid "exported"
-msgstr "exportieren"
+msgstr "Exportdatum"
 
 #: ../src/libs/tools/filter.c:97
-#, fuzzy
 msgid "printed"
-msgstr "Drucker"
+msgstr "Druckdatum"
 
 #: ../src/libs/tools/filter.c:99
 msgid "id"
@@ -20228,7 +20279,7 @@ msgstr "ID"
 
 #: ../src/libs/tools/filter.c:101
 msgid "group"
-msgstr "gruppieren"
+msgstr "Gruppe"
 
 #: ../src/libs/tools/filter.c:118
 msgid "filter"
@@ -20240,98 +20291,97 @@ msgid ""
 "which properties have been changed\n"
 "and don't match the current filters anymore."
 msgstr ""
+"Aktualisieren Sie die aktuelle Sammlung, um Bilder zu entfernen,\n"
+"deren Eigenschaften geändert wurden\n"
+"und den aktuellen Filtern nicht mehr entsprechen."
 
 #: ../src/libs/tools/filter.c:552 ../src/libs/tools/filter.c:648
 #: ../src/libs/tools/filter.c:720 ../src/libs/tools/filter.c:737
 #: ../src/libs/tools/filter.c:746 ../src/libs/tools/lighttable.c:295
 #: ../src/libs/tools/lighttable.c:297
-#, fuzzy
 msgid "Lighttable/Actions"
-msgstr "Leuchttisch"
+msgstr "Leuchttisch/Tätigkeiten"
 
 #: ../src/libs/tools/filter.c:552
-#, fuzzy
 msgid "Reload current collection"
-msgstr "Kürzlich benutzte Sammlungen"
+msgstr "Aktuelle Sammlung neu laden"
 
 #: ../src/libs/tools/filter.c:592
 msgid "Toggle filtering in/out unrated images (0 star)"
-msgstr ""
+msgstr "Filterung unbewerteter Bilder ein-/ausschalten (0 Sterne)"
 
 #: ../src/libs/tools/filter.c:593
 msgid "Toggle filtering in/out rejected images"
-msgstr ""
+msgstr "Filterung von abgelehnten Bildern ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:594
 msgid "Toggle filtering in/out images rated 1 star"
-msgstr ""
+msgstr "Filtern von Bildern mit 1 Stern ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:595
 msgid "Toggle filtering in/out images rated 2 stars"
-msgstr ""
+msgstr "Filtern von Bildern mit 2 Sternen ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:596
 msgid "Toggle filtering in/out images rated 3 stars"
-msgstr ""
+msgstr "Filtern von Bildern mit 3 Sternen ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:597
 msgid "Toggle filtering in/out images rated 4 stars"
-msgstr ""
+msgstr "Filtern von Bildern mit 4 Sternen ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:598
 msgid "Toggle filtering in/out images rated 5 stars"
-msgstr ""
+msgstr "Filtern von Bildern mit 5 Sternen ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:616
 msgid "Toggle filtering in/out images without color label"
-msgstr ""
+msgstr "Filtern von Bildern ohne Farbkennzeichnung ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:617
 msgid "Toggle filtering in/out images with red label"
-msgstr ""
+msgstr "Filtern von Bildern mit roter Farbkennzeichnung ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:618
 msgid "Toggle filtering in/out images with yellow label"
-msgstr ""
+msgstr "Filtern von Bildern mit gelber Farbkennzeichnung ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:619
 msgid "Toggle filtering in/out images with green label"
-msgstr ""
+msgstr "Filtern von Bildern mit grüner Farbkennzeichnung ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:620
 msgid "Toggle filtering in/out images with blue label"
-msgstr ""
+msgstr "Filtern von Bildern mit blauer Farbkennzeichnung ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:621
 msgid "Toggle filtering in/out images with purple label"
-msgstr ""
+msgstr "Filtern von Bildern mit lila Farbkennzeichnung ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:631
 msgid "Toggle filtering in/out unedited images"
-msgstr ""
+msgstr "Filtern von unbearbeiteten Bildern ein-/ausschalten"
 
 #: ../src/libs/tools/filter.c:636
 msgid "Toggle filtering in/out edited images"
-msgstr ""
+msgstr "Filtern von bearbeiteten Bildern ein-/ausschalten"
 
 #. Culling mode
 #: ../src/libs/tools/filter.c:642
-#, fuzzy
 msgid "Restrict to selection"
-msgstr "Histogramm/Scope auf Auswahl beschränken"
+msgstr "Auf Auswahl beschränken"
 
 #: ../src/libs/tools/filter.c:643
 msgid "Restrict the current view to only selected pictures"
 msgstr "Beschränken Sie die aktuelle Ansicht auf ausgewählte Bilder"
 
 #: ../src/libs/tools/filter.c:648
-#, fuzzy
 msgid "Toggle culling mode"
-msgstr "Überblendreihenfolge umkehren"
+msgstr "Culling-Modus ein- und ausschalten"
 
 #: ../src/libs/tools/filter.c:659
 msgid "Sort by"
-msgstr ""
+msgstr "Sortieren nach"
 
 #: ../src/libs/tools/filter.c:700
 msgid "Search an image..."
@@ -20355,88 +20405,80 @@ msgstr ""
 "wird während der Ausführung der Suche abgeblendet"
 
 #: ../src/libs/tools/filter.c:720
-#, fuzzy
 msgid "Search a picture"
-msgstr "Suche Modul"
+msgstr "Suche ein Bild"
 
 #: ../src/libs/tools/filter.c:734 ../src/libs/tools/filter.c:737
-#, fuzzy
 msgid "Select all filters"
-msgstr "LUT-Datei auswählen"
+msgstr "Alle Filter auswählen"
 
 #: ../src/libs/tools/filter.c:743 ../src/libs/tools/filter.c:746
-#, fuzzy
 msgid "Deselect all filters"
-msgstr "LUT-Datei auswählen"
+msgstr "Alle Filter abwählen"
 
 #. Submenu embedded JPEG
 #: ../src/libs/tools/lighttable.c:230
-#, fuzzy
 msgid "Show embedded JPEG"
-msgstr "nur eingebettet"
+msgstr "Eingebettetes JPEG anzeigen"
 
 #: ../src/libs/tools/lighttable.c:232
 msgid "Never, always process the raw"
-msgstr ""
+msgstr "Niemals, immer die Rohdaten verarbeiten"
 
 #: ../src/libs/tools/lighttable.c:234
 msgid "For unedited pictures"
-msgstr ""
+msgstr "Für unbearbeitete Bilder"
 
 #: ../src/libs/tools/lighttable.c:236
 msgid "Always, never process the raw"
-msgstr ""
+msgstr "Immer, niemals die Rohdaten verarbeiten"
 
 #. Focusing options
 #: ../src/libs/tools/lighttable.c:240
-#, fuzzy
 msgid "Overlay focus zones"
-msgstr "Overlay-Fokus-Peaking"
+msgstr "Fokus-Zonen einblenden"
 
 #: ../src/libs/tools/lighttable.c:243
 msgid "Overlay focus peaking"
-msgstr "Overlay-Fokus-Peaking"
+msgstr "Fokus-Peaking einblenden"
 
 #. Zoom
 #: ../src/libs/tools/lighttable.c:248
 msgid "Zoom"
-msgstr ""
+msgstr "Zoom"
 
 #: ../src/libs/tools/lighttable.c:250
-#, fuzzy
 msgid "Fit"
-msgstr "Passend für"
+msgstr "Einpassen"
 
 #: ../src/libs/tools/lighttable.c:252
 msgid "50 %"
-msgstr ""
+msgstr "50 %"
 
 #: ../src/libs/tools/lighttable.c:254
 msgid "100 %"
-msgstr ""
+msgstr "100 %"
 
 #: ../src/libs/tools/lighttable.c:256
 msgid "200 %"
-msgstr ""
+msgstr "200 %"
 
 #: ../src/libs/tools/lighttable.c:276
-#, fuzzy
 msgid "_Thumbnails"
-msgstr "Vorschaubilder"
+msgstr "_Vorschaubilder"
 
 #: ../src/libs/tools/lighttable.c:285
-#, fuzzy
 msgctxt "quickfilter"
 msgid "Columns"
 msgstr "Spalten"
 
 #: ../src/libs/tools/lighttable.c:295
 msgid "Zoom in the thumbtable grid"
-msgstr ""
+msgstr "Die Übersicht der Vorschaubilder heranzoomen"
 
 #: ../src/libs/tools/lighttable.c:297
 msgid "Zoom out the thumbtable grid"
-msgstr ""
+msgstr "Die Übersicht der Vorschaubilder wegzoomen"
 
 #: ../src/libs/tools/module_toolbox.c:46
 msgid "module toolbox"

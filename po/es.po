@@ -2,8 +2,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: darktable 4.2\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2025-04-24 22:20+0200\n"
-"PO-Revision-Date: 2023-04-14 23:24+0200\n"
+"POT-Creation-Date: 2025-04-24 22:26+0200\n"
+"PO-Revision-Date: 2025-04-15 17:39+0200\n"
 "Last-Translator: Edgar Lux <edgarlux@disroot.org>\n"
 "Language-Team: Edgar Lux\n"
 "Language: es_ES\n"
@@ -12,7 +12,7 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 "X-Poedit-Bookmarks: -1,1170,-1,-1,-1,-1,-1,-1,-1,-1\n"
-"X-Generator: Poedit 2.4.2\n"
+"X-Generator: Poedit 3.5\n"
 
 #: ../build/src/conf_gen.h:182 ../build/src/conf_gen.h:202
 #: ../build/src/conf_gen.h:365 ../build/src/conf_gen.h:375
@@ -197,18 +197,16 @@ msgstr "máx."
 
 #: ../build/src/conf_gen.h:769
 msgid "Project name (jobcode)"
-msgstr ""
+msgstr "Nombre del proyecto (jobcode)"
 
 #: ../build/src/conf_gen.h:770
-#, fuzzy
 msgid "Name of the import job"
-msgstr "nombre del preajuste"
+msgstr "Nombre del trabajo de importación"
 
 #. Project date
 #: ../build/src/conf_gen.h:775 ../src/common/import.c:1093
-#, fuzzy
 msgid "Project date"
-msgstr "Rechazando %d imagen"
+msgstr "Fecha del proyecto"
 
 #: ../build/src/conf_gen.h:776
 msgid ""
@@ -922,9 +920,8 @@ msgid ""
 msgstr ""
 
 #: ../build/src/preferences_gen.h:3952
-#, fuzzy
 msgid "Pipe recompute timeout (milliseconds)"
-msgstr "Mostrar la hora con milisegundos"
+msgstr "Tiempo de espera de recálculo (milisegundos)"
 
 #: ../build/src/preferences_gen.h:3975
 msgid ""
@@ -932,6 +929,9 @@ msgid ""
 "recompute the pipeline too often. Set to 0 to recompute immediately on "
 "module change."
 msgstr ""
+"Tiempo de espera que evita que los pasos intermedios de configuración (por "
+"ejemplo, mientras se desplaza) se vuelvan a con demasiada frecuencia. "
+"Establecer a 0 para volver a calcular inmediatamente en el cambio de módulo."
 
 #: ../build/src/preferences_gen.h:3997
 msgid "enable disk backend for thumbnail cache"
@@ -1196,15 +1196,16 @@ msgid "database"
 msgstr "base de datos"
 
 #: ../build/src/preferences_gen.h:4877
-#, fuzzy
 msgid "database location"
-msgstr "eliminar ubicación"
+msgstr "ubicación de la base de datos"
 
 #: ../build/src/preferences_gen.h:4895
 msgid ""
 "filename relative to ~/.config/ansel or starting with a slash (needs a "
 "restart)."
 msgstr ""
+"nombre de archivo relativo a ~/.config/ansel o que empiece por una barra "
+"(necesita un reinicio)."
 
 #: ../build/src/preferences_gen.h:4917
 msgid "check for database maintenance"
@@ -1335,7 +1336,7 @@ msgstr "interfaz"
 
 #: ../build/src/preferences_gen.h:5370
 msgid "Invert the direction of the mouse vertical scroll"
-msgstr ""
+msgstr "Invertir la dirección del desplazamiento vertical del ratón"
 
 #: ../build/src/preferences_gen.h:5384
 msgid ""
@@ -1343,10 +1344,14 @@ msgid ""
 "instead of the content, so scrolling over sliders yields the right value. "
 "This does not affect horizontal scrolling."
 msgstr ""
+"Marque esta opción si su sistema operativo/entorno de escritorio está "
+"configurado para desplazar la vista en lugar del contenido, de modo que al "
+"desplazarse por los controles deslizantes se obtenga el valor correcto. Esto "
+"no afecta al desplazamiento horizontal."
 
 #: ../build/src/preferences_gen.h:5406
 msgid "Invert the direction of the mouse horizontal scroll"
-msgstr ""
+msgstr "Invertir la dirección del desplazamiento horizontal del ratón"
 
 #: ../build/src/preferences_gen.h:5420
 msgid ""
@@ -1354,6 +1359,10 @@ msgid ""
 "instead of the content, so scrolling over sliders yields the right value. "
 "This does not affect vertical scrolling."
 msgstr ""
+"Marque esta opción si su sistema operativo/entorno de escritorio está "
+"configurado para desplazar la vista en lugar del contenido, de modo que al "
+"desplazarse por los controles deslizantes se obtenga el valor correcto. Esto "
+"no afecta al desplazamiento vertical."
 
 #: ../build/src/preferences_gen.h:5442
 msgid "Let the OS mask Ansel shortcuts"
@@ -2066,51 +2075,51 @@ msgstr "según la toma original"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:522
 msgid "F1 (Daylight 6430 K) - medium CRI"
-msgstr ""
+msgstr "F1 (luz de día 6430 K) - CRI medio"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:523
 msgid "F2 (Cool White 4230 K) - medium CRI"
-msgstr ""
+msgstr "F2 (blanco frío 4230 K) - CRI medio"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:524
 msgid "F3 (White 3450 K) - medium CRI"
-msgstr ""
+msgstr "F3 (Blanco 3450 K) - CRI medio"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:525
 msgid "F4 (Warm White 2940 K) - medium CRI"
-msgstr ""
+msgstr "F4 (blanco cálido 2940 K) - CRI medio"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:526
 msgid "F5 (Daylight 6350 K) - medium CRI"
-msgstr ""
+msgstr "F5 (luz de día 6350 K) - CRI medio"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:527
 msgid "F6 (Lite White 4150 K) - medium CRI"
-msgstr ""
+msgstr "F6 (blanco claro 4150 K) - CRI medio"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:528
 msgid "F7 (D65 simulator 6500 K) - high CRI"
-msgstr ""
+msgstr "F7 (simulador D65 6500 K) - CRI alto"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:529
 msgid "F8 (D50 simulator 5000 K) - high CRI"
-msgstr ""
+msgstr "F8 (simulador D50 5000 K) - CRI alto"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:530
 msgid "F9 (Cool White Deluxe 4150 K) - high CRI"
-msgstr ""
+msgstr "F9 (Blanco frío puro 4150 K) - CRI alto"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:531
 msgid "F10 (Tuned RGB 5000 K) - low CRI"
-msgstr ""
+msgstr "F10 (RGB sintonizado 5000 K) - CRI bajo"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:532
 msgid "F11 (Tuned RGB 4000 K) - low CRI"
-msgstr ""
+msgstr "F11 (RGB sintonizado 4000 K) - CRI bajo"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:533
 msgid "F12 (Tuned RGB 3000 K) - low CRI"
-msgstr ""
+msgstr "F12 (RGB sintonizado 3000 K) - CRI bajo"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:538
 msgid "B1 (Blue 2733 K)"
@@ -2162,7 +2171,7 @@ msgstr "Método Bradford no lineal"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:554
 msgid "XYZ"
-msgstr "XYZ "
+msgstr "XYZ"
 
 #: ../build/src/iop/introspection_channelmixerrgb.c:555
 msgid "none (bypass)"
@@ -3019,7 +3028,7 @@ msgstr "usar valores personalizados del gris medio"
 #: ../build/src/iop/introspection_filmicrgb.c:339
 #: ../build/src/iop/introspection_filmicrgb.c:500
 msgid "iterations of color inpainting"
-msgstr ""
+msgstr "iteraciones de repintado en color"
 
 #: ../build/src/iop/introspection_filmicrgb.c:345
 #: ../build/src/iop/introspection_filmicrgb.c:504
@@ -3089,9 +3098,8 @@ msgid "v6 (2022)"
 msgstr "v6 (2022)"
 
 #: ../build/src/iop/introspection_filmicrgb.c:547
-#, fuzzy
 msgid "v7 (2023)"
-msgstr "v4 (2020)"
+msgstr "v7 (2023)"
 
 #: ../build/src/iop/introspection_filmicrgb.c:551
 msgid "uniform"
@@ -3369,7 +3377,7 @@ msgstr "RGB Rec. 709 gamma"
 
 #: ../build/src/iop/introspection_lut3d.c:207 ../src/common/colorspaces.c:1640
 msgid "ITU-R BT.1886 (gamma 2.4 Rec709)"
-msgstr ""
+msgstr "ITU-R BT.1886 (gamma 2.4 Rec709)"
 
 #: ../build/src/iop/introspection_lut3d.c:211
 msgid "tetrahedral"
@@ -3595,11 +3603,11 @@ msgstr "espacio de color"
 
 #: ../build/src/iop/introspection_tonecurve.c:263
 msgid "Lab, linked channels"
-msgstr "canales enlazados Lab"
+msgstr "Canales enlazados Lab"
 
 #: ../build/src/iop/introspection_tonecurve.c:264
 msgid "Lab, independent channels"
-msgstr "canales independientes Lab"
+msgstr "Canales independientes Lab"
 
 #: ../build/src/iop/introspection_tonecurve.c:265
 msgid "XYZ, linked channels"
@@ -3830,9 +3838,8 @@ msgstr "Colaboradores de RawSpeed:"
 
 #: ../build/src/tools/darktable_authors.h:26
 #: ../src/tools/darktable_authors.h:26
-#, fuzzy
 msgid "OpenCL contributors"
-msgstr "Colaboradores:"
+msgstr "Colaboradores de OpenCL"
 
 #: ../build/src/tools/darktable_authors.h:31
 #: ../src/tools/darktable_authors.h:31
@@ -3842,9 +3849,8 @@ msgstr "Colaboradores de LibRaw"
 
 #: ../build/src/tools/darktable_authors.h:36
 #: ../src/tools/darktable_authors.h:36
-#, fuzzy
 msgid "whereami contributors"
-msgstr "Colaboradores de RawSpeed:"
+msgstr "colaboradores de whereami"
 
 #: ../build/src/tools/darktable_authors.h:41
 #: ../src/tools/darktable_authors.h:41
@@ -3853,9 +3859,8 @@ msgstr "Colaboradores de LibRaw"
 
 #: ../build/src/tools/darktable_authors.h:46
 #: ../src/tools/darktable_authors.h:46
-#, fuzzy
 msgid "doxygen-awesome-css contributors"
-msgstr "Colaboradores de RawSpeed:"
+msgstr "colaboradores de doxygen-awesome-css"
 
 #: ../build/data/photos.ansel.app.desktop.in.h:1
 #: ../data/build/ansel.desktop.in.h:1 ../data/photos.ansel.app.desktop.in.h:1
@@ -3891,11 +3896,11 @@ msgstr "Mesa de Luz virtual mostrando una colección"
 
 #: ../src/bauhaus/bauhaus.c:1166
 msgid "Slider"
-msgstr ""
+msgstr "Control deslizante"
 
 #: ../src/bauhaus/bauhaus.c:1166
 msgid "Combobox"
-msgstr ""
+msgstr "Cuadro combinado"
 
 #: ../src/chart/main.c:504 ../src/control/jobs/control_jobs.c:1683
 #: ../src/control/jobs/control_jobs.c:1745 ../src/gui/hist_dialog.c:195
@@ -3930,21 +3935,23 @@ msgstr ""
 msgid ""
 "TODO: sorry, due to API restrictions we currently cannot set the BPP to %d.\n"
 msgstr ""
+"TODO: lo sentimos, debido a restricciones de la API actualmente no podemos "
+"establecer el BPP a %d.\n"
 
 #: ../src/cli/main.c:255
 #, c-format
 msgid "unknown option for --export_masks: %s.\n"
-msgstr ""
+msgstr "opción desconocida para --export_masks: %s.\n"
 
 #: ../src/cli/main.c:276
 #, c-format
 msgid "unknown option for --apply-custom-presets: %s.\n"
-msgstr ""
+msgstr "opción desconocida para --apply-custom-presets: %s.\n"
 
 #: ../src/cli/main.c:287
-#, fuzzy, c-format
+#, c-format
 msgid "too long ext for --out-ext: %s.\n"
-msgstr "Extensión de salida demasiado larga: %s\n"
+msgstr "ext demasiado largo para --out-ext: %s.\n"
 
 #: ../src/cli/main.c:304
 #, c-format
@@ -4211,27 +4218,27 @@ msgstr[1] "%d imágenes seleccionadas de %d de la colección actual"
 
 #: ../src/common/color_vocabulary.c:81
 msgid "Chinese"
-msgstr "china"
+msgstr "China"
 
 #: ../src/common/color_vocabulary.c:82
 msgid "Thai"
-msgstr "tailandesa"
+msgstr "Tailandesa"
 
 #: ../src/common/color_vocabulary.c:83
 msgid "Kurdish"
-msgstr "kurda"
+msgstr "Kurda"
 
 #: ../src/common/color_vocabulary.c:84
 msgid "Caucasian"
-msgstr "caucásica"
+msgstr "Caucásica"
 
 #: ../src/common/color_vocabulary.c:85
 msgid "African-american"
-msgstr "afroamericana"
+msgstr "Afroamericana"
 
 #: ../src/common/color_vocabulary.c:86
 msgid "Mexican"
-msgstr "mexicana"
+msgstr "Mexicana"
 
 #: ../src/common/color_vocabulary.c:95 ../src/common/color_vocabulary.c:100
 #: ../src/common/color_vocabulary.c:105 ../src/common/color_vocabulary.c:110
@@ -4375,7 +4382,7 @@ msgstr "verde oliva"
 
 #: ../src/common/color_vocabulary.c:283
 msgid "yellow green"
-msgstr " verde amarillo"
+msgstr "Verde amarillo"
 
 #: ../src/common/color_vocabulary.c:284 ../src/common/color_vocabulary.c:293
 msgid "pale green"
@@ -4504,17 +4511,16 @@ msgstr "Color no encontrado"
 
 #: ../src/common/colorlabels.c:52 ../src/common/ratings.c:48
 msgid "empty"
-msgstr ""
+msgstr "vacío"
 
 #: ../src/common/colorlabels.c:54 ../src/common/ratings.c:62
-#, fuzzy
 msgid "unknown/invalid"
-msgstr "desconocido"
+msgstr "desconocido/no válido"
 
 #: ../src/common/colorlabels.c:267 ../src/common/colorlabels.c:293
 #, c-format
 msgid "Color label set to %s for %i image(s)"
-msgstr ""
+msgstr "Etiqueta de color establecida en %s para %i imagen(es)"
 
 #. init the category profile with NULL profile, the actual profile must be retrieved dynamically by the caller
 #: ../src/common/colorspaces.c:1598 ../src/common/colorspaces.c:1850
@@ -4540,11 +4546,11 @@ msgstr "sRGB (p. ej. JPG)"
 
 #: ../src/common/colorspaces.c:1650
 msgid "PQ Rec2020 RGB"
-msgstr " RGB Rec. 2020 PQ "
+msgstr "RGB Rec. 2020 PQ"
 
 #: ../src/common/colorspaces.c:1655
 msgid "HLG Rec2020 RGB"
-msgstr " RGB Rec. 2020 HLG"
+msgstr "RGB Rec. 2020 HLG"
 
 #: ../src/common/colorspaces.c:1660
 msgid "PQ P3 RGB"
@@ -4555,9 +4561,8 @@ msgid "HLG P3 RGB"
 msgstr "RGB P3 HLG"
 
 #: ../src/common/colorspaces.c:1670
-#, fuzzy
 msgid "Display P3 RGB"
-msgstr "Pantalla"
+msgstr "Pantalla P3 RGB"
 
 #: ../src/common/colorspaces.c:1675 ../src/common/colorspaces.c:1856
 msgid "linear ProPhoto RGB"
@@ -4634,13 +4639,12 @@ msgid "HLG P3"
 msgstr "P3 HLG"
 
 #: ../src/common/colorspaces.c:1866
-#, fuzzy
 msgid "Display P3"
-msgstr "Pantalla"
+msgstr "Pantalla P3"
 
 #: ../src/common/colorspaces.c:1868
 msgid "ITU-R BT.1886"
-msgstr ""
+msgstr "ITU-R BT.1886"
 
 #: ../src/common/cups_print.c:420
 #, c-format
@@ -4759,12 +4763,39 @@ msgid ""
 "      otherwise you risk generating serious inconsistencies in your database."
 "</i>\n"
 msgstr ""
+"\n"
+"Lo sentimos, Ansel no se ha podido iniciar (la base de datos está "
+"bloqueada)\n"
+"\n"
+" ¿Cómo resolver este problema?\n"
+"\n"
+"  1 - Si ya hay otra instancia de Ansel abierta, \n"
+"      haga clic en Cancelar y utilice esa instancia o ciérrela antes de "
+"intentar voler a ejecutar Ansel \n"
+"      (process ID <i><b>%d</b></i> created the database locks)\n"
+"\n"
+"  2 - Si no puede encontrar una instancia de Ansel en ejecución, intente "
+"reiniciar su sesión o su ordenador. \n"
+"      Esto cerrará todos los programas en ejecución y, con suerte, cerrará "
+"las bases de datos correctamente. \n"
+"\n"
+"  3 - Si ha hecho esto o está seguro de que no se están ejecutando otras "
+"instancias de Ansel, \n"
+"      probablemente significa que la última instancia finalizó de forma "
+"anormal. \n"
+"      Haga clic en el botón \"eliminar archivos de bloque de base de datos\" "
+"para eliminar los archivos <i>data.db.lock</i> y <i>library.db.lock</i>.  \n"
+"\n"
+"\n"
+"      <i><u>¡Precaución!</u> No elimine estos archivos sin realizar antes "
+"las comprobaciones anteriores, \n"
+"      de lo contrario corre el riesgo de generar graves incoherencias en su "
+"base de datos.</i>\n"
 
 #. clang-format on
 #: ../src/common/database.c:2737
-#, fuzzy
 msgid "error starting Ansel"
-msgstr "Error al importar etiquetas"
+msgstr "error al iniciar Ansel"
 
 #: ../src/common/database.c:2738 ../src/libs/collect.c:3094
 #: ../src/libs/export_metadata.c:289 ../src/libs/metadata.c:478
@@ -4810,6 +4841,9 @@ msgid ""
 "successfully deleted the lock files.\n"
 "you can now restart Ansel\n"
 msgstr ""
+"\n"
+"se han eliminado con éxito los archivos de bloqueo.\n"
+"ya puede reiniciar Ansel\n"
 
 #: ../src/common/database.c:2762 ../src/common/database.c:2769
 msgid "ok"
@@ -4883,7 +4917,7 @@ msgstr "Migración de esquemas de Ansel"
 #: ../src/common/database.c:3309 ../src/common/database.c:3471
 #: ../src/common/database.c:3489
 msgid "close Ansel"
-msgstr ""
+msgstr "cerrar Ansel"
 
 #: ../src/common/database.c:2943
 msgid "upgrade database"
@@ -4894,8 +4928,9 @@ msgid "Ansel - Database is read-only"
 msgstr ""
 
 #: ../src/common/database.c:3162
+#, fuzzy
 msgid "Close Ansel"
-msgstr ""
+msgstr "cerrar Ansel"
 
 #: ../src/common/database.c:3165
 #, c-format
@@ -4940,6 +4975,11 @@ msgid ""
 "from the most recent snapshot or delete the corrupted database\n"
 "and start with a new one?"
 msgstr ""
+"¿Quiere cerrar Ansel ahora para restaurar manualmente\n"
+"la base de datos desde una copia de seguridad, intentar una restauración "
+"automática\n"
+"de la instantánea más reciente o eliminar la base de datos dañada\n"
+"y empezar con una nueva?"
 
 #: ../src/common/database.c:3315 ../src/common/database.c:3495
 msgid ""
@@ -4947,6 +4987,10 @@ msgid ""
 "the database from a backup or delete the corrupted database\n"
 "and start with a new one?"
 msgstr ""
+"¿Quiere cerrar Ansel ahora para restaurar manualmente\n"
+"la base de datos de una copia de seguridad o eliminar la base de datos "
+"dañada\n"
+"y empezar con una nueva?"
 
 #: ../src/common/database.c:3322 ../src/common/database.c:3500
 #, c-format
@@ -4970,14 +5014,12 @@ msgid "click later to be asked on next startup"
 msgstr "Pulse 'Después' para que se le pregunte en el próximo reinicio."
 
 #: ../src/common/database.c:3822
-#, fuzzy
 msgid "click later to be asked when closing Ansel"
-msgstr "Pulse 'Después' para que se le pregunte en el próximo reinicio."
+msgstr "pulse más tarde para que se le pregunte al cerrar Ansel"
 
 #: ../src/common/database.c:3826
-#, fuzzy
 msgid "click later to be asked next time when closing Ansel"
-msgstr "Pulse 'Después' para que se le pregunte en el próximo reinicio."
+msgstr "pulse más tarde para que se le pregunte la próxima vez al cerrar Ansel"
 
 #: ../src/common/database.c:3829
 #, c-format
@@ -5023,6 +5065,9 @@ msgid ""
 "'%s'\n"
 " weighs %.2f MB. Writing it will take some time."
 msgstr ""
+"El archivo XMP \n"
+"'%s'\n"
+" pesa %.2f MB. Escribirlo llevará algún tiempo."
 
 #: ../src/common/exif.cc:4496
 #, c-format
@@ -5067,7 +5112,7 @@ msgstr ""
 #: ../src/common/http_server.c:95
 #, c-format
 msgid "ansel >> %s"
-msgstr ""
+msgstr "ansel >> %s"
 
 #: ../src/common/http_server.c:97
 msgid "<h1>Sorry,</h1><p>something went wrong. Please try again.</p>"
@@ -5079,6 +5124,8 @@ msgid ""
 "<h1>Thank you,</h1><p>everything should have worked, you can <b>close</b> "
 "your browser now and <b>go back</b> to Ansel.</p>"
 msgstr ""
+"<h1>Gracias,</h1><p>todo debería haber funcionado, puede <b>cerrar</b> su "
+"navegador ahora y <b>volver</b> a Ansel.</p>"
 
 #: ../src/common/image.c:251 ../src/common/image.c:267
 msgid "orphaned image"
@@ -5160,7 +5207,7 @@ msgstr[1] "%d copias locales han sido sincronizadas"
 msgid "<b>WARNING</b>: camera is missing samples!"
 msgstr ""
 "<b>ADVERTENCIA</b>: No existen muestras de referencia para el modelo de "
-"cámara."
+"cámara!"
 
 #: ../src/common/image.c:2556
 msgid ""
@@ -5178,7 +5225,7 @@ msgid ""
 msgstr ""
 "para «%s» «%s»\n"
 "tantas como sean posibles en diferentes formatos/compresiones/profundidades "
-"de bits."
+"de bits"
 
 #: ../src/common/image.c:2560
 msgid "or the <b>RAW won't be readable</b> in next version."
@@ -5283,33 +5330,30 @@ msgid "The file `%s` is supported by none of our decoders."
 msgstr ""
 
 #: ../src/common/import.c:460
-#, fuzzy
 msgid "All image files"
-msgstr "todos los archivos"
+msgstr "Todos los archivos de imagen"
 
 #: ../src/common/import.c:472
-#, fuzzy
 msgid "Raw image files"
-msgstr "límite máximo"
+msgstr "Archivos de imagen RAW"
 
 #: ../src/common/import.c:478
-#, fuzzy
 msgid "Raster image files"
-msgstr "rotar imágenes"
+msgstr "Archivos de imagen de trama"
 
 #: ../src/common/import.c:584
 msgid "No"
-msgstr ""
+msgstr "No"
 
 #: ../src/common/import.c:628
 #, c-format
 msgid " Yes (ID %i), in"
-msgstr ""
+msgstr " Sí (ID %i), en"
 
 #: ../src/common/import.c:628
 #, c-format
 msgid " No"
-msgstr ""
+msgstr " No"
 
 #: ../src/common/import.c:630 ../src/libs/tagging.c:2438
 #, c-format
@@ -5321,47 +5365,48 @@ msgid ""
 "<i>The files will be copied to the selected destination. You can rename them "
 "in batch below:</i>"
 msgstr ""
+"<i>Los archivos se copiarán en el destino seleccionado. Puede renombrarlos "
+"por lotes a continuación:</i>"
 
 #: ../src/common/import.c:653
 msgid "<i>The files will stay at their original location</i>"
-msgstr ""
+msgstr "<i>Los archivos permanecerán en su ubicación original</i>"
 
 #: ../src/common/import.c:664
-#, fuzzy
 msgid "No copy."
-msgstr "copia local"
+msgstr "No copiar."
 
 #: ../src/common/import.c:674
 msgid "invalid date/time format for import"
-msgstr ""
+msgstr "formato de fecha/hora no válido para la importación"
 
 #: ../src/common/import.c:680
 msgid "Result of the pattern : please select a picture file"
-msgstr ""
+msgstr "Resultado del patrón: seleccione un archivo de imagen"
 
 #: ../src/common/import.c:721
 #, c-format
 msgid "Result of the pattern : ...%s"
-msgstr ""
+msgstr "Resultado del patrón : ...%s"
 
 #: ../src/common/import.c:723
 msgid "Can't build a valid path."
-msgstr ""
+msgstr "No se puede construir una ruta válida."
 
 #: ../src/common/import.c:741
-#, fuzzy, c-format
+#, c-format
 msgid "%i files selected"
-msgstr "Ningún estilo ha sido seleccionado"
+msgstr "%i ficheros seleccionados"
 
 #. We don't care for correctness, we just want to show user that we are still at it
 #: ../src/common/import.c:751
 #, c-format
 msgid "Detection in progress... (%i files found so far)"
-msgstr ""
+msgstr "Detección en curso... (%i archivos encontrados hasta ahora)"
 
 #: ../src/common/import.c:757
 msgid "Detecting candidate files for import..."
-msgstr ""
+msgstr "Detección de archivos candidatos para la importación..."
 
 #: ../src/common/import.c:825
 msgid ""
@@ -5371,39 +5416,39 @@ msgid ""
 "YYYY-MM-DD HH:mm:ss\n"
 "YYYY-MM-DDTHH:mm:ss"
 msgstr ""
+"La fecha debe seguir el formato ISO 8601, como:\n"
+"YYYY-MM-DD\n"
+"YYYY-MM-DD HH:mm\n"
+"YYYY-MM-DD HH:mm:ss\n"
+"YYYY-MM-DDTHH:mm:ss"
 
 #: ../src/common/import.c:892
 msgid "No files to import. Check your selection."
-msgstr ""
+msgstr "No hay archivos para importar. Compruebe su selección."
 
 #: ../src/common/import.c:941
-#, fuzzy
 msgid "Ansel - Open pictures"
-msgstr "Preferencias"
+msgstr "Ansel - Abrir fotos"
 
 #: ../src/common/import.c:942 ../src/iop/ashift.c:5144 ../src/iop/crop.c:972
-#, fuzzy
 msgid "Cancel"
 msgstr "Cancelar"
 
 #: ../src/common/import.c:943
-#, fuzzy
 msgid "Import"
-msgstr "importar"
+msgstr "Importar"
 
 #: ../src/common/import.c:998 ../src/gui/actions/select.c:45
 msgid "Select all"
 msgstr "Seleccionar todo"
 
 #: ../src/common/import.c:1002
-#, fuzzy
 msgid "Select none"
-msgstr "deseleccionar todo"
+msgstr "Deseleccionar todo"
 
 #: ../src/common/import.c:1006
-#, fuzzy
 msgid "Select new"
-msgstr "deseleccionar todo"
+msgstr "Seleccionar nuevo"
 
 #: ../src/common/import.c:1010
 msgid ""
@@ -5413,33 +5458,35 @@ msgid ""
 "False-positive can arise if two pictures have been taken at the same time "
 "with the same name."
 msgstr ""
+"La selección de archivos nuevos se dirige a imágenes que nunca se han "
+"añadido a la biblioteca. La búsqueda se realiza buscando el nombre del "
+"archivo original y la fecha/hora. Puede detectar archivos existentes en otra "
+"ruta, con un nombre diferente. Pueden producirse falsos positivos si se han "
+"tomado dos imágenes al mismo tiempo con el mismo nombre."
 
 #: ../src/common/import.c:1031
 msgid "Shot:"
-msgstr ""
+msgstr "Disparo:"
 
 #: ../src/common/import.c:1033
-#, fuzzy
 msgid "Camera:"
-msgstr "cámara"
+msgstr "Cámara:"
 
 #: ../src/common/import.c:1034
-#, fuzzy
 msgid "Brand:"
-msgstr "aleatorio"
+msgstr "Marca:"
 
 #: ../src/common/import.c:1035
 msgid "Lens:"
-msgstr ""
+msgstr "Objetivos:"
 
 #: ../src/common/import.c:1036
 msgid "Focal:"
-msgstr ""
+msgstr "Focal:"
 
 #: ../src/common/import.c:1041
-#, fuzzy
 msgid "Imported:"
-msgstr "importado: hoy"
+msgstr "Importado:"
 
 #: ../src/common/import.c:1044
 msgid ""
@@ -5456,46 +5503,57 @@ msgid ""
 "including the metadata and settings stored in it. If it is not what you "
 "want, you can reset metadata in the lighttable."
 msgstr ""
+"Las imágenes que ya estén en la biblioteca no se volverán a importar, "
+"seleccionadas o no. Elimínelas primero de la biblioteca, o utilice el menú "
+"`Ejecutar → Resincronizar biblioteca y XMP` para actualizar la base de datos "
+"local desde XMP remoto.\n"
+"\n"
+"Ansel indexa las imágenes por su nombre de archivo y carpeta padre (ruta "
+"completa), no por su contenido. Por lo tanto, renombrar o mover imágenes en "
+"el sistema de archivos, o cambiar el punto de montaje de su unidad externa "
+"hará que parezcan nuevas imágenes (desconocidas).\n"
+"\n"
+"Si hay un archivo XMP junto a las imágenes, también se importará, incluidos "
+"los metadatos y ajustes almacenados en él. Si no es lo que desea, puede "
+"restablecer los metadatos en la mesa de luz."
 
 #: ../src/common/import.c:1076
-#, fuzzy
 msgid "<b>File handling</b>"
-msgstr "versión de curva segmentaria"
+msgstr "<b>Gestión de archivos</b>"
 
 #: ../src/common/import.c:1080
-#, fuzzy
 msgid "Add to library"
-msgstr "Copia de seguridad de la fototeca"
+msgstr "Añadir a la biblioteca"
 
 #: ../src/common/import.c:1081
-#, fuzzy
 msgid "Copy to disk"
-msgstr "exportar al disco"
+msgstr "Copiar al disco"
 
 #: ../src/common/import.c:1124
 msgid "Jobcode"
-msgstr ""
+msgstr "Código de trabajo"
 
 #: ../src/common/import.c:1127
 msgid "Base directory of all projects"
-msgstr ""
+msgstr "Directorio base de todos los proyectos"
 
 #: ../src/common/import.c:1130
 msgid "Project directory naming pattern"
-msgstr ""
+msgstr "Nomenclatura del directorio del proyecto"
 
 #: ../src/common/import.c:1133
 msgid "File naming pattern"
-msgstr ""
+msgstr "Patrón de nomenclatura de archivos"
 
 #: ../src/common/import.c:1137
-#, fuzzy
 msgid "Select a base directory"
 msgstr "Seleccionar directorio"
 
 #: ../src/common/import.c:1150
 msgid "Start typing `$(` to see available variables through auto-completion"
 msgstr ""
+"Empiece a escribir `$(` para ver las variables disponibles mediante "
+"autocompletado"
 
 #: ../src/common/iop_order.c:59 ../src/libs/ioporder.c:208
 msgid "legacy"
@@ -5564,16 +5622,16 @@ msgstr "Archivo de perfil de ruido «%s» no es válido"
 #: ../src/common/opencl.c:791
 #, c-format
 msgid "Benchmarking CPU @%i×%ipx..."
-msgstr ""
+msgstr "Análisis de CPU @%i×%ipx..."
 
 #: ../src/common/opencl.c:820
 #, c-format
 msgid "Benchmarking %s %s @%i×%ipx..."
-msgstr ""
+msgstr "Análisis %s %s @%i×%ipx.."
 
 #: ../src/common/opencl.c:946
 msgid "Tuning OpenCL parameters..."
-msgstr ""
+msgstr "Ajuste de los parámetros OpenCL..."
 
 #: ../src/common/opencl.c:958
 msgid ""
@@ -5583,6 +5641,11 @@ msgid ""
 "This happens when a new GPU is connected and when an OpenCL driver is "
 "updated."
 msgstr ""
+"Ansel está buscando los parámetros óptimos para configurar su GPU. Tardará "
+"algún tiempo.\n"
+"\n"
+"Esto ocurre cuando se conecta una nueva GPU y cuando se actualiza un "
+"controlador OpenCL."
 
 #: ../src/common/pdf.h:88 ../src/iop/lens.cc:1900
 #: ../src/libs/print_settings.c:83
@@ -5621,38 +5684,36 @@ msgstr "oficio"
 #: ../src/common/pwstorage/pwstorage.c:83
 msgid "GNOME Keyring backend is no longer supported. configure a different one"
 msgstr ""
-"El sistema de claves de GNOME ya no tiene soporte. Configure uno diferente."
+"El sistema de claves de GNOME ya no tiene soporte. Configure uno diferente"
 
 #: ../src/common/ratings.c:50
-#, fuzzy
 msgid "1 star"
-msgstr "Al inicio"
+msgstr "1 estrella"
 
 #: ../src/common/ratings.c:52
 msgid "2 stars"
-msgstr ""
+msgstr "2 estrellas"
 
 #: ../src/common/ratings.c:54
 msgid "3 stars"
-msgstr ""
+msgstr "3 estrellas"
 
 #: ../src/common/ratings.c:56
 msgid "4 stars"
-msgstr ""
+msgstr "4 estrellas"
 
 #: ../src/common/ratings.c:58
 msgid "5 stars"
-msgstr ""
+msgstr "5 estrellas"
 
 #: ../src/common/ratings.c:60
-#, fuzzy
 msgid "rejected"
-msgstr "imagen rechazada"
+msgstr "Rechazado"
 
 #: ../src/common/ratings.c:198
-#, fuzzy, c-format
+#, c-format
 msgid "Rating set to %s for %i image(s)"
-msgstr "Añadiendo diferencia horaria a %d imagen"
+msgstr "Calificación establecida en %s para %i imagen(es)"
 
 #: ../src/common/ratings.c:220
 #, c-format
@@ -5969,12 +6030,12 @@ msgstr[1] "Eliminando %d imágenes"
 #: ../src/control/jobs/control_jobs.c:838
 #, c-format
 msgid "could not send %s to trash.%s%s"
-msgstr ""
+msgstr "no se ha podido enviar %s a la papelera.%s%s"
 
 #: ../src/control/jobs/control_jobs.c:839
-#, fuzzy, c-format
+#, c-format
 msgid "could not physically delete %s.%s%s"
-msgstr "borrar físicamente del disco"
+msgstr "no se ha podido borrar físicamente %s.%s%s"
 
 #: ../src/control/jobs/control_jobs.c:849
 msgid "physically delete"
@@ -6093,7 +6154,7 @@ msgstr "La imagen «%s» no esta disponible actualmente"
 
 #: ../src/control/jobs/control_jobs.c:1508
 msgid "save history to XMP"
-msgstr ""
+msgstr "guardar historial en XMP"
 
 #: ../src/control/jobs/control_jobs.c:1515
 msgid "merge hdr image"
@@ -6306,16 +6367,15 @@ msgid "Error importing file in collection: %s"
 msgstr ""
 
 #: ../src/control/jobs/control_jobs.c:2366
-#, fuzzy, c-format
+#, c-format
 msgid "importing %i/%i image"
 msgid_plural "importing %i/%i images"
-msgstr[0] "Importando %d imagen"
-msgstr[1] "Importando %d imágenes"
+msgstr[0] "importando imagen %i/%i"
+msgstr[1] "importación de imágenes %i/%i"
 
 #: ../src/control/jobs/control_jobs.c:2407
-#, fuzzy
 msgid "No image imported!"
-msgstr "%zd etiquetas importadas"
+msgstr "¡No se ha importado ninguna imagen!"
 
 #: ../src/control/jobs/control_jobs.c:2416
 #, c-format
@@ -6326,12 +6386,11 @@ msgstr[1] "%d imágenes importadas"
 
 #: ../src/control/jobs/control_jobs.c:2449
 msgid "_OK"
-msgstr ""
+msgstr "_Ok"
 
 #: ../src/control/jobs/control_jobs.c:2452
-#, fuzzy
 msgid "Some files have not been copied"
-msgstr "No se han creado estilos aún"
+msgstr "Algunos archivos no se han copiado"
 
 #. Create the label
 #: ../src/control/jobs/control_jobs.c:2456
@@ -6340,11 +6399,14 @@ msgid ""
 "files already exist on the destination. This may be because the files have "
 "already been imported or the naming pattern leads to non-unique file names."
 msgstr ""
+"Los siguientes archivos de origen no se han copiado porque ya existen "
+"archivos con nombres similares en el destino. Esto puede deberse a que los "
+"archivos ya se han importado o a que el patrón de nomenclatura da lugar a "
+"nombres de archivo no únicos."
 
 #: ../src/control/jobs/control_jobs.c:2483
-#, fuzzy
 msgid "Origin path"
-msgstr "original"
+msgstr "Ruta de origen"
 
 #: ../src/control/jobs/control_jobs.c:2560
 msgid "import"
@@ -6499,27 +6561,27 @@ msgstr "corrección de color"
 #: ../src/develop/blend_gui.c:67
 msgctxt "blendmode"
 msgid "Lab lightness"
-msgstr "luminosidad Lab"
+msgstr "Luminosidad Lab"
 
 #: ../src/develop/blend_gui.c:68
 msgctxt "blendmode"
 msgid "Lab color"
-msgstr "color Lab"
+msgstr "Color Lab"
 
 #: ../src/develop/blend_gui.c:69
 msgctxt "blendmode"
 msgid "Lab L-channel"
-msgstr "canal L Lab"
+msgstr "Canal L Lab"
 
 #: ../src/develop/blend_gui.c:70
 msgctxt "blendmode"
 msgid "Lab a-channel"
-msgstr "canal a Lab"
+msgstr "Canal a Lab"
 
 #: ../src/develop/blend_gui.c:71
 msgctxt "blendmode"
 msgid "Lab b-channel"
-msgstr " canal b Lab"
+msgstr "Canal b Lab"
 
 #: ../src/develop/blend_gui.c:72
 msgctxt "blendmode"
@@ -6606,30 +6668,25 @@ msgstr "RGB (Escena)"
 
 #: ../src/develop/blend_gui.c:101
 msgid "None"
-msgstr ""
+msgstr "Ninguno"
 
 #: ../src/develop/blend_gui.c:102
-#, fuzzy
 msgid "Uniform"
-msgstr "uniforme"
+msgstr "Uniforme"
 
 #: ../src/develop/blend_gui.c:103
-#, fuzzy
 msgid "Parametric mask"
-msgstr "máscara paramétrica"
+msgstr "Máscara paramétrica"
 
 #: ../src/develop/blend_gui.c:104
-#, fuzzy
 msgid "Drawn mask"
-msgstr "trazar máscara"
+msgstr "Trazar máscara"
 
 #: ../src/develop/blend_gui.c:105
-#, fuzzy
 msgid "Drawn & parametric mask"
-msgstr "trazo + máscara paramétrica"
+msgstr "Trazar máscara paramétrica"
 
 #: ../src/develop/blend_gui.c:106
-#, fuzzy
 msgid "Reuse an existing mask"
 msgstr "Añadir una figura existente"
 
@@ -7034,13 +7091,15 @@ msgstr "Opciones de fusión"
 
 #: ../src/develop/blend_gui.c:3045
 msgid "Blending"
-msgstr ""
+msgstr "Fusión"
 
 #: ../src/develop/blend_gui.c:3046
 msgid ""
 "Define opacity masks and blending modes to limit the spatial application of "
 "the module."
 msgstr ""
+"Defina máscaras de opacidad y modos de fusión para limitar la aplicación "
+"espacial del módulo."
 
 #: ../src/develop/blend_gui.c:3053 ../src/libs/history.c:907
 msgid "blend mode"
@@ -7202,7 +7261,7 @@ msgstr "Necesita copiar el historial de una imagen antes de pegarlo en otra"
 
 #: ../src/develop/dev_history.c:668
 msgid "autosaving changes..."
-msgstr ""
+msgstr "autoguardando cambios..."
 
 #: ../src/develop/dev_history.c:948
 #, c-format
@@ -7379,9 +7438,9 @@ msgid "size: %3.2f%%"
 msgstr "Tamaño: %3.2f%%"
 
 #: ../src/develop/masks/brush.c:1210
-#, fuzzy, c-format
+#, c-format
 msgid "opacity: %3.2f%%"
-msgstr "Tamaño: %3.2f%%"
+msgstr "opacidad: %3.2f%%"
 
 #: ../src/develop/masks/brush.c:2875
 #, c-format
@@ -7506,9 +7565,9 @@ msgid "%s: mask version mismatch: %d != %d"
 msgstr "%s: no coincide la versión de máscara: %d != %d"
 
 #: ../src/develop/masks/masks.c:1444
-#, fuzzy, c-format
+#, c-format
 msgid "reuse shapes from %s"
-msgstr "Cortar figuras desde la escala actual"
+msgstr "reutilizar formas de %s"
 
 #: ../src/develop/masks/masks.c:1797
 msgid "masks can not contain themselves"
@@ -7564,6 +7623,8 @@ msgid ""
 "Ansel discovered problems with your OpenCL setup; disabling OpenCL for this "
 "session!"
 msgstr ""
+"Darktable ha descubierto un problema con la configuración OpenCL: desactive "
+"OpenCL para esta sesión!"
 
 #: ../src/develop/pixelpipe_hb.c:2660
 #, c-format
@@ -7586,13 +7647,18 @@ msgid ""
 msgstr ""
 
 #: ../src/develop/pixelpipe_hb.c:2673
-#, c-format
+#, fuzzy, c-format
 msgid ""
 "The %s module is trying to reuse a mask from a module but it can't be "
 "found.\n"
 "Masking in %s will be disabled until a mask is available.\n"
 "%s"
 msgstr ""
+"El módulo `%s` está intentando reutilizar una máscara del módulo desactivado "
+"`%s`.\n"
+"Los módulos deshabilitados no pueden proporcionar sus máscaras a otros "
+"módulos.\n"
+"El enmascaramiento en `%s` se desactivará hasta que `%s` se vuelva a activar."
 
 #. there might be stale masks from disabled modules left over. don't use those!
 #: ../src/develop/pixelpipe_hb.c:2688
@@ -7602,6 +7668,11 @@ msgid ""
 "Disabled modules cannot provide their masks to other modules.\n"
 "Masking in `%s` will be disabled until `%s` is re-enabled."
 msgstr ""
+"El módulo `%s` está intentando reutilizar una máscara del módulo desactivado "
+"`%s`.\n"
+"Los módulos deshabilitados no pueden proporcionar sus máscaras a otros "
+"módulos.\n"
+"El enmascaramiento en `%s` se desactivará hasta que `%s` se vuelva a activar."
 
 #: ../src/develop/tiling.c:820 ../src/develop/tiling.c:1154
 #, c-format
@@ -7658,11 +7729,12 @@ msgstr ""
 #: ../src/dtgtk/thumbnail.c:213
 #, fuzzy
 msgid "Camera : "
-msgstr "balance de blancos de la cámara"
+msgstr "Cámara:"
 
 #: ../src/dtgtk/thumbnail.c:214
+#, fuzzy
 msgid "Lens : "
-msgstr ""
+msgstr "Objetivos:"
 
 #. * color labels
 #: ../src/dtgtk/thumbnail.c:220
@@ -7683,11 +7755,14 @@ msgid ""
 "The current filtered collection contains no image. Relax your filters or "
 "fetch a non-empty collection"
 msgstr ""
+"La colección filtrada actual no contiene ninguna imagen. Modifique sus "
+"filtros o busque una colección no vacía"
 
 #: ../src/dtgtk/thumbtable.c:1362
 #, c-format
 msgid "'%s': Please use 'File > Import' to import a folder."
 msgstr ""
+"'%s': Por favor, utilice 'Archivo > Importar' para importar una carpeta."
 
 #: ../src/dtgtk/thumbtable.c:1911
 msgid ""
@@ -7695,6 +7770,10 @@ msgid ""
 "Selecting all images will only target visible members of image groups.\n"
 "Uncollapse groups to select all their members"
 msgstr ""
+"Los grupos de imágenes están contraídos en la vista.\n"
+"Al seleccionar todas las imágenes, sólo se seleccionarán los miembros "
+"visibles de los grupos de imágenes.\n"
+"Descomprimir grupos para seleccionar todos sus miembros"
 
 #: ../src/dtgtk/thumbtable.c:1935
 msgid ""
@@ -7703,6 +7782,10 @@ msgid ""
 "groups.\n"
 "Uncollapse groups to select all their members"
 msgstr ""
+"Los grupos de imágenes están contraídos en la vista.\n"
+"Al seleccionar un rango de imágenes, sólo se seleccionarán los miembros "
+"visibles de los grupos de imágenes.\n"
+"Descomprimir grupos para seleccionar todos sus miembros"
 
 #. Column 1 - "make" of the camera.
 #. * Column 2 - "model" (use the "make" and "model" as provided by DCRaw).
@@ -7869,6 +7952,11 @@ msgid ""
 "to enable disk backend for thumbnail cache\n"
 "no thumbnails to be generated, done.\n"
 msgstr ""
+"advertencia: el backend de disco para la caché de miniaturas está "
+"deshabilitado (cache_disk_backend)\n"
+"si quieres pre-generar miniaturas y que Ansel las use, necesitas habilitar "
+"el backend de disco para la caché de miniaturas\n"
+"no se generarán miniaturas, hecho.\n"
 
 #: ../src/generate-cache/main.c:237
 #, c-format
@@ -7881,9 +7969,8 @@ msgid "creating complete lighttable thumbnail cache\n"
 msgstr "Creando toda la caché de miniaturas de la mesa de luz\n"
 
 #: ../src/gui/gtk.c:332
-#, fuzzy
 msgid "closing Ansel..."
-msgstr "Cargando «%s» ..."
+msgstr "cerrando Ansel..."
 
 #. font name can only use period as decimal separator
 #. but printf format strings use comma for some locales, so replace comma with period
@@ -7905,7 +7992,7 @@ msgstr "$(FILE.NAME) → nombre base de la imagen de entrada"
 #: ../src/gui/gtkentry.c:173
 #, fuzzy
 msgid "$(FILE.FOLDER) - directory structure containing the input image"
-msgstr "$(FILE.EXTENSION) → extensión de la imagen de entrada"
+msgstr "$(FILE.YEAR) - año de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:174
 msgid "$(FILE.NAME) - basename of the input image"
@@ -7916,34 +8003,28 @@ msgid "$(FILE.EXTENSION) - extension of the input image"
 msgstr "$(FILE.EXTENSION) → extensión de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:176
-#, fuzzy
 msgid "$(FILE.YEAR) - year of modification of the input image"
-msgstr "$(FILE.NAME) → nombre base de la imagen de entrada"
+msgstr "$(FILE.YEAR) - año de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:177
-#, fuzzy
 msgid "$(FILE.MONTH) - month of modification of the input image"
-msgstr "$(FILE.EXTENSION) → extensión de la imagen de entrada"
+msgstr "$(FILE.MONTH) - mes de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:178
-#, fuzzy
 msgid "$(FILE.DAY) - day of modification of the input image"
-msgstr "$(FILE.NAME) → nombre base de la imagen de entrada"
+msgstr "$(FILE.DAY) - día de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:179
-#, fuzzy
 msgid "$(FILE.HOUR) - hour of modification of the input image"
-msgstr "$(FILE.EXTENSION) → extensión de la imagen de entrada"
+msgstr "$(FILE.HOUR) - hora de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:180
-#, fuzzy
 msgid "$(FILE.MINUTE) - minute of modification of the input image"
-msgstr "$(FILE.EXTENSION) → extensión de la imagen de entrada"
+msgstr "$(FILE.MINUTE) - minuto de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:181
-#, fuzzy
 msgid "$(FILE.SECOND) - second of modification of the input image"
-msgstr "$(FILE.EXTENSION) → extensión de la imagen de entrada"
+msgstr "$(FILE.SECOND) - segundo de modificación de la imagen de entrada"
 
 #: ../src/gui/gtkentry.c:182
 msgid "$(VERSION) - duplicate version"
@@ -8497,7 +8578,7 @@ msgstr "ERROR al cargar user.css"
 #. load default text
 #: ../src/gui/preferences.c:448
 msgid "Enter CSS theme tweaks here"
-msgstr "Incorpore las modificaciones al tema CSS aquí."
+msgstr "Incorpore las modificaciones al tema CSS aquí"
 
 #: ../src/gui/preferences.c:484
 msgid "Ansel preferences"
@@ -8856,7 +8937,6 @@ msgstr "Perfil de color del monitor"
 
 #. Parent sub-menu profile intent
 #: ../src/gui/actions/display.c:385
-#, fuzzy
 msgid "Monitor color intent"
 msgstr "Perfil de color del monitor"
 
@@ -8901,27 +8981,24 @@ msgstr "Tira de imágenes"
 
 #. Lighttable & Filmstrip options
 #: ../src/gui/actions/display.c:418
-#, fuzzy
 msgid "Thumbnail overlays"
-msgstr "visualización de miniaturas"
+msgstr "Visualización de miniaturas"
 
 #: ../src/gui/actions/display.c:421
 msgid "Always hide"
-msgstr ""
+msgstr "Ocultar siempre"
 
 #: ../src/gui/actions/display.c:424
 msgid "Show on hover"
-msgstr ""
+msgstr "Mostrar al pasar el ratón por encima"
 
 #: ../src/gui/actions/display.c:427
-#, fuzzy
 msgid "Always show"
-msgstr "según la toma original"
+msgstr "Mostrar siempre"
 
 #: ../src/gui/actions/display.c:430
-#, fuzzy
 msgid "Collapse grouped images"
-msgstr "Imágenes agrupadas"
+msgstr "Contraer imágenes agrupadas"
 
 #: ../src/gui/actions/display.c:432
 #, fuzzy
@@ -8933,9 +9010,8 @@ msgid "Full screen"
 msgstr "Pantalla completa"
 
 #: ../src/gui/actions/display.c:440
-#, fuzzy
 msgid "Global/Actions"
-msgstr "opciones generales"
+msgstr "Opciones generales"
 
 #: ../src/gui/actions/display.c:440
 msgid "Toggle all panels visibility"
@@ -8967,9 +9043,10 @@ msgid "Duplication needs selected images to work"
 msgstr "Duplicado necesita imágenes seleccionadas para funcionar"
 
 #: ../src/gui/actions/edit.c:354
-#, fuzzy
 msgid "Creating new historys needs selected images to work"
-msgstr "Pegar necesita imágenes seleccionadas para funcionar"
+msgstr ""
+"La creación de nuevos desarrollos necesita imágenes seleccionadas para "
+"funcionar"
 
 #: ../src/gui/actions/edit.c:359
 msgid "Undo"
@@ -8980,44 +9057,40 @@ msgid "Redo"
 msgstr "Rehacer"
 
 #: ../src/gui/actions/edit.c:365
-#, fuzzy
 msgid "Copy history (all)"
-msgstr "borrar historial de acciones"
+msgstr "Borrar historial (todos)"
 
 #: ../src/gui/actions/edit.c:367
 msgid "Copy history (parts)..."
-msgstr ""
+msgstr "Copiar historial (partes)..."
 
 #: ../src/gui/actions/edit.c:369
 msgid "Paste history (all)"
-msgstr ""
+msgstr "Pegar historial (todos)"
 
 #: ../src/gui/actions/edit.c:372
 msgid "Paste history (parts)..."
-msgstr ""
+msgstr "Pegar historial (partes)"
 
 #: ../src/gui/actions/edit.c:377
 msgid "Load history from XMP..."
-msgstr ""
+msgstr "Cargar historial desde XMP..."
 
 #: ../src/gui/actions/edit.c:380
-#, fuzzy
 msgid "Create new history"
-msgstr "crear un estilo nuevo"
+msgstr "Crear un nuevo historial"
 
 #: ../src/gui/actions/edit.c:383
 msgid "Duplicate existing history"
-msgstr ""
+msgstr "Duplicar historial existente"
 
 #: ../src/gui/actions/edit.c:386
-#, fuzzy
 msgid "Compress history"
-msgstr "comprimir historial de acciones"
+msgstr "Comprimir historial"
 
 #: ../src/gui/actions/edit.c:389
-#, fuzzy
 msgid "Delete history"
-msgstr "¿Borrar el historial de las imágenes?"
+msgstr "Eliminar historial"
 
 #: ../src/gui/actions/edit.c:394
 msgid "Preferences"
@@ -9037,51 +9110,44 @@ msgid " but not "
 msgstr " pero no "
 
 #: ../src/gui/actions/file.c:161
-#, fuzzy
 msgid "Ansel - Export images"
-msgstr "exportar imágenes"
+msgstr "Ansel - Exportar imágenes"
 
 #: ../src/gui/actions/file.c:182
-#, fuzzy
 msgid "Import..."
-msgstr "Importar"
+msgstr "Importar..."
 
 #: ../src/gui/actions/file.c:185
-#, fuzzy
 msgid "Export..."
-msgstr "Exportar"
+msgstr "Exportar..."
 
 #: ../src/gui/actions/file.c:190
-#, fuzzy
 msgid "Recent collections"
-msgstr "Colecciones"
+msgstr "Colecciones recientes"
 
 #. Pass the position of current menuitem in list as custom-data pointer
 #: ../src/gui/actions/file.c:196
-#, fuzzy, c-format
+#, c-format
 msgid "Most recent collection #%i"
-msgstr "ir a la colección de etiquetas"
+msgstr "Colección más reciente #%i"
 
 #: ../src/gui/actions/file.c:211
-#, fuzzy
 msgid "Copy files on disk..."
-msgstr "archivo en disco"
+msgstr "Copiar archivos en disco..."
 
 #: ../src/gui/actions/file.c:214
-#, fuzzy
 msgid "Move files on disk..."
-msgstr "archivo en disco"
+msgstr "Mover archivos en disco..."
 
 #: ../src/gui/actions/file.c:217
 msgid "Create a blended HDR"
-msgstr ""
+msgstr "Crear HDR"
 
 #: ../src/gui/actions/file.c:222
 msgid "Copy distant images locally"
-msgstr ""
+msgstr "Copiar la imagen localmente"
 
 #: ../src/gui/actions/file.c:225
-#, fuzzy
 msgid "Resynchronize distant images"
 msgstr "Resincronizar librería y XMP"
 
@@ -9112,7 +9178,7 @@ msgstr "Sitio web"
 
 #: ../src/gui/actions/help.c:26
 msgid "all those of you that made previous releases possible"
-msgstr "todos aquellos que hicieron posible las versiones previas."
+msgstr "todos aquellos que hicieron posible las versiones previas"
 
 #: ../src/gui/actions/help.c:31
 msgid "and..."
@@ -9157,17 +9223,16 @@ msgid "Book a training session"
 msgstr "Reservar una sesión de formación"
 
 #: ../src/gui/actions/help.c:203
-#, fuzzy
 msgid "Ask a question"
-msgstr "sugerencia"
+msgstr "Sugerencia"
 
 #: ../src/gui/actions/help.c:204
 msgid "Join the support chat"
-msgstr ""
+msgstr "Únase al chat de asistencia"
 
 #: ../src/gui/actions/help.c:205
 msgid "Join the support forum"
-msgstr ""
+msgstr "Únete al foro de ayuda"
 
 #: ../src/gui/actions/help.c:207
 msgid "Open contextual help"
@@ -9184,101 +9249,96 @@ msgstr "Acerca de"
 #. Rotation
 #: ../src/gui/actions/image.c:163
 msgid "Rotate"
-msgstr ""
+msgstr "Girar"
 
 #: ../src/gui/actions/image.c:166
 msgid "90° counter-clockwise"
-msgstr ""
+msgstr "90° en sentido contrario de las agujas del reloj"
 
 #: ../src/gui/actions/image.c:169
 msgid "90° clockwise"
-msgstr ""
+msgstr "90° en el sentido de las agujas del reloj"
 
 #: ../src/gui/actions/image.c:174
-#, fuzzy
 msgid "Reset rotation"
-msgstr "rotación"
+msgstr "Restaurar rotación"
 
 #. Color labels
 #: ../src/gui/actions/image.c:178
-#, fuzzy
 msgid "Color labels"
-msgstr "marcas de color"
+msgstr "Marcas de color"
 
 #: ../src/gui/actions/image.c:181
 msgid "<span foreground='#BB2222'>⬤</span> Red"
-msgstr ""
+msgstr "<span foreground='#BB2222'>⬤</span> Rojo"
 
 #: ../src/gui/actions/image.c:184
 msgid "<span foreground='#BBBB22'>⬤</span> Yellow"
-msgstr ""
+msgstr "<span foreground='#BBBB22'>⬤</span> Amarillo"
 
 #: ../src/gui/actions/image.c:187
 msgid "<span foreground='#22BB22'>⬤</span> Green"
-msgstr ""
+msgstr "<span foreground='#22BB22'>⬤</span> Verde"
 
 #: ../src/gui/actions/image.c:190
 msgid "<span foreground='#2222BB'>⬤</span> Blue"
-msgstr ""
+msgstr "<span foreground='#2222BB'>⬤</span> Azul"
 
 #: ../src/gui/actions/image.c:193
+#, fuzzy
 msgid "<span foreground='#BB22BB'>⬤</span> Purple"
-msgstr ""
+msgstr "<span foreground='#2222BB'>⬤</span> Azul"
 
 #: ../src/gui/actions/image.c:198
 msgid "<span foreground='#BBBBBB'>⬤</span> Clear labels"
-msgstr ""
+msgstr "<span foreground='#BBBBBB'>⬤</span> Etiquetas transparentes"
 
 #. Ratings
 #: ../src/gui/actions/image.c:202
-#, fuzzy
 msgid "Ratings"
-msgstr "valoración"
+msgstr "Valoraciones"
 
 #: ../src/gui/actions/image.c:205
 msgid "Reject"
-msgstr ""
+msgstr "Rechazar"
 
 #: ../src/gui/actions/image.c:208
 msgid "★"
-msgstr ""
+msgstr "★"
 
 #: ../src/gui/actions/image.c:211
 msgid "★★"
-msgstr ""
+msgstr "★★"
 
 #: ../src/gui/actions/image.c:214
 msgid "★★★"
-msgstr ""
+msgstr "★★★"
 
 #: ../src/gui/actions/image.c:217
 msgid "★★★★"
-msgstr ""
+msgstr "★★★★"
 
 #: ../src/gui/actions/image.c:220
 msgid "★★★★★"
-msgstr ""
+msgstr "★★★★★"
 
 #: ../src/gui/actions/image.c:225
-#, fuzzy
 msgid "Clear rating"
-msgstr "valoración"
+msgstr "Valoración"
 
 #. Reload EXIF
 #: ../src/gui/actions/image.c:231
 msgid "Reload EXIF from file"
-msgstr ""
+msgstr "Recargar EXIF desde archivo"
 
 #. Group/Ungroup
 #: ../src/gui/actions/image.c:237
-#, fuzzy
 msgid "Group images"
-msgstr "Imágenes agrupadas"
+msgstr "Agrupar imágenes"
 
 #: ../src/gui/actions/image.c:240
-#, fuzzy
 msgid "Ungroup images"
-msgstr "Imágenes agrupadas"
+msgstr "Desagrupar imágenes"
 
 #: ../src/gui/actions/run.c:70
 msgid "Preloading cache for current collection"
@@ -9286,7 +9346,7 @@ msgstr "Precarga de la caché para la colección actual"
 
 #: ../src/gui/actions/run.c:99
 msgid "Clear darkroom pipeline caches"
-msgstr ""
+msgstr "Borrar todas las memorias caché"
 
 #: ../src/gui/actions/run.c:100
 #, fuzzy
@@ -9310,9 +9370,8 @@ msgid "Resynchronize library and XMP"
 msgstr "Resincronizar librería y XMP"
 
 #: ../src/gui/actions/run.c:107
-#, fuzzy
 msgid "Save selected developments to XMP"
-msgstr "Seleccione items para copiar"
+msgstr "Guardar todo el historial en XMP"
 
 #: ../src/gui/actions/run.c:109
 msgid "Resynchronize database with distant XMP for local copies"
@@ -9339,14 +9398,12 @@ msgid "_Selection"
 msgstr "_Selección"
 
 #: ../src/gui/window_manager.c:631
-#, fuzzy
 msgid "_Image"
-msgstr "imagen"
+msgstr "Imagen"
 
 #: ../src/gui/window_manager.c:631
-#, fuzzy
 msgid "_Styles"
-msgstr "estilo"
+msgstr "Estilos"
 
 #: ../src/gui/window_manager.c:631
 msgid "_Run"
@@ -9595,7 +9652,7 @@ msgstr "tamaño de borde inválido, usando 0"
 #: ../src/imageio/storage/piwigo.c:1023 ../src/imageio/storage/example.c:137
 #, c-format
 msgid "could not export to file `%s'!"
-msgstr "no se puede exportar el archivo %s"
+msgstr "¡No se pudo exportar al archivo '%s'!"
 
 #: ../src/imageio/format/pdf.c:408
 msgid "PDF"
@@ -9865,6 +9922,8 @@ msgid ""
 "Expected behaviour if the current naming pattern\n"
 "produces a filename that already exists."
 msgstr ""
+"Comportamiento esperado si el patrón de nombres actual\n"
+"produce un nombre de archivo que ya existe."
 
 #: ../src/imageio/storage/disk.c:197
 msgid "create unique filename"
@@ -10059,7 +10118,7 @@ msgstr "enviar como correo electrónico"
 
 #: ../src/imageio/storage/example.c:198
 msgid "images exported from Ansel"
-msgstr ""
+msgstr "imágenes exportadas desde Ansel"
 
 #: ../src/imageio/storage/example.c:251
 msgid "could not launch email client!"
@@ -10068,7 +10127,7 @@ msgstr "No se pudo abrir el cliente de correo"
 #: ../src/iop/demosaic/dual.c:51
 msgid "[dual demosaic] can't allocate internal buffers"
 msgstr ""
-" [doble interpolación cromática] No es posible asignar búferes internos."
+"[doble interpolación cromática] No es posible asignar búferes internos."
 
 #: ../src/iop/demosaic/lmmse.c:142
 msgid "[lmmse_demosaic] too small area"
@@ -10108,13 +10167,12 @@ msgid "Prevent accidental masks displacement when moving the view"
 msgstr "Evitar el desplazamiento accidental de las máscaras al mover la vista"
 
 #: ../src/iop/ashift.c:121
-#, fuzzy
 msgid "Horizon and _perspective"
-msgstr "perspectiva"
+msgstr "Rotación y perspectiva"
 
 #: ../src/iop/ashift.c:126
 msgid "rotation|keystone|distortion|crop|reframe|horizon"
-msgstr ""
+msgstr "rotación|perspectiva|distorsión|recorte|reencuadre"
 
 #: ../src/iop/ashift.c:131
 msgid "rotate or distort perspective"
@@ -10214,28 +10272,24 @@ msgid "vertical"
 msgstr "vertical"
 
 #: ../src/iop/ashift.c:5508 ../src/iop/crop.c:1196
-#, fuzzy
 msgid "Apply"
-msgstr "establecer"
+msgstr "Aplicar"
 
 #: ../src/iop/ashift.c:5508 ../src/iop/crop.c:1196
 msgid "Apply changes"
-msgstr ""
+msgstr "Aplicar cambios"
 
 #: ../src/iop/ashift.c:5519
-#, fuzzy
 msgid "Manual settings"
-msgstr "Configuración general"
+msgstr "Ajustes manuales"
 
 #: ../src/iop/ashift.c:5568
-#, fuzzy
 msgid "Mark reference lines"
-msgstr "neutral"
+msgstr "Marcar líneas de referencia"
 
 #: ../src/iop/ashift.c:5582
-#, fuzzy
 msgid "Fit perspective transform"
-msgstr "transformada adaptativa del balance de blancos"
+msgstr "Ajustar perspectiva transformar"
 
 #: ../src/iop/ashift.c:5599
 #, fuzzy
@@ -10244,12 +10298,12 @@ msgstr "Opciones de fusión"
 
 #: ../src/iop/ashift.c:5602
 msgid "rotation, lens shift, shear"
-msgstr ""
+msgstr "rotación, desplazamiento de la lente, recorte"
 
 #: ../src/iop/ashift.c:5603
 #, fuzzy
 msgid "rotation, lens shift"
-msgstr "rotación|espejar"
+msgstr "rotación, desplazamiento de la lente, recorte"
 
 #: ../src/iop/ashift.c:5604
 #, fuzzy
@@ -10263,7 +10317,7 @@ msgstr "desplazamiento horizontal"
 
 #: ../src/iop/ashift.c:5607
 msgid "Fit for"
-msgstr ""
+msgstr "Adecuado para"
 
 #: ../src/iop/ashift.c:5616
 msgid ""
@@ -11635,6 +11689,9 @@ msgid ""
 "h: \t%.1f °\n"
 "c: \t%.1f"
 msgstr ""
+"L: \t%.1f %%\n"
+"h: \t%.1f °\n"
+"c: \t%.1f"
 
 #. Page CAT
 #: ../src/iop/channelmixerrgb.c:3960
@@ -11660,6 +11717,16 @@ msgid ""
 "- XYZ is a simple scaling in XYZ space. It is not recommended in general.\n"
 "- none disables any adaptation and uses pipeline working RGB."
 msgstr ""
+"elegir el método para adaptar la luminancia\n"
+"y el espacio de color en el que trabaja el módulo: \n"
+"- Linear Bradford (1985) es coherente con la cadena de herramientas ICC v4.\n"
+"- CAT16 (2016) es más robusto y preciso.\n"
+"- Bradford no lineal (1985) es el Bradford original,\n"
+"  puede producir mejores resultados que la versión lineal, pero es poco "
+"fiable.\n"
+"- XYZ es un simple escalado en el espacio XYZ. No se recomienda en general.\n"
+"- ninguno desactiva cualquier adaptación y utiliza el RGB de trabajo de la "
+"canalización."
 
 #: ../src/iop/channelmixerrgb.c:3982
 msgid ""
@@ -11745,6 +11812,7 @@ msgstr ""
 #: ../src/iop/channelmixerrgb.c:4068 ../src/iop/exposure.c:1079
 msgid "these LCh coordinates are computed from CIE Lab 1976 coordinates"
 msgstr ""
+"estas coordenadas LCh se calculan a partir de las coordenadas CIE Lab 1976"
 
 #: ../src/iop/channelmixerrgb.c:4081
 msgid "the desired target color after mapping"
@@ -11788,7 +11856,7 @@ msgstr "brillo de salida"
 
 #: ../src/iop/channelmixerrgb.c:4138
 msgid "B&W"
-msgstr ""
+msgstr "BYN"
 
 #: ../src/iop/channelmixerrgb.c:4138
 msgid "output gray"
@@ -12910,6 +12978,8 @@ msgstr ""
 #, c-format
 msgid "The color profile `%s' referenced as input profile has not been found."
 msgstr ""
+"No se ha encontrado el perfil de color `%s' referenciado como perfil de "
+"entrada."
 
 #: ../src/iop/colorin.c:1947
 msgid "input profile"
@@ -13275,15 +13345,15 @@ msgstr "Cambiar el encuadre"
 
 #: ../src/iop/crop.c:1071
 msgid "7:6, 6x7"
-msgstr ""
+msgstr "7:6, 6x7"
 
 #: ../src/iop/crop.c:1073
 msgid "6:5, 5x6"
-msgstr ""
+msgstr "6:5, 5x6"
 
 #: ../src/iop/crop.c:1083
 msgid "5:3, 12x20"
-msgstr ""
+msgstr "5:3, 12x20"
 
 #: ../src/iop/crop.c:1086
 #, fuzzy
@@ -13302,11 +13372,11 @@ msgstr "anamórfico"
 
 #: ../src/iop/crop.c:1090
 msgid "65:24, XPan"
-msgstr ""
+msgstr "65:24, XPan"
 
 #: ../src/iop/crop.c:1092
 msgid "4:1, Polyvision"
-msgstr ""
+msgstr "4:1, Polyvisión"
 
 #: ../src/iop/crop.c:1541
 msgid "<b>resize</b>: drag, <b>keep aspect ratio</b>: shift+drag"
@@ -14900,6 +14970,11 @@ msgid ""
 "Negative values bleache highlights at constant hue and luminance.\n"
 "Zero is an equal mix of both strategies."
 msgstr ""
+"Los valores positivos garantizan que la saturación se mantenga invariable en "
+"toda la gama.\n"
+"Los valores negativos blanquean las altas luces con un tono y una luminancia "
+"constantes.\n"
+"Cero es una mezcla a partes iguales de ambas estrategias."
 
 #: ../src/iop/finalscale.c:41
 msgctxt "modulename"
@@ -15819,7 +15894,7 @@ msgstr "Nivel inválido en el archivo PNG %d %d"
 
 #: ../src/iop/lut3d.c:521
 msgid "this Ansel build is not compatible with compressed clut"
-msgstr ""
+msgstr "esta compilación de Ansel no es compatible con el clut comprimido"
 
 #: ../src/iop/lut3d.c:538 ../src/iop/lut3d.c:787
 #, c-format
@@ -16709,7 +16784,7 @@ msgstr "curva rgb"
 #: ../src/iop/rgbcurve.c:143
 #, fuzzy
 msgid "alter an image's tones using curves in RGB color space"
-msgstr "Ajusta los puntos negro, blanco y gris medio en espacio de color RGB"
+msgstr "alterar los tonos de una imagen mediante curvas"
 
 #: ../src/iop/rgbcurve.c:194 ../src/iop/tonecurve.c:563
 msgid "gamma 1.0 (linear)"
@@ -17184,7 +17259,7 @@ msgstr "curva de tono"
 
 #: ../src/iop/tonecurve.c:212
 msgid "alter an image's tones using curves"
-msgstr ""
+msgstr "alterar los tonos de una imagen mediante curvas"
 
 #: ../src/iop/tonecurve.c:1145
 msgid ""
@@ -17291,6 +17366,8 @@ msgid ""
 "tone equalizer needs to be after distortion modules in the pipeline - "
 "disabled"
 msgstr ""
+"el ecualizador de tono debe estar después de los módulos de distorsión en el "
+"canal - desactivado"
 
 #. Pointers are not 64-bits aligned, and SSE code will segfault
 #: ../src/iop/toneequal.c:922
@@ -17390,7 +17467,7 @@ msgstr ""
 #: ../src/iop/toneequal.c:3087
 #, fuzzy
 msgid "sliders"
-msgstr "diapositivas"
+msgstr "Control deslizante"
 
 #: ../src/iop/toneequal.c:3116
 msgid "-8 EV"
@@ -17920,11 +17997,11 @@ msgstr "Colecciones"
 #: ../src/libs/collect.c:2350
 #, fuzzy
 msgid "Search a collection..."
-msgstr "ir a la colección de etiquetas"
+msgstr "Colecciones recientes"
 
 #: ../src/libs/collect.c:2362 ../src/libs/collect.c:3200
 msgid "Search..."
-msgstr ""
+msgstr "Buscar..."
 
 #: ../src/libs/collect.c:2998
 msgid "narrow down search"
@@ -18111,7 +18188,7 @@ msgstr "opciones generales"
 
 #: ../src/libs/export.c:1092
 msgid "set size (bounding box)"
-msgstr ""
+msgstr "establecer tamaño (cuadro delimitador)"
 
 #: ../src/libs/export.c:1093
 msgid ""
@@ -18119,6 +18196,9 @@ msgid ""
 "The width and height specified define the bounding box\n"
 "in which the image will be proportionnaly fitted.\n"
 msgstr ""
+"Elija un método para establecer el tamaño de salida.\n"
+"La anchura y la altura especificadas definen el cuadro delimitador\n"
+"en el que se ajustará proporcionalmente la imagen.\n"
 
 #: ../src/libs/export.c:1098
 msgid "in pixels (for file)"
@@ -18214,6 +18294,14 @@ msgid ""
 "- %s\n"
 "- %s"
 msgstr ""
+"Espacio de color RGB utilizado para codificar los archivos de salida.\n"
+"«igual que el original» exporta al mismo espacio que la imagen\n"
+"original, que es RGB de sensor lineal para imágenes RAW.\n"
+"En la mayoría de los casos se recomienda sRGB.\n"
+"Puede utilizar espacios de color personalizados definidos\n"
+"por perfiles ICC almacenados en:\n"
+"- %s\n"
+"- %s"
 
 #: ../src/libs/export.c:1232 ../src/libs/print_settings.c:2306
 #: ../src/libs/print_settings.c:2631
@@ -18624,7 +18712,7 @@ msgstr "monitor de gráficos"
 
 #: ../src/libs/histogram.c:928
 msgid "Show data from"
-msgstr ""
+msgstr "Mostrar datos de"
 
 #: ../src/libs/histogram.c:929
 #, fuzzy
@@ -18676,7 +18764,7 @@ msgstr ""
 
 #: ../src/libs/history.c:85
 msgid "History of changes"
-msgstr ""
+msgstr "Historial de cambios"
 
 #: ../src/libs/history.c:123
 msgid "compress history stack"
@@ -18709,12 +18797,12 @@ msgstr "Módulo sin soporte"
 #: ../src/libs/history.c:885
 #, c-format
 msgid "mandatory module created automatically"
-msgstr ""
+msgstr "módulo obligatorio creado automáticamente"
 
 #: ../src/libs/history.c:887
 #, c-format
 msgid "module created per user request"
-msgstr ""
+msgstr "módulo creado a petición del usuario"
 
 #. This is not the first history entry for this module.
 #. It can have been disabled.
@@ -19173,7 +19261,7 @@ msgstr "categorías"
 
 #: ../src/libs/metadata_view.c:176
 msgid "EXIF & IPTC"
-msgstr ""
+msgstr "EXIF & IPTC"
 
 #: ../src/libs/metadata_view.c:337
 msgid "unused/deprecated"
@@ -19821,7 +19909,7 @@ msgstr ""
 
 #: ../src/libs/tagging.c:100
 msgid "Tags"
-msgstr ""
+msgstr "Etiquetas"
 
 #: ../src/libs/tagging.c:1240
 msgid "attach tag to all"
@@ -20083,7 +20171,7 @@ msgstr "ordenar por"
 
 #: ../src/libs/tagging.c:3111
 msgid "toggle show or not Ansel tags"
-msgstr ""
+msgstr "mostrar o no etiquetas Ansel"
 
 #: ../src/libs/tagging.c:3111
 msgid "dttags"
@@ -20222,6 +20310,9 @@ msgid ""
 "which properties have been changed\n"
 "and don't match the current filters anymore."
 msgstr ""
+"Actualizar la colección actual para desalojar las imágenes\n"
+"cuyas propiedades hayan cambiado\n"
+"y ya no coincidan con los filtros actuales."
 
 #: ../src/libs/tools/filter.c:552 ../src/libs/tools/filter.c:648
 #: ../src/libs/tools/filter.c:720 ../src/libs/tools/filter.c:737
@@ -20234,67 +20325,67 @@ msgstr "Mesa de luz"
 #: ../src/libs/tools/filter.c:552
 #, fuzzy
 msgid "Reload current collection"
-msgstr "Precarga de la caché para la colección actual"
+msgstr "Colecciones recientes"
 
 #: ../src/libs/tools/filter.c:592
 msgid "Toggle filtering in/out unrated images (0 star)"
-msgstr ""
+msgstr "Filtro de imágenes no clasificadas (0 estrellas)"
 
 #: ../src/libs/tools/filter.c:593
 msgid "Toggle filtering in/out rejected images"
-msgstr ""
+msgstr "Filtro de imágenes rechazadas"
 
 #: ../src/libs/tools/filter.c:594
 msgid "Toggle filtering in/out images rated 1 star"
-msgstr ""
+msgstr "Filtro de imágenes calificadas con 1 estrella"
 
 #: ../src/libs/tools/filter.c:595
 msgid "Toggle filtering in/out images rated 2 stars"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con 2 estrellas"
 
 #: ../src/libs/tools/filter.c:596
 msgid "Toggle filtering in/out images rated 3 stars"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con 3 estrellas"
 
 #: ../src/libs/tools/filter.c:597
 msgid "Toggle filtering in/out images rated 4 stars"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con 4 estrellas"
 
 #: ../src/libs/tools/filter.c:598
 msgid "Toggle filtering in/out images rated 5 stars"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con 5 estrellas"
 
 #: ../src/libs/tools/filter.c:616
 msgid "Toggle filtering in/out images without color label"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas sin etiqueta de color"
 
 #: ../src/libs/tools/filter.c:617
 msgid "Toggle filtering in/out images with red label"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con etiqueta roja"
 
 #: ../src/libs/tools/filter.c:618
 msgid "Toggle filtering in/out images with yellow label"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con etiqueta amarilla"
 
 #: ../src/libs/tools/filter.c:619
 msgid "Toggle filtering in/out images with green label"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con etiqueta verde"
 
 #: ../src/libs/tools/filter.c:620
 msgid "Toggle filtering in/out images with blue label"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con etiqueta azul"
 
 #: ../src/libs/tools/filter.c:621
 msgid "Toggle filtering in/out images with purple label"
-msgstr ""
+msgstr "Filtro de imágenes clasificadas con etiqueta púrpura"
 
 #: ../src/libs/tools/filter.c:631
 msgid "Toggle filtering in/out unedited images"
-msgstr ""
+msgstr "Filtro de imágenes no editadas"
 
 #: ../src/libs/tools/filter.c:636
 msgid "Toggle filtering in/out edited images"
-msgstr ""
+msgstr "Filtro de imágenes editadas"
 
 #. Culling mode
 #: ../src/libs/tools/filter.c:642
@@ -20318,7 +20409,7 @@ msgstr ""
 #: ../src/libs/tools/filter.c:700
 #, fuzzy
 msgid "Search an image..."
-msgstr "imágenes huérfanas"
+msgstr "Buscar..."
 
 #: ../src/libs/tools/filter.c:707
 #, no-c-format
@@ -20373,12 +20464,13 @@ msgstr ""
 
 #. Focusing options
 #: ../src/libs/tools/lighttable.c:240
+#, fuzzy
 msgid "Overlay focus zones"
-msgstr ""
+msgstr "Superposición de picos de enfoque"
 
 #: ../src/libs/tools/lighttable.c:243
 msgid "Overlay focus peaking"
-msgstr ""
+msgstr "Superposición de picos de enfoque"
 
 #. Zoom
 #: ../src/libs/tools/lighttable.c:248
@@ -20386,8 +20478,9 @@ msgid "Zoom"
 msgstr ""
 
 #: ../src/libs/tools/lighttable.c:250
+#, fuzzy
 msgid "Fit"
-msgstr ""
+msgstr "Adecuado para"
 
 #: ../src/libs/tools/lighttable.c:252
 msgid "50 %"
@@ -20413,12 +20506,13 @@ msgid "Columns"
 msgstr "Columnas"
 
 #: ../src/libs/tools/lighttable.c:295
+#, fuzzy
 msgid "Zoom in the thumbtable grid"
-msgstr ""
+msgstr "Reducir la cuadrícula de la tabla de miniaturas"
 
 #: ../src/libs/tools/lighttable.c:297
 msgid "Zoom out the thumbtable grid"
-msgstr ""
+msgstr "Reducir la cuadrícula de la tabla de miniaturas"
 
 #: ../src/libs/tools/module_toolbox.c:46
 msgid "module toolbox"
@@ -20816,7 +20910,7 @@ msgstr "</xsl:text><xsl:value-of select="
 #: ../tools/generate_prefs.xsl:794
 #, c-format
 msgid "double click to reset to `%.03f'"
-msgstr "Doble clic para restablecer a '%f'"
+msgstr "Doble clic para restablecer a '%03f'"
 
 #: ../tools/generate_prefs.xsl:808 ../tools/generate_prefs.xsl:825
 #: ../tools/generate_prefs.xsl:852
