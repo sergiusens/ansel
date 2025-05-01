@@ -7,7 +7,6 @@ intltool-update -p -g ansel
 for f in *.po ; do
   echo "$f"
   msgmerge -U $f ansel.pot
-  msgattrib --translated --no-obsolete --no-fuzzy -o $f $f
 done
 
 # Report
