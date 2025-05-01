@@ -34,23 +34,13 @@ jobs:
         run: |
           sudo apt-get -y install \
             intltool \
-            libatk1.0-dev \
-            libjpeg-dev \
-            libjson-glib-dev \
-            libpugixml-dev \
-            libxml2-dev \
-            libxml2-utils \
-            python3-jsonschema \
-            xsltproc \
             doxygen \
-            graphviz \
-            python3-sphinx \
-            python3-sphinx-rtd-theme;
+            graphviz;
       - name: Checkout
         uses: actions/checkout@v4
         with:
           submodules: recursive
-          fetch-depth: 0
+          fetch-depth: 1
       - name: Setup Pages
         id: pages
         uses: actions/configure-pages@v2
@@ -63,7 +53,7 @@ jobs:
       - name: Upload page artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: ./doc/html
+          path: doc/html
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
