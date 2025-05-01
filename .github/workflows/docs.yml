@@ -45,15 +45,12 @@ jobs:
         id: pages
         uses: actions/configure-pages@v2
       - name: Build docs
-        env:
-          SRC_DIR: ${{ github.workspace }}
-          BUILD_DIR: ${{ github.workspace }}/build
         run: |
           doxygen doc/Doxyfile
       - name: Upload page artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: doc/html
+          path: doc/api/html
       - name: Deploy to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
