@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  Win64:
+  Linux:
     if: github.repository == 'aurelienpierreeng/ansel' || github.event_name == 'workflow_dispatch'
     name: Nightly Ansel Linux build
     runs-on: ubuntu-22.04
