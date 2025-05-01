@@ -1,3 +1,10 @@
+#!/bin/bash
+
+# go to project root
+PROJECT_ROOT="$(cd `dirname $0`/..; pwd -P)"
+cd "$PROJECT_ROOT"
+
+cd po
 
 # Update from source code
 intltool-update -m
