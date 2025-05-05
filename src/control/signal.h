@@ -129,12 +129,6 @@ typedef enum dt_signal_t
    */
   DT_SIGNAL_DEVELOP_INITIALIZE,
 
-  /** \brief This signal is raised when a mipmap has been generated and flushed to cache
-    1 :  int the imgid of the mipmap
-    no returned value
-    */
-  DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
-
   /** \brief This signal is raised when develop preview pipe process is finished
   no param, no returned value
     */

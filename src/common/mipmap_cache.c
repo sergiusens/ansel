@@ -108,12 +108,6 @@ static const size_t dt_mipmap_buffer_dsc_size __attribute__((unused)) = sizeof(s
 
 static uint8_t * _get_buffer_from_dsc(struct dt_mipmap_buffer_dsc *dsc);
 
-int dt_mipmap_ready_idle_signal(gpointer data)
-{
-  DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED, GPOINTER_TO_INT(data));
-  return G_SOURCE_REMOVE;
-}
-
 static inline void *dead_image_8(struct dt_mipmap_buffer_dsc *dsc)
 {
   dsc->width = dsc->height = 8;
@@ -742,29 +736,6 @@ static gboolean _query_cache(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, 
   return 0;
 }
 
-// We don't use the best effort for float32 input images
-static gboolean _find_nearest_mipmap(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid,
-                                     const dt_mipmap_size_t mip, const dt_mipmap_get_flags_t flags,
-                                     const char mode, const char *file, int line)
-{
-  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_requests), 1);
-
-  // Find any existing thumbnail at least as large as the required size
-  for(int k = mip; k < DT_MIPMAP_F; k++)
-  {
-    // already loaded?
-    if(_query_cache(cache, buf, imgid, mip, &(_get_cache(cache, mip)->stats_standin)))
-      return 1;
-  }
-
-  // Didn't find a larger mip in store. Request the exact desired size.
-  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_standin), 1);
-  dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_PREFETCH, 'r');
-
-  __sync_fetch_and_add(&(_get_cache(cache, mip)->stats_misses), 1);
-  return 0;
-}
-
 // if we get a zero-sized image, paint skulls to signal a missing image
 static void _paint_skulls(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const dt_mipmap_size_t mip)
 {
@@ -903,20 +874,6 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
     else
       _invalidate_buffer(buf);
   }
-  else if(flags == DT_MIPMAP_PREFETCH)
-  {
-    // and opposite: prefetch without locking
-    dt_control_add_job(darktable.control, DT_JOB_QUEUE_SYSTEM_FG, dt_image_load_job_create(imgid, mip));
-    // will raise DT_SIGNAL_DEVELOP_MIPMAP_UPDATED internally when finished
-  }
-  else if(flags == DT_MIPMAP_PREFETCH_DISK)
-  {
-    // only prefetch if the disk cache exists:
-    // don't test for file existence here, defer file I/O (latencies) to the background job
-    assert(cache->cachedir[0]);
-    dt_control_add_job(darktable.control, DT_JOB_QUEUE_SYSTEM_FG, dt_image_load_job_create(imgid, mip));
-    // will raise DT_SIGNAL_DEVELOP_MIPMAP_UPDATED internally when finished
-  }
   else if(flags == DT_MIPMAP_BLOCKING)
   {
     // simple case: blocking get
@@ -955,12 +912,6 @@ void dt_mipmap_cache_get_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buffer_
       assert(!pthread_equal(writer, pthread_self()));
     }
 #endif
-  }
-  else if(flags == DT_MIPMAP_BEST_EFFORT && mip < DT_MIPMAP_F)
-  {
-    // We don't use the best effort for float32 input images
-    if(!_find_nearest_mipmap(cache, buf, imgid, mip, flags, mode, file, line))
-      _invalidate_buffer(buf);
   }
   else
   {
@@ -1186,7 +1137,7 @@ static int _load_jpg(const char *filename, const int32_t imgid, const uint32_t w
 
 static int _find_sidecar_jpg(const char *filename, const char *ext, char *sidecar)
 {
-  const size_t filename_len = strlen(filename) - strlen(ext); 
+  const size_t filename_len = strlen(filename) - strlen(ext);
   const char *exts[4] = { ".jpg", ".JPG", ".jpeg", ".JPEG" };
 
   for(int i = 0; i < 4; i++)

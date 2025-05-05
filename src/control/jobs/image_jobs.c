@@ -26,48 +26,6 @@ typedef struct dt_image_load_t
   dt_mipmap_size_t mip;
 } dt_image_load_t;
 
-static int32_t dt_image_load_job_run(dt_job_t *job)
-{
-  dt_image_load_t *params = dt_control_job_get_params(job);
-
-  // hook back into mipmap_cache:
-  dt_mipmap_buffer_t buf;
-  dt_mipmap_cache_get(darktable.mipmap_cache, &buf, params->imgid, params->mip, DT_MIPMAP_BLOCKING, 'r');
-  dt_mipmap_cache_release(darktable.mipmap_cache, &buf);
-
-  // Signal we need to reload the mipmap in thumbtable
-  if(params->mip < DT_MIPMAP_F)
-  {
-    g_idle_add((GSourceFunc)dt_mipmap_ready_idle_signal, GINT_TO_POINTER(params->imgid));
-  }
-
-  return 0;
-}
-
-dt_job_t *dt_image_load_job_create(int32_t id, dt_mipmap_size_t mip)
-{
-  // This job is only for async retrieval of 8 bits thumbnails.
-  // float32 input images, whether half- or full-size use
-  // direct (blocking) retrieval.
-  if(mip >= DT_MIPMAP_F)
-  {
-    fprintf(stderr, "trying to load a floating point input image from a background job. this is forbidden\n");
-    return NULL;
-  }
-
-  dt_job_t *job = dt_control_job_create(&dt_image_load_job_run, "load image %d mip %d", id, mip);
-  if(!job) return NULL;
-  dt_image_load_t *params = (dt_image_load_t *)calloc(1, sizeof(dt_image_load_t));
-  if(!params)
-  {
-    dt_control_job_dispose(job);
-    return NULL;
-  }
-  dt_control_job_set_params_with_size(job, params, sizeof(dt_image_load_t), free);
-  params->imgid = id;
-  params->mip = mip;
-  return job;
-}
 
 typedef struct dt_image_import_t
 {

@@ -20,7 +20,6 @@ static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpoin
 
 void _close_preview_popup(GtkWidget *dialog, gint response_id, gpointer data)
 {
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_mipmaps_updated_callback), data);
 }
 
 
@@ -115,7 +114,4 @@ void dt_preview_window_spawn(const int32_t imgid)
 
   gtk_widget_set_visible(area, TRUE);
   gtk_widget_show_all(dialog);
-
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
-                                  G_CALLBACK(_dt_mipmaps_updated_callback), dialog);
 }

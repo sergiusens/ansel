@@ -45,22 +45,12 @@ typedef enum dt_mipmap_size_t {
 // type to be passed to getter functions
 typedef enum dt_mipmap_get_flags_t
 {
-  // Find the nearest available thumbnail for the requested size,
-  // or NULL.
-  // _F and _FULL buffer sizes are not supported.
-  DT_MIPMAP_BEST_EFFORT = 0,
-  // actually don't lock and return a buffer, but only
-  // start a bg job to load it, if it's not in cache already.
-  DT_MIPMAP_PREFETCH = 1,
-  // similar to prefetching, but only prefetch in case
-  // we hit the disk cache (don't run the more expensive pipeline)
-  DT_MIPMAP_PREFETCH_DISK = 2,
   // only return when the requested buffer is loaded.
   // blocks until that happens.
-  DT_MIPMAP_BLOCKING = 3,
+  DT_MIPMAP_BLOCKING = 0,
   // don't actually acquire the lock if it is not
   // in cache (i.e. would have to be loaded first)
-  DT_MIPMAP_TESTLOCK = 4
+  DT_MIPMAP_TESTLOCK = 1
 } dt_mipmap_get_flags_t;
 
 // struct to be alloc'ed by the client, filled by dt_mipmap_cache_get()
@@ -165,11 +155,6 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(
 // copy over thumbnails. used by file operation that copies raw files, to speed up thumbnail generation.
 // only copies over the jpg backend on disk, doesn't directly affect the in-memory cache.
 void dt_mipmap_cache_copy_thumbnails(const dt_mipmap_cache_t *cache, const uint32_t dst_imgid, const uint32_t src_imgid);
-
-
-// Wrapper to send a delayed DT_SIGNAL_DEVELOP_MIPMAP_UPDATED from g_idle_add
-// data is GINT_TO_POINTER(imgid)
-int dt_mipmap_ready_idle_signal(gpointer data);
 
 #ifdef __cplusplus
 }

@@ -948,14 +948,6 @@ gboolean dt_thumbtable_get_draw_group_borders(dt_thumbtable_t *table)
 }
 
 // can be called with imgid = -1, in that case we reload all mipmaps
-static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpointer user_data)
-{
-  if(!user_data) return;
-  dt_thumbtable_t *table = (dt_thumbtable_t *)user_data;
-  dt_thumbtable_refresh_thumbnail(table, imgid, FALSE);
-}
-
-// can be called with imgid = -1, in that case we reload all mipmaps
 // reinit = FALSE should be called when the mipmap is ready to redraw,
 // reinit = TRUE should be called when a refreshed mipmap has been requested but we have nothing yet to draw
 void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid, gboolean reinit)
@@ -966,13 +958,11 @@ void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid,
     dt_thumbnail_t *thumb = (dt_thumbnail_t *)l->data;
     if(thumb->imgid == imgid)
     {
-      if(reinit) thumb->image_inited = FALSE;
       dt_thumbnail_image_refresh(thumb);
       break;
     }
     else if(imgid == UNKNOWN_IMAGE)
     {
-      if(reinit) thumb->image_inited = FALSE;
       dt_thumbnail_image_refresh(thumb);
     }
   }
@@ -1817,8 +1807,6 @@ dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
                             G_CALLBACK(_dt_selection_changed_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_CONTROL_PROFILE_USER_CHANGED,
                             G_CALLBACK(_dt_profile_change_callback), table);
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
-                            G_CALLBACK(_dt_mipmaps_updated_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_IMAGE_INFO_CHANGED,
                             G_CALLBACK(_dt_image_info_changed_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_MOUSE_OVER_IMAGE_CHANGE,
@@ -1862,7 +1850,6 @@ void _dt_thumbtable_empty_list(dt_thumbtable_t *table)
 
 void dt_thumbtable_cleanup(dt_thumbtable_t *table)
 {
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_mipmaps_updated_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_collection_changed_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_selection_changed_callback), table);
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_dt_profile_change_callback), table);

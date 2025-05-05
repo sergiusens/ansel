@@ -1203,7 +1203,7 @@ static void _set_orientation(dt_lib_print_settings_t *ps, int32_t imgid)
 {
   dt_mipmap_buffer_t buf;
   dt_mipmap_cache_get(darktable.mipmap_cache, &buf,
-                      imgid, DT_MIPMAP_0, DT_MIPMAP_BEST_EFFORT, 'r');
+                      imgid, DT_MIPMAP_0, DT_MIPMAP_BLOCKING, 'r');
 
   // If there's a mipmap available, figure out orientation based upon
   // its dimensions. Otherwise, don't touch orientation until the
@@ -1323,14 +1323,6 @@ void view_enter(struct dt_lib_module_t *self,struct dt_view_t *old_view,struct d
   // mode which activates an image: get image_id and orientation
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
                             G_CALLBACK(_print_settings_activate_or_update_callback), self);
-
-  // when an updated mipmap, we may have new orientation information
-  // about the current image. This updates the image_id as well and
-  // zeros out dimensions, but there should be no harm in that
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals,
-                            DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
-                            G_CALLBACK(_print_settings_activate_or_update_callback),
-                            self);
 
   // NOTE: it would be proper to set image_id here to -1, but this seems to make no difference
 }

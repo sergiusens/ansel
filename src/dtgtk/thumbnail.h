@@ -134,8 +134,6 @@ typedef struct
   // and there is nothing yet to paint in the surface.
   // In that case, don't send more requests to the mipmap cache,
   // listen and wait for the MIPMAP_UPDATED signal.
-  gboolean busy;
-  gboolean drawn; // image already drawn, nothing more to do
 
   // Gtk signal id for the redraw event
   unsigned long draw_signal_id;

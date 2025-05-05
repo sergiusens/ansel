@@ -337,14 +337,32 @@ int _main_context_draw(dt_thumbnail_t *thumb)
   return G_SOURCE_REMOVE;
 }
 
+static void _finish_buffer_thread(dt_thumbnail_t *thumb, gboolean success)
+{
+  dt_pthread_mutex_lock(&thumb->lock);
+  thumb->background_jobs--;
+  dt_pthread_mutex_unlock(&thumb->lock);
+
+  thumb->image_inited = success;
+
+  // Redraw events need to be sent from the main GUI thread
+  // though we may not have a target widget anymore...
+  if(thumb->widget && thumb->w_image)
+    g_main_context_invoke(NULL, (GSourceFunc)_main_context_draw, thumb);
+}
+
+
 int32_t _get_image_buffer(dt_job_t *job)
 {
   dt_thumbnail_t *thumb = dt_control_job_get_params(job);
   thumb_return_if_fails(thumb, 1);
+  _free_image_surface(thumb);
 
   int image_w = 0;
   int image_h = 0;
   gtk_widget_get_size_request(thumb->w_image, &image_w, &image_h);
+  image_w = MAX(image_w, 32);
+  image_h = MAX(image_h, 32);
 
   int zoom = (thumb->table) ? thumb->table->zoom : DT_THUMBTABLE_ZOOM_FIT;
 
@@ -358,18 +376,7 @@ int32_t _get_image_buffer(dt_job_t *job)
   }
   else
   {
-    // A new export pipeline has been queued to generate the image
-    // Nothing more we can do here but wait for it to return.
-    thumb->busy = TRUE;
-    thumb->image_inited = FALSE;
-
-    // When the DT_SIGNAL_DEVELOP_MIPMAP_UPDATED signal will be raised,
-    // once the export pipeline will be done generating our image,
-    // the corresponding thumb will be set to thumb->busy = FALSE
-    // by the signal handler.
-    dt_pthread_mutex_lock(&thumb->lock);
-    thumb->background_jobs--;
-    dt_pthread_mutex_unlock(&thumb->lock);
+    _finish_buffer_thread(thumb, FALSE);
     return 0;
   }
 
@@ -386,7 +393,7 @@ int32_t _get_image_buffer(dt_job_t *job)
     cairo_t *cri = cairo_create(thumb->img_surf);
     unsigned char *rgbbuf = cairo_image_surface_get_data(thumb->img_surf);
     if(rgbbuf)
-      dt_focuspeaking(cri, rgbbuf, cairo_image_surface_get_width(thumb->img_surf), cairo_image_surface_get_height(thumb->img_surf), show_focus_peaking, &x_center, &y_center);
+      dt_focuspeaking(cri, rgbbuf, thumb->img_width, thumb->img_height, show_focus_peaking, &x_center, &y_center);
     cairo_destroy(cri);
 
     // Init the zoom offset using the barycenter of details, to center
@@ -418,8 +425,7 @@ int32_t _get_image_buffer(dt_job_t *job)
                                 full_res_thumb_ht);
       // and we draw them on the image
       cairo_t *cri = cairo_create(thumb->img_surf);
-      dt_focus_draw_clusters(cri, cairo_image_surface_get_width(thumb->img_surf),
-                              cairo_image_surface_get_height(thumb->img_surf), thumb->imgid, full_res_thumb_wd,
+      dt_focus_draw_clusters(cri, thumb->img_width, thumb->img_height, thumb->imgid, full_res_thumb_wd,
                               full_res_thumb_ht, full_res_focus, frows, fcols, 1.0, 0, 0);
       cairo_destroy(cri);
     }
@@ -428,18 +434,7 @@ int32_t _get_image_buffer(dt_job_t *job)
 
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
-  thumb->busy = FALSE;
-  thumb->image_inited = TRUE;
-
-  dt_pthread_mutex_lock(&thumb->lock);
-  thumb->background_jobs--;
-  dt_pthread_mutex_unlock(&thumb->lock);
-
-  // Redraw events need to be sent from the main GUI thread
-  // though we may not have a target widget anymore...
-  if(thumb->widget && thumb->w_image)
-    g_main_context_invoke(NULL, (GSourceFunc)_main_context_draw, thumb);
-
+  _finish_buffer_thread(thumb, TRUE);
   return 0;
 }
 
@@ -447,30 +442,15 @@ int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb, 1);
 
-  // - image inited: the cached buffer has a valid size. Invalid this flag when size changes.
-  // - img_surf: we have a cached buffer (cairo surface), regardless of its validity.
-  // - busy: the mipmap cache is already busy computing a new thumbnail at requested size,
-  // there is nothing more we can do until the MIPMAP_UPDATED signal is raised.
-  // That flag will be reset in the MIPMAP_UPDATED signal handler.
-  // - background jobs: a job that will free/recreate the cairo surface is already running.
+  // A job that will free/recreate the cairo surface is already running.
   // Since those recreations are not thread-safe, we can't have more than one concurrent job per thumbnail.
-  if((thumb->image_inited && thumb->img_surf) || thumb->busy || dt_thumbnail_get_background_jobs(thumb) > 0)
+  if(dt_thumbnail_get_background_jobs(thumb) > 0)
     return 0;
 
-  _free_image_surface(thumb);
-
-  int w = 0;
-  int h = 0;
-  gtk_widget_get_size_request(thumb->w_image, &w, &h);
-
-  if(w < 32 || h < 32)
-  {
-    // IF wrong size alloc, we will never get an image, so abort and flag the buffer as valid.
-    // This happens because Gtk doesn't alloc size for invisible containers anyway.
-    thumb->image_inited = TRUE;
-    thumb->busy = FALSE;
-    return 1;
-  }
+  // - image inited: the cached buffer has a valid size. Invalid this flag when size changes.
+  // - img_surf: we have a cached buffer (cairo surface), regardless of its validity.
+  if(thumb->image_inited && thumb->img_surf && cairo_surface_get_reference_count(thumb->img_surf) > 0)
+    return 0;
 
   // Drawing the focus peaking and doing the color conversions
   // can be expensive on large thumbnails. Do it in a background job,
@@ -495,51 +475,63 @@ _thumb_draw_image(GtkWidget *widget, cairo_t *cr, gpointer user_data)
   int w = 0;
   int h = 0;
   gtk_widget_get_size_request(thumb->w_image, &w, &h);
+  if(thumb->img_surf && cairo_surface_get_reference_count(thumb->img_surf) > 0)
+  {
+    /*
+    fprintf(stdout, "surface: %ix%i, widget: %fx%f\n", thumb->img_width, thumb->img_height,
+            darktable.gui->ppd * w, darktable.gui->ppd * h);
+    */
+    // If the size of the image buffer is smaller than the widget surface, we need a new image
+    if(thumb->img_width < (int)roundf(darktable.gui->ppd * w) &&
+      thumb->img_height < (int)roundf(darktable.gui->ppd * h))
+      thumb->image_inited = FALSE;
+  }
 
-  if(dt_thumbnail_get_image_buffer(thumb)) return TRUE;
+  dt_thumbnail_get_image_buffer(thumb);
 
   dt_print(DT_DEBUG_LIGHTTABLE, "[lighttable] redrawing thumbnail %i\n", thumb->imgid);
 
-  if(thumb->busy || !thumb->image_inited || !thumb->img_surf || cairo_surface_get_reference_count(thumb->img_surf) < 1)
+  if(thumb->image_inited && thumb->img_surf && cairo_surface_get_reference_count(thumb->img_surf) > 0)
   {
-    dt_control_draw_busy_msg(cr, w, h);
-    return TRUE;
-  }
+    // we draw the image
+    cairo_save(cr);
+    const float scaler = 1.0f / darktable.gui->ppd;
+    cairo_scale(cr, scaler, scaler);
 
-  // we draw the image
-  cairo_save(cr);
-  const float scaler = 1.0f / darktable.gui->ppd;
-  cairo_scale(cr, scaler, scaler);
+    // Correct allocation size for HighDPI scaling
+    w *= darktable.gui->ppd;
+    h *= darktable.gui->ppd;
+    double x_offset = (w - thumb->img_width) / 2.;
+    double y_offset = (h - thumb->img_height) / 2.;
 
-  // Correct allocation size for HighDPI scaling
-  w *= darktable.gui->ppd;
-  h *= darktable.gui->ppd;
-  double x_offset = (w - thumb->img_width) / 2.;
-  double y_offset = (h - thumb->img_height) / 2.;
+    // Sanitize zoom offsets
+    if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
+    {
+      thumb->zoomx = CLAMP(thumb->zoomx, -fabs(x_offset), fabs(x_offset));
+      thumb->zoomy = CLAMP(thumb->zoomy, -fabs(y_offset), fabs(y_offset));
+    }
+    else
+    {
+      thumb->zoomx = 0.;
+      thumb->zoomy = 0.;
+    }
 
-  // Sanitize zoom offsets
-  if(thumb->table && thumb->table->zoom > DT_THUMBTABLE_ZOOM_FIT)
-  {
-    thumb->zoomx = CLAMP(thumb->zoomx, -fabs(x_offset), fabs(x_offset));
-    thumb->zoomy = CLAMP(thumb->zoomy, -fabs(y_offset), fabs(y_offset));
+    cairo_set_source_surface(cr, thumb->img_surf, thumb->zoomx + x_offset, thumb->zoomy + y_offset);
+
+    // Paint background with CSS transparency
+    GdkRGBA im_color;
+    GtkStyleContext *context = gtk_widget_get_style_context(thumb->w_image);
+    gtk_style_context_get_color(context, gtk_widget_get_state_flags(thumb->w_image), &im_color);
+    cairo_paint_with_alpha(cr, im_color.alpha);
+
+    // Paint CSS borders
+    gtk_render_frame(context, cr, 0, 0, w, h);
+    cairo_restore(cr);
   }
   else
   {
-    thumb->zoomx = 0.;
-    thumb->zoomy = 0.;
+    dt_control_draw_busy_msg(cr, w, h);
   }
-
-  cairo_set_source_surface(cr, thumb->img_surf, thumb->zoomx + x_offset, thumb->zoomy + y_offset);
-
-  // Paint background with CSS transparency
-  GdkRGBA im_color;
-  GtkStyleContext *context = gtk_widget_get_style_context(thumb->w_image);
-  gtk_style_context_get_color(context, gtk_widget_get_state_flags(thumb->w_image), &im_color);
-  cairo_paint_with_alpha(cr, im_color.alpha);
-
-  // Paint CSS borders
-  gtk_render_frame(context, cr, 0, 0, w, h);
-  cairo_restore(cr);
 
   return TRUE;
 }
@@ -1372,10 +1364,7 @@ void dt_thumbnail_resize(dt_thumbnail_t *thumb, int width, int height)
   }
   _widget_set_size(thumb->w_image, &width, &height, FALSE);
 
-  // Nuke the image entirely if the size changed
-  thumb->image_inited = FALSE;
-  _free_image_surface(thumb);
-  gtk_widget_queue_draw(thumb->w_image);
+  dt_thumbnail_image_refresh_real(thumb);
 }
 
 void dt_thumbnail_set_group_border(dt_thumbnail_t *thumb, dt_thumbnail_border_t border)
@@ -1434,8 +1423,7 @@ void dt_thumbnail_set_drop(dt_thumbnail_t *thumb, gboolean accept_drop)
 int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb, G_SOURCE_REMOVE);
-  thumb->busy = FALSE;
-  thumb->drawn = FALSE;
+  thumb->image_inited = FALSE;
   dt_thumbnail_unblock_redraw(thumb);
   dt_thumbnail_get_image_buffer(thumb);
   return G_SOURCE_REMOVE;

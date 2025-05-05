@@ -23,8 +23,6 @@
 #include "control/control.h"
 #include <inttypes.h>
 
-dt_job_t *dt_image_load_job_create(int32_t imgid, dt_mipmap_size_t mip);
-
 dt_job_t *dt_image_import_job_create(uint32_t filmid, const char *filename);
 
 // clang-format off
@@ -32,4 +30,3 @@ dt_job_t *dt_image_import_job_create(uint32_t filmid, const char *filename);
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

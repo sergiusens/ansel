@@ -647,7 +647,7 @@ dt_view_surface_value_t dt_view_image_get_surface(int32_t imgid, int width, int 
 
   // if needed, we load the mimap buffer
   dt_mipmap_buffer_t buf;
-  dt_mipmap_cache_get(cache, &buf, imgid, mip, DT_MIPMAP_BEST_EFFORT, 'r');
+  dt_mipmap_cache_get(cache, &buf, imgid, mip, DT_MIPMAP_BLOCKING, 'r');
   const int buf_wd = buf.width;
   const int buf_ht = buf.height;
 

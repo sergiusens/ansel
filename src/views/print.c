@@ -60,11 +60,6 @@ uint32_t view(const dt_view_t *self)
   return DT_VIEW_PRINT;
 }
 
-static void _print_mipmaps_updated_signal_callback(gpointer instance, int32_t imgid, gpointer user_data)
-{
-  dt_control_queue_redraw_center();
-}
-
 static void _film_strip_activated(const int32_t imgid, void *data)
 {
   const dt_view_t *self = (dt_view_t *)data;
@@ -357,9 +352,6 @@ void enter(dt_view_t *self)
     dt_view_active_images_add(prt->imgs->imgid_to_load, TRUE);
   }
 
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_DEVELOP_MIPMAP_UPDATED,
-                            G_CALLBACK(_print_mipmaps_updated_signal_callback),
-                            (gpointer)self);
 
   DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_VIEWMANAGER_THUMBTABLE_ACTIVATE,
                             G_CALLBACK(_view_print_filmstrip_activate_callback), self);
@@ -380,10 +372,6 @@ void leave(dt_view_t *self)
 {
   dt_print_t *prt=(dt_print_t*)self->data;
   dt_view_active_images_reset(FALSE);
-
-  /* disconnect from mipmap updated signal */
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_print_mipmaps_updated_signal_callback),
-                               (gpointer)self);
 
   /* disconnect from filmstrip image activate */
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals,
