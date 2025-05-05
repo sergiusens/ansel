@@ -1060,11 +1060,18 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     // Still worth it in most cases.
     int theoritical_width;
     int theoritical_height;
-    dt_dev_get_final_size(&dev, NULL, imgid, 1440, 900, &theoritical_width, &theoritical_height);
+    dt_dev_get_final_size(&dev, NULL, imgid, width, height, &theoritical_width, &theoritical_height);
     // NOTE: width and height may be set to 0 (aka full size) for non-thumbnail exports
-    if(width <= theoritical_width && height <= theoritical_height)
+    if(theoritical_width <= 1440 && theoritical_height <= 900)
+    {
       size = DT_MIPMAP_F;
-    // else size = DT_MIPMAP_FULL
+      fprintf(stdout, "%i: using downscaled raw, output: %ix%i\n", imgid, theoritical_width, theoritical_height);
+    }
+    else
+    {
+      size = DT_MIPMAP_FULL;
+      fprintf(stdout, "%i: using full-size raw, output: %ix%i\n", imgid, theoritical_width, theoritical_height);
+    }
   }
   // else size = DT_MIPMAP_FULL
 
