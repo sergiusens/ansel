@@ -10,14 +10,6 @@
 #endif
 
 
-static void _dt_mipmaps_updated_callback(gpointer instance, int32_t imgid, gpointer user_data)
-{
-  if(!user_data) return;
-  GtkWidget *area = (GtkWidget *)user_data;
-  gtk_widget_queue_draw(area);
-}
-
-
 void _close_preview_popup(GtkWidget *dialog, gint response_id, gpointer data)
 {
 }
