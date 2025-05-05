@@ -720,22 +720,6 @@ static dt_mipmap_cache_one_t *_get_cache(dt_mipmap_cache_t *cache, const dt_mipm
   }
 }
 
-static gboolean _query_cache(dt_mipmap_cache_t *cache, dt_mipmap_buffer_t *buf, const int32_t imgid,
-                             const dt_mipmap_size_t mip, long *stats)
-{
-  dt_mipmap_cache_get(cache, buf, imgid, mip, DT_MIPMAP_TESTLOCK, 'r');
-  if(buf->buf && buf->width > 0 && buf->height > 0)
-  {
-    __sync_fetch_and_add(stats, 1);
-
-    dt_print(DT_DEBUG_CACHE, "[mipmap_cache] grab mip %d for image %" PRIu32 " (%ix%i) from RAM cache\n", mip,
-            imgid, buf->width, buf->height);
-
-    return 1;
-  }
-  return 0;
-}
-
 // if we get a zero-sized image, paint skulls to signal a missing image
 static void _paint_skulls(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const dt_mipmap_size_t mip)
 {
@@ -748,6 +732,7 @@ static void _paint_skulls(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *
       buf->buf = NULL; // full images with NULL buffer have to be handled, indicates `missing image', but still return locked slot
   }
 }
+
 static void _validate_buffer(dt_mipmap_buffer_t *buf, struct dt_mipmap_buffer_dsc *dsc, const int32_t imgid,
                              const dt_mipmap_size_t mip)
 {
