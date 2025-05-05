@@ -380,8 +380,6 @@ int32_t _get_image_buffer(dt_job_t *job)
     return 0;
   }
 
-  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
-
   gboolean show_focus_peaking = (thumb->table && thumb->table->focus_peaking);
   if(zoom > DT_THUMBTABLE_ZOOM_FIT || show_focus_peaking)
   {
@@ -431,8 +429,6 @@ int32_t _get_image_buffer(dt_job_t *job)
     }
     dt_free_align(full_res_thumb);
   }
-
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
   _finish_buffer_thread(thumb, TRUE);
   return 0;
