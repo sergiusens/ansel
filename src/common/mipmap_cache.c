@@ -452,12 +452,6 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
     snprintf(filename, sizeof(filename), "%s.d/%d/%" PRIu32 ".jpg", cache->cachedir, (int)mip,
              get_imgid(entry->key));
 
-    // Get the original (max) dimensions of the picture
-    const dt_image_t *cimg = dt_image_cache_get(darktable.image_cache, imgid, 'r');
-    const int width = cimg->width;
-    const int height = cimg->height;
-    dt_image_cache_read_release(darktable.image_cache, cimg);
-
     gboolean io_error = FALSE;
     gchar *error = NULL;
     uint8_t *blob = NULL;
@@ -496,17 +490,6 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
     if(dt_imageio_jpeg_decompress_header(blob, len, &jpg))
     {
       error = "couldn't decompress header";
-      io_error = TRUE;
-      goto finish;
-    }
-
-    // Tolerate a 2 px error on the pictures dimensions for rounding errors,
-    // unless the original file is anyway smaller than the requested mip
-    gboolean bad_width = width > jpg.width && jpg.width < cache->max_width[mip] - 2;
-    gboolean bad_height = height > jpg.height && jpg.height < cache->max_height[mip] - 2;
-    if(bad_width && bad_height)
-    {
-      error = "bad size";
       io_error = TRUE;
       goto finish;
     }
