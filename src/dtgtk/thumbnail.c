@@ -1421,7 +1421,7 @@ int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb)
   thumb_return_if_fails(thumb, G_SOURCE_REMOVE);
   thumb->image_inited = FALSE;
   dt_thumbnail_unblock_redraw(thumb);
-  dt_thumbnail_get_image_buffer(thumb);
+  gtk_widget_queue_draw(thumb->w_main);
   return G_SOURCE_REMOVE;
 }
 

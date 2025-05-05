@@ -134,8 +134,8 @@ void dt_mipmap_cache_release_with_caller(dt_mipmap_cache_t *cache, dt_mipmap_buf
                                          int line);
 
 // remove thumbnails, so they will be regenerated:
-void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid);
-void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip);
+void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid, const gboolean flush_disk);
+void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip, const gboolean flush_disk);
 
 // evict thumbnails from cache. They will be written to disc if not existing
 void dt_mimap_cache_evict(dt_mipmap_cache_t *cache, const int32_t imgid);

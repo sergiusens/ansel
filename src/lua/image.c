@@ -96,7 +96,7 @@ static int drop_cache(lua_State *L)
 {
   dt_lua_image_t imgid = UNKNOWN_IMAGE;
   luaA_to(L, dt_lua_image_t, &imgid, -1);
-  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
   return 0;
 }
 

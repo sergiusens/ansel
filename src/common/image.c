@@ -714,7 +714,7 @@ void dt_image_set_flip(const int32_t imgid, const dt_image_orientation_t orienta
 
   dt_history_hash_write_from_history(imgid, DT_HISTORY_HASH_CURRENT);
 
-  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
   dt_control_save_xmp(imgid);
 }
 
@@ -805,7 +805,7 @@ void dt_image_flip(const int32_t imgid, const int32_t cw)
   dt_undo_record(darktable.undo, NULL, DT_UNDO_LT_HISTORY, (dt_undo_data_t)hist,
                  dt_history_snapshot_undo_pop, dt_history_snapshot_undo_lt_history_data_free);
 
-  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
 
   // signal that the mipmap need to be updated
   dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, imgid, TRUE);
@@ -1032,7 +1032,7 @@ void dt_image_remove(const int32_t imgid)
   sqlite3_finalize(stmt);
 
   // also clear all thumbnails in mipmap_cache.
-  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
 }
 
 uint32_t dt_image_altered(const int32_t imgid)
@@ -1456,7 +1456,7 @@ static int32_t _image_import_internal(const int32_t film_id, const char *filenam
   dt_tag_attach(tagid, id, FALSE, FALSE);
 
   // make sure that there are no stale thumbnails left
-  dt_mipmap_cache_remove(darktable.mipmap_cache, id);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, id, TRUE);
 
   //synch database entries to xmp
   if(xmp_mode == DT_WRITE_XMP_ALWAYS)

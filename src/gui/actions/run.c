@@ -78,7 +78,7 @@ static void clear_image_cache(GtkWidget *widget)
   for(GList *img = g_list_first(selection); img; img = g_list_next(img))
   {
     const int32_t imgid = GPOINTER_TO_INT(img->data);
-    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
   }
 
   g_list_free(selection);

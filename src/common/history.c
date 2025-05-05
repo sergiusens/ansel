@@ -111,7 +111,7 @@ void dt_history_delete_on_image_ext(int32_t imgid, gboolean undo)
   _remove_preset_flag(imgid);
 
   /* make sure mipmaps are recomputed */
-  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
 
   /* remove darktable|style|* tags */
   dt_tag_detach_by_string("darktable|style|%", imgid, FALSE, FALSE);
@@ -168,7 +168,7 @@ int dt_history_load_and_apply(const int32_t imgid, gchar *filename, int history_
     dt_image_cache_write_release(darktable.image_cache, img,
     // ugly but if not history_only => called from crawler - do not write the xmp
                                  history_only ? DT_IMAGE_CACHE_SAFE : DT_IMAGE_CACHE_RELAXED);
-    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+    dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
   }
 
   // signal that the mipmap need to be updated

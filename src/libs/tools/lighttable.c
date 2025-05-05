@@ -175,7 +175,24 @@ static void _jpg_combobox_changed(GtkWidget *widget)
   if(mode == dt_conf_get_int("lighttable/embedded_jpg"))
     return;
   else
+  {
+    GList *imgs = dt_collection_get_all(darktable.collection, -1);
+
+    // Empty the mipmap cache for the current collection, but only on RAM
+    // Don't delete disk cache, but RAM cache may be flushed to disk if user param sets it.
+    for(GList *img = g_list_first(imgs); img; img = g_list_next(img))
+    {
+      const int32_t imgid = GPOINTER_TO_INT(img->data);
+      dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, FALSE);
+    }
+    g_list_free(imgs);
+
+    // Change the mode
     dt_conf_set_int("lighttable/embedded_jpg", mode);
+
+    // Redraw thumbnails
+    dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, UNKNOWN_IMAGE, TRUE);
+  }
 }
 
 // Ctrl + Scroll changes the number of columns

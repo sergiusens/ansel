@@ -1060,7 +1060,7 @@ void dt_dev_write_history_ext(dt_develop_t *dev, const int32_t imgid)
   // however, we use our C-based cumulative custom hash while the following
   // fetches history MD5 hash from DB
   //if(!dt_history_hash_is_mipmap_synced(imgid))
-  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid);
+  dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, TRUE);
 
   // Don't refresh the thumbnail if we are in darkroom
   // Spawning another export thread will likely slow-down the current one.

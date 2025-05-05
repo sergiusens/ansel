@@ -179,6 +179,63 @@ exit:
   return r;
 }
 
+/**
+ * @brief Check if an image should be written to disk, if the thumbnail should be computed from embedded JPEG,
+ * and optionaly return intermediate checks to get there, like whether the input is a JPEG file and if it exists on
+ * the filesystem.
+ *
+ * @param imgid Database SQL ID of the image
+ * @param filename Filename of the input file. Can be NULL.
+ * @param ext Extension of the input file. Can be NULL.
+ * @param input_exists Whether the file can be found on the filesystem. Can be NULL.
+ * @param is_jpg_input Whether the file is a JPEG. Can be NULL.
+ * @param use_embedded_jpg Whether the lighttable should use the embedded JPEG thumbnail. Can be NULL.
+ * @param write_to_disk Whether the cached thumbnail should be flushed to disk before being flushed from RAM. Can
+ * be NULL.
+ */
+static void _write_mipmap_to_disk(const int32_t imgid, char *filename, char *ext, gboolean *input_exists,
+                                  gboolean *is_jpg_input, gboolean *use_embedded_jpg, gboolean *write_to_disk)
+{
+  // Get file name
+  gboolean from_cache = TRUE;
+  char _filename[PATH_MAX] = { 0 };
+
+  if(filename || ext || input_exists || is_jpg_input)
+  {
+    dt_image_full_path(imgid, _filename, sizeof(_filename), &from_cache, __FUNCTION__);
+    if(filename) strncpy(filename, _filename, PATH_MAX);
+    if(input_exists) *input_exists = *_filename && g_file_test(_filename, G_FILE_TEST_EXISTS);
+  }
+
+  // Get the file extension
+  if(ext || is_jpg_input)
+  {
+    char *_ext = _filename + strlen(_filename);
+    while(*_ext != '.' && _ext > _filename) _ext--;
+    if(ext) strncpy(ext, _ext, 5);
+    if(is_jpg_input) *is_jpg_input = !strcasecmp(_ext, ".jpg") || !strcasecmp(_ext, ".jpeg");
+  }
+
+  // embedded JPG mode:
+  // 0 = never use embedded thumbnail
+  // 1 = only on unedited pics,
+  // 2 = always use embedded thumbnail
+  int mode = dt_conf_get_int("lighttable/embedded_jpg");
+  const gboolean _use_embedded_jpg
+      = (mode == 2                                    // always use embedded
+         || (mode == 1 && !dt_image_altered(imgid))); // use embedded only on unaltered images
+  if(use_embedded_jpg) *use_embedded_jpg = _use_embedded_jpg;
+
+  // Save to cache only if the option is enabled by user and the thumbnail is not the embedded thumbnail
+  // The rationale is getting the un-processed JPEG thumbnail is cheap and not worth saving on disk.
+  // This allows fast toggling between JPEG and processed RAW thumbnail from GUI.
+  if(write_to_disk)
+  {
+    *write_to_disk = dt_conf_get_bool("cache_disk_backend") && !_use_embedded_jpg;
+  }
+}
+
+
 static void _init_f(dt_mipmap_buffer_t *mipmap_buf, float *buf, uint32_t *width, uint32_t *height, float *iscale,
                     const int32_t imgid);
 static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *iscale,
@@ -385,7 +442,10 @@ void dt_mipmap_cache_allocate_dynamic(void *data, dt_cache_entry_t *entry)
 
   if(!dsc) return;
 
-  if(cache->cachedir[0] && dt_conf_get_bool("cache_disk_backend") && mip < DT_MIPMAP_F)
+  gboolean write_to_disk;
+  _write_mipmap_to_disk(imgid, NULL, NULL, NULL, NULL, NULL, &write_to_disk);
+
+  if(cache->cachedir[0] && write_to_disk && mip < DT_MIPMAP_F)
   {
     // try and load from disk, if successful set flag
     char filename[PATH_MAX] = {0};
@@ -511,6 +571,10 @@ void dt_mipmap_cache_deallocate_dynamic(void *data, dt_cache_entry_t *entry)
   const dt_mipmap_size_t mip = get_size(entry->key);
   if(mip < DT_MIPMAP_F)
   {
+    const int32_t imgid = get_imgid(entry->key);
+    gboolean write_to_disk;
+    _write_mipmap_to_disk(imgid, NULL, NULL, NULL, NULL, NULL, &write_to_disk);
+
     struct dt_mipmap_buffer_dsc *dsc = _get_dsc_from_entry(entry);
     // don't write skulls:
     if(dsc->width > 8 && dsc->height > 8)
@@ -519,7 +583,7 @@ void dt_mipmap_cache_deallocate_dynamic(void *data, dt_cache_entry_t *entry)
       {
         dt_mipmap_cache_unlink_ondisk_thumbnail(data, get_imgid(entry->key), mip);
       }
-      else if(cache->cachedir[0] && (dt_conf_get_bool("cache_disk_backend") && mip < DT_MIPMAP_F))
+      else if(cache->cachedir[0] && write_to_disk && mip < DT_MIPMAP_F)
       {
         // serialize to disk
         char filename[PATH_MAX] = {0};
@@ -938,9 +1002,10 @@ dt_mipmap_size_t dt_mipmap_cache_get_matching_size(const dt_mipmap_cache_t *cach
   return DT_MIPMAP_F - 1;
 }
 
-void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip)
+void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgid, const dt_mipmap_size_t mip, const gboolean flush_disk)
 {
   if(mip >= DT_MIPMAP_F || mip < DT_MIPMAP_0) return;
+
   // get rid of all ldr thumbnails:
   const uint32_t key = get_key(imgid, mip);
   dt_cache_entry_t *entry = dt_cache_testget(&_get_cache(cache, mip)->cache, key, 'w');
@@ -948,22 +1013,17 @@ void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgi
   {
     struct dt_mipmap_buffer_dsc *dsc = _get_dsc_from_entry(entry);
     ASAN_UNPOISON_MEMORY_REGION(dsc, dt_mipmap_buffer_dsc_size);
-    dsc->flags |= DT_MIPMAP_BUFFER_DSC_FLAG_INVALIDATE;
+    if(flush_disk) dsc->flags |= DT_MIPMAP_BUFFER_DSC_FLAG_INVALIDATE;
     dt_cache_release(&_get_cache(cache, mip)->cache, entry);
-
-    // due to DT_MIPMAP_BUFFER_DSC_FLAG_INVALIDATE, removes thumbnail from disc
     dt_cache_remove(&_get_cache(cache, mip)->cache, key);
   }
-
-  // ugly, but avoids alloc'ing thumb if it is not there.
-  dt_mipmap_cache_unlink_ondisk_thumbnail((&_get_cache(cache, mip)->cache)->cleanup_data, imgid, mip);
 }
 
 // get rid of all ldr thumbnails:
-void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid)
+void dt_mipmap_cache_remove(dt_mipmap_cache_t *cache, const int32_t imgid, const gboolean flush_disk)
 {
   for(dt_mipmap_size_t k = DT_MIPMAP_0; k < DT_MIPMAP_F; k++)
-    dt_mipmap_cache_remove_at_size(cache, imgid, k);
+    dt_mipmap_cache_remove_at_size(cache, imgid, k, flush_disk);
 }
 
 // write thumbnail to disc if not existing there
@@ -1153,12 +1213,14 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
 
   *iscale = 1.0f;
   const uint32_t wd = *width, ht = *height;
+
   char filename[PATH_MAX] = { 0 };
-  gboolean from_cache = TRUE;
+  char ext[5] = { 0 };
+  gboolean input_exists, is_jpg_input, use_embedded_jpg;
+  _write_mipmap_to_disk(imgid, filename, ext, &input_exists, &is_jpg_input, &use_embedded_jpg, NULL);
 
   /* do not even try to process file if it isn't available */
-  dt_image_full_path(imgid,  filename,  sizeof(filename),  &from_cache, __FUNCTION__);
-  if(!*filename || !g_file_test(filename, G_FILE_TEST_EXISTS))
+  if(!input_exists)
   {
     *width = *height = 0;
     *iscale = 0.0f;
@@ -1192,28 +1254,11 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
 
   const dt_image_orientation_t orientation = dt_image_get_orientation(imgid);
 
-  // Get the file extension
-  const char *ext = filename + strlen(filename);
-  while(*ext != '.' && ext > filename) ext--;
-
-  // Check whether our input file is already a JPEG
-  const gboolean jpeg_input = !strcasecmp(ext, ".jpg") || !strcasecmp(ext, ".jpeg");
-
-  // embedded JPG mode:
-  // 0 = never use embedded thumbnail
-  // 1 = only on unedited pics,
-  // 2 = always use embedded thumbnail
-  const gboolean unaltered = !dt_image_altered(imgid);
-  int mode = dt_conf_get_int("lighttable/embedded_jpg");
-  const gboolean user_pref = (mode == 2                      // always use embedded
-                              || (mode == 1 && unaltered)    // use embedded only on unaltered images
-                              || (jpeg_input && unaltered)); // we have unaltered JPEG input
-
-  if(res && user_pref)
+  if(res && use_embedded_jpg)
   {
     char sidecar_filename[PATH_MAX] = { 0 };
 
-    if(jpeg_input)
+    if(is_jpg_input)
     {
       // Input file is a JPEG
       res = _load_jpg(filename, imgid, wd, ht, size, orientation, buf, width, height, color_space);
@@ -1287,7 +1332,11 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
 
 void dt_mipmap_cache_copy_thumbnails(const dt_mipmap_cache_t *cache, const uint32_t dst_imgid, const uint32_t src_imgid)
 {
-  if(cache->cachedir[0] && dt_conf_get_bool("cache_disk_backend"))
+  gboolean write_to_disk_src, write_to_disk_dst;
+  _write_mipmap_to_disk(src_imgid, NULL, NULL, NULL, NULL, NULL, &write_to_disk_src);
+  _write_mipmap_to_disk(dst_imgid, NULL, NULL, NULL, NULL, NULL, &write_to_disk_dst);
+
+  if(cache->cachedir[0] && write_to_disk_src && write_to_disk_dst)
   {
     for(dt_mipmap_size_t mip = DT_MIPMAP_0; mip < DT_MIPMAP_F; mip++)
     {
