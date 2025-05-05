@@ -1065,12 +1065,12 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     if(theoritical_width <= 1440 && theoritical_height <= 900)
     {
       size = DT_MIPMAP_F;
-      fprintf(stdout, "%i: using downscaled raw, output: %ix%i\n", imgid, theoritical_width, theoritical_height);
+      //fprintf(stdout, "%i: using downscaled raw, output: %ix%i\n", imgid, theoritical_width, theoritical_height);
     }
     else
     {
       size = DT_MIPMAP_FULL;
-      fprintf(stdout, "%i: using full-size raw, output: %ix%i\n", imgid, theoritical_width, theoritical_height);
+      //fprintf(stdout, "%i: using full-size raw, output: %ix%i\n", imgid, theoritical_width, theoritical_height);
     }
   }
   // else size = DT_MIPMAP_FULL
