@@ -364,6 +364,38 @@ static gboolean collapse_grouped_checked_callback()
   return dt_conf_get_bool("ui_last/grouping");
 }
 
+static gboolean _jpg_checked(GtkWidget *widget)
+{
+  const int item = GPOINTER_TO_INT(get_custom_data(widget));
+  return item == dt_conf_get_int("lighttable/embedded_jpg");
+}
+
+static void _jpg_combobox_changed(GtkWidget *widget)
+{
+  const int mode = GPOINTER_TO_INT(get_custom_data(widget));
+  if(mode == dt_conf_get_int("lighttable/embedded_jpg"))
+    return;
+  else
+  {
+    GList *imgs = dt_collection_get_all(darktable.collection, -1);
+
+    // Empty the mipmap cache for the current collection, but only on RAM
+    // Don't delete disk cache, but RAM cache may be flushed to disk if user param sets it.
+    for(GList *img = g_list_first(imgs); img; img = g_list_next(img))
+    {
+      const int32_t imgid = GPOINTER_TO_INT(img->data);
+      dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, FALSE);
+    }
+    g_list_free(imgs);
+
+    // Change the mode
+    dt_conf_set_int("lighttable/embedded_jpg", mode);
+
+    // Redraw thumbnails
+    dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, UNKNOWN_IMAGE, TRUE);
+  }
+}
+
 void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   // Parent sub-menu color profile
@@ -426,6 +458,16 @@ void append_display(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_sub_sub_menu_entry(menus, parent, lists, _("Always show"), index, NULL,
                          always_show_overlays_callback, always_show_overlays_checked_callback, NULL, NULL, GDK_KEY_o, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
+
+  // Submenu embedded JPEG
+  add_top_submenu_entry(menus, lists, _("Show embedded JPEG"), index);
+  parent = get_last_widget(lists);
+  add_sub_sub_menu_entry(menus, parent, lists, _("Never, always process the raw"), index, GINT_TO_POINTER(0),
+                                  _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0);
+  add_sub_sub_menu_entry(menus, parent, lists, _("For unedited pictures"), index, GINT_TO_POINTER(1),
+                                  _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0);
+  add_sub_sub_menu_entry(menus, parent, lists, _("Always, never process the raw"), index, GINT_TO_POINTER(2),
+                                  _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0);
 
   add_sub_menu_entry(menus, lists, _("Collapse grouped images"), index, NULL, collapse_grouped_callback, collapse_grouped_checked_callback, NULL, NULL, 0, 0);
 

@@ -163,37 +163,6 @@ static gboolean _zoom_checked(GtkWidget *widget)
   return dt_thumbtable_get_zoom(darktable.gui->ui->thumbtable_lighttable) == level;
 }
 
-static gboolean _jpg_checked(GtkWidget *widget)
-{
-  const int item = GPOINTER_TO_INT(get_custom_data(widget));
-  return item == dt_conf_get_int("lighttable/embedded_jpg");
-}
-
-static void _jpg_combobox_changed(GtkWidget *widget)
-{
-  const int mode = GPOINTER_TO_INT(get_custom_data(widget));
-  if(mode == dt_conf_get_int("lighttable/embedded_jpg"))
-    return;
-  else
-  {
-    GList *imgs = dt_collection_get_all(darktable.collection, -1);
-
-    // Empty the mipmap cache for the current collection, but only on RAM
-    // Don't delete disk cache, but RAM cache may be flushed to disk if user param sets it.
-    for(GList *img = g_list_first(imgs); img; img = g_list_next(img))
-    {
-      const int32_t imgid = GPOINTER_TO_INT(img->data);
-      dt_mipmap_cache_remove(darktable.mipmap_cache, imgid, FALSE);
-    }
-    g_list_free(imgs);
-
-    // Change the mode
-    dt_conf_set_int("lighttable/embedded_jpg", mode);
-
-    // Redraw thumbnails
-    dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, UNKNOWN_IMAGE, TRUE);
-  }
-}
 
 // Ctrl + Scroll changes the number of columns
 static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpointer data)
@@ -243,16 +212,6 @@ static gboolean focus_peaking_checked_callback()
 
 void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index, GtkAccelGroup *accel_group)
 {
-  // Submenu embedded JPEG
-  add_generic_top_submenu_entry(menus, lists, _("Show embedded JPEG"), index, accel_group);
-  GtkWidget *parent = get_last_widget(lists);
-  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Never, always process the raw"), index, GINT_TO_POINTER(0),
-                                 _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
-  add_generic_sub_sub_menu_entry(menus, parent, lists, _("For unedited pictures"), index, GINT_TO_POINTER(1),
-                                 _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
-  add_generic_sub_sub_menu_entry(menus, parent, lists, _("Always, never process the raw"), index, GINT_TO_POINTER(2),
-                                 _jpg_combobox_changed, _jpg_checked, NULL, NULL, 0, 0, accel_group);
-
   // Focusing options
   add_generic_sub_menu_entry(menus, lists, _("Overlay focus zones"), index, NULL, _focus_toggled, _focus_checked, NULL,
                              NULL, 0, 0, accel_group);
@@ -263,7 +222,7 @@ void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index,
 
   // Zoom
   add_generic_top_submenu_entry(menus, lists, _("Zoom"), index, accel_group);
-  parent = get_last_widget(lists);
+  GtkWidget *parent = get_last_widget(lists);
   add_generic_sub_sub_menu_entry(menus, parent, lists, _("Fit"), index, GINT_TO_POINTER(0), _zoom_combobox_changed,
                                  _zoom_checked, NULL, NULL, 0, 0, accel_group);
   add_generic_sub_sub_menu_entry(menus, parent, lists, _("50 %"), index, GINT_TO_POINTER(1), _zoom_combobox_changed,
