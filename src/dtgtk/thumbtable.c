@@ -42,8 +42,8 @@
 #include <glib-object.h>
 
 
-// 210 = 2*3*5*7, so we ensure full rows for 1-10 and 12 thumbs/row.
-#define MAX_THUMBNAILS 210
+// 420 = 4*3*5*7, so we ensure full rows for 1-10 and 12 thumbs/row.
+#define MAX_THUMBNAILS 420
 
 /**
  * @file thumbtable.c
