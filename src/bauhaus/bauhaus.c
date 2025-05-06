@@ -1163,7 +1163,8 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
     // No need to wire all possible events/interactions.
     if(m && !w->no_accels && !w->module->deprecated && label)
     {
-      gchar *plugin_name = g_strdup_printf("%s/%s/%s", m->name, (w->type == DT_BAUHAUS_SLIDER) ? _("Slider") : _("Combobox"), label);
+      // FIXME: assert that label does not contain / because that makes accel pathes fail
+      gchar *plugin_name = g_strdup_printf("%s/%s", m->name, label);
       gchar *scope = g_strdup_printf("%s/Plugins", m->view);
       dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0);
       g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Plugins", plugin_name));

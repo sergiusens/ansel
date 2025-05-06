@@ -507,9 +507,6 @@ gboolean dt_accels_dispatch(GtkWidget *w, GdkEvent *event, gpointer user_data)
     accels->active_key.accel_key = keyval;
     accels->active_key.accel_mods = mods;
     return _key_pressed(w, event, accels, keyval, mods);
-    // If return == FALSE, it is possible that we messed-up key value decoding
-    // Default Gtk shortcuts handler will have another chance since the accel groups
-    // are connected to the window in a standard way.
   }
   else if(event->type == GDK_KEY_RELEASE)
   {
@@ -533,4 +530,250 @@ void dt_accels_detach_scroll_handler(dt_accels_t *accels)
 {
   accels->scroll.callback = NULL;
   accels->scroll.data = NULL;
+}
+
+enum
+{
+  COL_VIEW,
+  COL_SCOPE,
+  COL_FEATURE,
+  COL_CONTROL,
+  COL_KEYS,
+  COL_PATH,
+  COL_SHORTCUT,
+  NUM_COLUMNS
+};
+
+typedef struct _accel_treeview_t
+{
+  GtkTreeStore *store;
+  GHashTable *node_cache;
+} _accel_treeview_t;
+
+
+static void _add_text_column(GtkTreeView *treeview, const char *title, int column_id, int sort_column)
+{
+  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(title, gtk_cell_renderer_text_new(), "text", column_id, NULL);
+  gtk_tree_view_append_column(treeview, column);
+}
+
+void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer user_data)
+{
+  // Extract HashTable key/value
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
+  const gchar *path = (const gchar *)key;
+
+  // Extract user_data
+  _accel_treeview_t *_data = (_accel_treeview_t *)user_data;
+  GHashTable *node_cache = _data->node_cache;
+  GtkTreeStore *store = _data->store;
+
+  // Printable keys/modifier of the shortcut
+  gchar *keys = gtk_accelerator_name(shortcut->key, shortcut->mods);
+
+  GtkTreeIter *parent = NULL;
+  GtkTreeIter *iter = NULL;
+
+  // Split the shortcut accel path on /.
+  // Then we reconstruct it piece by piece and add a tree node fore each piece,
+  // which lets us manage parents/children.
+  // Note 1: parts[0] is always "<Ansel>"
+  // Note 2: that fails if widget labels contain /
+  gchar **parts = g_strsplit(path, "/", -1);
+  gchar *accum = g_strdup("<Ansel>");
+  for(int i = 1; parts[i] && i < 5; ++i)
+  {
+    // Build the partial path so far
+    gchar *tmp = g_strconcat(accum, "/", parts[i], NULL);
+    g_free(accum);
+    accum = tmp;
+
+    // Find out if current node exists.
+    // If it does, it will be our parent for the next step.
+    iter = g_hash_table_lookup(node_cache, accum);
+
+    // If current node is not already in tree, add it.
+    if(!iter)
+    {
+      // We need a heap-allocated iter to pass it along to the hashtable.
+      // This will be freed when cleaning up the hashtable.
+      GtkTreeIter new_iter;
+      gtk_tree_store_append(store, &new_iter, parent);
+
+      // Write the shortcut only if we are at the terminating point of the path
+      if(!g_strcmp0(accum, path))
+        gtk_tree_store_set(store, &new_iter,
+                           i - 1, parts[i],
+                           COL_KEYS, keys,
+                           COL_PATH, path,
+                           COL_SHORTCUT, shortcut,
+                           -1);
+      else
+        gtk_tree_store_set(store, &new_iter,
+                           i - 1, parts[i],
+                           COL_PATH, accum,
+                           COL_SHORTCUT, NULL,
+                           -1);
+
+      // heap‑copy the struct to pass it along to the HashTable
+      iter = g_new(GtkTreeIter, 1);
+      *iter = new_iter;
+      g_hash_table_insert(node_cache, g_strdup(accum), iter);
+    }
+
+    parent = iter;
+  }
+
+  g_free(accum);
+  g_free(keys);
+  g_strfreev(parts);
+}
+
+static gint _sort_model_func(GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer data)
+{
+  gchar *ka, *kb;
+  gtk_tree_model_get(model, a, GPOINTER_TO_INT(data), &ka, -1);
+  gtk_tree_model_get(model, b, GPOINTER_TO_INT(data), &kb, -1);
+
+  gint res = 0;
+  if(ka && kb)
+  {
+    // Make strings case-insensitive
+    gchar *ka_ci = g_utf8_casefold(ka, -1);
+    gchar *kb_ci = g_utf8_casefold(kb, -1);
+
+    // Compare strings
+    res = g_utf8_collate(ka_ci, kb_ci);
+
+    g_free(ka_ci);
+    g_free(kb_ci);
+  }
+
+  g_free(ka);
+  g_free(kb);
+  return res;
+}
+
+static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer user_data)
+{
+  GtkWidget *search = (GtkWidget *)user_data;
+
+  // Everything visible if needle is empty or NULL, aka no active search
+  const gchar *needle = gtk_entry_get_text(GTK_ENTRY(search));
+  if(needle == NULL || needle[0] == '\0') return TRUE;
+
+  // Get the current item's path
+  gchar *haystack = NULL;
+  gtk_tree_model_get(model, iter, COL_PATH, &haystack, -1);
+
+  // Check if the current item has its accel path matching
+  if(haystack && haystack[0])
+  {
+    gchar *needle_ci = g_utf8_casefold(needle, -1);
+    gchar *haystack_ci = g_utf8_casefold(haystack, -1);
+    gboolean show = (g_strrstr(haystack_ci, needle_ci) != NULL);
+    g_free(needle_ci);
+    g_free(haystack_ci);
+    g_free(haystack);
+
+    if(show) return TRUE;
+  }
+
+  // Check again recursively if any of the current item's children has an accel path matching
+  if(gtk_tree_model_iter_has_child(model, iter))
+  {
+    GtkTreeIter child;
+    if(gtk_tree_model_iter_children(model, &child, iter))
+    {
+      do
+      {
+        if(filter_callback(model, &child, user_data))
+          return TRUE;
+      } while(gtk_tree_model_iter_next(model, &child));
+    }
+  }
+
+  return FALSE;
+}
+
+static void search_changed(GtkEntry *entry, gpointer user_data)
+{
+  GtkTreeView *tree_view = (GtkTreeView *)user_data;
+  GtkTreeModel *tree_model = gtk_tree_view_get_model(tree_view);
+  const gchar *needle = gtk_entry_get_text(entry);
+
+  // If search is active, uncollapse all tree branches for legibility
+  if(needle && needle[0])
+    gtk_tree_view_expand_all(tree_view);
+  else
+    gtk_tree_view_collapse_all(tree_view);
+
+  gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(tree_model));
+}
+
+void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
+{
+  // Set dialog window properties
+  GtkWidget *dialog = gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(dialog), _("Ansel - Keyboard shortcuts"));
+
+#ifdef GDK_WINDOWING_QUARTZ
+  dt_osx_disallow_fullscreen(dialog);
+  gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
+#endif
+
+  gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+  gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 1200, 720);
+
+  // Create the full (non-filtered) tree view model
+  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+                                           G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_POINTER);
+
+  // Add a tree view row for each accel
+  GHashTable *node_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
+  _accel_treeview_t _data = { .store = store , .node_cache = node_cache};
+  g_hash_table_foreach(accels->acceleratables, _for_each_accel_create_treeview_row, &_data);
+  g_hash_table_destroy(node_cache);
+
+  // Sort rows alphabetically by path
+  for(int i = COL_VIEW; i < COL_KEYS; i++)
+  {
+    gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store), i, (GtkTreeIterCompareFunc)_sort_model_func,
+                                    GINT_TO_POINTER(i), NULL);
+    gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store), i, GTK_SORT_ASCENDING);
+  }
+
+  // Set the search feature, aka wire the Gtk search entry to a GtkTreeModelFilter
+  GtkTreeModel *filter_model = gtk_tree_model_filter_new(GTK_TREE_MODEL(store), NULL);
+  GtkWidget *search_entry = gtk_search_entry_new();
+  gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(filter_model), filter_callback, search_entry, NULL);
+
+  // So the content of the treeview is NOT the original (full) model, but the filtered one
+  GtkWidget *tree_view = gtk_tree_view_new_with_model(filter_model);
+  gtk_widget_set_hexpand(tree_view, TRUE);
+  gtk_widget_set_vexpand(tree_view, TRUE);
+  gtk_widget_set_halign(tree_view, GTK_ALIGN_FILL);
+  gtk_widget_set_valign(tree_view, GTK_ALIGN_FILL);
+  gtk_widget_set_size_request(tree_view, 1100, 720);
+
+  g_signal_connect(G_OBJECT(search_entry), "changed", G_CALLBACK(search_changed), tree_view);
+
+  // Add tree view columns
+  const char *col_labels[] = { _("View"), _("Scope"), _("Feature"), _("Control"), _("Keys"), _("Path"), NULL };
+  for(int i = COL_VIEW; i < COL_PATH; i++) _add_text_column(GTK_TREE_VIEW(tree_view), col_labels[i], i, i);
+
+  // Pack and show widgets
+  GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
+  gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), box, TRUE, TRUE, 0);
+
+  GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
+  gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
+  gtk_box_pack_start(GTK_BOX(box), scrolled_window, TRUE, TRUE, 0);
+
+  gtk_box_pack_start(GTK_BOX(box), search_entry, FALSE, FALSE, 0);
+
+  gtk_widget_set_visible(tree_view, TRUE);
+  gtk_widget_show_all(dialog);
 }
