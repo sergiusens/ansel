@@ -149,9 +149,9 @@ has also been reduced reduced:
 
 | Metric | Ansel Master | Darktable 4.0 | Darktable 5.0 |
 | ------ | -----------: | ------------: | ------------: |
-| Cyclomatic complexity | [48906](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_ansel) | [56170](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierre_darktable) | [59377](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_darktable-5) |
-| Cognitive complexity | [62083](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_ansel) | [72743](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierre_darktable) | [77039](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_darktable-5) |
-| Lines of code | [318927](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_ansel) | [361046](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierre_darktable) | [370781](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_darktable-5) |
+| Cyclomatic complexity | [48,910](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_ansel) | [56,170](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierre_darktable) | [59,377](https://sonarcloud.io/component_measures?metric=complexity&id=aurelienpierreeng_darktable-5) |
+| Cognitive complexity | [62,100](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_ansel) | [72,743](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierre_darktable) | [77,039](https://sonarcloud.io/component_measures?metric=cognitive_complexity&id=aurelienpierreeng_darktable-5) |
+| Lines of code | [318,907](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_ansel) | [361,046](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierre_darktable) | [370,781](https://sonarcloud.io/component_measures?metric=ncloc&id=aurelienpierreeng_darktable-5) |
 | Ratio of comments | [12.3%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierreeng_ansel) | [11.5%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierre_darktable) | [11.7%](https://sonarcloud.io/component_measures?metric=comment_lines_density&id=aurelienpierreeng_darktable-5) |
 
 Those figures are indirect indicators of the long-term maintainability of the project:
