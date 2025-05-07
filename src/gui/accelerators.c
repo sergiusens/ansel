@@ -558,10 +558,7 @@ void dt_accels_detach_scroll_handler(dt_accels_t *accels)
 
 enum
 {
-  COL_VIEW,
-  COL_SCOPE,
-  COL_FEATURE,
-  COL_CONTROL,
+  COL_NAME,
   COL_KEYS,
   COL_PATH,
   COL_SHORTCUT,
@@ -627,14 +624,14 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
       // Write the shortcut only if we are at the terminating point of the path
       if(!g_strcmp0(accum, path))
         gtk_tree_store_set(store, &new_iter,
-                           i - 1, parts[i],
+                           COL_NAME, parts[i],
                            COL_KEYS, keys,
                            COL_PATH, path,
                            COL_SHORTCUT, shortcut,
                            -1);
       else
         gtk_tree_store_set(store, &new_iter,
-                           i - 1, parts[i],
+                           COL_NAME, parts[i],
                            COL_PATH, accum,
                            COL_SHORTCUT, NULL,
                            -1);
@@ -752,8 +749,7 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_window_set_default_size(GTK_WINDOW(dialog), 1200, 720);
 
   // Create the full (non-filtered) tree view model
-  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-                                           G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_POINTER);
+  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_POINTER);
 
   // Add a tree view row for each accel
   GHashTable *node_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -762,7 +758,7 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   g_hash_table_destroy(node_cache);
 
   // Sort rows alphabetically by path
-  for(int i = COL_VIEW; i < COL_KEYS; i++)
+  for(int i = COL_NAME; i < COL_KEYS; i++)
   {
     gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store), i, (GtkTreeIterCompareFunc)_sort_model_func,
                                     GINT_TO_POINTER(i), NULL);
@@ -785,8 +781,8 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   g_signal_connect(G_OBJECT(search_entry), "changed", G_CALLBACK(search_changed), tree_view);
 
   // Add tree view columns
-  const char *col_labels[] = { _("View"), _("Scope"), _("Feature"), _("Control"), _("Keys"), _("Path"), NULL };
-  for(int i = COL_VIEW; i < COL_PATH; i++) _add_text_column(GTK_TREE_VIEW(tree_view), col_labels[i], i, i);
+  const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), NULL };
+  for(int i = COL_NAME; i < COL_PATH; i++) _add_text_column(GTK_TREE_VIEW(tree_view), col_labels[i], i, i);
 
   // Pack and show widgets
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
