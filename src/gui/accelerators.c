@@ -310,7 +310,7 @@ void _connect_accel(gpointer _key, gpointer value, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
   if(shortcut->virtual_shortcut) return;
-  
+
   dt_accels_t *accels = (dt_accels_t *)user_data;
 
   GtkAccelKey key = { 0 };
@@ -621,6 +621,9 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
       // This will be freed when cleaning up the hashtable.
       GtkTreeIter new_iter;
       gtk_tree_store_append(store, &new_iter, parent);
+
+      // Capitalize first letter in place, aka do it only now that we won't need it anymore
+      parts[i][0] = g_unichar_toupper(parts[i][0]);
 
       // Write the shortcut only if we are at the terminating point of the path
       if(!g_strcmp0(accum, path))

@@ -1055,6 +1055,7 @@ void dt_iop_gui_init(dt_iop_module_t *module)
   if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
   {
     gchar *clean_name = delete_underscore(module->name());
+    dt_capitalize_label(clean_name);
 
     // slash is not allowed in module names because that makes accel pathes fail
     assert(g_strrstr(clean_name, "/") == NULL);
