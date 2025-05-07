@@ -72,6 +72,10 @@ dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list,
   if(action_callback != NULL)
   {
     gchar *clean_label = strip_markup(label);
+
+    // slash is not allowed in control names because that makes accel pathes fail
+    assert(g_strrstr(clean_label, "/") == NULL);
+
     const gchar *parent_path = gtk_menu_get_accel_path(parent);
 
     dt_accels_new_action_shortcut(
@@ -144,6 +148,10 @@ void add_generic_top_menu_entry(GtkWidget *menu_bar, GtkWidget **menus, GList **
   gtk_menu_set_accel_group(GTK_MENU(menus[index]), accel_group);
 
   gchar *clean_label = strip_markup(label);
+
+  // slash is not allowed in control names because that makes accel pathes fail
+  assert(g_strrstr(clean_label, "/") == NULL);
+
   gchar *accel_path = dt_accels_build_path(accel_path_prefix, clean_label);
   gtk_menu_set_accel_path(GTK_MENU(menus[index]), accel_path);
   g_free(clean_label);
@@ -171,6 +179,10 @@ void add_generic_top_submenu_entry(GtkWidget **menus, GList **lists, const gchar
   gtk_menu_set_accel_group(GTK_MENU(submenu), accel_group);
 
   gchar *clean_label = strip_markup(label);
+
+  // slash is not allowed in control names because that makes accel pathes fail
+  assert(g_strrstr(clean_label, "/") == NULL);
+
   gchar *accel_path = dt_accels_build_path(gtk_menu_get_accel_path(GTK_MENU(menus[index])), clean_label);
   gtk_menu_set_accel_path(GTK_MENU(submenu), accel_path);
   g_free(clean_label);

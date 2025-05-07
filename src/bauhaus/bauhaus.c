@@ -1210,7 +1210,9 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
     // No need to wire all possible events/interactions.
     if(m && !w->no_accels && !w->module->deprecated && label)
     {
-      // FIXME: assert that label does not contain / because that makes accel pathes fail
+      // slash is not allowed in control names because that makes accel pathes fail
+      assert(g_strrstr(label, "/") == NULL);
+      
       gchar *plugin_name = g_strdup_printf("%s/%s", m->name, label);
       gchar *scope = g_strdup_printf("%s/Plugins", m->view);
       dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0);

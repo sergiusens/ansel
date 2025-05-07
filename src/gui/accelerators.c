@@ -309,6 +309,8 @@ void dt_accels_load_user_config(dt_accels_t *accels)
 void _connect_accel(gpointer _key, gpointer value, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
+  if(shortcut->virtual_shortcut) return;
+  
   dt_accels_t *accels = (dt_accels_t *)user_data;
 
   GtkAccelKey key = { 0 };
