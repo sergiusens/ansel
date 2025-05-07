@@ -636,6 +636,7 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
       else
         gtk_tree_store_set(store, &new_iter,
                            COL_NAME, parts[i],
+                           COL_KEYS, NULL,
                            COL_PATH, accum,
                            COL_SHORTCUT, NULL,
                            -1);
@@ -679,30 +680,68 @@ static gint _sort_model_func(GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b
   return res;
 }
 
+typedef struct _accel_window_params_t
+{
+  GtkWidget *path_search;
+  GtkWidget *keys_search;
+} _accel_window_params_t;
+
+
 static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer user_data)
 {
-  GtkWidget *search = (GtkWidget *)user_data;
+  _accel_window_params_t *params = (_accel_window_params_t *)user_data;
 
   // Everything visible if needle is empty or NULL, aka no active search
-  const gchar *needle = gtk_entry_get_text(GTK_ENTRY(search));
-  if(needle == NULL || needle[0] == '\0') return TRUE;
+  const gchar *needle_path = gtk_entry_get_text(GTK_ENTRY(params->path_search));
+  const gchar *needle_keys = gtk_entry_get_text(GTK_ENTRY(params->keys_search));
 
-  // Get the current item's path
-  gchar *haystack = NULL;
-  gtk_tree_model_get(model, iter, COL_PATH, &haystack, -1);
+  if((needle_path == NULL || needle_path[0] == '\0') &&
+     (needle_keys == NULL || needle_keys[0] == '\0'))
+     return TRUE;
 
-  // Check if the current item has its accel path matching
-  if(haystack && haystack[0])
+  gboolean show = TRUE;
+
+  // Check if path matches
+  gchar *path = NULL;
+  gtk_tree_model_get(model, iter, COL_PATH, &path, -1);
+  if(needle_path && needle_path[0])
   {
-    gchar *needle_ci = g_utf8_casefold(needle, -1);
-    gchar *haystack_ci = g_utf8_casefold(haystack, -1);
-    gboolean show = (g_strrstr(haystack_ci, needle_ci) != NULL);
-    g_free(needle_ci);
-    g_free(haystack_ci);
-    g_free(haystack);
-
-    if(show) return TRUE;
+    if(path && path[0])
+    {
+      gchar *needle_ci = g_utf8_casefold(needle_path, -1);
+      gchar *haystack_ci = g_utf8_casefold(path, -1);
+      show &= (g_strrstr(haystack_ci, needle_ci) != NULL);
+      g_free(needle_ci);
+      g_free(haystack_ci);
+      g_free(path);
+    }
+    else
+    {
+      show &= FALSE;
+    }
   }
+
+  // Check if keys match
+  gchar *keys = NULL;
+  gtk_tree_model_get(model, iter, COL_KEYS, &keys, -1);
+  if(needle_keys && needle_keys[0])
+  {
+    if(keys && keys[0])
+    {
+      gchar *needle_ci = g_utf8_casefold(needle_keys, -1);
+      gchar *haystack_ci = g_utf8_casefold(keys, -1);
+      show &= (g_strrstr(haystack_ci, needle_ci) != NULL);
+      g_free(needle_ci);
+      g_free(haystack_ci);
+      g_free(keys);
+    }
+    else
+    {
+      show &= FALSE;
+    }
+  }
+
+  if(show) return TRUE;
 
   // Check again recursively if any of the current item's children has an accel path matching
   if(gtk_tree_model_iter_has_child(model, iter))
@@ -736,8 +775,13 @@ static void search_changed(GtkEntry *entry, gpointer user_data)
   gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(tree_model));
 }
 
+
 void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
 {
+  _accel_window_params_t *params = malloc(sizeof(_accel_window_params_t));
+  params->keys_search = gtk_search_entry_new();
+  params->path_search = gtk_search_entry_new();
+
   // Set dialog window properties
   GtkWidget *dialog = gtk_dialog_new();
   gtk_window_set_title(GTK_WINDOW(dialog), _("Ansel - Keyboard shortcuts"));
@@ -750,7 +794,7 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
-  gtk_window_set_default_size(GTK_WINDOW(dialog), 1200, 720);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 720, 720);
 
   // Create the full (non-filtered) tree view model
   GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_POINTER);
@@ -771,8 +815,7 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
 
   // Set the search feature, aka wire the Gtk search entry to a GtkTreeModelFilter
   GtkTreeModel *filter_model = gtk_tree_model_filter_new(GTK_TREE_MODEL(store), NULL);
-  GtkWidget *search_entry = gtk_search_entry_new();
-  gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(filter_model), filter_callback, search_entry, NULL);
+  gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(filter_model), filter_callback, params, NULL);
 
   // So the content of the treeview is NOT the original (full) model, but the filtered one
   GtkWidget *tree_view = gtk_tree_view_new_with_model(filter_model);
@@ -780,9 +823,10 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_widget_set_vexpand(tree_view, TRUE);
   gtk_widget_set_halign(tree_view, GTK_ALIGN_FILL);
   gtk_widget_set_valign(tree_view, GTK_ALIGN_FILL);
-  gtk_widget_set_size_request(tree_view, 1100, 720);
+  gtk_widget_set_size_request(tree_view, 720, 720);
 
-  g_signal_connect(G_OBJECT(search_entry), "changed", G_CALLBACK(search_changed), tree_view);
+  g_signal_connect(G_OBJECT(params->path_search), "changed", G_CALLBACK(search_changed), tree_view);
+  g_signal_connect(G_OBJECT(params->keys_search), "changed", G_CALLBACK(search_changed), tree_view);
 
   // Add tree view columns
   const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), NULL };
@@ -791,7 +835,13 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   // Pack and show widgets
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), box, TRUE, TRUE, 0);
-  gtk_box_pack_start(GTK_BOX(box), search_entry, FALSE, FALSE, 0);
+
+  GtkWidget *hbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new(_("Search by feature : ")), FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), params->path_search, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), gtk_label_new(_("Search by keys : ")), FALSE, FALSE, 0);
+  gtk_box_pack_start(GTK_BOX(hbox), params->keys_search, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(box), hbox, FALSE, FALSE, 0);
 
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
@@ -799,4 +849,9 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
 
   gtk_widget_set_visible(tree_view, TRUE);
   gtk_widget_show_all(dialog);
+
+  if(gtk_dialog_run(GTK_DIALOG(dialog)))
+  {
+    g_free(params);
+  }
 }
