@@ -118,6 +118,7 @@ typedef struct dt_shortcut_t
   gboolean locked;            // if shortcut can't be changed by user
   gboolean virtual_shortcut;  // if shortcut is mapped to a key-pressed event handler instead of a global action callback
   const char *description;    // user-legible description of the action
+  dt_accels_t *accels;        // back-reference for convenience
 } dt_shortcut_t;
 
 
