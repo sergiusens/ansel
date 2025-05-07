@@ -860,9 +860,10 @@ static inline gchar *strip_markup(const char *s)
   PangoAttrList *attrs = NULL;
   gchar *plain = NULL;
 
-  /* accel_marker = 0 (we don’t care about underlined mnemonics here) */
-  if(!pango_parse_markup(s, -1, 0, &attrs, &plain, NULL, NULL))
-    plain = g_strdup(s);
+  const gchar *underscore = "_";
+  gunichar mnemonic = underscore[0];
+  if(!pango_parse_markup(s, -1, mnemonic, &attrs, &plain, NULL, NULL))
+    plain = delete_underscore(s);
 
   pango_attr_list_unref(attrs);
   return plain;

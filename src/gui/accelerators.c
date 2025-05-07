@@ -254,7 +254,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
 }
 
 
-const dt_shortcut_t *dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
+void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
                                    GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
                                    guint key_val, GdkModifierType accel_mods, const gboolean lock)
 {
@@ -265,7 +265,7 @@ const dt_shortcut_t *dt_accels_new_action_shortcut(dt_accels_t *accels, void(*ac
   if(shortcut && shortcut->closure->data == data)
   {
     // reference is still up-to-date: nothing to do.
-    return shortcut;
+    return;
   }
   else if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
   {
@@ -297,7 +297,6 @@ const dt_shortcut_t *dt_accels_new_action_shortcut(dt_accels_t *accels, void(*ac
   }
 
   g_free(accel_path);
-  return shortcut;
 }
 
 
@@ -602,7 +601,7 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
   // Note 2: that fails if widget labels contain /
   gchar **parts = g_strsplit(path, "/", -1);
   gchar *accum = g_strdup("<Ansel>");
-  for(int i = 1; parts[i] && i < 5; ++i)
+  for(int i = 1; parts[i]; ++i)
   {
     // Build the partial path so far
     gchar *tmp = g_strconcat(accum, "/", parts[i], NULL);
