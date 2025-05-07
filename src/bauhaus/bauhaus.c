@@ -1212,11 +1212,11 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
     {
       // slash is not allowed in control names because that makes accel pathes fail
       assert(g_strrstr(label, "/") == NULL);
-      
+
       gchar *plugin_name = g_strdup_printf("%s/%s", m->name, label);
-      gchar *scope = g_strdup_printf("%s/Plugins", m->view);
+      gchar *scope = g_strdup_printf("%s/Modules", m->view);
       dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0);
-      g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Plugins", plugin_name));
+      g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Modules", plugin_name));
       g_free(scope);
       g_free(plugin_name);
     }
