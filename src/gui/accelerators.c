@@ -787,12 +787,11 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   // Pack and show widgets
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), box, TRUE, TRUE, 0);
+  gtk_box_pack_start(GTK_BOX(box), search_entry, FALSE, FALSE, 0);
 
   GtkWidget *scrolled_window = gtk_scrolled_window_new(NULL, NULL);
   gtk_container_add(GTK_CONTAINER(scrolled_window), tree_view);
   gtk_box_pack_start(GTK_BOX(box), scrolled_window, TRUE, TRUE, 0);
-
-  gtk_box_pack_start(GTK_BOX(box), search_entry, FALSE, FALSE, 0);
 
   gtk_widget_set_visible(tree_view, TRUE);
   gtk_widget_show_all(dialog);

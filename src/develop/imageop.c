@@ -1055,7 +1055,7 @@ void dt_iop_gui_init(dt_iop_module_t *module)
   if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
   {
     gchar *clean_name = delete_underscore(module->name());
-    dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, "Darkroom/Plugins", clean_name, 0, 0);
+    dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, "Darkroom/Modules", clean_name, 0, 0);
     g_free(clean_name);
   }
 

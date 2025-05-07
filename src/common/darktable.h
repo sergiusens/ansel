@@ -848,6 +848,26 @@ static inline gchar *delete_underscore(const char *s)
   return dt_string_replace(s, "_");
 }
 
+/**
+ * @brief Remove Pango/Gtk markup and accels mnemonics from text labels.
+ * If the markup parsing fails, fallback to returning a copy of the original string.
+ *
+ * @param s Original string to clean
+ * @return gchar* Newly-allocated string. The caller is responsible for freeing it.
+ */
+static inline gchar *strip_markup(const char *s)
+{
+  PangoAttrList *attrs = NULL;
+  gchar *plain = NULL;
+
+  /* accel_marker = 0 (we don’t care about underlined mnemonics here) */
+  if(!pango_parse_markup(s, -1, 0, &attrs, &plain, NULL, NULL))
+    plain = g_strdup(s);
+
+  pango_attr_list_unref(attrs);
+  return plain;
+}
+
 #ifdef __cplusplus
 }
 #endif

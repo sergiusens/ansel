@@ -27,7 +27,8 @@
  *  will be updated automatically everytime a top-level menu is opened.
  **/
 
-dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list, const gchar *label, dt_menus_t menu_index,
+dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list,
+                                const gchar *label, dt_menus_t menu_index,
                                 void *data, void (*action_callback)(GtkWidget *widget),
                                 gboolean (*checked_callback)(GtkWidget *widget),
                                 gboolean (*active_callback)(GtkWidget *widget),
@@ -69,7 +70,7 @@ dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list, const gch
   // Publish a new accel to the global map and attach it to the menu entry widget
   if(action_callback != NULL)
   {
-    gchar *clean_label = delete_underscore(label);
+    gchar *clean_label = strip_markup(label);
     const dt_shortcut_t *shortcut = dt_accels_new_action_shortcut(
         darktable.gui->accels, action_callback, entry->widget, accel_group,
         gtk_menu_get_accel_path(GTK_MENU(menus[menu_index])), clean_label, key_val, mods, FALSE);
