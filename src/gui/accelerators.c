@@ -208,6 +208,7 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
     shortcut->type = DT_SHORTCUT_DEFAULT;
     shortcut->locked = TRUE;
     shortcut->virtual_shortcut = TRUE;
+    shortcut->description = _("Contextual interaction on focus");
     _insert_accel(accels, shortcut);
   }
 }
@@ -246,6 +247,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
     shortcut->type = DT_SHORTCUT_UNSET;
     shortcut->locked = lock;
     shortcut->virtual_shortcut = FALSE;
+    shortcut->description = _("Trigger the action");
     _insert_accel(accels, shortcut);
     // accel is inited with empty keys so user config may set it.
     // dt_accels_load_config needs to run next
@@ -256,7 +258,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
 
 void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
                                    GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
-                                   guint key_val, GdkModifierType accel_mods, const gboolean lock)
+                                   guint key_val, GdkModifierType accel_mods, const gboolean lock, const char *description)
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   gchar *accel_path = dt_accels_build_path(action_scope, action_name);
@@ -290,6 +292,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), 
     shortcut->type = DT_SHORTCUT_UNSET;
     shortcut->locked = lock;
     shortcut->virtual_shortcut = FALSE;
+    shortcut->description = description;
     _insert_accel(accels, shortcut);
     // accel is inited with empty keys so user config may set it.
     // dt_accels_load_config needs to run next
@@ -561,6 +564,8 @@ enum
 {
   COL_NAME,
   COL_KEYS,
+  COL_DESCRIPTION,
+  COL_LOCKED,
   COL_PATH,
   COL_SHORTCUT,
   NUM_COLUMNS
@@ -575,7 +580,9 @@ typedef struct _accel_treeview_t
 
 static void _add_text_column(GtkTreeView *treeview, const char *title, int column_id, int sort_column)
 {
-  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(title, gtk_cell_renderer_text_new(), "text", column_id, NULL);
+  GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+  g_object_set(G_OBJECT(renderer), "markup", FALSE, NULL);
+  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(title, renderer, "text", column_id, NULL);
   gtk_tree_view_append_column(treeview, column);
 }
 
@@ -603,6 +610,10 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
   // Note 2: that fails if widget labels contain /
   gchar **parts = g_strsplit(path, "/", -1);
   gchar *accum = g_strdup("<Ansel>");
+
+  // We will copy pathes after <Ansel> string because that makes
+  // treeview markup parsers fail since it looks like markup
+  const size_t len_ansel = strlen(accum);
   for(int i = 1; parts[i]; ++i)
   {
     // Build the partial path so far
@@ -627,19 +638,26 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
 
       // Write the shortcut only if we are at the terminating point of the path
       if(!g_strcmp0(accum, path))
+      {
+        GtkIconTheme *theme = gtk_icon_theme_get_default();
+        GdkPixbuf *folder_pix = gtk_icon_theme_load_icon(theme, (shortcut->locked) ? "lock" : "unlock", 16, 0, NULL);
         gtk_tree_store_set(store, &new_iter,
                            COL_NAME, parts[i],
                            COL_KEYS, keys,
-                           COL_PATH, path,
-                           COL_SHORTCUT, shortcut,
-                           -1);
+                           COL_DESCRIPTION, shortcut->description,
+                           COL_LOCKED, folder_pix,
+                           COL_PATH, path + len_ansel,
+                           COL_SHORTCUT, shortcut, -1);
+      }
       else
+      {
         gtk_tree_store_set(store, &new_iter,
                            COL_NAME, parts[i],
                            COL_KEYS, NULL,
-                           COL_PATH, accum,
+                           COL_PATH, accum + len_ansel,
                            COL_SHORTCUT, NULL,
                            -1);
+      }
 
       // heap‑copy the struct to pass it along to the HashTable
       iter = g_new(GtkTreeIter, 1);
@@ -794,10 +812,11 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
-  gtk_window_set_default_size(GTK_WINDOW(dialog), 720, 720);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 900, 900);
 
   // Create the full (non-filtered) tree view model
-  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_POINTER);
+  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
+                                           GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER);
 
   // Add a tree view row for each accel
   GHashTable *node_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -819,18 +838,21 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
 
   // So the content of the treeview is NOT the original (full) model, but the filtered one
   GtkWidget *tree_view = gtk_tree_view_new_with_model(filter_model);
+  gtk_tree_view_set_tooltip_column(GTK_TREE_VIEW(tree_view), COL_PATH);
   gtk_widget_set_hexpand(tree_view, TRUE);
   gtk_widget_set_vexpand(tree_view, TRUE);
   gtk_widget_set_halign(tree_view, GTK_ALIGN_FILL);
   gtk_widget_set_valign(tree_view, GTK_ALIGN_FILL);
-  gtk_widget_set_size_request(tree_view, 720, 720);
 
   g_signal_connect(G_OBJECT(params->path_search), "changed", G_CALLBACK(search_changed), tree_view);
   g_signal_connect(G_OBJECT(params->keys_search), "changed", G_CALLBACK(search_changed), tree_view);
 
   // Add tree view columns
-  const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), NULL };
-  for(int i = COL_NAME; i < COL_PATH; i++) _add_text_column(GTK_TREE_VIEW(tree_view), col_labels[i], i, i);
+  const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), _("Description"), "", NULL };
+  for(int i = COL_NAME; i < COL_LOCKED; i++) _add_text_column(GTK_TREE_VIEW(tree_view), col_labels[i], i, i);
+
+  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes("", gtk_cell_renderer_pixbuf_new(), "pixbuf", COL_LOCKED, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
   // Pack and show widgets
   GtkWidget *box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);

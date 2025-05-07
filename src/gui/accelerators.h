@@ -115,8 +115,9 @@ typedef struct dt_shortcut_t
   guint key;                  // default key
   GdkModifierType mods;       // default modifier
   dt_shortcut_type_t type;
-  gboolean locked;
-  gboolean virtual_shortcut;
+  gboolean locked;            // if shortcut can't be changed by user
+  gboolean virtual_shortcut;  // if shortcut is mapped to a key-pressed event handler instead of a global action callback
+  const char *description;    // user-legible description of the action
 } dt_shortcut_t;
 
 
@@ -220,7 +221,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
  */
 void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
                                    GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
-                                   guint key_val, GdkModifierType accel_mods, const gboolean lock);
+                                   guint key_val, GdkModifierType accel_mods, const gboolean lock, const char *description);
 
 
 /**

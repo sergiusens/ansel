@@ -1215,9 +1215,9 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
 
       gchar *plugin_name = g_strdup_printf("%s/%s", m->name, w->label);
       dt_capitalize_label(plugin_name);
-      
+
       gchar *scope = g_strdup_printf("%s/Modules", m->view);
-      dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0);
+      dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0, _("Focuses the control"));
       g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Modules", plugin_name));
       g_free(scope);
       g_free(plugin_name);

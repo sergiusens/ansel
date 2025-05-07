@@ -81,7 +81,7 @@ dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list,
     dt_accels_new_action_shortcut(
         darktable.gui->accels, action_callback, entry->widget, accel_group,
         parent_path, clean_label,
-        key_val, mods, FALSE);
+        key_val, mods, FALSE, _("Triggers the action"));
 
     gchar *path = dt_accels_build_path(parent_path, clean_label);
     gtk_widget_set_accel_path(entry->widget, path, (action_callback != NULL) ? accel_group : NULL);
