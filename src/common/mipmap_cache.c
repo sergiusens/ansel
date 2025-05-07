@@ -212,7 +212,7 @@ static void _write_mipmap_to_disk(const int32_t imgid, char *filename, char *ext
   {
     char *_ext = _filename + strlen(_filename);
     while(*_ext != '.' && _ext > _filename) _ext--;
-    if(ext) strncpy(ext, _ext, 4);
+    if(ext) strncpy(ext, _ext, 5);
     if(is_jpg_input) *is_jpg_input = !strcasecmp(_ext, ".jpg") || !strcasecmp(_ext, ".jpeg");
   }
 
