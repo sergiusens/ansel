@@ -115,7 +115,8 @@ typedef struct dt_shortcut_t
   guint key;                  // default key
   GdkModifierType mods;       // default modifier
   dt_shortcut_type_t type;
-  gboolean locked; // this will not listen to user config
+  gboolean locked;
+  gboolean virtual_shortcut;
 } dt_shortcut_t;
 
 
@@ -158,6 +159,22 @@ void dt_accels_connect_active_group(dt_accels_t *accels, const gchar *group);
  * @param accels
  */
 void dt_accels_disconnect_active_group(dt_accels_t *accels);
+
+
+/**
+ * @brief Add a new virtual shortcut. Virtual shortcuts are immutable, read-only
+ * and don't trigger any action. They are meant to serve as placeholders, in a purely
+ * declarative way, for key combinations hardcoded in the key-pressed events handlers
+ * of widgets able to capture focus. Once declared here, they will prevent users from declaring
+ * their own shortcuts using hardcoded combinations for the corresponding accel_group.
+ *
+ * @param accel_group
+ * @param accel_path
+ * @param key_val
+ * @param accel_mods
+ */
+void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_group, const gchar *accel_path,
+                                    guint key_val, GdkModifierType accel_mods);
 
 /**
  * @brief Register a new shortcut for a widget, setting up its path, default keys and accel group.

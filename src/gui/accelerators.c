@@ -190,6 +190,28 @@ void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
   g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
 }
 
+void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_group, const gchar *accel_path,
+                                    guint key_val, GdkModifierType accel_mods)
+{
+  // Our own circuitery to keep track of things after user-defined shortcuts are updated
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
+  if(!shortcut)
+  {
+    shortcut = malloc(sizeof(dt_shortcut_t));
+    shortcut->accel_group = accel_group;
+    shortcut->widget = NULL;
+    shortcut->closure = NULL;
+    shortcut->path = g_strdup(accel_path);
+    shortcut->signal = NULL;
+    shortcut->key = key_val;
+    shortcut->mods = accel_mods;
+    shortcut->type = DT_SHORTCUT_DEFAULT;
+    shortcut->locked = TRUE;
+    shortcut->virtual_shortcut = TRUE;
+    _insert_accel(accels, shortcut);
+  }
+}
+
 
 void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const gchar *signal,
                                    GtkAccelGroup *accel_group, const gchar *accel_path, guint key_val,
@@ -223,6 +245,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
     shortcut->mods = accel_mods;
     shortcut->type = DT_SHORTCUT_UNSET;
     shortcut->locked = lock;
+    shortcut->virtual_shortcut = FALSE;
     _insert_accel(accels, shortcut);
     // accel is inited with empty keys so user config may set it.
     // dt_accels_load_config needs to run next
@@ -266,6 +289,7 @@ const dt_shortcut_t *dt_accels_new_action_shortcut(dt_accels_t *accels, void(*ac
     shortcut->mods = accel_mods;
     shortcut->type = DT_SHORTCUT_UNSET;
     shortcut->locked = lock;
+    shortcut->virtual_shortcut = FALSE;
     _insert_accel(accels, shortcut);
     // accel is inited with empty keys so user config may set it.
     // dt_accels_load_config needs to run next
