@@ -196,8 +196,46 @@ static void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
   g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
 }
 
+
+static void _virtual_shortcut_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval,
+                                           GdkModifierType mods, gpointer user_data)
+{
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)user_data;
+  if(!shortcut || !shortcut->widget) return;
+
+  // Focus the target widget
+  gtk_widget_grab_focus(shortcut->widget);
+
+  // Hardware-decode the shortcut key
+  guint keycode = 0;
+  GdkKeymapKey *keys = NULL;
+  gint n = 0;
+  GdkKeymap *keymap = gdk_keymap_get_for_display(gdk_display_get_default());
+  if(gdk_keymap_get_entries_for_keyval(keymap, shortcut->key, &keys, &n))
+  {
+    if(n > 0) keycode = keys[0].keycode;
+    g_free(keys);
+  }
+
+  // Create a virtual key stroke using our shortcut keys
+  GdkEvent *ev = gdk_event_new(GDK_KEY_PRESS);
+  ev->key.window = g_object_ref(gtk_widget_get_window(shortcut->widget));
+  ev->key.send_event = TRUE;
+  ev->key.time = GDK_CURRENT_TIME;
+  ev->key.state = shortcut->mods;
+  ev->key.keyval = shortcut->key;
+  ev->key.hardware_keycode = keycode;
+  ev->key.group = 0;
+  ev->key.is_modifier = FALSE;
+
+  // Fire the virtual keystroke to the target widget
+  gtk_widget_event(shortcut->widget, ev);
+  gdk_event_free(ev);
+}
+
+
 void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_group, const gchar *accel_path,
-                                    guint key_val, GdkModifierType accel_mods)
+                                    GtkWidget *widget, guint key_val, GdkModifierType accel_mods)
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
@@ -205,13 +243,13 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
   {
     shortcut = malloc(sizeof(dt_shortcut_t));
     shortcut->accel_group = accel_group;
-    shortcut->widget = NULL;
-    shortcut->closure = NULL;
+    shortcut->widget = widget;
+    shortcut->closure = (widget) ? g_cclosure_new(G_CALLBACK(_virtual_shortcut_callback), shortcut, NULL) : NULL;
     shortcut->path = g_strdup(accel_path);
     shortcut->signal = NULL;
     shortcut->key = key_val;
     shortcut->mods = accel_mods;
-    shortcut->type = DT_SHORTCUT_DEFAULT;
+    shortcut->type = DT_SHORTCUT_UNSET;
     shortcut->locked = TRUE;
     shortcut->virtual_shortcut = TRUE;
     shortcut->description = _("Contextual interaction on focus");
@@ -320,8 +358,6 @@ void dt_accels_load_user_config(dt_accels_t *accels)
 // Resync the GtkAccelMap with our shortcut, meaning key changes should happen in GtkAccelMap before
 static void _connect_accel(dt_shortcut_t *shortcut)
 {
-  if(shortcut->virtual_shortcut || shortcut->locked) return;
-
   GtkAccelKey key = { 0 };
 
   // All shortcuts should be known, they are added to accel_map at init time.
@@ -339,13 +375,7 @@ static void _connect_accel(dt_shortcut_t *shortcut)
   // if key is non zero and new, or updated, we need to add a new accel
   const gboolean needs_init = changed && key.accel_key > 0;
 
-  // Adding shortcuts without defined keys makes Gtk issue warnings, so avoid it.
-  if(shortcut->widget)
-  {
-    if(needs_cleanup) _remove_widget_accel(shortcut, &oldkey);
-    if(needs_init) _add_widget_accel(shortcut, &key, shortcut->accels->flags);
-  }
-  else if(shortcut->closure)
+  if(shortcut->closure)
   {
     if(needs_cleanup)
     {
@@ -358,6 +388,11 @@ static void _connect_accel(dt_shortcut_t *shortcut)
     if(needs_init)
       _add_generic_accel(shortcut, &key, shortcut->accels->flags);
     // closures can be connected only at one accel at a time, so we don't handle keypad duplicates
+  }
+  else if(shortcut->widget)
+  {
+    if(needs_cleanup) _remove_widget_accel(shortcut, &oldkey);
+    if(needs_init) _add_widget_accel(shortcut, &key, shortcut->accels->flags);
   }
   else
   {

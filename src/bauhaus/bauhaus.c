@@ -966,56 +966,56 @@ dt_bauhaus_t * dt_bauhaus_init()
   // Keys used by key-pressed event handler when the Bauhaus widget has the focus
   gchar *path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Increase value (normal step)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Right, 0);
+                                  path, NULL, GDK_KEY_Right, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Decrease value (normal step)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Left, 0);
+                                  path, NULL, GDK_KEY_Left, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Increase value (fine step)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Right, GDK_CONTROL_MASK);
+                                  path, NULL, GDK_KEY_Right, GDK_CONTROL_MASK);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Decrease value (fine step)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Left, GDK_CONTROL_MASK);
+                                  path, NULL, GDK_KEY_Left, GDK_CONTROL_MASK);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Increase value (coarse step)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Right, GDK_SHIFT_MASK);
+                                  path, NULL, GDK_KEY_Right, GDK_SHIFT_MASK);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Decrease value (coarse step)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Left, GDK_SHIFT_MASK);
+                                  path, NULL, GDK_KEY_Left, GDK_SHIFT_MASK);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Sliders"), _("Toggle color-picker"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Insert, 0);
+                                  path, NULL, GDK_KEY_Insert, 0);
   g_free(path);
 
   path = dt_accels_build_path(_("Darkroom/Controls/Comboboxes"), _("Open editing mode"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Return, 0);
+                                  path, NULL, GDK_KEY_Return, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Comboboxes"), _("Exit editing mode"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Escape, 0);
+                                  path, NULL, GDK_KEY_Escape, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Comboboxes"), _("Select previous (in editing mode)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Up, 0);
+                                  path, NULL, GDK_KEY_Up, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Comboboxes"), _("Select next (in editing mode)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Down, 0);
+                                  path, NULL, GDK_KEY_Down, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Comboboxes"), _("Validate result (in editing mode)"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Return, 0);
+                                  path, NULL, GDK_KEY_Return, 0);
   g_free(path);
   path = dt_accels_build_path(_("Darkroom/Controls/Comboboxes"), _("Toggle color-picker"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
-                                  path, GDK_KEY_Insert, 0);
+                                  path, NULL, GDK_KEY_Insert, 0);
   g_free(path);
 
   return bauhaus;
