@@ -459,14 +459,18 @@ void _for_each_accel(gpointer key, gpointer value, gpointer user_data)
 
 
 // Find the accel path for the matching key & modifier within the specified accel group.
-// Return the number of accels found (should be one).
-guint _find_path_for_keys(dt_accels_t *accels, guint key, GdkModifierType modifier, GtkAccelGroup *group)
+// Return the path of the first accel found
+static const char * _find_path_for_keys(dt_accels_t *accels, guint key, GdkModifierType modifier, GtkAccelGroup *group)
 {
   _accel_lookup_t result = { .results = NULL, .key = key, .modifier = modifier, .group = group };
   g_hash_table_foreach(accels->acceleratables, _for_each_accel, &result);
-  guint values = g_list_length(result.results);
+
+  char *path = NULL;
+  GList *item = g_list_first(result.results);
+  if(item) path = (char *)item->data;
+
   g_list_free(result.results);
-  return values;
+  return path;
 }
 
 
@@ -615,18 +619,27 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
     gtk_tree_model_get(GTK_TREE_MODEL(filter), &f_iter, COL_KEYS, &original_keys, -1);
   }
 
+  const char *shortcut_path = NULL;
+
   if(shortcut && g_strcmp0(original_keys, new_text) != 0)
   {
-    // Decode the text into Gtk keys
+    // Decode the text into Gtk keys. In case of parsing error, everything is set to 0.
     guint keyval = 0;
     GdkModifierType mods = 0;
     gtk_accelerator_parse(new_text, &keyval, &mods);
 
+    // Lookup this keys combination in the current accel_group (only if key is not empty)
+    if(!(keyval == 0 && mods == 0))
+      shortcut_path = _find_path_for_keys(shortcut->accels, keyval, mods, shortcut->accel_group);
+
     // Try to update the GtkAccelMap with new keys
-    if(gtk_accel_map_change_entry(shortcut->path, keyval, mods, FALSE))
+    if(!shortcut_path && gtk_accel_map_change_entry(shortcut->path, keyval, mods, FALSE))
     {
       // Success:
-      // Update our internal shortcut object and its GtkAccelGroup
+      // Resync parsed keys with text, in case of parsing error
+      char *new_keys = gtk_accelerator_name(keyval, mods);
+
+      // Resync our internal shortcut object and its GtkAccelGroup to GtkAccelMap
       _connect_accel(shortcut);
 
       // s_iter is the row coordinates relative to the child/source model (unfiltered)
@@ -634,19 +647,23 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
       // And write new keys into the source model
       GtkTreeIter s_iter;
       gtk_tree_model_filter_convert_iter_to_child_iter(GTK_TREE_MODEL_FILTER(filter), &s_iter, &f_iter);
-      gtk_tree_store_set(GTK_TREE_STORE(store), &s_iter, COL_KEYS, new_text, -1);
+      gtk_tree_store_set(GTK_TREE_STORE(store), &s_iter, COL_KEYS, new_keys, -1);
+
+      g_free(new_keys);
     }
-    else if(new_text && new_text[0] != '\0')
-    {
-      // The GtkAccelMap could not be updated because another accel uses the same keys
-      // That also happens if we try to unset a shortcut more than once, but then it's no issue.
-      GtkWidget *dlg
-          = gtk_message_dialog_new_with_markup(NULL, 0, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s <tt>%s</tt>, %s",
-                                               _("Another shortcut is using the key combination"), new_text,
-                                               _("we can't update this one. Delete the other shortcut first."));
-      gtk_dialog_run(GTK_DIALOG(dlg));
-      gtk_widget_destroy(dlg);
-    }
+  }
+
+  if(shortcut_path)
+  {
+    // The GtkAccelMap could not be updated because another accel uses the same keys
+    // That also happens if we try to unset a shortcut more than once, but then it's no issue.
+    GtkWidget *dlg
+        = gtk_message_dialog_new_with_markup(NULL, 0, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s <tt>%s</tt>\n%s <tt>%s</tt>.\n%s",
+                                              _("The shortcut for"), shortcut_path,
+                                              _("is already using the key combination"), new_text,
+                                              _("Delete it first."));
+    gtk_dialog_run(GTK_DIALOG(dlg));
+    gtk_widget_destroy(dlg);
   }
 
   g_free(original_keys);
