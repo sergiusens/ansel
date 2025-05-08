@@ -8,7 +8,6 @@
 
 #include <assert.h>
 #include <glib.h>
-#include <regex.h>
 
 
 static void _clean_shortcut(gpointer data)
@@ -864,14 +863,10 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
         pattern = g_strdup_printf("(^|[<>])%s($|[<>])", needle_ci);
 
       // Regex match full words
-      regex_t re;
-      if(regcomp(&re, pattern, REG_EXTENDED | REG_ICASE) == 0)
-      {
-        regmatch_t m;
-        show &= (regexec(&re, haystack_ci, 1, &m, 0) == 0);
-      }
+      GRegex *re = g_regex_new(pattern, G_REGEX_CASELESS | G_REGEX_EXTENDED, 0, NULL);
+      if(re) show &= g_regex_match(re, haystack_ci, 0, NULL);
 
-      regfree(&re);
+      g_regex_unref(re);
       g_free(pattern);
       g_free(needle_ci);
       g_free(haystack_ci);
