@@ -2,6 +2,10 @@
 #include "common/darktable.h" // lots of garbage to include, only to get debug prints & flags
 #include "gui/gdkkeys.h"
 
+#ifdef GDK_WINDOWING_QUARTZ
+#include "osx/osx.h"
+#endif
+
 #include <assert.h>
 #include <glib.h>
 
