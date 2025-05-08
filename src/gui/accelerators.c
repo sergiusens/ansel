@@ -674,22 +674,6 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
   gtk_tree_path_free(path);
 }
 
-
-
-static void _add_text_column(GtkTreeView *treeview, GtkTreeModel *filter_model, const char *title, int column_id, int sort_column, gboolean editable)
-{
-  GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(title, renderer, "text", column_id, NULL);
-
-  if(editable)
-  {
-    gtk_tree_view_column_set_cell_data_func(column, renderer, _make_column_editable, NULL, NULL);
-    g_signal_connect(renderer, "edited", G_CALLBACK(_text_edited), filter_model);
-  }
-
-  gtk_tree_view_append_column(treeview, column);
-}
-
 static void _create_main_row(GtkTreeStore *store, GtkTreeIter *iter, const char *label, const char *keys, const char *path, dt_shortcut_t *shortcut)
 {
   GtkIconTheme *theme = gtk_icon_theme_get_default();
@@ -970,9 +954,21 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   // Add tree view columns
   const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), _("Description"), NULL };
   for(int i = COL_NAME; i < COL_LOCKED; i++)
-    _add_text_column(GTK_TREE_VIEW(tree_view), filter_model, col_labels[i], i, i, (i == COL_KEYS));
+  {
+    GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+    GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(col_labels[i], renderer, "text", i, NULL);
 
-  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes("", gtk_cell_renderer_pixbuf_new(), "pixbuf", COL_LOCKED, NULL);
+    if(i == COL_KEYS)
+    {
+      gtk_tree_view_column_set_cell_data_func(column, renderer, _make_column_editable, NULL, NULL);
+      g_signal_connect(renderer, "edited", G_CALLBACK(_text_edited), filter_model);
+    }
+
+    gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
+  }
+
+  GtkCellRenderer *pix_renderer = gtk_cell_renderer_pixbuf_new();
+  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes("", pix_renderer, "pixbuf", COL_LOCKED, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
   // Pack and show widgets
