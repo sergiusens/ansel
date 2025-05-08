@@ -1,5 +1,6 @@
 #include "accelerators.h"
 #include "common/darktable.h" // lots of garbage to include, only to get debug prints & flags
+#include "gui/gtkentry.h"
 #include "gui/gdkkeys.h"
 
 #ifdef GDK_WINDOWING_QUARTZ
@@ -895,6 +896,25 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   params->keys_search = gtk_search_entry_new();
   params->path_search = gtk_search_entry_new();
   GtkWidget *tree_view = params->tree_view = gtk_tree_view_new();
+
+  // Setup auto-completion on key modifiers because they are annoying
+  // Note: omit the initial < character in modifier names as it is used to trigger matching
+  // and won't be appended
+  static dt_gtkentry_completion_spec default_path_compl_list[]
+      = { { "Primary>", N_("<Primary> - Decoded as <Control> on Windows/Linux or <Meta> on Mac OS") },
+          { "Control>", N_("<Control>") },
+          { "Shift>", N_("<Shift>") },
+          { "Alt>", N_("<Alt>") },
+          { "Super>", N_("<Super> - The Windows key on PC") },
+          { "Hyper>", N_("<Hyper>") },
+          { "Meta>", N_("<Meta> - Decoded as <Command> on Mac OS") },
+          { NULL, NULL } };
+  dt_gtkentry_setup_completion(GTK_ENTRY(params->keys_search), default_path_compl_list, "<");
+  gtk_widget_set_tooltip_text(params->keys_search, _("Look for keys and modifiers codes, as `<Modifier>Key`.\n"
+                                                     "Type `<` to start the auto-completion"));
+
+  gtk_widget_set_tooltip_text(params->path_search, _("Case-insensitive search for keywords of full pathes.\n"
+                                                     "Ex: `darkroom/controls/sliders`"));
 
   // Set dialog window properties
   GtkWidget *dialog = gtk_dialog_new();
