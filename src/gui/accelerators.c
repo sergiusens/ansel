@@ -91,7 +91,7 @@ void dt_accels_disconnect_active_group(dt_accels_t *accels)
 }
 
 
-gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key, gboolean init)
+static gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key, gboolean init)
 {
   gboolean changed = FALSE;
   if(shortcut->type == DT_SHORTCUT_UNSET)
@@ -151,7 +151,7 @@ gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key, gbool
  * handling.
 */
 
-void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key, GtkAccelFlags flags)
+static void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key, GtkAccelFlags flags)
 {
   gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, key->accel_key,
                               key->accel_mods, flags);
@@ -164,7 +164,7 @@ void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key, GtkAccel
 }
 
 
-void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
+static void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
 {
   gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, key->accel_key, key->accel_mods);
 
@@ -175,19 +175,19 @@ void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
 }
 
 
-void _remove_generic_accel(dt_shortcut_t *shortcut)
+static void _remove_generic_accel(dt_shortcut_t *shortcut)
 {
   gtk_accel_group_disconnect(shortcut->accel_group, shortcut->closure);
 }
 
-void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelKey *key, GtkAccelFlags flags)
+static void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelKey *key, GtkAccelFlags flags)
 {
   gtk_accel_group_connect(shortcut->accel_group, key->accel_key, key->accel_mods, flags,
                           shortcut->closure);
 }
 
 
-void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
+static void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
 {
   // init an accel_map entry with no keys so Gtk collects them from user config later.
   gtk_accel_map_add_entry(shortcut->path, 0, 0);
@@ -363,7 +363,7 @@ static void _connect_accel(dt_shortcut_t *shortcut)
   }
 }
 
-void _connect_accel_hashtable(gpointer _key, gpointer value, gpointer user_data)
+static void _connect_accel_hashtable(gpointer _key, gpointer value, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
   _connect_accel(shortcut);
@@ -384,7 +384,7 @@ gchar *dt_accels_build_path(const gchar *scope, const gchar *feature)
     return g_strdup_printf("<Ansel>/%s/%s", scope, feature);
 }
 
-void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, GdkModifierType *mods)
+static void _accels_keys_decode(dt_accels_t *accels, GdkEvent *event, guint *keyval, GdkModifierType *mods)
 {
   // Get modifiers
   gdk_event_get_state(event, mods);
@@ -439,7 +439,7 @@ typedef struct _accel_lookup_t
 } _accel_lookup_t;
 
 
-void _for_each_accel(gpointer key, gpointer value, gpointer user_data)
+static inline void _for_each_accel(gpointer key, gpointer value, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
   const gchar *path = (const gchar *)key;
@@ -478,7 +478,7 @@ static const char * _find_path_for_keys(dt_accels_t *accels, guint key, GdkModif
 }
 
 
-gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels, guint keyval, GdkModifierType mods)
+static gboolean _key_pressed(GtkWidget *w, GdkEvent *event, dt_accels_t *accels, guint keyval, GdkModifierType mods)
 {
   // Get the accelerator entry from the accel group
   gchar *accel_name = gtk_accelerator_name(keyval, mods);
@@ -574,6 +574,7 @@ void dt_accels_detach_scroll_handler(dt_accels_t *accels)
   accels->scroll.data = NULL;
 }
 
+
 enum
 {
   COL_NAME,
@@ -582,6 +583,8 @@ enum
   COL_LOCKED,
   COL_PATH,
   COL_SHORTCUT,
+  COL_KEYVAL,
+  COL_MODS,
   NUM_COLUMNS
 };
 
@@ -597,11 +600,15 @@ static void _make_column_editable(GtkTreeViewColumn *col, GtkCellRenderer *rende
 {
   dt_shortcut_t *shortcut;
   gtk_tree_model_get(model, iter, COL_SHORTCUT, &shortcut, -1);
-  g_object_set(renderer, "editable", (shortcut && !shortcut->locked), NULL);
+  g_object_set(renderer,
+               "visible", (shortcut != NULL),
+               "editable", (shortcut != NULL && !shortcut->locked),
+               "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER,
+               NULL);
 }
 
-static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gchar *new_text,
-                         gpointer user_data)
+static void _text_edited(GtkCellRendererAccel *cell, gchar *path_string, guint keyval, GdkModifierType mods,
+                         guint hardware_key, gpointer user_data)
 {
   // The tree model passed as arg is the filtered proxy.
   // We will need to access its underlying store (full, unfiltered)
@@ -611,27 +618,17 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
 
   GtkTreePath *path = gtk_tree_path_new_from_string(path_string);
   dt_shortcut_t *shortcut = NULL;
-  char *original_keys = NULL;
 
   // f_iter is the row coordinates relative to the filtered model
   // That's what we need to READ data
-  // And read what we need.
   GtkTreeIter f_iter;
   if(gtk_tree_model_get_iter(GTK_TREE_MODEL(filter), &f_iter, path))
-  {
     gtk_tree_model_get(GTK_TREE_MODEL(filter), &f_iter, COL_SHORTCUT, &shortcut, -1);
-    gtk_tree_model_get(GTK_TREE_MODEL(filter), &f_iter, COL_KEYS, &original_keys, -1);
-  }
 
   const char *shortcut_path = NULL;
 
-  if(shortcut && g_strcmp0(original_keys, new_text) != 0)
+  if(shortcut)
   {
-    // Decode the text into Gtk keys. In case of parsing error, everything is set to 0.
-    guint keyval = 0;
-    GdkModifierType mods = 0;
-    gtk_accelerator_parse(new_text, &keyval, &mods);
-
     // Lookup this keys combination in the current accel_group (only if key is not empty)
     if(!(keyval == 0 && mods == 0))
       shortcut_path = _find_path_for_keys(shortcut->accels, keyval, mods, shortcut->accel_group);
@@ -640,9 +637,6 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
     if(!shortcut_path && gtk_accel_map_change_entry(shortcut->path, keyval, mods, FALSE))
     {
       // Success:
-      // Resync parsed keys with text, in case of parsing error
-      char *new_keys = gtk_accelerator_name(keyval, mods);
-
       // Resync our internal shortcut object and its GtkAccelGroup to GtkAccelMap
       _connect_accel(shortcut);
 
@@ -651,9 +645,7 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
       // And write new keys into the source model
       GtkTreeIter s_iter;
       gtk_tree_model_filter_convert_iter_to_child_iter(GTK_TREE_MODEL_FILTER(filter), &s_iter, &f_iter);
-      gtk_tree_store_set(GTK_TREE_STORE(store), &s_iter, COL_KEYS, new_keys, -1);
-
-      g_free(new_keys);
+      gtk_tree_store_set(GTK_TREE_STORE(store), &s_iter, COL_KEYVAL, keyval, COL_MODS, mods, -1);
     }
   }
 
@@ -661,6 +653,7 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
   {
     // The GtkAccelMap could not be updated because another accel uses the same keys
     // That also happens if we try to unset a shortcut more than once, but then it's no issue.
+    char *new_text = gtk_accelerator_name(keyval, mods);
     GtkWidget *dlg
         = gtk_message_dialog_new_with_markup(NULL, 0, GTK_MESSAGE_ERROR, GTK_BUTTONS_CLOSE, "%s <tt>%s</tt>\n%s <tt>%s</tt>.\n%s",
                                               _("The shortcut for"), shortcut_path,
@@ -668,9 +661,9 @@ static void _text_edited(GtkCellRendererText *renderer, gchar *path_string, gcha
                                               _("Delete it first."));
     gtk_dialog_run(GTK_DIALOG(dlg));
     gtk_widget_destroy(dlg);
+    g_free(new_text);
   }
 
-  g_free(original_keys);
   gtk_tree_path_free(path);
 }
 
@@ -683,10 +676,12 @@ static void _create_main_row(GtkTreeStore *store, GtkTreeIter *iter, const char 
 
   gtk_tree_store_set(store, iter,
                      COL_NAME, label,
-                     COL_KEYS, keys,
+                     //COL_KEYS, keys,
                      COL_DESCRIPTION, shortcut->description,
                      COL_LOCKED, folder_pix,
                      COL_PATH, path,
+                     COL_KEYVAL, shortcut->key,
+                     COL_MODS, shortcut->mods,
                      COL_SHORTCUT, shortcut, -1);
 }
 
@@ -752,7 +747,7 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
     if(!g_strcmp0(accum, path))
       _create_main_row(store, iter, label, keys, path + len_ansel, shortcut);
     else
-      gtk_tree_store_set(store, iter, COL_NAME, parts[i], COL_PATH, accum + len_ansel, -1);
+      gtk_tree_store_set(store, iter, COL_NAME, parts[i], COL_KEYS, "", COL_PATH, accum + len_ansel, -1);
 
     g_free(label);
 
@@ -807,7 +802,12 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
 
   if((needle_path == NULL || needle_path[0] == '\0') &&
      (needle_keys == NULL || needle_keys[0] == '\0'))
-     return TRUE;
+  {
+    gtk_tree_view_collapse_all(GTK_TREE_VIEW(params->tree_view));
+    return TRUE;
+  }
+
+  gtk_tree_view_expand_all(GTK_TREE_VIEW(params->tree_view));
 
   gboolean show = TRUE;
 
@@ -816,7 +816,7 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
   gtk_tree_model_get(model, iter, COL_PATH, &path, -1);
   if(needle_path && needle_path[0])
   {
-    if(path && path[0])
+    if(path && path[0] != '\0')
     {
       gchar *needle_ci = g_utf8_casefold(needle_path, -1);
       gchar *haystack_ci = g_utf8_casefold(path, -1);
@@ -832,32 +832,27 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
   }
 
   // Check if keys match
-  gchar *keys = NULL;
-  gtk_tree_model_get(model, iter, COL_KEYS, &keys, -1);
-  if(needle_keys && needle_keys[0])
+  if(needle_keys && needle_keys[0] != '\0')
   {
-    if(keys && keys[0])
+    guint search_keyval = 0;
+    GdkModifierType search_mods = 0;
+    gtk_accelerator_parse(needle_keys, &search_keyval, &search_mods);
+    if(search_keyval || search_mods)
     {
-      gchar *needle_ci = g_regex_escape_string(needle_keys, -1);
-      gchar *haystack_ci = g_utf8_casefold(keys, -1);
-      char *pattern = NULL;
-      if(needle_keys[0] == '<' && needle_keys[strlen(needle_keys) - 1] == '>')
-        pattern = g_strdup_printf("(^|[<>])%s", needle_ci);
+      guint keyval = 0;
+      GdkModifierType mods = 0;
+      gtk_tree_model_get(model, iter, COL_KEYVAL, &keyval, COL_MODS, &mods, -1);
+
+      // If both keyval and mods are searched, use strict mode.
+      // Else use fuzzy mode
+      if(search_keyval && search_mods)
+        show &= (keyval == search_keyval && mods == search_mods);
       else
-        pattern = g_strdup_printf("(^|[<>])%s($|[<>])", needle_ci);
-
-      // Regex match full words
-      GRegex *re = g_regex_new(pattern, G_REGEX_CASELESS | G_REGEX_EXTENDED, 0, NULL);
-      if(re) show &= g_regex_match(re, haystack_ci, 0, NULL);
-
-      g_regex_unref(re);
-      g_free(pattern);
-      g_free(needle_ci);
-      g_free(haystack_ci);
-      g_free(keys);
+        show &= ((keyval && keyval == search_keyval) || (mods && mods == search_mods));
     }
     else
     {
+      // Parsing failed, keys/modifiers syntax is wrong: let user know
       show &= FALSE;
     }
   }
@@ -885,14 +880,6 @@ static void search_changed(GtkEntry *entry, gpointer user_data)
 {
   _accel_window_params_t *params = (_accel_window_params_t *)user_data;
   GtkTreeView *tree_view = GTK_TREE_VIEW(params->tree_view);
-
-  // If search is active, uncollapse all tree branches for legibility
-  if(gtk_entry_get_text(GTK_ENTRY(params->keys_search))
-     || gtk_entry_get_text(GTK_ENTRY(params->path_search)))
-    gtk_tree_view_expand_all(tree_view);
-  else
-    gtk_tree_view_collapse_all(tree_view);
-
   gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(gtk_tree_view_get_model(tree_view)));
 }
 
@@ -902,6 +889,7 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   _accel_window_params_t *params = malloc(sizeof(_accel_window_params_t));
   params->keys_search = gtk_search_entry_new();
   params->path_search = gtk_search_entry_new();
+  GtkWidget *tree_view = params->tree_view = gtk_tree_view_new();
 
   // Set dialog window properties
   GtkWidget *dialog = gtk_dialog_new();
@@ -919,7 +907,7 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
 
   // Create the full (non-filtered) tree view model
   GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-                                           GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER);
+                                           GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT);
 
   // Add a tree view row for each accel
   GHashTable *node_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -940,35 +928,34 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_tree_model_filter_set_visible_func(GTK_TREE_MODEL_FILTER(filter_model), filter_callback, params, NULL);
 
   // So the content of the treeview is NOT the original (full) model, but the filtered one
-  GtkWidget *tree_view = gtk_tree_view_new_with_model(filter_model);
+  gtk_tree_view_set_model(GTK_TREE_VIEW(tree_view), filter_model);
   gtk_tree_view_set_tooltip_column(GTK_TREE_VIEW(tree_view), COL_PATH);
   gtk_widget_set_hexpand(tree_view, TRUE);
   gtk_widget_set_vexpand(tree_view, TRUE);
   gtk_widget_set_halign(tree_view, GTK_ALIGN_FILL);
   gtk_widget_set_valign(tree_view, GTK_ALIGN_FILL);
-  params->tree_view = tree_view;
 
   g_signal_connect(G_OBJECT(params->path_search), "changed", G_CALLBACK(search_changed), params);
   g_signal_connect(G_OBJECT(params->keys_search), "changed", G_CALLBACK(search_changed), params);
 
   // Add tree view columns
-  const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), _("Description"), NULL };
-  for(int i = COL_NAME; i < COL_LOCKED; i++)
-  {
-    GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
-    GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(col_labels[i], renderer, "text", i, NULL);
+  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(_("View / Scope / Feature / Control"), gtk_cell_renderer_text_new(), "text", COL_NAME, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
-    if(i == COL_KEYS)
-    {
-      gtk_tree_view_column_set_cell_data_func(column, renderer, _make_column_editable, NULL, NULL);
-      g_signal_connect(renderer, "edited", G_CALLBACK(_text_edited), filter_model);
-    }
+  GtkCellRenderer *accel_renderer = gtk_cell_renderer_accel_new();
+  column = gtk_tree_view_column_new_with_attributes(_("Keys"), accel_renderer,
+                                                    "accel-key", COL_KEYVAL,
+                                                    "accel-mods", COL_MODS,
+                                                    NULL);
+  gtk_tree_view_column_set_cell_data_func(column, accel_renderer, _make_column_editable, NULL, NULL);
+  g_signal_connect(accel_renderer, "accel-edited", G_CALLBACK(_text_edited), filter_model);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
-    gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
-  }
+  column = gtk_tree_view_column_new_with_attributes(_("Description"), gtk_cell_renderer_text_new(), "text", COL_DESCRIPTION, NULL);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
   GtkCellRenderer *pix_renderer = gtk_cell_renderer_pixbuf_new();
-  GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes("", pix_renderer, "pixbuf", COL_LOCKED, NULL);
+  column = gtk_tree_view_column_new_with_attributes("", pix_renderer, "pixbuf", COL_LOCKED, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
   // Pack and show widgets
