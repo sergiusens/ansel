@@ -802,12 +802,7 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
 
   if((needle_path == NULL || needle_path[0] == '\0') &&
      (needle_keys == NULL || needle_keys[0] == '\0'))
-  {
-    gtk_tree_view_collapse_all(GTK_TREE_VIEW(params->tree_view));
     return TRUE;
-  }
-
-  gtk_tree_view_expand_all(GTK_TREE_VIEW(params->tree_view));
 
   gboolean show = TRUE;
 
@@ -881,6 +876,16 @@ static void search_changed(GtkEntry *entry, gpointer user_data)
   _accel_window_params_t *params = (_accel_window_params_t *)user_data;
   GtkTreeView *tree_view = GTK_TREE_VIEW(params->tree_view);
   gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(gtk_tree_view_get_model(tree_view)));
+
+  // Everything visible if needle is empty or NULL, aka no active search
+  const gchar *needle_path = gtk_entry_get_text(GTK_ENTRY(params->path_search));
+  const gchar *needle_keys = gtk_entry_get_text(GTK_ENTRY(params->keys_search));
+
+  if((needle_path == NULL || needle_path[0] == '\0') &&
+      (needle_keys == NULL || needle_keys[0] == '\0'))
+    gtk_tree_view_collapse_all(GTK_TREE_VIEW(params->tree_view));
+  else
+    gtk_tree_view_expand_all(GTK_TREE_VIEW(params->tree_view));
 }
 
 
