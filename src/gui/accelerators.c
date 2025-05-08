@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <glib.h>
+#include <regex.h>
 
 
 static void _clean_shortcut(gpointer data)
@@ -809,6 +810,7 @@ typedef struct _accel_window_params_t
 {
   GtkWidget *path_search;
   GtkWidget *keys_search;
+  GtkWidget *tree_view;
 } _accel_window_params_t;
 
 
@@ -853,9 +855,20 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
   {
     if(keys && keys[0])
     {
-      gchar *needle_ci = g_utf8_casefold(needle_keys, -1);
+      gchar *needle_ci = g_regex_escape_string(needle_keys, -1);
       gchar *haystack_ci = g_utf8_casefold(keys, -1);
-      show &= (g_strrstr(haystack_ci, needle_ci) != NULL);
+      char *pattern = g_strdup_printf("(^|[<>])%s($|[<>])", needle_ci);
+
+      // Regex match full words
+      regex_t re;
+      if(regcomp(&re, pattern, REG_EXTENDED | REG_ICASE) == 0)
+      {
+        regmatch_t m;
+        show &= (regexec(&re, haystack_ci, 1, &m, 0) == 0);
+      }
+
+      regfree(&re);
+      g_free(pattern);
       g_free(needle_ci);
       g_free(haystack_ci);
       g_free(keys);
@@ -887,17 +900,17 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
 
 static void search_changed(GtkEntry *entry, gpointer user_data)
 {
-  GtkTreeView *tree_view = (GtkTreeView *)user_data;
-  GtkTreeModel *tree_model = gtk_tree_view_get_model(tree_view);
-  const gchar *needle = gtk_entry_get_text(entry);
+  _accel_window_params_t *params = (_accel_window_params_t *)user_data;
+  GtkTreeView *tree_view = GTK_TREE_VIEW(params->tree_view);
 
   // If search is active, uncollapse all tree branches for legibility
-  if(needle && needle[0])
+  if(gtk_entry_get_text(GTK_ENTRY(params->keys_search))
+     || gtk_entry_get_text(GTK_ENTRY(params->path_search)))
     gtk_tree_view_expand_all(tree_view);
   else
     gtk_tree_view_collapse_all(tree_view);
 
-  gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(tree_model));
+  gtk_tree_model_filter_refilter(GTK_TREE_MODEL_FILTER(gtk_tree_view_get_model(tree_view)));
 }
 
 
@@ -950,9 +963,10 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_widget_set_vexpand(tree_view, TRUE);
   gtk_widget_set_halign(tree_view, GTK_ALIGN_FILL);
   gtk_widget_set_valign(tree_view, GTK_ALIGN_FILL);
+  params->tree_view = tree_view;
 
-  g_signal_connect(G_OBJECT(params->path_search), "changed", G_CALLBACK(search_changed), tree_view);
-  g_signal_connect(G_OBJECT(params->keys_search), "changed", G_CALLBACK(search_changed), tree_view);
+  g_signal_connect(G_OBJECT(params->path_search), "changed", G_CALLBACK(search_changed), params);
+  g_signal_connect(G_OBJECT(params->keys_search), "changed", G_CALLBACK(search_changed), params);
 
   // Add tree view columns
   const char *col_labels[] = { _("View / Scope / Feature / Control"), _("Keys"), _("Description"), NULL };
