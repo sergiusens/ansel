@@ -396,7 +396,11 @@ static void _connect_accel(dt_shortcut_t *shortcut)
   }
   else
   {
-    fprintf(stderr, "Invalid shortcut definition for path %s: no widget and no closure given\n", shortcut->path);
+    if(needs_cleanup)
+      _remove_generic_accel(shortcut);
+
+    if(needs_init)
+      _add_generic_accel(shortcut, &key, shortcut->accels->flags);
   }
 }
 
