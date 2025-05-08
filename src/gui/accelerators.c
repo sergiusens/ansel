@@ -857,7 +857,11 @@ static gboolean filter_callback(GtkTreeModel *model, GtkTreeIter *iter, gpointer
     {
       gchar *needle_ci = g_regex_escape_string(needle_keys, -1);
       gchar *haystack_ci = g_utf8_casefold(keys, -1);
-      char *pattern = g_strdup_printf("(^|[<>])%s($|[<>])", needle_ci);
+      char *pattern = NULL;
+      if(needle_keys[0] == '<' && needle_keys[strlen(needle_keys) - 1] == '>')
+        pattern = g_strdup_printf("(^|[<>])%s", needle_ci);
+      else
+        pattern = g_strdup_printf("(^|[<>])%s($|[<>])", needle_ci);
 
       // Regex match full words
       regex_t re;
