@@ -2,6 +2,7 @@
 #include "common/darktable.h" // lots of garbage to include, only to get debug prints & flags
 #include "gui/gtkentry.h"
 #include "gui/gdkkeys.h"
+#include "dtgtk/icon_cell_renderer.h"
 
 #ifdef GDK_WINDOWING_QUARTZ
 #include "osx/osx.h"
@@ -580,8 +581,8 @@ enum
 {
   COL_NAME,
   COL_KEYS,
+  COL_CLEAR,
   COL_DESCRIPTION,
-  COL_LOCKED,
   COL_PATH,
   COL_SHORTCUT,
   COL_KEYVAL,
@@ -608,8 +609,20 @@ static void _make_column_editable(GtkTreeViewColumn *col, GtkCellRenderer *rende
                NULL);
 }
 
-static void _text_edited(GtkCellRendererAccel *cell, gchar *path_string, guint keyval, GdkModifierType mods,
-                         guint hardware_key, gpointer user_data)
+static void _make_column_clearable(GtkTreeViewColumn *col, GtkCellRenderer *renderer, GtkTreeModel *model,
+                                   GtkTreeIter *iter, gpointer data)
+{
+  dt_shortcut_t *shortcut;
+  gtk_tree_model_get(model, iter, COL_SHORTCUT, &shortcut, -1);
+  g_object_set (renderer,
+                "icon-name", (shortcut != NULL && !shortcut->locked) ? "edit-delete-symbolic" : "lock",
+                "visible",   (shortcut != NULL),
+                "sensitive", (shortcut != NULL && !shortcut->locked && shortcut->key),
+                NULL);
+}
+
+static void _shortcut_edited(GtkCellRenderer *cell, const gchar *path_string, guint keyval, GdkModifierType mods,
+                             guint hardware_key, gpointer user_data)
 {
   // The tree model passed as arg is the filtered proxy.
   // We will need to access its underlying store (full, unfiltered)
@@ -668,18 +681,23 @@ static void _text_edited(GtkCellRendererAccel *cell, gchar *path_string, guint k
   gtk_tree_path_free(path);
 }
 
-static void _create_main_row(GtkTreeStore *store, GtkTreeIter *iter, const char *label, const char *keys, const char *path, dt_shortcut_t *shortcut)
-{
-  GtkIconTheme *theme = gtk_icon_theme_get_default();
-  GdkPixbuf *folder_pix = (shortcut->locked)
-                            ? gtk_icon_theme_load_icon(theme, "lock", 16, 0, NULL)
-                            : NULL;
 
+static gboolean _icon_activate(GtkCellRenderer *cell, GdkEvent *event, GtkWidget *treeview, const gchar *path_str,
+                               GdkRectangle *background, GdkRectangle *cell_area, GtkCellRendererState flags,
+                               gpointer user_data)
+{
+  // Reset accel at current path
+  _shortcut_edited(cell, path_str, 0, 0, 0, user_data);
+  return TRUE;
+}
+
+
+static void _create_main_row(GtkTreeStore *store, GtkTreeIter *iter, const char *label, const char *path,
+                             dt_shortcut_t *shortcut)
+{
   gtk_tree_store_set(store, iter,
                      COL_NAME, label,
-                     //COL_KEYS, keys,
                      COL_DESCRIPTION, shortcut->description,
-                     COL_LOCKED, folder_pix,
                      COL_PATH, path,
                      COL_KEYVAL, shortcut->key,
                      COL_MODS, shortcut->mods,
@@ -697,9 +715,6 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
   _accel_treeview_t *_data = (_accel_treeview_t *)user_data;
   GHashTable *node_cache = _data->node_cache;
   GtkTreeStore *store = _data->store;
-
-  // Printable keys/modifier of the shortcut
-  gchar *keys = gtk_accelerator_name(shortcut->key, shortcut->mods);
 
   GtkTreeIter *parent = NULL;
   GtkTreeIter *iter = NULL;
@@ -746,7 +761,7 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
 
     // Write the shortcut only if we are at the terminating point of the path
     if(!g_strcmp0(accum, path))
-      _create_main_row(store, iter, label, keys, path + len_ansel, shortcut);
+      _create_main_row(store, iter, label, path + len_ansel, shortcut);
     else
       gtk_tree_store_set(store, iter, COL_NAME, parts[i], COL_KEYS, "", COL_PATH, accum + len_ansel, -1);
 
@@ -756,7 +771,6 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
   }
 
   g_free(accum);
-  g_free(keys);
   g_strfreev(parts);
 }
 
@@ -928,11 +942,11 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
-  gtk_window_set_default_size(GTK_WINDOW(dialog), 900, 900);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 1100, 900);
 
   // Create the full (non-filtered) tree view model
-  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING,
-                                           GDK_TYPE_PIXBUF, G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT);
+  GtkTreeStore *store = gtk_tree_store_new(NUM_COLUMNS, G_TYPE_STRING, G_TYPE_STRING, GDK_TYPE_PIXBUF, G_TYPE_STRING,
+                                           G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_UINT, G_TYPE_UINT);
 
   // Add a tree view row for each accel
   GHashTable *node_cache = g_hash_table_new_full(g_str_hash, g_str_equal, g_free, g_free);
@@ -967,20 +981,23 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   GtkTreeViewColumn *column = gtk_tree_view_column_new_with_attributes(_("View / Scope / Feature / Control"), gtk_cell_renderer_text_new(), "text", COL_NAME, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
-  GtkCellRenderer *accel_renderer = gtk_cell_renderer_accel_new();
-  column = gtk_tree_view_column_new_with_attributes(_("Keys"), accel_renderer,
-                                                    "accel-key", COL_KEYVAL,
-                                                    "accel-mods", COL_MODS,
-                                                    NULL);
-  gtk_tree_view_column_set_cell_data_func(column, accel_renderer, _make_column_editable, NULL, NULL);
-  g_signal_connect(accel_renderer, "accel-edited", G_CALLBACK(_text_edited), filter_model);
+  GtkCellRenderer *renderer = gtk_cell_renderer_accel_new();
+  column = gtk_tree_view_column_new_with_attributes(_("Keys"), renderer, "accel-key", COL_KEYVAL, "accel-mods",
+                                                    COL_MODS, NULL);
+  gtk_tree_view_column_set_cell_data_func(column, renderer, _make_column_editable, NULL, NULL);
+  g_signal_connect(renderer, "accel-edited", G_CALLBACK(_shortcut_edited), filter_model);
+  gtk_tree_view_column_set_min_width(column, 100);
+  gtk_tree_view_column_set_resizable(column, TRUE);
+  gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
+
+  renderer = dtgtk_cell_renderer_button_new();
+  g_object_set(renderer, "mode", GTK_CELL_RENDERER_MODE_ACTIVATABLE, NULL);
+  column = gtk_tree_view_column_new_with_attributes(_("Clear"), renderer, "pixbuf", COL_CLEAR, NULL);
+  gtk_tree_view_column_set_cell_data_func(column, renderer, _make_column_clearable, NULL, NULL);
+  g_signal_connect(renderer, "activate", G_CALLBACK(_icon_activate), filter_model);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
   column = gtk_tree_view_column_new_with_attributes(_("Description"), gtk_cell_renderer_text_new(), "text", COL_DESCRIPTION, NULL);
-  gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
-
-  GtkCellRenderer *pix_renderer = gtk_cell_renderer_pixbuf_new();
-  column = gtk_tree_view_column_new_with_attributes("", pix_renderer, "pixbuf", COL_LOCKED, NULL);
   gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), column);
 
   // Pack and show widgets
