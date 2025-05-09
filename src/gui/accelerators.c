@@ -813,6 +813,53 @@ void _for_each_accel_create_treeview_row(gpointer key, gpointer value, gpointer 
   g_strfreev(parts);
 }
 
+
+void _for_each_path_create_treeview_row(gpointer key, gpointer value, gpointer user_data)
+{
+  // Extract HashTable key/value
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
+  if(!shortcut) return;
+  const gchar *path = (const gchar *)key;
+
+  GtkListStore *store = (GtkListStore *)user_data;
+  if(!store) return;
+
+  dt_accels_t *accels = shortcut->accels;
+  //g_print("My object is a <%s>\n", G_OBJECT_TYPE_NAME(store));
+
+  // Append the shortcut path, minus initial <Ansel> root, to a flat list
+  // only if the shortcut belongs to one currently-active accel group
+  if(shortcut->accel_group == accels->global_accels ||
+     shortcut->accel_group == accels->active_group)
+  {
+    // Discard <Ansel>/View/ from the start of the path to make the view narrower
+    gchar **parts = g_strsplit(path, "/", -1);
+    gchar *tail = g_strjoinv ("/", parts + 2);
+
+    GtkTreeIter iter;
+    gtk_list_store_append(store, &iter);
+    gtk_list_store_set(store, &iter,
+                       0, tail, // shortcut path
+                       1, shortcut, // shortcut object
+                       2, 0, // init relevance
+                       3, shortcut->description, // description
+                       5, shortcut->key,
+                       6, shortcut->mods,
+                       -1);
+    g_free(tail);
+    g_strfreev(parts);
+  }
+}
+
+// Relevance coeff stored in column index 2
+static gint _sort_model_by_relevance_func(GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer data)
+{
+  int ka, kb;
+  gtk_tree_model_get(model, a, 2, &ka, -1);
+  gtk_tree_model_get(model, b, 2, &kb, -1);
+  return ka - kb;
+}
+
 static gint _sort_model_func(GtkTreeModel *model, GtkTreeIter *a, GtkTreeIter *b, gpointer data)
 {
   gchar *ka, *kb;
@@ -1058,6 +1105,222 @@ void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window)
   gtk_widget_show_all(dialog);
 
   gtk_dialog_run(GTK_DIALOG(dialog));
-  g_free(params);
   gtk_widget_destroy(dialog);
+  g_object_unref(filter_model);
+  g_object_unref(store);
+  g_free(params);
+}
+
+// Case-insensitive partial matching
+// Return:
+// - 0: perfect match
+// - > 0: matches increasingly worse (rank)
+// - -1: no match
+static int _match_text(GtkTreeModel *model, GtkTreeIter *iter, const char *needle)
+{
+  int ret = -1;
+  if(needle == NULL || needle[0] == '\0') return 0;
+
+  // Get row entry
+  gchar *label;
+  gtk_tree_model_get(model, iter, 0, &label, -1);
+  if(label == NULL || label[0] == '\0') return -1;
+
+  // Convert to lowercase
+  gchar *label_ci = g_utf8_casefold(label, -1);
+
+  // Find match
+  const char *match = g_strrstr(label_ci, needle);
+  if(match != NULL)
+  {
+    // Index results by relevance.
+    // Since pathes start generic and end specific, we posit that
+    // most specific matches are most relevant results,
+    // aka matching at the end of the path is more relevant than matching
+    // at the start.
+    const int match_pos = match - label_ci;
+    const int relevance = strlen(label_ci) - match_pos;
+    ret = relevance;
+  }
+
+  g_free(label);
+  g_free(label_ci);
+
+  return ret;
+}
+
+static void _find_and_rank_matches(GtkTreeModel *model, GtkWidget *search_entry)
+{
+  const gchar *needle = gtk_entry_get_text(GTK_ENTRY(search_entry));
+  gchar *needle_ci = g_utf8_casefold(needle, -1);
+
+  // Block sorting while we update the content of the column used to sort rows
+  // otherwise that makes updating iterations recurse and ultimately fail
+  gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model), GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
+                                       GTK_SORT_ASCENDING);
+
+  GtkTreeIter iter;
+  if(gtk_tree_model_get_iter_first(model, &iter))
+  {
+    do
+    {
+      int rank = _match_text(model, &iter, needle_ci);
+      gtk_list_store_set(GTK_LIST_STORE(model), &iter, 2, rank, -1);
+
+    } while(gtk_tree_model_iter_next(model, &iter));
+  }
+
+  g_free(needle_ci);
+
+  // Restore sorting
+  gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(model), 2, GTK_SORT_ASCENDING);
+  gtk_tree_sortable_sort_column_changed(GTK_TREE_SORTABLE(model));
+}
+
+// redo the suggestion list on each entry change
+static void _search_entry_changed(GtkWidget *widget, gpointer user_data)
+{
+  _find_and_rank_matches(GTK_TREE_MODEL(user_data), widget);
+}
+
+// fire action callbacks even when they don't have a keyboard shortcut defined
+static void _call_shortcut_cclosure(dt_shortcut_t *shortcut, GtkWindow *main_window)
+{
+  /*
+    Accel callback signature is:
+    `GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data`
+    but `user_data` is handled in the closure already
+  */
+  GValue params[4] = { G_VALUE_INIT };
+
+  g_value_init(&params[0], G_TYPE_POINTER);
+  g_value_set_pointer(&params[0], shortcut->accel_group);
+
+  g_value_init(&params[1], G_TYPE_POINTER);
+  g_value_set_pointer(&params[1], G_OBJECT(main_window));
+
+  g_value_init(&params[2], G_TYPE_UINT);
+  g_value_set_uint(&params[2], shortcut->key);
+
+  g_value_init(&params[3], G_TYPE_UINT);
+  g_value_set_uint(&params[3], shortcut->mods);
+
+  GValue ret = G_VALUE_INIT;
+  g_value_init (&ret, G_TYPE_BOOLEAN);
+
+  g_closure_invoke(shortcut->closure, &ret, 4, params, NULL);
+}
+
+static gboolean _run_action_from_shortcut(dt_shortcut_t *shortcut, GtkDialog *dialog, GtkWindow *main_window)
+{
+  if(shortcut->closure)
+  {
+    gtk_dialog_response(dialog, GTK_RESPONSE_ACCEPT);
+    _call_shortcut_cclosure(shortcut, main_window);
+    return TRUE;
+  }
+  else if(shortcut->widget)
+  {
+    gtk_dialog_response(dialog, GTK_RESPONSE_ACCEPT);
+    gtk_widget_activate(shortcut->widget);
+    return TRUE;
+  }
+  // should never happen
+  return FALSE;
+}
+
+// Click on one of the suggestions
+static gboolean _match_selected(GtkEntryCompletion *cmp, GtkTreeModel *model, GtkTreeIter *iter, gpointer user_data)
+{
+  GtkDialog *dialog = GTK_DIALOG(gtk_widget_get_ancestor(gtk_entry_completion_get_entry(cmp), GTK_TYPE_DIALOG));
+  dt_shortcut_t *shortcut;
+  gtk_tree_model_get(model, iter, 1, &shortcut, -1);
+  return _run_action_from_shortcut(shortcut, dialog, user_data);
+}
+
+static gboolean _search_entry_key_pressed(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
+{
+  if(event->keyval == GDK_KEY_Escape)
+  {
+    // Close the popup
+    GtkDialog *dialog = GTK_DIALOG(gtk_widget_get_ancestor(widget, GTK_TYPE_DIALOG));
+    gtk_dialog_response(dialog, GTK_RESPONSE_CANCEL);
+    return TRUE;
+  }
+  return FALSE;
+}
+
+// Restrict the suggestions list to actual matches
+gboolean _match_func(GtkEntryCompletion *completion, const gchar *key, GtkTreeIter *iter, gpointer user_data)
+{
+  GtkTreeModel *model = gtk_entry_completion_get_model(completion);
+  int rank;
+  gtk_tree_model_get(model, iter, 2, &rank, -1);
+  return rank > -1;
+}
+
+
+void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
+{
+  // Set dialog window properties
+  GtkWidget *dialog = gtk_dialog_new();
+  gtk_window_set_title(GTK_WINDOW(dialog), _("Ansel - Search accelerators"));
+
+#ifdef GDK_WINDOWING_QUARTZ
+  dt_osx_disallow_fullscreen(dialog);
+#endif
+
+  gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
+  gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
+  gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
+  gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
+  gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 800, 64);
+
+  // Build the list of currently-relevant shortcut pathes
+  GtkListStore *store = gtk_list_store_new(7, G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT);
+  g_hash_table_foreach(accels->acceleratables, _for_each_path_create_treeview_row, store);
+
+  // Sort the filtered model by relevance
+  gtk_tree_sortable_set_sort_func(GTK_TREE_SORTABLE(store), 2,
+                                  (GtkTreeIterCompareFunc)_sort_model_by_relevance_func, NULL, NULL);
+  gtk_tree_sortable_set_sort_column_id(GTK_TREE_SORTABLE(store), 2, GTK_SORT_ASCENDING);
+
+  // Build the search entry
+  GtkWidget *search_entry = gtk_search_entry_new();
+  gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), search_entry, TRUE, TRUE, 0);
+
+  // Attach the completion list to the search entry
+  GtkEntryCompletion *completion = gtk_entry_completion_new();
+  gtk_entry_set_completion(GTK_ENTRY(search_entry), completion);
+  gtk_entry_completion_set_model(completion, GTK_TREE_MODEL(store));
+  gtk_entry_completion_set_text_column(completion, 0);
+  gtk_entry_completion_set_inline_completion(completion, TRUE);
+  gtk_entry_completion_set_inline_selection(completion, FALSE);
+  gtk_entry_completion_set_popup_completion(completion, TRUE);
+  gtk_entry_completion_set_minimum_key_length(completion, 1);
+  gtk_entry_completion_set_popup_single_match(completion, TRUE);
+  gtk_entry_completion_set_match_func(completion, _match_func, NULL, NULL);
+
+  // Completion cells rendering
+  GtkCellRenderer *r2 = gtk_cell_renderer_text_new ();
+  g_object_set(r2, "xpad", 10, "foreground", "#ddd", NULL);
+  gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(completion), r2, TRUE);
+  gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(completion), r2, "text", 3);
+
+  GtkCellRenderer *r1 = gtk_cell_renderer_accel_new ();
+  g_object_set(r1, "editable", FALSE, "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER, "xpad", 10, "foreground", "#ddd", NULL);
+  gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(completion), r1, TRUE);
+  gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(completion), r1, "accel-key", 5);
+  gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(completion), r1, "accel-mods", 6);
+
+  // Wire callbacks
+  g_signal_connect(G_OBJECT(search_entry), "changed", G_CALLBACK(_search_entry_changed), store);
+  g_signal_connect(G_OBJECT(search_entry), "key-press-event", G_CALLBACK(_search_entry_key_pressed), main_window);
+  g_signal_connect(G_OBJECT(completion), "match-selected", G_CALLBACK(_match_selected), main_window);
+
+  gtk_widget_show_all(dialog);
+  gtk_dialog_run(GTK_DIALOG(dialog));
+  gtk_widget_destroy(dialog);
+  g_object_unref(store);
 }

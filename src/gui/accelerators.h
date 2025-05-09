@@ -264,3 +264,5 @@ static inline void dt_accels_disable(dt_accels_t *accels, gboolean state)
  * @param main_window The main Ansel application window (for modal/transient)
  */
 void dt_accels_window(dt_accels_t *accels, GtkWindow *main_window);
+
+void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window);
