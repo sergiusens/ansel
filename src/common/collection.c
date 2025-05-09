@@ -453,7 +453,9 @@ void dt_collection_reset(const dt_collection_t *collection)
   params->filter_flags = ~COLLECTION_FILTER_NONE;
 
   /* apply stored query parameters from previous darktable session */
-  params->filter_flags = dt_conf_get_int("plugins/collection/filter_flags");
+  int flags = dt_conf_get_int("plugins/collection/filter_flags");
+  params->filter_flags = (flags < 0) ? ~0 : flags;
+
   g_free(params->text_filter);
   params->text_filter = dt_conf_get_string("plugins/collection/text_filter");
   params->sort = dt_conf_get_int("plugins/collection/sort");
