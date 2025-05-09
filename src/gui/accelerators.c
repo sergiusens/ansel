@@ -184,7 +184,7 @@ static void _remove_generic_accel(dt_shortcut_t *shortcut)
 
 static void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelKey *key, GtkAccelFlags flags)
 {
-  gtk_accel_group_connect(shortcut->accel_group, key->accel_key, key->accel_mods, flags,
+  gtk_accel_group_connect(shortcut->accel_group, key->accel_key, key->accel_mods, flags | GTK_ACCEL_VISIBLE,
                           shortcut->closure);
 }
 
@@ -197,11 +197,11 @@ static void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
 }
 
 
-static void _virtual_shortcut_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval,
-                                           GdkModifierType mods, gpointer user_data)
+static gboolean _virtual_shortcut_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval,
+                                       GdkModifierType mods, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)user_data;
-  if(!shortcut || !shortcut->widget) return;
+  if(!shortcut->widget) return FALSE;
 
   // Focus the target widget
   gtk_widget_grab_focus(shortcut->widget);
@@ -231,6 +231,8 @@ static void _virtual_shortcut_callback(GtkAccelGroup *group, GObject *accelerata
   // Fire the virtual keystroke to the target widget
   gtk_widget_event(shortcut->widget, ev);
   gdk_event_free(ev);
+
+  return TRUE;
 }
 
 
@@ -244,7 +246,8 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
     shortcut = malloc(sizeof(dt_shortcut_t));
     shortcut->accel_group = accel_group;
     shortcut->widget = widget;
-    shortcut->closure = (widget) ? g_cclosure_new(G_CALLBACK(_virtual_shortcut_callback), shortcut, NULL) : NULL;
+    shortcut->closure = g_cclosure_new(G_CALLBACK(_virtual_shortcut_callback), shortcut, NULL);
+    g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
     shortcut->path = g_strdup(accel_path);
     shortcut->signal = NULL;
     shortcut->key = key_val;
@@ -321,6 +324,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), 
     GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
     if(shortcut->key > 0) _remove_generic_accel(shortcut);
     shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
+    g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
     if(shortcut->key > 0) _add_generic_accel(shortcut, &key, accels->flags);
   }
   // else if shortcut && shortcut->type == DT_SHORTCUT_UNSET, we need to wait for the next call to dt_accels_connect_accels()
@@ -331,6 +335,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), 
     shortcut->accel_group = accel_group;
     shortcut->widget = NULL;
     shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
+    g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
     shortcut->path = g_strdup(accel_path);
     shortcut->signal = "";
     shortcut->key = key_val;
@@ -396,11 +401,7 @@ static void _connect_accel(dt_shortcut_t *shortcut)
   }
   else
   {
-    if(needs_cleanup)
-      _remove_generic_accel(shortcut);
-
-    if(needs_init)
-      _add_generic_accel(shortcut, &key, shortcut->accels->flags);
+    // Nothing
   }
 }
 
