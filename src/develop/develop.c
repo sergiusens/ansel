@@ -922,12 +922,6 @@ void dt_dev_modulegroups_update_visibility(dt_develop_t *dev)
     dev->proxy.modulegroups.update_visibility(dev->proxy.modulegroups.module);
 }
 
-void dt_dev_modulegroups_search_text_focus(dt_develop_t *dev)
-{
-  if(dev->proxy.modulegroups.module && dev->proxy.modulegroups.search_text_focus)
-    dev->proxy.modulegroups.search_text_focus(dev->proxy.modulegroups.module);
-}
-
 void dt_dev_masks_list_change(dt_develop_t *dev)
 {
   if(dev->proxy.masks.module && dev->proxy.masks.list_change)

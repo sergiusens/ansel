@@ -38,8 +38,6 @@ typedef struct dt_lib_modulegroups_t
 {
   uint32_t current;
   GtkWidget *notebook;
-  GtkWidget *text_entry;
-  GtkWidget *hbox_search_box;
 } dt_lib_modulegroups_t;
 
 /* toggle button callback */
@@ -62,14 +60,6 @@ static uint32_t _lib_modulegroups_get(dt_lib_module_t *self);
    sets the active group which module belongs too.
 */
 static void _lib_modulegroups_switch_group(dt_lib_module_t *self, dt_iop_module_t *module);
-/* modulergroups proxy search text focus function
-   \see dt_dev_modulegroups_search_text_focus()
-*/
-static void _lib_modulegroups_search_text_focus(dt_lib_module_t *self);
-
-/* hook up with viewmanager view change to initialize modulegroup */
-static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view, dt_view_t *new_view,
-                                                   gpointer data);
 
 static gboolean _focus_next_module();
 static gboolean _focus_previous_module();
@@ -108,54 +98,6 @@ int position()
 int dt_iop_get_group(const dt_iop_module_t *module)
 {
   return 1 << (module->default_group());
-}
-
-static void _text_entry_changed_callback(GtkEntry *entry, dt_lib_module_t *self)
-{
-  dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
-  const gchar *text_entered = gtk_entry_get_text(entry);
-  gtk_widget_set_sensitive(d->notebook, !(text_entered && text_entered[0] != '\0'));
-  _lib_modulegroups_update_iop_visibility(self);
-}
-
-static gboolean _text_entry_icon_press_callback(GtkEntry *entry, GtkEntryIconPosition icon_pos, GdkEvent *event,
-                                                dt_lib_module_t *self)
-{
-  dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
-  gtk_entry_set_text(GTK_ENTRY(d->text_entry), "");
-  gtk_widget_set_sensitive(d->notebook, TRUE);
-  return TRUE;
-}
-
-static gboolean _text_entry_key_press_callback(GtkWidget *widget, GdkEventKey *event, gpointer user_data)
-{
-  if(event->keyval == GDK_KEY_Escape)
-  {
-    dt_lib_module_t *self = (dt_lib_module_t *)user_data;
-    dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
-    gtk_widget_set_sensitive(d->notebook, TRUE);
-    return TRUE;
-  }
-  // Because shortcuts/accels are disabled at all in text entries,
-  // we need to re-implement them here.
-  else if(event->keyval == GDK_KEY_Page_Up || event->keyval == GDK_KEY_KP_Page_Up)
-  {
-    return _focus_previous_module();
-  }
-  else if(event->keyval == GDK_KEY_Page_Down || event->keyval == GDK_KEY_KP_Page_Down)
-  {
-    return _focus_next_module();
-  }
-  else if(event->keyval == GDK_KEY_Up || event->keyval == GDK_KEY_KP_Up)
-  {
-    return _focus_previous_control();
-  }
-  else if(event->keyval == GDK_KEY_Down || event->keyval == GDK_KEY_KP_Down)
-  {
-    return _focus_next_control();
-  }
-
-  return FALSE;
 }
 
 int _modulegroups_cycle_tabs(int user_set_group)
@@ -456,14 +398,6 @@ static gboolean _focus_previous_control()
   return TRUE;
 }
 
-gboolean _focus_search_action(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
-                              GdkModifierType modifier, gpointer data)
-{
-  dt_lib_module_t *self = (dt_lib_module_t *)data;
-  _lib_modulegroups_search_text_focus(self);
-  return TRUE;
-}
-
 void gui_init(dt_lib_module_t *self)
 {
   /* initialize ui widgets */
@@ -473,22 +407,6 @@ void gui_init(dt_lib_module_t *self)
   self->widget = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
   dt_gui_add_help_link(self->widget, dt_get_help_url(self->plugin_name));
   gtk_widget_set_name(self->widget, "modules-tabs");
-
-  /* search box */
-  d->hbox_search_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-  d->text_entry = gtk_search_entry_new();
-  gtk_entry_set_placeholder_text(GTK_ENTRY(d->text_entry), _("Search a module..."));
-  dt_accels_disconnect_on_text_input(d->text_entry);
-  gtk_widget_add_events(d->text_entry, GDK_KEY_PRESS_MASK);
-  g_signal_connect(G_OBJECT(d->text_entry), "search-changed", G_CALLBACK(_text_entry_changed_callback), self);
-  g_signal_connect(G_OBJECT(d->text_entry), "icon-press", G_CALLBACK(_text_entry_icon_press_callback), self);
-  g_signal_connect(G_OBJECT(d->text_entry), "key-press-event", G_CALLBACK(_text_entry_key_press_callback), self);
-  gtk_box_pack_start(GTK_BOX(d->hbox_search_box), d->text_entry, TRUE, TRUE, 0);
-  gtk_entry_set_width_chars(GTK_ENTRY(d->text_entry), 0);
-  gtk_entry_set_icon_from_icon_name(GTK_ENTRY(d->text_entry), GTK_ENTRY_ICON_SECONDARY, "edit-clear");
-  gtk_entry_set_icon_tooltip_text(GTK_ENTRY(d->text_entry), GTK_ENTRY_ICON_SECONDARY, _("clear text"));
-  gtk_widget_set_name(GTK_WIDGET(d->hbox_search_box), "search-box");
-  gtk_box_pack_start(GTK_BOX(self->widget), d->hbox_search_box, TRUE, TRUE, 0);
 
   /* Tabs */
   d->notebook = GTK_WIDGET(gtk_notebook_new());
@@ -531,7 +449,6 @@ void gui_init(dt_lib_module_t *self)
   darktable.develop->proxy.modulegroups.update_visibility = _lib_modulegroups_update_visibility_proxy;
   darktable.develop->proxy.modulegroups.get = _lib_modulegroups_get;
   darktable.develop->proxy.modulegroups.switch_group = _lib_modulegroups_switch_group;
-  darktable.develop->proxy.modulegroups.search_text_focus = _lib_modulegroups_search_text_focus;
 
   dt_accels_new_darkroom_action(_modulegroups_switch_tab_next, darktable.develop, N_("Darkroom/Actions"),
                                 N_("move to the next modules tab"), GDK_KEY_Tab, GDK_CONTROL_MASK, _("Triggers the action"));
@@ -548,19 +465,10 @@ void gui_init(dt_lib_module_t *self)
                                        N_("Focus on the next module control"), GDK_KEY_Down, GDK_CONTROL_MASK, _("Triggers the action"));
   dt_accels_new_darkroom_locked_action(_focus_previous_control, NULL, N_("Darkroom/Actions"),
                                        N_("Focus on the previous module control"), GDK_KEY_Up, GDK_CONTROL_MASK, _("Triggers the action"));
-
-  dt_accels_new_darkroom_action(_focus_search_action, self, N_("Darkroom/Actions"), N_("Search a module"),
-                                GDK_KEY_f, GDK_CONTROL_MASK, _("Triggers the action"));
-
-  /* let's connect to view changed signal to set default group */
-  dt_control_signal_connect(darktable.signals, DT_SIGNAL_VIEWMANAGER_VIEW_CHANGED,
-                            G_CALLBACK(_lib_modulegroups_viewchanged_callback), self);
 }
 
 void gui_cleanup(dt_lib_module_t *self)
 {
-  dt_control_signal_disconnect(darktable.signals, G_CALLBACK(_lib_modulegroups_viewchanged_callback), self);
-
   darktable.develop->proxy.modulegroups.module = NULL;
   darktable.develop->proxy.modulegroups.set = NULL;
   darktable.develop->proxy.modulegroups.get = NULL;
@@ -569,42 +477,6 @@ void gui_cleanup(dt_lib_module_t *self)
   g_free(self->data);
   self->data = NULL;
 }
-
-static void _lib_modulegroups_viewchanged_callback(gpointer instance, dt_view_t *old_view, dt_view_t *new_view,
-                                                   gpointer data)
-{
-}
-
-static gboolean _lib_modulesgroups_search_active(const gchar *text_entered, dt_iop_module_t *module, GtkWidget *w)
-{
-  // if there's some search text show matching modules only
-  gboolean is_handled = FALSE;
-  if(text_entered && text_entered[0] != '\0')
-  {
-    /* don't show deprecated ones unless they are enabled */
-    if(module->flags() & IOP_FLAGS_DEPRECATED && !(module->enabled))
-    {
-      if(darktable.develop->gui_module == module) dt_iop_request_focus(NULL);
-      if(w) gtk_widget_hide(w);
-    }
-    else
-    {
-      gchar *name = delete_underscore(dt_iop_get_localized_name(module->op));
-      const int is_match_name
-          = (g_strstr_len(g_utf8_casefold(name, -1), -1, g_utf8_casefold(text_entered, -1)) != NULL);
-      g_free(name);
-
-      const int is_match_alias = (g_strstr_len(g_utf8_casefold(dt_iop_get_localized_aliases(module->op), -1), -1,
-                                               g_utf8_casefold(text_entered, -1))
-                                  != NULL);
-      gtk_widget_set_visible(w, (is_match_name || is_match_alias));
-    }
-    is_handled = TRUE;
-  }
-
-  return is_handled;
-}
-
 
 static gboolean _is_module_in_history(const dt_iop_module_t *module)
 {
@@ -621,7 +493,6 @@ static gboolean _is_module_in_history(const dt_iop_module_t *module)
 static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
 {
   dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)self->data;
-  const gchar *text_entered = gtk_entry_get_text(GTK_ENTRY(d->text_entry));
 
   if(DT_IOP_ORDER_INFO) fprintf(stderr, "\n^^^^^ modulegroups");
 
@@ -645,9 +516,6 @@ static void _lib_modulegroups_update_iop_visibility(dt_lib_module_t *self)
 
       /* skip modules without a gui */
       if(dt_iop_is_hidden(module)) continue;
-
-      /* if module search is active, we handle search results as a special case of group */
-      if(_lib_modulesgroups_search_active(text_entered, module, w)) continue;
 
       /* lets show/hide modules dependent on current group*/
       switch(d->current)
@@ -712,13 +580,6 @@ static void _lib_modulegroups_toggle(GtkNotebook *notebook, GtkWidget *page, gui
   else
     d->current = page_num;
 
-  /* clear search text */
-  g_signal_handlers_block_matched(d->text_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _text_entry_changed_callback,
-                                  NULL);
-  gtk_entry_set_text(GTK_ENTRY(d->text_entry), "");
-  g_signal_handlers_unblock_matched(d->text_entry, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _text_entry_changed_callback,
-                                    NULL);
-
   /* update visibility */
   _lib_modulegroups_update_iop_visibility(self);
 }
@@ -754,22 +615,6 @@ static gboolean _lib_modulegroups_upd_gui_thread(gpointer user_data)
   return FALSE;
 }
 
-static gboolean _lib_modulegroups_search_text_focus_gui_thread(gpointer user_data)
-{
-  _set_gui_thread_t *params = (_set_gui_thread_t *)user_data;
-
-  dt_lib_modulegroups_t *d = (dt_lib_modulegroups_t *)params->self->data;
-
-  if(GTK_IS_ENTRY(d->text_entry))
-  {
-    if(!gtk_widget_is_visible(GTK_WIDGET(d->hbox_search_box))) gtk_widget_show(GTK_WIDGET(d->hbox_search_box));
-    gtk_widget_grab_focus(GTK_WIDGET(d->text_entry));
-  }
-
-  free(params);
-  return FALSE;
-}
-
 /* this is a proxy function so it might be called from another thread */
 static void _lib_modulegroups_set(dt_lib_module_t *self, uint32_t group)
 {
@@ -787,16 +632,6 @@ static void _lib_modulegroups_update_visibility_proxy(dt_lib_module_t *self)
   if(!params) return;
   params->self = self;
   g_main_context_invoke(NULL, _lib_modulegroups_upd_gui_thread, params);
-}
-
-/* this is a proxy function so it might be called from another thread */
-static void _lib_modulegroups_search_text_focus(dt_lib_module_t *self)
-{
-  _set_gui_thread_t *params = (_set_gui_thread_t *)malloc(sizeof(_set_gui_thread_t));
-  if(!params) return;
-  params->self = self;
-  params->group = 0;
-  g_main_context_invoke(NULL, _lib_modulegroups_search_text_focus_gui_thread, params);
 }
 
 static void _lib_modulegroups_switch_group(dt_lib_module_t *self, dt_iop_module_t *module)
