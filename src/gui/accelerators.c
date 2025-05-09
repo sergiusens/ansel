@@ -1270,7 +1270,6 @@ gboolean _match_func(GtkEntryCompletion *completion, const gchar *key, GtkTreeIt
   return rank > -1;
 }
 
-
 void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
 {
   // Set dialog window properties
@@ -1286,7 +1285,8 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
   gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
-  gtk_window_set_default_size(GTK_WINDOW(dialog), 800, 64);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), 800, 32);
+  gtk_widget_set_name(dialog, "shortcut-search-dialog");
 
   // Build the list of currently-relevant shortcut pathes
   GtkListStore *store = gtk_list_store_new(7, G_TYPE_STRING, G_TYPE_POINTER, G_TYPE_INT, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_UINT, G_TYPE_UINT);
@@ -1315,15 +1315,23 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
 
   // Completion cells rendering
   GtkCellRenderer *r2 = gtk_cell_renderer_text_new ();
-  g_object_set(r2, "xpad", 10, "foreground", "#ddd", NULL);
+  g_object_set(r2, "foreground", "#ccc", "xpad", 10,NULL);
   gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(completion), r2, TRUE);
   gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(completion), r2, "text", 3);
 
   GtkCellRenderer *r1 = gtk_cell_renderer_accel_new ();
-  g_object_set(r1, "editable", FALSE, "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER, "xpad", 10, "foreground", "#ddd", NULL);
+  g_object_set(r1, "editable", FALSE, "accel-mode", GTK_CELL_RENDERER_ACCEL_MODE_OTHER, "foreground", "#eee", "xpad", 10, NULL);
   gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(completion), r1, TRUE);
   gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(completion), r1, "accel-key", 5);
   gtk_cell_layout_add_attribute(GTK_CELL_LAYOUT(completion), r1, "accel-mods", 6);
+
+  // Note: we can't set CSS classes on cell renderers, so hard-coded style it is
+
+  // Style the main column
+  GList *cells = gtk_cell_layout_get_cells(GTK_CELL_LAYOUT(completion));
+  GtkCellRenderer *txt = cells ? cells->data : NULL;
+  if(txt)
+    g_object_set(txt, "ellipsize", PANGO_ELLIPSIZE_END, "ellipsize-set", TRUE, "max-width-chars", 70, NULL);
 
   // Wire callbacks
   g_signal_connect(G_OBJECT(search_entry), "changed", G_CALLBACK(_search_entry_changed), store);

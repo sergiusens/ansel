@@ -2436,3 +2436,17 @@ tooltip label,
     font-weight: 400;
     font-stretch: normal;
 }
+
+
+#shortcut-search-dialog,
+#shortcuts-search-dialog dialog .dialog-vbox
+{
+  margin:0;
+  padding:0;
+  background: transparent;
+}
+
+#shortcut-search-dialog entry
+{
+  background-color: @button_bg;
+}
