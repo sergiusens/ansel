@@ -321,6 +321,34 @@ static _bh_active_region_t _popup_coordinates(dt_bauhaus_t *bh, const double x_r
   return _bh_get_active_region(GTK_WIDGET(bh->current), event_x, event_y, NULL, bh->popup_window);
 }
 
+// Ensure the programmatically-focused widget is visible,
+// ake its parents are all visible.
+static gboolean ensure_focus_idle(gpointer data)
+{
+  GtkWidget *child = GTK_WIDGET(data);
+
+  for(GtkWidget *w = child; w; w = gtk_widget_get_parent(w))
+  {
+    if(GTK_IS_NOTEBOOK(w))
+    {
+      GtkNotebook *nb = GTK_NOTEBOOK(w);
+      gint page = gtk_notebook_page_num(nb, child);
+      gtk_notebook_set_current_page(nb, page);
+    }
+    child = w;
+  }
+
+  GtkWidget *target = GTK_WIDGET(data);
+  if(gtk_widget_is_drawable(target))
+  {
+    gtk_widget_grab_focus(target);
+    darktable.gui->has_scroll_focus = target;
+    return G_SOURCE_REMOVE;
+  }
+
+  return G_SOURCE_CONTINUE;
+}
+
 gboolean dt_bauhaus_focus_in_callback(GtkWidget *widget, GdkEventFocus event, gpointer user_data)
 {
   // Scroll focus needs to be managed separately from Gtk focus
@@ -359,8 +387,7 @@ gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable,
   // because we can't grab focus on invisible widgets
   if(w->module) w->module->focus(w->module, FALSE);
 
-  gtk_widget_grab_focus(GTK_WIDGET(data));
-  darktable.gui->has_scroll_focus = GTK_WIDGET(data);
+  g_idle_add(ensure_focus_idle, data);
   return TRUE;
 }
 
