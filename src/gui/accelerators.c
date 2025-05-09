@@ -305,9 +305,19 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
 }
 
 
-void dt_accels_new_action_shortcut(dt_accels_t *accels, void(*action_callback), gpointer data,
-                                   GtkAccelGroup *accel_group, const gchar *action_scope, const gchar *action_name,
-                                   guint key_val, GdkModifierType accel_mods, const gboolean lock, const char *description)
+// Multiple instances of modules will have the same path for the same control
+// meaning they all share the same shortcut object, which is not possible
+// because they are referenced by pathes and those are unique.
+// We handle this here by overriding any pre-existing closure
+// with a reference to the current widget, meaning
+// the last module in the order of GUI inits wins the shortcut.
+void dt_accels_new_action_shortcut(dt_accels_t *accels,
+                                   gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable,
+                                                               guint keyval, GdkModifierType mods,
+                                                               gpointer user_data),
+                                   gpointer data, GtkAccelGroup *accel_group, const gchar *action_scope,
+                                   const gchar *action_name, guint key_val, GdkModifierType accel_mods,
+                                   const gboolean lock, const char *description)
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   gchar *accel_path = dt_accels_build_path(action_scope, action_name);

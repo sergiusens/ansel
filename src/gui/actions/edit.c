@@ -7,10 +7,8 @@
 #include "develop/dev_history.h"
 #include "control/control.h"
 
-static void preferences_callback()
-{
-  dt_gui_preferences_show();
-}
+
+MAKE_ACCEL_WRAPPER(dt_gui_preferences_show)
 
 static gboolean undo_sensitive_callback()
 {
@@ -30,11 +28,11 @@ static gboolean undo_sensitive_callback()
   return sensitive;
 }
 
-static void undo_callback()
+static gboolean undo_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  if(!darktable.view_manager || !undo_sensitive_callback()) return;
+  if(!darktable.view_manager || !undo_sensitive_callback()) return FALSE;
   const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-  if(!cv) return;
+  if(!cv) return FALSE;
 
   if(!strcmp(cv->module_name, "lighttable"))
     dt_undo_do_undo(darktable.undo, DT_UNDO_LIGHTTABLE);
@@ -46,6 +44,8 @@ static void undo_callback()
   // Another piece of shitty peculiar design that doesn't comply with the logic of the rest of the soft.
   // That's what you get from ignoring modularity principles.
   // For now we just ignore the peculiar stuff, no idea how annoying it is, seems it's only GUI candy.
+
+  return TRUE;
 }
 
 
@@ -68,11 +68,11 @@ static gboolean redo_sensitive_callback()
 }
 
 
-static void redo_callback()
+static gboolean redo_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  if(!darktable.view_manager || !redo_sensitive_callback()) return;
+  if(!darktable.view_manager || !redo_sensitive_callback()) return FALSE;
   const dt_view_t *cv = dt_view_manager_get_current_view(darktable.view_manager);
-  if(!cv) return;
+  if(!cv) return FALSE;
 
   if(!strcmp(cv->module_name, "lighttable"))
     dt_undo_do_redo(darktable.undo, DT_UNDO_LIGHTTABLE);
@@ -81,6 +81,8 @@ static void redo_callback()
   else if(!strcmp(cv->module_name, "map"))
     dt_undo_do_redo(darktable.undo, DT_UNDO_MAP);
   //   see undo_callback()
+
+  return TRUE;
 }
 
 
@@ -90,10 +92,10 @@ static gboolean is_image_in_dev(GList *imgs)
     && g_list_find(imgs, GINT_TO_POINTER(darktable.develop->image_storage.id));
 }
 
-static void compress_history_callback()
+static gboolean compress_history_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GList *imgs = dt_act_on_get_images();
-  if(!imgs) return;
+  if(!imgs) return FALSE;
 
   gboolean is_darkroom_image_in_list = is_image_in_dev(imgs);
 
@@ -113,19 +115,15 @@ static void compress_history_callback()
   }
 
   g_list_free(imgs);
-
-  // We should not need to raise signals here because lighttable
-  // reloads the history from SQL at each redraw.
-  // FIXME: for obvious perf reasons, history should be cached in thumbnails
-  // and then raising signals will be needed here to refresh the cache.
+  return TRUE;
 }
 
-static void delete_history_callback()
+static gboolean delete_history_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  if(!has_active_images()) return;
+  if(!has_active_images()) return FALSE;
 
   GList *imgs = dt_act_on_get_images();
-  if(!imgs) return;
+  if(!imgs) return FALSE;
 
   gboolean is_darkroom_image_in_list = is_image_in_dev(imgs);
 
@@ -147,15 +145,16 @@ static void delete_history_callback()
 
   dt_control_queue_redraw_center();
   g_list_free(imgs);
+  return TRUE;
 }
 
-static void copy_callback()
+static gboolean copy_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   // Allow copy only when exactly one file is selected
   if(dt_selection_get_length(darktable.selection) != 1)
   {
     dt_control_log(_("Copy is allowed only with exactly one image selected"));
-    return;
+    return FALSE;
   }
 
   GList *imgs = dt_selection_get_list(darktable.selection);
@@ -168,16 +167,17 @@ static void copy_callback()
   }
 
   dt_history_copy(dt_selection_get_first_id(darktable.selection));
+  return TRUE;
 }
 
 
-static void copy_parts_callback()
+static gboolean copy_parts_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   // Allow copy only when exactly one file is selected
   if(dt_selection_get_length(darktable.selection) != 1)
   {
     dt_control_log(_("Copy is allowed only with exactly one image selected"));
-    return;
+    return FALSE;
   }
 
   GList *imgs = dt_selection_get_list(darktable.selection);
@@ -190,6 +190,7 @@ static void copy_parts_callback()
   }
 
   dt_history_copy_parts(dt_selection_get_first_id(darktable.selection));
+  return TRUE;
 }
 
 
@@ -198,12 +199,12 @@ static gboolean paste_sensitive_callback()
   return darktable.view_manager->copy_paste.copied_imageid > 0;
 }
 
-static void paste_all_callback()
+static gboolean paste_all_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   if(!paste_sensitive_callback())
   {
     dt_control_log(_("Paste needs selected images to work"));
-    return;
+    return FALSE;
   }
 
   GList *imgs = dt_selection_get_list(darktable.selection);
@@ -226,14 +227,15 @@ static void paste_all_callback()
 
   dt_control_queue_redraw_center();
   g_list_free(imgs);
+  return TRUE;
 }
 
-static void paste_parts_callback()
+static gboolean paste_parts_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   if(!paste_sensitive_callback())
   {
     dt_control_log(_("Paste needs selected images to work"));
-    return;
+    return FALSE;
   }
 
   GList *imgs = dt_selection_get_list(darktable.selection);
@@ -256,12 +258,14 @@ static void paste_parts_callback()
 
   dt_control_queue_redraw_center();
   g_list_free(imgs);
+  return TRUE;
 }
 
-static void load_xmp_callback()
+static gboolean load_xmp_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GList *imgs = dt_selection_get_list(darktable.selection);
-  if(!imgs) return;
+  if(!imgs) return FALSE;
+
   const int act_on_one = g_list_is_singleton(imgs); // list length == 1?
   GtkWidget *win = dt_ui_main_window(darktable.gui->ui);
   GtkFileChooserNative *filechooser = gtk_file_chooser_native_new(
@@ -336,28 +340,38 @@ static void load_xmp_callback()
   }
   g_object_unref(filechooser);
   g_list_free(imgs);
+  return TRUE;
 }
 
-static void duplicate_callback()
+static gboolean duplicate_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   if(has_active_images())
+  {
     dt_control_duplicate_images(FALSE);
-  else
-    dt_control_log(_("Duplication needs selected images to work"));
+    return TRUE;
+  }
+
+  dt_control_log(_("Duplication needs selected images to work"));
+  return FALSE;
 }
 
-static void new_history_callback()
+static gboolean new_history_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   if(has_active_images())
+  {
     dt_control_duplicate_images(TRUE);
-  else
-    dt_control_log(_("Creating new historys needs selected images to work"));
+    return TRUE;
+  }
+
+  dt_control_log(_("Creating new historys needs selected images to work"));
+  return TRUE;
 }
 
 
-static void shortcuts_callback(GtkWidget *widget)
+static gboolean shortcuts_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_accels_window(darktable.gui->accels, GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
+  return TRUE;
 }
 
 
@@ -398,6 +412,6 @@ void append_edit(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_menu_separator(menus[index]);
 
-  add_sub_menu_entry(menus, lists, _("Preferences..."), index, NULL, preferences_callback, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Preferences..."), index, NULL, GET_ACCEL_WRAPPER(dt_gui_preferences_show), NULL, NULL, NULL, 0, 0);
   add_sub_menu_entry(menus, lists, _("Keyboard shortcuts..."), index, NULL, shortcuts_callback, NULL, NULL, NULL, 0, 0);
 }

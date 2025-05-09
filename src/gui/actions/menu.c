@@ -27,10 +27,21 @@
  *  will be updated automatically everytime a top-level menu is opened.
  **/
 
+
+// Wrapper to match menuitem "activate" signal to our generic accel callback
+static void _activate_callback_to_action_callback(GtkMenuItem* menu_item, gpointer user_data)
+{
+  dt_menu_entry_t *entry = (dt_menu_entry_t *)user_data;
+  GtkWindow *window = GTK_WINDOW(gtk_widget_get_ancestor(GTK_WIDGET(menu_item), GTK_TYPE_WINDOW));
+  entry->action_callback(entry->accel_group, G_OBJECT(window), 0, 0, menu_item);
+}
+
+
 dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list,
                                 const gchar *label, dt_menus_t menu_index,
                                 GtkMenu *parent,
-                                void *data, void (*action_callback)(GtkWidget *widget),
+                                void *data,
+                                gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data),
                                 gboolean (*checked_callback)(GtkWidget *widget),
                                 gboolean (*active_callback)(GtkWidget *widget),
                                 gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val,
@@ -62,6 +73,7 @@ dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list,
   gtk_widget_show_all(GTK_WIDGET(entry->widget));
 
   entry->menu = menu_index;
+  entry->accel_group = accel_group;
   entry->action_callback = action_callback;
   entry->checked_callback = checked_callback;
   entry->sensitive_callback = sensitive_callback;
@@ -87,6 +99,8 @@ dt_menu_entry_t *set_menu_entry(GtkWidget **menus, GList **items_list,
     gtk_widget_set_accel_path(entry->widget, path, (action_callback != NULL) ? accel_group : NULL);
     g_free(path);
     g_free(clean_label);
+
+    g_signal_connect(G_OBJECT(entry->widget), "activate", G_CALLBACK(_activate_callback_to_action_callback), entry);
   }
 
   // Add it to the list of menus items for easy sequential access later
@@ -104,9 +118,9 @@ void update_entry(dt_menu_entry_t *entry)
   {
     // Set the visible state of the checkbox without actually triggering the callback running on activation
     // Gtk has no concept of "set costmetic active state" for checkboxes.
-    g_signal_handlers_block_matched(G_OBJECT(entry->widget), G_SIGNAL_MATCH_FUNC, 0, 0, NULL, entry->action_callback, NULL);
+    g_signal_handlers_block_matched(G_OBJECT(entry->widget), G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _activate_callback_to_action_callback, entry);
     gtk_check_menu_item_set_active(GTK_CHECK_MENU_ITEM(entry->widget), entry->checked_callback(entry->widget));
-    g_signal_handlers_unblock_matched(G_OBJECT(entry->widget), G_SIGNAL_MATCH_FUNC, 0, 0, NULL, entry->action_callback, NULL);
+    g_signal_handlers_unblock_matched(G_OBJECT(entry->widget), G_SIGNAL_MATCH_FUNC, 0, 0, NULL, _activate_callback_to_action_callback, entry);
   }
 
   if(entry->sensitive_callback)
@@ -200,14 +214,15 @@ void add_top_submenu_entry(GtkWidget **menus, GList **lists, const gchar *label,
   add_generic_top_submenu_entry(menus, lists, label, index, darktable.gui->accels->global_accels);
 }
 
+
 void add_generic_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index,
-                        void *data,
-                        void (*action_callback)(GtkWidget *widget),
-                        gboolean (*checked_callback)(GtkWidget *widget),
-                        gboolean (*active_callback)(GtkWidget *widget),
-                        gboolean (*sensitive_callback)(GtkWidget *widget),
-                        guint key_val,
-                        GdkModifierType mods, GtkAccelGroup *accel_group)
+                                void *data,
+                                gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable,
+                                                            guint keyval, GdkModifierType mods, gpointer user_data),
+                                gboolean (*checked_callback)(GtkWidget *widget),
+                                gboolean (*active_callback)(GtkWidget *widget),
+                                gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val,
+                                GdkModifierType mods, GtkAccelGroup *accel_group)
 {
   // Default submenu entries
   dt_menu_entry_t *entry = set_menu_entry(menus, lists, label, index, GTK_MENU(menus[index]),
@@ -218,14 +233,12 @@ void add_generic_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *l
 
   gtk_menu_shell_append(GTK_MENU_SHELL(menus[index]), entry->widget);
   gtk_menu_item_set_reserve_indicator(GTK_MENU_ITEM(entry->widget), TRUE);
-
-  if(action_callback)
-    g_signal_connect(G_OBJECT(entry->widget), "activate", G_CALLBACK(entry->action_callback), NULL);
 }
 
 
 void add_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, const dt_menus_t index, void *data,
-                        void (*action_callback)(GtkWidget *widget),
+                        gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable, guint keyval,
+                                                    GdkModifierType mods, gpointer user_data),
                         gboolean (*checked_callback)(GtkWidget *widget),
                         gboolean (*active_callback)(GtkWidget *widget),
                         gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val, GdkModifierType mods)
@@ -237,7 +250,9 @@ void add_sub_menu_entry(GtkWidget **menus, GList **lists, const gchar *label, co
 
 void add_generic_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList **lists, const gchar *label,
                                     const dt_menus_t index, void *data,
-                                    void (*action_callback)(GtkWidget *widget),
+                                    gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable,
+                                                                guint keyval, GdkModifierType mods,
+                                                                gpointer user_data),
                                     gboolean (*checked_callback)(GtkWidget *widget),
                                     gboolean (*active_callback)(GtkWidget *widget),
                                     gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val,
@@ -249,19 +264,15 @@ void add_generic_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList 
       action_callback, checked_callback, active_callback, sensitive_callback, key_val, mods, accel_group);
 
   gtk_menu_shell_append(GTK_MENU_SHELL(gtk_menu_item_get_submenu(GTK_MENU_ITEM(parent))), entry->widget);
-
-  if(action_callback)
-    g_signal_connect(G_OBJECT(entry->widget), "activate", G_CALLBACK(entry->action_callback), NULL);
 }
 
-void add_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList **lists, const gchar *label, const dt_menus_t index,
-                            void *data,
-                            void (*action_callback)(GtkWidget *widget),
+void add_sub_sub_menu_entry(GtkWidget **menus, GtkWidget *parent, GList **lists, const gchar *label,
+                            const dt_menus_t index, void *data,
+                            gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable, guint keyval,
+                                                        GdkModifierType mods, gpointer user_data),
                             gboolean (*checked_callback)(GtkWidget *widget),
                             gboolean (*active_callback)(GtkWidget *widget),
-                            gboolean (*sensitive_callback)(GtkWidget *widget),
-                            guint key_val,
-                            GdkModifierType mods)
+                            gboolean (*sensitive_callback)(GtkWidget *widget), guint key_val, GdkModifierType mods)
 {
   add_generic_sub_sub_menu_entry(menus, parent, lists, label, index, data, action_callback, checked_callback,
                                  active_callback, sensitive_callback, key_val, mods, darktable.gui->accels->global_accels);

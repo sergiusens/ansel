@@ -59,10 +59,10 @@ static void pretty_print_collection(const char *buf, char *out, size_t outsize)
 }
 
 
-void update_collection_callback(GtkWidget *widget)
+static gboolean update_collection_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   // Grab the position of current menuitem in menu list
-  const int index = GPOINTER_TO_INT(get_custom_data(widget));
+  const int index = GPOINTER_TO_INT(get_custom_data(GTK_WIDGET(user_data)));
 
   // Grab the corresponding config line
   char confname[200];
@@ -73,6 +73,8 @@ void update_collection_callback(GtkWidget *widget)
 
   // Update the collection to the value defined in config line
   dt_collection_deserialize(collection);
+
+  return TRUE;
 }
 
 
@@ -106,11 +108,6 @@ void init_collection_line(gpointer instance,
   }
 }
 
-void import_files_callback()
-{
-  dt_images_import();
-}
-
 void _close_export_popup(GtkWidget *dialog, gint response_id, gpointer data)
 {
   // We need to increase the reference count of the module,
@@ -122,24 +119,24 @@ void _close_export_popup(GtkWidget *dialog, gint response_id, gpointer data)
   darktable.gui->export_popup.window = NULL;
 }
 
-void export_files_callback()
+static gboolean export_files_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   if(darktable.gui->export_popup.window)
   {
     // if not NULL, we already have a popup open and can't re-instanciate a live GtkWidget
     gtk_window_present_with_time(GTK_WINDOW(darktable.gui->export_popup.window), GDK_CURRENT_TIME);
-    return;
+    return TRUE;
   }
 
   dt_lib_module_t *module = dt_lib_get_module("export");
-  if(!module) return;
+  if(!module) return TRUE;
 
   // get_expander actually builds the expander, it's not a getter despite what the name suggests.
   // On first run we need to build, an the following runs, just fetch it
   GtkWidget *w = darktable.gui->export_popup.module
                   ? darktable.gui->export_popup.module
                   : dt_lib_gui_get_expander(module);
-  if(!w) return;
+  if(!w) return TRUE;
 
   // Save the module
   darktable.gui->export_popup.module = w;
@@ -174,12 +171,25 @@ void export_files_callback()
 
   // Save the ref to the window. We don't reuse its content, we just need to know if it exists.
   darktable.gui->export_popup.window = dialog;
+
+  return TRUE;
 }
+
+
+MAKE_ACCEL_WRAPPER(dt_images_import)
+MAKE_ACCEL_WRAPPER(dt_control_copy_images)
+MAKE_ACCEL_WRAPPER(dt_control_move_images)
+MAKE_ACCEL_WRAPPER(dt_control_merge_hdr)
+MAKE_ACCEL_WRAPPER(dt_control_set_local_copy_images)
+MAKE_ACCEL_WRAPPER(dt_control_reset_local_copy_images)
+MAKE_ACCEL_WRAPPER(dt_control_remove_images)
+MAKE_ACCEL_WRAPPER(dt_control_delete_images)
+MAKE_ACCEL_WRAPPER(dt_control_quit)
 
 
 void append_file(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
-  add_sub_menu_entry(menus, lists, _("Import..."), index, NULL, import_files_callback, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Import..."), index, NULL, GET_ACCEL_WRAPPER(dt_images_import), NULL, NULL,
                      NULL, GDK_KEY_i, GDK_CONTROL_MASK | GDK_SHIFT_MASK);
 
   add_sub_menu_entry(menus, lists, _("Export..."), index, NULL, export_files_callback, NULL, NULL,
@@ -208,32 +218,32 @@ void append_file(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_menu_separator(menus[index]);
 
-  add_sub_menu_entry(menus, lists, _("Copy files on disk..."), index, NULL, dt_control_copy_images, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Copy files on disk..."), index, NULL, GET_ACCEL_WRAPPER(dt_control_copy_images), NULL, NULL,
                      has_active_images, 0, 0);
 
-  add_sub_menu_entry(menus, lists, _("Move files on disk..."), index, NULL, dt_control_move_images, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Move files on disk..."), index, NULL, GET_ACCEL_WRAPPER(dt_control_move_images), NULL, NULL,
                      has_active_images, 0, 0);
 
-  add_sub_menu_entry(menus, lists, _("Create a blended HDR"), index, NULL, dt_control_merge_hdr, NULL, NULL,
-                     has_active_images, 0, 0);
-
-  add_menu_separator(menus[index]);
-
-  add_sub_menu_entry(menus, lists, _("Copy distant images locally"), index, NULL, dt_control_set_local_copy_images, NULL, NULL,
-                     has_active_images, 0, 0);
-
-  add_sub_menu_entry(menus, lists, _("Resynchronize distant images"), index, NULL, dt_control_reset_local_copy_images, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Create a blended HDR"), index, NULL, GET_ACCEL_WRAPPER(dt_control_merge_hdr), NULL, NULL,
                      has_active_images, 0, 0);
 
   add_menu_separator(menus[index]);
 
-  add_sub_menu_entry(menus, lists, _("Remove from library"), index, NULL, (void *)dt_control_remove_images, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Copy distant images locally"), index, NULL, GET_ACCEL_WRAPPER(dt_control_set_local_copy_images), NULL, NULL,
+                     has_active_images, 0, 0);
+
+  add_sub_menu_entry(menus, lists, _("Resynchronize distant images"), index, NULL, GET_ACCEL_WRAPPER(dt_control_reset_local_copy_images), NULL, NULL,
+                     has_active_images, 0, 0);
+
+  add_menu_separator(menus[index]);
+
+  add_sub_menu_entry(menus, lists, _("Remove from library"), index, NULL, GET_ACCEL_WRAPPER(dt_control_remove_images), NULL, NULL,
                      has_active_images, GDK_KEY_Delete, 0);
 
-  add_sub_menu_entry(menus, lists, _("Delete on disk"), index, NULL, dt_control_delete_images, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Delete on disk"), index, NULL, GET_ACCEL_WRAPPER(dt_control_delete_images), NULL, NULL,
                      has_active_images, GDK_KEY_Delete, GDK_SHIFT_MASK);
 
   add_menu_separator(menus[index]);
 
-  add_sub_menu_entry(menus, lists, _("Quit"), index, NULL, dt_control_quit, NULL, NULL, NULL,  GDK_KEY_q, GDK_CONTROL_MASK);
+  add_sub_menu_entry(menus, lists, _("Quit"), index, NULL, GET_ACCEL_WRAPPER(dt_control_quit), NULL, NULL, NULL,  GDK_KEY_q, GDK_CONTROL_MASK);
 }

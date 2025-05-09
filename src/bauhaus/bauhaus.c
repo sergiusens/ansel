@@ -351,7 +351,7 @@ gboolean dt_bauhaus_focus_callback(GtkWidget *widget, GtkDirectionType direction
 }
 
 gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
-                                              GdkModifierType modifier, gpointer data)
+                               GdkModifierType modifier, gpointer data)
 {
   dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(data);
 

@@ -151,10 +151,11 @@ static void _dt_collection_changed_callback(gpointer instance, dt_collection_cha
   dt_thumbtable_set_zoom(darktable.gui->ui->thumbtable_lighttable, 0);
 }
 
-static void _zoom_combobox_changed(GtkWidget *widget)
+static gboolean _zoom_combobox_changed(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  const int level = GPOINTER_TO_INT(get_custom_data(widget));
+  const int level = GPOINTER_TO_INT(get_custom_data(GTK_WIDGET(user_data)));
   dt_thumbtable_set_zoom(darktable.gui->ui->thumbtable_lighttable, level);
+  return TRUE;
 }
 
 static gboolean _zoom_checked(GtkWidget *widget)
@@ -184,11 +185,12 @@ static gboolean _thumbtable_scroll(GtkWidget *widget, GdkEventScroll *event, gpo
   return FALSE;
 }
 
-void _focus_toggled(GtkWidget *widget)
+static gboolean _focus_toggle_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
   gboolean state = dt_thumbtable_get_focus_regions(table);
   dt_thumbtable_set_focus_regions(table, !state);
+  return TRUE;
 }
 
 gboolean _focus_checked(GtkWidget *widget)
@@ -197,11 +199,12 @@ gboolean _focus_checked(GtkWidget *widget)
   return dt_thumbtable_get_focus_regions(table);
 }
 
-static void focus_peaking_callback()
+static gboolean focus_peaking_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_thumbtable_t *table = darktable.gui->ui->thumbtable_lighttable;
   gboolean focus_peaking = dt_thumbtable_get_focus_peaking(table);
   dt_thumbtable_set_focus_peaking(table, !focus_peaking);
+  return TRUE;
 }
 
 static gboolean focus_peaking_checked_callback()
@@ -213,7 +216,7 @@ static gboolean focus_peaking_checked_callback()
 void append_thumbnails(GtkWidget **menus, GList **lists, const dt_menus_t index, GtkAccelGroup *accel_group)
 {
   // Focusing options
-  add_generic_sub_menu_entry(menus, lists, _("Overlay focus zones"), index, NULL, _focus_toggled, _focus_checked, NULL,
+  add_generic_sub_menu_entry(menus, lists, _("Overlay focus zones"), index, NULL, _focus_toggle_callback, _focus_checked, NULL,
                              NULL, 0, 0, accel_group);
 
   add_generic_sub_menu_entry(menus, lists, _("Overlay focus peaking"), index, NULL, focus_peaking_callback,

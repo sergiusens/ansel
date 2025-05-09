@@ -25,9 +25,12 @@ gboolean views_sensitive_callback(GtkWidget *menu_item)
   return g_strcmp0(current_label, current_view->module_name);
 }
 
-#define MACRO_VIEW(view) \
-void view_switch_to_ ## view () {\
-  dt_ctl_switch_mode_to(#view);\
+#define MACRO_VIEW(view)                                                                                          \
+  static gboolean view_switch_to_##view(GtkAccelGroup *group, GObject *acceleratable, guint keyval,               \
+                                        GdkModifierType mods, GtkWidget *widget)                                  \
+  {                                                                                                               \
+    dt_ctl_switch_mode_to(#view);                                                                                 \
+    return TRUE;                                                                                                  \
 }
 
 MACRO_VIEW(lighttable);

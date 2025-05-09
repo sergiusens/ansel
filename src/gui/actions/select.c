@@ -11,11 +11,11 @@ gboolean select_all_sensitive_callback()
 }
 
 
-void select_all_callback()
+static gboolean select_all_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  if(!select_all_sensitive_callback()) return;
-
+  if(!select_all_sensitive_callback()) return FALSE;
   dt_thumbtable_select_all(darktable.gui->ui->thumbtable_lighttable);
+  return TRUE;
 }
 
 
@@ -26,18 +26,19 @@ gboolean clear_selection_sensitive_callback()
 }
 
 
-void clear_selection_callback()
+static gboolean clear_selection_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  if(!clear_selection_sensitive_callback()) return;
-
+  if(!clear_selection_sensitive_callback()) return FALSE;
   dt_selection_clear(darktable.selection);
+  return TRUE;
 }
 
 
-void invert_selection_callback()
+static gboolean invert_selection_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
-  if(!clear_selection_sensitive_callback()) return;
+  if(!clear_selection_sensitive_callback()) return FALSE;
   dt_thumbtable_invert_selection(darktable.gui->ui->thumbtable_lighttable);
+  return TRUE;
 }
 
 void append_select(GtkWidget **menus, GList **lists, const dt_menus_t index)

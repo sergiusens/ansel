@@ -3,7 +3,7 @@
 #include "control/control.h"
 
 
-static void show_about_dialog()
+static gboolean show_about_dialog(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GtkWidget *dialog = gtk_about_dialog_new();
   gtk_widget_set_name (dialog, "about-dialog");
@@ -34,42 +34,50 @@ static void show_about_dialog()
   gtk_window_set_transient_for(GTK_WINDOW(dialog), GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
   gtk_dialog_run(GTK_DIALOG(dialog));
   gtk_widget_destroy(dialog);
+
+  return TRUE;
 }
 
-void open_doc_callback(GtkWidget *widget)
+static gboolean open_doc_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   // TODO: use translated URL when doc gets translated
   gtk_show_uri_on_window(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), "https://ansel.photos/en/doc", GDK_CURRENT_TIME, NULL);
+  return TRUE;
 }
 
-void open_booking_callback(GtkWidget *widget)
+static gboolean open_booking_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   gtk_show_uri_on_window(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)),
   "https://ansel.photos/en/support/#individual-user-training", GDK_CURRENT_TIME, NULL);
+  return TRUE;
 }
 
-void open_donate_callback(GtkWidget *widget)
+static gboolean open_donate_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   // TODO: use translated URL when doc gets translated
   gtk_show_uri_on_window(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)), "https://liberapay.com/aurelienpierre", GDK_CURRENT_TIME, NULL);
+  return TRUE;
 }
 
-void open_chat_callback(GtkWidget *widget)
+static gboolean open_chat_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   gtk_show_uri_on_window(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)),
   "https://app.element.io/#/room/#ansel:matrix.org", GDK_CURRENT_TIME, NULL);
+  return TRUE;
 }
 
-void open_search_callback(GtkWidget *widget)
+static gboolean open_search_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   gtk_show_uri_on_window(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)),
   "https://chantal.aurelienpierre.com", GDK_CURRENT_TIME, NULL);
+  return TRUE;
 }
 
-void open_forum_callback(GtkWidget *widget)
+static gboolean open_forum_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   gtk_show_uri_on_window(GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)),
   "https://community.ansel.photos", GDK_CURRENT_TIME, NULL);
+  return TRUE;
 }
 
 // TODO: this doesn't work for all widgets. the reason being that the GtkEventBox we put libs/iops into catches events.
@@ -189,13 +197,19 @@ static void _main_do_event_help(GdkEvent *event, gpointer data)
   if(!handled) gtk_main_do_event(event);
 }
 
-static void contextual_help_callback(GtkWidget *widget)
+static gboolean contextual_help_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_control_change_cursor(GDK_X_CURSOR);
   dt_control_forbid_change_cursor();
   gdk_event_handler_set(_main_do_event_help, NULL, NULL);
+  return TRUE;
 }
 
+static gboolean search_accels_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
+{
+  dt_accels_search(darktable.gui->accels, GTK_WINDOW(dt_ui_main_window(darktable.gui->ui)));
+  return TRUE;
+}
 
 void append_help(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
@@ -206,6 +220,8 @@ void append_help(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_menu_entry(menus, lists, _("Join the support forum"), index, NULL, open_forum_callback, NULL, NULL, NULL, 0, 0);
   add_menu_separator(menus[index]);
   add_sub_menu_entry(menus, lists, _("Open contextual help"), index, NULL, contextual_help_callback, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Search actions..."), index, NULL, search_accels_callback, NULL, NULL,
+                     NULL, GDK_KEY_p, GDK_CONTROL_MASK);
   add_menu_separator(menus[index]);
   add_sub_menu_entry(menus, lists, _("Donate"), index, NULL, open_donate_callback, NULL, NULL, NULL, 0, 0);
   add_sub_menu_entry(menus, lists, _("About"), index, NULL, show_about_dialog, NULL, NULL, NULL, 0, 0);

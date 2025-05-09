@@ -4,27 +4,31 @@
 #include "common/selection.h"
 #include "control/jobs.h"
 
-static void clear_caches_callback(GtkWidget *widget)
+static gboolean clear_caches_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_dev_reprocess_all(darktable.develop);
   dt_control_queue_redraw();
   dt_dev_refresh_ui_images(darktable.develop);
+  return TRUE;
 }
 
-static void optimize_database_callback(GtkWidget *widget)
+static gboolean optimize_database_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_database_perform_maintenance(darktable.db);
+  return TRUE;
 }
 
-static void backup_database_callback(GtkWidget *widget)
+static gboolean backup_database_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_database_snapshot(darktable.db);
+  return TRUE;
 }
 
-static void crawl_xmp_changes(GtkWidget *widget)
+static gboolean crawl_xmp_changes(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GList *changed_xmp_files = dt_control_crawler_run();
   dt_control_crawler_show_image_list(changed_xmp_files);
+  return TRUE;
 }
 
 static int32_t preload_image_cache(dt_job_t *job)
@@ -64,14 +68,15 @@ static int32_t preload_image_cache(dt_job_t *job)
   return 0;
 }
 
-static void preload_image_cache_callback(GtkWidget *widget)
+static gboolean preload_image_cache_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_job_t *job = dt_control_job_create(&preload_image_cache, "preload");
   dt_control_job_add_progress(job, _("Preloading cache for current collection"), TRUE);
   dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_BG, job);
+  return TRUE;
 }
 
-static void clear_image_cache(GtkWidget *widget)
+static gboolean clear_image_cache(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GList *selection = dt_selection_get_list(darktable.selection);
 
@@ -85,14 +90,11 @@ static void clear_image_cache(GtkWidget *widget)
 
   // Redraw thumbnails
   dt_thumbtable_refresh_thumbnail(darktable.gui->ui->thumbtable_lighttable, UNKNOWN_IMAGE, TRUE);
+  return TRUE;
 }
 
-
-static void write_XMP()
-{
-  dt_control_write_sidecar_files();
-}
-
+MAKE_ACCEL_WRAPPER(dt_control_write_sidecar_files)
+MAKE_ACCEL_WRAPPER(dt_image_local_copy_synch)
 
 void append_run(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
@@ -104,7 +106,7 @@ void append_run(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_sub_menu_entry(menus, lists, _("Backup the library"), index, NULL, backup_database_callback, NULL, NULL, NULL, 0, 0);
   add_menu_separator(menus[index]);
   add_sub_menu_entry(menus, lists, _("Resynchronize library and XMP"), index, NULL, crawl_xmp_changes, NULL, NULL, NULL, 0, 0);
-  add_sub_menu_entry(menus, lists, _("Save selected developments to XMP"), index, NULL, write_XMP, NULL, NULL, has_active_images, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Save selected developments to XMP"), index, NULL, GET_ACCEL_WRAPPER(dt_control_write_sidecar_files), NULL, NULL, has_active_images, 0, 0);
   add_menu_separator(menus[index]);
-  add_sub_menu_entry(menus, lists, _("Resynchronize database with distant XMP for local copies"), index, NULL, dt_image_local_copy_synch, NULL, NULL, NULL, 0, 0);
+  add_sub_menu_entry(menus, lists, _("Resynchronize database with distant XMP for local copies"), index, NULL, GET_ACCEL_WRAPPER(dt_image_local_copy_synch), NULL, NULL, NULL, 0, 0);
 }

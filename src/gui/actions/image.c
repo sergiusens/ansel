@@ -5,24 +5,27 @@
 #include "control/control.h"
 #include "common/collection.h"
 
-void rotate_counterclockwise_callback()
+static gboolean rotate_counterclockwise_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_control_flip_images(1);
+  return TRUE;
 }
 
-void rotate_clockwise_callback()
+static gboolean rotate_clockwise_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_control_flip_images(0);
+  return TRUE;
 }
 
-void reset_rotation_callback()
+static gboolean reset_rotation_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   dt_control_flip_images(2);
+  return TRUE;
 }
 
 /** merges all the selected images into a single group.
  * if there is an expanded group, then they will be joined there, otherwise a new one will be created. */
-void group_images_callback()
+static gboolean group_images_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GList *imgs = NULL;
   sqlite3_stmt *stmt;
@@ -42,10 +45,11 @@ void group_images_callback()
   }
   sqlite3_finalize(stmt);
   dt_collection_update_query(darktable.collection, DT_COLLECTION_CHANGE_RELOAD, DT_COLLECTION_PROP_GROUPING, imgs);
+  return TRUE;
 }
 
 /** removes the selected images from their current group. */
-void ungroup_images_callback()
+static gboolean ungroup_images_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   GList *imgs = NULL;
   sqlite3_stmt *stmt;
@@ -68,87 +72,103 @@ void ungroup_images_callback()
                                g_list_reverse(imgs));
     dt_control_queue_redraw_center();
   }
+  return TRUE;
 }
 
 /* Those operations are dangerous, don't allow them in darkroom aka outside of selection */
 
-static void _colorlabels_callback(int color)
+static gboolean _colorlabels_callback(int color)
 {
   GList *imgs = dt_act_on_get_images(); // this yields a copy
   dt_colorlabels_toggle_label_on_list(imgs, color, TRUE);
   //g_list_free(imgs); // this segfaults sooner or later
+  return TRUE;
 }
 
-static void _rating_callback(int value)
+static gboolean _rating_callback(int value)
 {
   GList *imgs = dt_act_on_get_images(); // this yields a copy
   dt_ratings_apply_on_list(imgs, value, TRUE);
   //g_list_free(imgs); // this segfaults sooner or later
+  return TRUE;
 }
 
-void red_label_callback()
+static gboolean red_label_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _colorlabels_callback(0);
+  return TRUE;
 }
 
-void yellow_label_callback()
+static gboolean yellow_label_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _colorlabels_callback(1);
+  return TRUE;
 }
 
-void green_label_callback()
+static gboolean green_label_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _colorlabels_callback(2);
+  return TRUE;
 }
 
-void blue_label_callback()
+static gboolean blue_label_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _colorlabels_callback(3);
+  return TRUE;
 }
 
-void magenta_label_callback()
+static gboolean magenta_label_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _colorlabels_callback(4);
+  return TRUE;
 }
 
-void reset_label_callback()
+static gboolean reset_label_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _colorlabels_callback(5);
+  return TRUE;
 }
 
-void rating_one_callback()
+static gboolean rating_one_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(1);
+  return TRUE;
 }
 
-void rating_two_callback()
+static gboolean rating_two_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(2);
+  return TRUE;
 }
 
-void rating_three_callback()
+static gboolean rating_three_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(3);
+  return TRUE;
 }
 
-void rating_four_callback()
+static gboolean rating_four_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(4);
+  return TRUE;
 }
 
-void rating_five_callback()
+static gboolean rating_five_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(5);
+  return TRUE;
 }
 
-void rating_reset_callback()
+static gboolean rating_reset_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(0);
+  return TRUE;
 }
 
-void rating_reject_callback()
+static gboolean rating_reject_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
 {
   _rating_callback(6);
+  return TRUE;
 }
 
 /* Rotation has a module in darkroom, don't support it there */
@@ -156,6 +176,8 @@ gboolean _can_be_rotated()
 {
   return has_active_images() && _is_lighttable();
 }
+
+MAKE_ACCEL_WRAPPER(dt_control_refresh_exif)
 
 void append_image(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
@@ -228,7 +250,8 @@ void append_image(GtkWidget **menus, GList **lists, const dt_menus_t index)
   add_menu_separator(menus[index]);
 
   /* Reload EXIF */
-  add_sub_menu_entry(menus, lists, _("Reload EXIF from file"), index, NULL, dt_control_refresh_exif, NULL, NULL,
+  add_sub_menu_entry(menus, lists, _("Reload EXIF from file"), index, NULL, GET_ACCEL_WRAPPER(dt_control_refresh_exif)
+  , NULL, NULL,
                      has_active_images, 0, 0);
 
   add_menu_separator(menus[index]);
