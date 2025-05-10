@@ -19,6 +19,20 @@ static void _clean_shortcut(gpointer data)
   g_free(shortcut);
 }
 
+GClosure *dt_shortcut_get_closure(dt_shortcut_t *shortcut)
+{
+  return shortcut->closure;
+}
+
+void dt_shortcut_set_closure(dt_shortcut_t *shortcut,
+                             gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable,
+                                                         guint keyval, GdkModifierType mods, gpointer user_data),
+                             gpointer data)
+{
+  shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
+  g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
+}
+
 
 dt_accels_t * dt_accels_init(char *config_file, GtkAccelFlags flags)
 {
@@ -184,13 +198,13 @@ static void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key
 
 static void _remove_generic_accel(dt_shortcut_t *shortcut)
 {
-  gtk_accel_group_disconnect(shortcut->accel_group, shortcut->closure);
+  gtk_accel_group_disconnect(shortcut->accel_group, dt_shortcut_get_closure(shortcut));
 }
 
 static void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelKey *key, GtkAccelFlags flags)
 {
   gtk_accel_group_connect(shortcut->accel_group, key->accel_key, key->accel_mods, flags | GTK_ACCEL_VISIBLE,
-                          shortcut->closure);
+                          dt_shortcut_get_closure(shortcut));
 }
 
 
@@ -256,8 +270,7 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
     shortcut = malloc(sizeof(dt_shortcut_t));
     shortcut->accel_group = accel_group;
     shortcut->widget = widget;
-    shortcut->closure = g_cclosure_new(G_CALLBACK(_virtual_shortcut_callback), shortcut, NULL);
-    g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
+    shortcut->closure = NULL;
     shortcut->path = g_strdup(accel_path);
     shortcut->signal = NULL;
     shortcut->key = key_val;
@@ -267,6 +280,7 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
     shortcut->virtual_shortcut = TRUE;
     shortcut->description = _("Contextual interaction on focus");
     shortcut->accels = accels;
+    dt_shortcut_set_closure(shortcut, _virtual_shortcut_callback, shortcut);
     _insert_accel(accels, shortcut);
   }
 }
@@ -339,7 +353,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels,
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
   dt_pthread_mutex_unlock(&accels->lock);
 
-  if(shortcut && shortcut->closure && shortcut->closure->data == data)
+  if(shortcut && dt_shortcut_get_closure(shortcut) && dt_shortcut_get_closure(shortcut)->data == data)
   {
     // reference is still up-to-date: nothing to do.
     return;
@@ -349,8 +363,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels,
     // If we already have a shortcut object wired to Gtk for this accel path, just update it
     GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
     if(shortcut->key > 0) _remove_generic_accel(shortcut);
-    shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
-    g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
+    dt_shortcut_set_closure(shortcut, action_callback, data);
     if(shortcut->key > 0) _add_generic_accel(shortcut, &key, accels->flags);
   }
   // else if shortcut && shortcut->type == DT_SHORTCUT_UNSET, we need to wait for the next call to dt_accels_connect_accels()
@@ -360,8 +373,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels,
     shortcut = malloc(sizeof(dt_shortcut_t));
     shortcut->accel_group = accel_group;
     shortcut->widget = NULL;
-    shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
-    g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
+    shortcut->closure = NULL;
     shortcut->path = g_strdup(accel_path);
     shortcut->signal = "";
     shortcut->key = key_val;
@@ -371,6 +383,7 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels,
     shortcut->virtual_shortcut = FALSE;
     shortcut->description = description;
     shortcut->accels = accels;
+    dt_shortcut_set_closure(shortcut, action_callback, data);
     _insert_accel(accels, shortcut);
     // accel is inited with empty keys so user config may set it.
     // dt_accels_load_config needs to run next
@@ -406,13 +419,13 @@ static void _connect_accel(dt_shortcut_t *shortcut)
   // if key is non zero and new, or updated, we need to add a new accel
   const gboolean needs_init = changed && key.accel_key > 0;
 
-  if(shortcut->closure)
+  if(dt_shortcut_get_closure(shortcut))
   {
     if(needs_cleanup)
     {
       // Need to increase the number of references to avoid loosing the closure just yet.
-      g_closure_ref(shortcut->closure);
-      g_closure_sink(shortcut->closure);
+      g_closure_ref(dt_shortcut_get_closure(shortcut));
+      g_closure_sink(dt_shortcut_get_closure(shortcut));
       _remove_generic_accel(shortcut);
     }
 
@@ -452,18 +465,20 @@ static void _remove_accel_hashtable(gpointer _key, gpointer value, gpointer user
   if(g_strrstr(shortcut->path, needle))
   {
     //fprintf(stdout, "removing %s\n", shortcut->path);
-    if(shortcut->closure)
+    if(dt_shortcut_get_closure(shortcut))
     {
-      g_closure_unref(shortcut->closure);
+      g_closure_unref(dt_shortcut_get_closure(shortcut));
       _remove_generic_accel(shortcut);
       shortcut->closure = NULL;
     }
+    /* Should we handle that too ?
     else if(shortcut->widget)
     {
       GtkAccelKey key = { 0 };
       if(gtk_accel_map_lookup_entry(shortcut->path, &key))
         _remove_widget_accel(shortcut, &key);
     }
+    */
   }
 }
 
@@ -1271,12 +1286,12 @@ static void _call_shortcut_cclosure(dt_shortcut_t *shortcut, GtkWindow *main_win
   GValue ret = G_VALUE_INIT;
   g_value_init (&ret, G_TYPE_BOOLEAN);
 
-  g_closure_invoke(shortcut->closure, &ret, 4, params, NULL);
+  g_closure_invoke(dt_shortcut_get_closure(shortcut), &ret, 4, params, NULL);
 }
 
 static gboolean _run_action_from_shortcut(dt_shortcut_t *shortcut, GtkDialog *dialog, GtkWindow *main_window)
 {
-  if(shortcut->closure)
+  if(dt_shortcut_get_closure(shortcut))
   {
     gtk_dialog_response(dialog, GTK_RESPONSE_ACCEPT);
     _call_shortcut_cclosure(shortcut, main_window);
