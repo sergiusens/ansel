@@ -108,7 +108,6 @@ dt_cache_entry_t *dt_cache_testget(dt_cache_t *cache, const uint32_t key, char m
 {
   gpointer orig_key, value;
   gboolean res;
-  double start = dt_get_wtime();
   dt_pthread_mutex_lock(&cache->lock);
   res = g_hash_table_lookup_extended(
       cache->hashtable, GINT_TO_POINTER(key), &orig_key, &value);
@@ -128,9 +127,6 @@ dt_cache_entry_t *dt_cache_testget(dt_cache_t *cache, const uint32_t key, char m
     cache->lru = g_list_remove_link(cache->lru, entry->link);
     cache->lru = g_list_concat(cache->lru, entry->link);
     dt_pthread_mutex_unlock(&cache->lock);
-    double end = dt_get_wtime();
-    if(end - start > 0.1)
-      fprintf(stderr, "try+ wait time %.06fs mode %c \n", end - start, mode);
 
     if(mode == 'w')
     {
@@ -143,9 +139,6 @@ dt_cache_entry_t *dt_cache_testget(dt_cache_t *cache, const uint32_t key, char m
     return entry;
   }
   dt_pthread_mutex_unlock(&cache->lock);
-  double end = dt_get_wtime();
-  if(end - start > 0.1)
-    fprintf(stderr, "try- wait time %.06fs\n", end - start);
   return 0;
 }
 
@@ -157,7 +150,6 @@ dt_cache_entry_t *dt_cache_get_with_caller(dt_cache_t *cache, const uint32_t key
   gpointer orig_key, value;
   gboolean res;
   int result;
-  double start = dt_get_wtime();
 restart:
   dt_pthread_mutex_lock(&cache->lock);
   res = g_hash_table_lookup_extended(
@@ -248,10 +240,6 @@ restart:
   cache->lru = g_list_concat(cache->lru, entry->link);
 
   dt_pthread_mutex_unlock(&cache->lock);
-  double end = dt_get_wtime();
-  if(end - start > 0.1)
-    fprintf(stderr, "wait time %.06fs\n", end - start);
-
   // WARNING: do *NOT* unpoison here. it must be done by the caller!
 
   return entry;
