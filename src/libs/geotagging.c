@@ -138,7 +138,7 @@ static void free_tz_tuple(gpointer data)
 
 const char *name(struct dt_lib_module_t *self)
 {
-  return _("Datetime & GPS");
+  return _("Datetime and GPS");
 }
 
 const char **views(dt_lib_module_t *self)

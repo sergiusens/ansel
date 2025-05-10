@@ -592,8 +592,10 @@ static gboolean default_preset_autoapply(dt_lib_module_t *self)
   return FALSE;
 }
 
-int default_lib_focus(dt_gui_module_t *module, gboolean toogle)
+int default_lib_focus(dt_gui_module_t *m, gboolean toogle)
 {
+  dt_lib_module_t *module = (dt_lib_module_t *) m;
+  dt_lib_gui_set_expanded(module, !dt_lib_gui_get_expanded(module));
   return 1;
 }
 
@@ -779,6 +781,16 @@ void dt_lib_init_presets(dt_lib_module_t *module)
                                 g_strdup(module->plugin_name));
 }
 
+
+static gboolean _lib_plugin_focus_accel(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
+                                        GdkModifierType modifier, gpointer data)
+{
+  dt_gui_module_t *module = (dt_gui_module_t *)data;
+  if(!module || !module->focus) return FALSE;
+  return module->focus(module, FALSE);
+}
+
+
 static void dt_lib_init_module(void *m)
 {
   dt_lib_module_t *module = (dt_lib_module_t *)m;
@@ -791,6 +803,43 @@ static void dt_lib_init_module(void *m)
 
     // TODO: look for active view. Do we know it at init time ?
     module->common_fields.view = g_strdup(_("Lighttable"));
+
+    if(!module->views || !module->expandable(module)) return; // We are done
+    // Else: add accel pathes
+
+    gchar *clean_name = delete_underscore(module->name(module));
+    dt_capitalize_label(clean_name);
+
+    // slash is not allowed in module names because that makes accel pathes fail
+    assert(g_strrstr(clean_name, "/") == NULL);
+
+    const char **views = module->views(module);
+
+    // We add one accel path per view
+    for(const char **view = views; *view; ++view)
+    {
+      GtkAccelGroup *accel_group = NULL;
+      gchar *label = NULL;
+      if(!g_strcmp0(*view, "darkroom"))
+      {
+        accel_group = darktable.gui->accels->darkroom_accels;
+        label = g_strdup("Darkroom/Toolboxes");
+      }
+      else if(!g_strcmp0(*view, "lighttable"))
+      {
+        accel_group = darktable.gui->accels->lighttable_accels;
+        label = g_strdup("Lighttable/Toolboxes");
+      }
+      // TODO: handle the other views
+
+      if(accel_group && label)
+        dt_accels_new_action_shortcut(darktable.gui->accels, _lib_plugin_focus_accel, m,
+                                      accel_group, label, clean_name, 0, 0, FALSE,
+                                      _("Focuses the module"));
+      g_free(label);
+    }
+
+    g_free(clean_name);
   }
 }
 
@@ -856,10 +905,9 @@ void dt_lib_gui_set_expanded(dt_lib_module_t *module, gboolean expanded)
     if(darktable.lib->gui_module == module)
     {
       darktable.lib->gui_module = NULL;
-
       dt_control_queue_redraw();
     }
-    gtk_widget_grab_focus(dt_ui_main_window(darktable.gui->ui));
+    dt_gui_refocus_center();
   }
 
   /* store expanded state of module */
