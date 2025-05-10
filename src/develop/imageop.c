@@ -1050,6 +1050,7 @@ void dt_iop_gui_set_enable_button(dt_iop_module_t *module)
 void dt_iop_gui_init(dt_iop_module_t *module)
 {
   ++darktable.gui->reset;
+  if(module->gui_init) module->gui_init(module);
 
   // Add the accelerators
   if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
@@ -1060,11 +1061,14 @@ void dt_iop_gui_init(dt_iop_module_t *module)
     // slash is not allowed in module names because that makes accel pathes fail
     assert(g_strrstr(clean_name, "/") == NULL);
 
-    dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, "Darkroom/Modules", clean_name, 0, 0, _("Focuses the module"));
+    dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, _("Darkroom/Modules"), clean_name, 0, 0, _("Focuses the module"));
+
+    if(module->widget)
+      g_object_set_data(G_OBJECT(module->widget), "accel-path",
+                        dt_accels_build_path(_("Darkroom/Modules"), clean_name));
+
     g_free(clean_name);
   }
-
-  if(module->gui_init) module->gui_init(module);
   --darktable.gui->reset;
 }
 
@@ -1761,6 +1765,14 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
 
   // remove multiple delayed gtk_widget_queue_draw triggers
   while(g_idle_remove_by_data(module->widget));
+
+  // Detach accels
+  if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED) && module->widget)
+  {
+    gchar *accel_path = g_object_get_data(G_OBJECT(module->widget), "accel-path");
+    dt_accels_remove_accel(darktable.gui->accels, accel_path);
+    g_free(accel_path);
+  }
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   dt_gui_module_t *m = DT_GUI_MODULE(module);

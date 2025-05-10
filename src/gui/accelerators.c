@@ -40,6 +40,7 @@ dt_accels_t * dt_accels_init(char *config_file, GtkAccelFlags flags)
   accels->scroll.data = NULL;
   accels->disable_accels = FALSE;
   accels->flags = flags;
+  dt_pthread_mutex_init(&accels->lock, NULL);
   return accels;
 }
 
@@ -57,7 +58,11 @@ void dt_accels_cleanup(dt_accels_t *accels)
   accels->darkroom_accels = NULL;
   accels->lighttable_accels = NULL;
 
+  dt_pthread_mutex_lock(&accels->lock);
   g_hash_table_unref(accels->acceleratables);
+  dt_pthread_mutex_unlock(&accels->lock);
+
+  dt_pthread_mutex_destroy(&accels->lock);
 
   g_free(accels->config_file);
   g_free(accels);
@@ -193,7 +198,9 @@ static void _insert_accel(dt_accels_t *accels, dt_shortcut_t *shortcut)
 {
   // init an accel_map entry with no keys so Gtk collects them from user config later.
   gtk_accel_map_add_entry(shortcut->path, 0, 0);
+  dt_pthread_mutex_lock(&accels->lock);
   g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
+  dt_pthread_mutex_unlock(&accels->lock);
 }
 
 
@@ -240,7 +247,10 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
                                     GtkWidget *widget, guint key_val, GdkModifierType accel_mods)
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
+  dt_pthread_mutex_lock(&accels->lock);
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
+  dt_pthread_mutex_unlock(&accels->lock);
+
   if(!shortcut)
   {
     shortcut = malloc(sizeof(dt_shortcut_t));
@@ -267,7 +277,10 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
                                    GdkModifierType accel_mods, const gboolean lock)
 {
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
+  dt_pthread_mutex_lock(&accels->lock);
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
+  dt_pthread_mutex_unlock(&accels->lock);
+
   if(shortcut && shortcut->widget == widget)
   {
     // reference is still up-to-date. Nothing to do.
@@ -322,8 +335,11 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels,
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   gchar *accel_path = dt_accels_build_path(action_scope, action_name);
 
+  dt_pthread_mutex_lock(&accels->lock);
   dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
-  if(shortcut && shortcut->closure->data == data)
+  dt_pthread_mutex_unlock(&accels->lock);
+
+  if(shortcut && shortcut->closure && shortcut->closure->data == data)
   {
     // reference is still up-to-date: nothing to do.
     return;
@@ -424,7 +440,40 @@ static void _connect_accel_hashtable(gpointer _key, gpointer value, gpointer use
 
 void dt_accels_connect_accels(dt_accels_t *accels)
 {
-  g_hash_table_foreach(accels->acceleratables, _connect_accel_hashtable, accels);
+  dt_pthread_mutex_lock(&accels->lock);
+  g_hash_table_foreach(accels->acceleratables, _connect_accel_hashtable, NULL);
+  dt_pthread_mutex_unlock(&accels->lock);
+}
+
+static void _remove_accel_hashtable(gpointer _key, gpointer value, gpointer user_data)
+{
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
+  const char *needle = (const char *)user_data;
+  if(g_strrstr(shortcut->path, needle))
+  {
+    //fprintf(stdout, "removing %s\n", shortcut->path);
+    if(shortcut->closure)
+    {
+      g_closure_unref(shortcut->closure);
+      _remove_generic_accel(shortcut);
+      shortcut->closure = NULL;
+    }
+    else if(shortcut->widget)
+    {
+      GtkAccelKey key = { 0 };
+      if(gtk_accel_map_lookup_entry(shortcut->path, &key))
+        _remove_widget_accel(shortcut, &key);
+    }
+  }
+}
+
+void dt_accels_remove_accel(dt_accels_t *accels, const char *path)
+{
+  if(!accels || !accels->acceleratables) return;
+
+  dt_pthread_mutex_lock(&accels->lock);
+  g_hash_table_foreach(accels->acceleratables, _remove_accel_hashtable, (gpointer)path);
+  dt_pthread_mutex_unlock(&accels->lock);
 }
 
 
@@ -519,7 +568,10 @@ static inline void _for_each_accel(gpointer key, gpointer value, gpointer user_d
 static const char * _find_path_for_keys(dt_accels_t *accels, guint key, GdkModifierType modifier, GtkAccelGroup *group)
 {
   _accel_lookup_t result = { .results = NULL, .key = key, .modifier = modifier, .group = group };
+
+  dt_pthread_mutex_lock(&accels->lock);
   g_hash_table_foreach(accels->acceleratables, _for_each_accel, &result);
+  dt_pthread_mutex_unlock(&accels->lock);
 
   char *path = NULL;
   GList *item = g_list_first(result.results);

@@ -4,6 +4,8 @@
 #include <gdk/gdkwayland.h>
 #endif
 
+#include "common/dtpthread.h"
+
 /**
  * @file accelerators.h
  * @brief Handle default and user-set shortcuts (accelerators)
@@ -88,6 +90,8 @@ typedef struct dt_accels_t
   gboolean disable_accels;
 
   GtkAccelFlags flags;
+
+  dt_pthread_mutex_t lock;
 
   // Views can register a global callback to handle scroll events
   // for example while keystrokes are on.
@@ -260,6 +264,28 @@ static inline void dt_accels_disable(dt_accels_t *accels, gboolean state)
 {
   accels->disable_accels = state;
 }
+
+/**
+ * @brief Recursively remove all accels containing `path`. This is unneeded for accels
+ * attached to Gtk widgets through `dt_accels_new_widget_shortcut` because Gtk will handle that
+ * internally when deleting a widget. But for our own widget-less `dt_accels_new_action_shortcut`, we need to handle
+ * that ourselves.
+ *
+ * Accels are typically added at `gui_init()` time of their attached GUI object,
+ * and the typical use case of this API assumes those objects live until the app is closed.
+ * But IOP modules can be added/removed at runtime (instances), so we need to destroy accels
+ * when their target object (user_data pointer/callback) is destroyed.
+ * If some accels are left dangling with a reference to a non-existing callback/data/closure,
+ * the app will crash with segfault upon shortcut activation.
+ *
+ * This will remove in one shot all accels attached to a parent and to all of its children,
+ * assuming that children will share their path root with their parent,
+ * and that rule is entirely up to the developer to enforce.
+ *
+ * @param accels
+ * @param path
+ */
+void dt_accels_remove_accel(dt_accels_t *accels, const char *path);
 
 /**
  * @brief Show the modal dialog listing all available keyboard shortcuts and letting user to set them.

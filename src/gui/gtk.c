@@ -332,7 +332,6 @@ void dt_gui_gtk_quit()
   gtk_window_set_title(GTK_WINDOW(win), _("closing Ansel..."));
 
   g_list_free(darktable.gui->input_devices);
-  dt_accels_cleanup(darktable.gui->accels);
   dt_ui_cleanup_titlebar(darktable.gui->ui);
 
   // Write out windows dimension

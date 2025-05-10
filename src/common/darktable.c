@@ -1294,6 +1294,8 @@ void dt_cleanup()
   {
     dt_imageio_cleanup(darktable.imageio);
     free(darktable.imageio);
+
+    dt_accels_cleanup(darktable.gui->accels);
     free(darktable.gui);
   }
 

@@ -22,6 +22,7 @@
 #include "common/math.h"
 #include "control/conf.h"
 #include "common/debug.h"
+#include "control/control.h"
 
 
 #include "gui/color_picker_proxy.h"
@@ -382,6 +383,12 @@ gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable,
                                GdkModifierType modifier, gpointer data)
 {
   dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(data);
+
+  if(!w || !accelerable)
+  {
+    dt_toast_log(_("The target widget of the action does not exist anymore"));
+    return FALSE;
+  }
 
   // Make sure the parent module widget is visible, if we know it,
   // because we can't grab focus on invisible widgets

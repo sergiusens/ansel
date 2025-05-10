@@ -804,7 +804,7 @@ static void dt_lib_init_module(void *m)
     // TODO: look for active view. Do we know it at init time ?
     module->common_fields.view = g_strdup(_("Lighttable"));
 
-    if(!module->views || module->expandable && !module->expandable(module)) return; // We are done
+    if(!module->views || (module->expandable && !module->expandable(module))) return; // We are done
     // Else: add accel pathes
 
     gchar *clean_name = delete_underscore(module->name(module));
