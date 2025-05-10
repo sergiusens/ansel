@@ -173,12 +173,12 @@ static gboolean _dndactive = FALSE;
 
 const char *name(struct dt_lib_module_t *self)
 {
-  return _("EXIF & IPTC");
+  return _("EXIF and IPTC");
 }
 
 const char **views(dt_lib_module_t *self)
 {
-  static const char *v[] = {"*", NULL};
+  static const char *v[] = {"darkroom", "lighttable", "map", "print", "slideshow", NULL};
   return v;
 }
 
