@@ -60,7 +60,25 @@
  * Lighttable and darkroom shortcuts are processed first, for the relevant view.
  * This lets user have different actions mapped to the same shortcuts, depending on view
  * but also have the view-centric shortcuts overwrite global ones if needed.
- */
+ *
+ * Module (IOP) instances will reuse the same shortcut for the main object
+ * and for all its children (sliders, comboboxes, buttons, etc.),
+ * because they share the same path (Darkroom/Modules/module_name/module_control) for all instances.
+ * We handle instances by appending a new `(PayloadClosure *)` object to the `(GList *)shortcut->closure` stack.
+ * `(PayloadClosure *)` contains a regular `(GClosure *)` followed by
+ * a pointer reference to the parent object (module) to identify the instance.
+ * When removing a module instance, we also remove the `(PayloadClosure *)` instance
+ * matching this module for all children shortcuts.
+ * This puts an hard assumption on 3 things:
+ *   - The shortcut of the parent object is declared before the shortcuts of the children objects,
+ *   - The accel path of the parent is the root of the accel pathes of all children. We don't check if children widgets are children of the parent widget, because we attach actions to any callback/data pointer, not just widgets, so all that is abstracted and we only look at pathes.
+ *   - The shortcut of the parent is declared with an `user_data` pointer reference (non NULL), that can be anything really as long as it is unique, belongs to the parent widget/module, and is constant over the lifetime of the parent and children.
+ *
+ * At any given time, we only pass the last-recorded `(GClosure *)` to the
+ * shortcut handler/GtkAccelMap/GtkAccelGroup. It is only when an instance
+ * is removed that we remove the corresponding parent and children, wherever the are in the stack, and then rewire the shortcut with the
+ * last item.
+ **/
 
 #pragma once
 
