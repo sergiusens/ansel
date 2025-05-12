@@ -1340,7 +1340,7 @@ static void _init_module_so(void *m)
         }
       }
 
-      module->gui_cleanup(module_instance);
+      dt_iop_gui_cleanup_module(module_instance);
 
       dt_iop_cleanup_module(module_instance);
     }
