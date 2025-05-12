@@ -792,8 +792,6 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
     {
       if(!dt_iop_is_hidden(module) && !module->expander)
       {
-        dt_iop_gui_init(module);
-        dt_iop_gui_set_expander(module);
         dt_iop_gui_set_expanded(module, TRUE, FALSE);
       }
     }
