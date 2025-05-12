@@ -1309,44 +1309,7 @@ static void _init_presets(dt_iop_module_so_t *module_so)
 static void _init_module_so(void *m)
 {
   dt_iop_module_so_t *module = (dt_iop_module_so_t *)m;
-
   _init_presets(module);
-
-  // do not init accelerators if there is no gui
-  if(darktable.gui)
-  {
-    // create a gui and have the widgets register their accelerators
-    dt_iop_module_t *module_instance = (dt_iop_module_t *)calloc(1, sizeof(dt_iop_module_t));
-
-    if(module->gui_init && !dt_iop_load_module_by_so(module_instance, module, NULL))
-    {
-      dt_iop_gui_init(module_instance);
-
-      static gboolean blending_accels_initialized = FALSE;
-      if(!blending_accels_initialized)
-      {
-        dt_iop_colorspace_type_t cst = module->blend_colorspace(module_instance, NULL, NULL);
-
-        if((module->flags() & IOP_FLAGS_SUPPORTS_BLENDING) &&
-           !(module->flags() & IOP_FLAGS_NO_MASKS) &&
-           (cst == IOP_CS_LAB || cst == IOP_CS_RGB))
-        {
-          GtkWidget *iopw = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
-          dt_iop_gui_init_blending(iopw, module_instance);
-          dt_iop_gui_cleanup_blending(module_instance);
-          gtk_widget_destroy(iopw);
-
-          blending_accels_initialized = TRUE;
-        }
-      }
-
-      module->gui_cleanup(module_instance);
-
-      dt_iop_cleanup_module(module_instance);
-    }
-
-    free(module_instance);
-  }
 }
 
 void dt_iop_load_modules_so(void)
