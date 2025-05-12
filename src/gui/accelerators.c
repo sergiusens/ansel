@@ -11,26 +11,151 @@
 #include <assert.h>
 #include <glib.h>
 
+typedef struct {
+  GClosure  *base;
+  gpointer  parent_data; // Reference to the closure->data of the parent shortcut instance, if any
+} PayloadClosure;
+
+typedef struct _accel_removal_t
+{
+  const char *path;
+  gpointer data;
+} _accel_removal_t;
+
+
+static void _g_list_closure_unref(gpointer data)
+{
+  PayloadClosure *pc = (PayloadClosure *)data;
+  if(pc->base) g_closure_unref(pc->base);
+  g_free(pc);
+}
+
 
 static void _clean_shortcut(gpointer data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)data;
   g_free(shortcut->path);
+  g_list_free_full(shortcut->closure, _g_list_closure_unref);
   g_free(shortcut);
+}
+
+
+// Return the last closure in the list
+PayloadClosure *dt_shortcut_get_payload_closure(dt_shortcut_t *shortcut)
+{
+  GList *link = g_list_last(shortcut->closure);
+  if(link)
+    return (PayloadClosure *)link->data;
+  else
+    return NULL;
 }
 
 GClosure *dt_shortcut_get_closure(dt_shortcut_t *shortcut)
 {
-  return shortcut->closure;
+  PayloadClosure *pc = dt_shortcut_get_payload_closure(shortcut);
+  if(pc)
+    return pc->base;
+  else
+    return NULL;
 }
 
+
+// Remove the accel closure instance from shortcut that references data
+// as its input or as its parent. Useful when module instances are destroyed,
+// so we destroy the shortcut attached to the parent module, and the shortcut
+// attached to all its children.
+void dt_shortcut_remove_closure(dt_shortcut_t *shortcut, gpointer data)
+{
+  if(!shortcut->closure) return;
+
+  PayloadClosure *cl = NULL;
+  GList *link = NULL;
+
+  if(data)
+  {
+    // Look for closures referencing data in their direct closure args
+    for(link = g_list_first(shortcut->closure); link; link = g_list_next(link))
+    {
+      PayloadClosure *closure = (PayloadClosure *)link->data;
+      if(closure->base->data == data || closure->parent_data == data)
+      {
+        cl = closure;
+        break;
+      }
+    }
+  }
+  else
+  {
+    link = g_list_last(shortcut->closure);
+    if(link) cl = (PayloadClosure *)link->data;
+  }
+
+  if(cl)
+  {
+    g_closure_unref((GClosure *)cl);
+    shortcut->closure = g_list_delete_link(shortcut->closure, link);
+    // fprintf(stdout, "removing: %s at %p - %i entries remaining\n", shortcut->path, data, g_list_length(shortcut->closure));
+  }
+}
+
+
+static void _find_parent_hashtable(gpointer _key, gpointer value, gpointer user_data)
+{
+  dt_shortcut_t *parent_shortcut = (dt_shortcut_t *)value;
+  dt_shortcut_t *child_shortcut = (dt_shortcut_t *)user_data;
+
+  // Remove the last branch of the path to build the path of the immediate ancestor
+  gchar **child_parts = g_strsplit(child_shortcut->path, "/", -1);
+  guint n = g_strv_length(child_parts);
+  g_free(child_parts[n - 1]);
+  child_parts[n - 1] = NULL;
+  gchar *parent_path = g_strjoinv ("/", child_parts);
+  g_strfreev(child_parts);
+
+  // This should technically match only once in the HashTable for_each()
+  if(!g_strcmp0(parent_shortcut->path, parent_path))
+  {
+    GClosure *parent_closure = dt_shortcut_get_closure(parent_shortcut);
+    PayloadClosure *child_closure = dt_shortcut_get_payload_closure(child_shortcut);
+    child_closure->parent_data = parent_closure->data;
+
+    /*
+    fprintf(stdout, "%s is the parent of %s - pointer %p\n", parent_shortcut->path, child_shortcut->path,
+            parent_closure->data);
+    */
+  }
+
+  g_free(parent_path);
+}
+
+
+// Lookup all existing shortcuts that share their path root with this one,
+// Consider them as parent of this one,
+// write this one into their (dt_shortcut_t *)->children table.
+// This assumes that parents are declared before children, which makes sense for widgets.
+static void _insert_parent_data_into_children(dt_shortcut_t *shortcut)
+{
+  g_hash_table_foreach(shortcut->accels->acceleratables, _find_parent_hashtable, (gpointer)shortcut);
+}
+
+
+// Append a new closure in the list
 void dt_shortcut_set_closure(dt_shortcut_t *shortcut,
                              gboolean (*action_callback)(GtkAccelGroup *group, GObject *acceleratable,
                                                          guint keyval, GdkModifierType mods, gpointer user_data),
                              gpointer data)
 {
-  shortcut->closure = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
-  g_closure_set_marshal(shortcut->closure, g_cclosure_marshal_generic);
+  PayloadClosure *pc = malloc(sizeof(PayloadClosure));
+  pc->base = g_cclosure_new(G_CALLBACK(action_callback), data, NULL);
+  pc->parent_data = NULL;
+
+  g_closure_set_marshal(pc->base, g_cclosure_marshal_generic);
+  g_closure_ref(pc->base);
+  g_closure_sink(pc->base);
+  g_closure_ref(pc->base);
+  shortcut->closure = g_list_append(shortcut->closure, pc);
+  // fprintf(stdout, "appending closure for %s - %i entries\n", shortcut->path, g_list_length(shortcut->closure));
+  _insert_parent_data_into_children(shortcut);
 }
 
 
@@ -172,39 +297,45 @@ static gboolean _update_shortcut_state(dt_shortcut_t *shortcut, GtkAccelKey *key
  * handling.
 */
 
-static void _add_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key, GtkAccelFlags flags)
+static void _add_widget_accel(dt_shortcut_t *shortcut, GtkAccelFlags flags)
 {
-  gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, key->accel_key,
-                              key->accel_mods, flags);
+  gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, shortcut->key,
+                             shortcut->mods, flags);
 
   // Numpad numbers register as different keys. Find the numpad equivalent key here, if any.
-  guint alt_char = dt_keys_numpad_alternatives(key->accel_key);
-  if(key->accel_key != alt_char)
-    gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, alt_char,
-                                key->accel_mods, flags);
+  guint alt_char = dt_keys_numpad_alternatives(shortcut->key);
+  if(shortcut->key != alt_char)
+    gtk_widget_add_accelerator(shortcut->widget, shortcut->signal, shortcut->accel_group, alt_char, shortcut->mods,
+                               flags);
 }
 
 
-static void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *key)
+static void _remove_widget_accel(dt_shortcut_t *shortcut, const GtkAccelKey *old_key)
 {
-  gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, key->accel_key, key->accel_mods);
+  gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, old_key->accel_key, old_key->accel_mods);
 
   // Numpad numbers register as different keys. Find the numpad equivalent key here, if any.
-  guint alt_char = dt_keys_numpad_alternatives(key->accel_key);
-  if(key->accel_key != alt_char)
-    gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, alt_char, key->accel_mods);
+  guint alt_char = dt_keys_numpad_alternatives(old_key->accel_key);
+  if(old_key->accel_key != alt_char)
+    gtk_widget_remove_accelerator(shortcut->widget, shortcut->accel_group, alt_char, old_key->accel_mods);
 }
 
 
 static void _remove_generic_accel(dt_shortcut_t *shortcut)
 {
-  gtk_accel_group_disconnect(shortcut->accel_group, dt_shortcut_get_closure(shortcut));
+  // Need to increase the number of references to avoid loosing the closure just yet.
+  GClosure *cl = dt_shortcut_get_closure(shortcut);
+  g_closure_ref(cl);
+  g_closure_sink(cl);
+  gtk_accel_group_disconnect(shortcut->accel_group, cl);
 }
 
-static void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelKey *key, GtkAccelFlags flags)
+
+static void _add_generic_accel(dt_shortcut_t *shortcut, GtkAccelFlags flags)
 {
-  gtk_accel_group_connect(shortcut->accel_group, key->accel_key, key->accel_mods, flags | GTK_ACCEL_VISIBLE,
-                          dt_shortcut_get_closure(shortcut));
+  GClosure *closure = dt_shortcut_get_closure(shortcut);
+  if(closure)
+    gtk_accel_group_connect(shortcut->accel_group, shortcut->key, shortcut->mods, flags | GTK_ACCEL_VISIBLE, closure);
 }
 
 
@@ -306,7 +437,7 @@ void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const
     GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
     if(shortcut->key > 0) _remove_widget_accel(shortcut, &key);
     shortcut->widget = widget;
-    if(shortcut->key > 0) _add_widget_accel(shortcut, &key, accels->flags);
+    if(shortcut->key > 0) _add_widget_accel(shortcut, accels->flags);
   }
   // else if shortcut && shortcut->type == DT_SHORTCUT_UNSET, we need to wait for the next call to dt_accels_connect_accels()
   else if(!shortcut)
@@ -361,10 +492,9 @@ void dt_accels_new_action_shortcut(dt_accels_t *accels,
   else if(shortcut && shortcut->type != DT_SHORTCUT_UNSET)
   {
     // If we already have a shortcut object wired to Gtk for this accel path, just update it
-    GtkAccelKey key = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
     if(shortcut->key > 0) _remove_generic_accel(shortcut);
     dt_shortcut_set_closure(shortcut, action_callback, data);
-    if(shortcut->key > 0) _add_generic_accel(shortcut, &key, accels->flags);
+    if(shortcut->key > 0) _add_generic_accel(shortcut, accels->flags);
   }
   // else if shortcut && shortcut->type == DT_SHORTCUT_UNSET, we need to wait for the next call to dt_accels_connect_accels()
   else if(!shortcut)
@@ -408,8 +538,11 @@ static void _connect_accel(dt_shortcut_t *shortcut)
   const gboolean is_known = gtk_accel_map_lookup_entry(shortcut->path, &key);
   if(!is_known) return;
 
+  // Remember previous values
   const GtkAccelKey oldkey = { .accel_key = shortcut->key, .accel_mods = shortcut->mods, .accel_flags = 0 };
   const dt_shortcut_type_t oldtype = shortcut->type;
+
+  // Resync our shortcut object key/mods with what is currently defined in the GtkAccelMap
   const gboolean changed = _update_shortcut_state(shortcut, &key, shortcut->accels->init);
 
   // if old_key was non zero, we already had an accel on the stack.
@@ -421,22 +554,14 @@ static void _connect_accel(dt_shortcut_t *shortcut)
 
   if(dt_shortcut_get_closure(shortcut))
   {
-    if(needs_cleanup)
-    {
-      // Need to increase the number of references to avoid loosing the closure just yet.
-      g_closure_ref(dt_shortcut_get_closure(shortcut));
-      g_closure_sink(dt_shortcut_get_closure(shortcut));
-      _remove_generic_accel(shortcut);
-    }
-
-    if(needs_init)
-      _add_generic_accel(shortcut, &key, shortcut->accels->flags);
+    if(needs_cleanup) _remove_generic_accel(shortcut);
+    if(needs_init) _add_generic_accel(shortcut, shortcut->accels->flags);
     // closures can be connected only at one accel at a time, so we don't handle keypad duplicates
   }
   else if(shortcut->widget)
   {
     if(needs_cleanup) _remove_widget_accel(shortcut, &oldkey);
-    if(needs_init) _add_widget_accel(shortcut, &key, shortcut->accels->flags);
+    if(needs_init) _add_widget_accel(shortcut, shortcut->accels->flags);
   }
   else
   {
@@ -458,18 +583,24 @@ void dt_accels_connect_accels(dt_accels_t *accels)
   dt_pthread_mutex_unlock(&accels->lock);
 }
 
-static void _remove_accel_hashtable(gpointer _key, gpointer value, gpointer user_data)
+static void
+_remove_accel_hashtable(gpointer _key, gpointer value, gpointer user_data)
 {
   dt_shortcut_t *shortcut = (dt_shortcut_t *)value;
-  const char *needle = (const char *)user_data;
-  if(g_strrstr(shortcut->path, needle))
+  _accel_removal_t *params = (_accel_removal_t *)user_data;
+  if(g_strrstr(shortcut->path, params->path) != NULL)
   {
     //fprintf(stdout, "removing %s\n", shortcut->path);
     if(dt_shortcut_get_closure(shortcut))
     {
-      g_closure_unref(dt_shortcut_get_closure(shortcut));
-      _remove_generic_accel(shortcut);
-      shortcut->closure = NULL;
+      // Detach the accel from the accel group
+      if(shortcut->key > 0) _remove_generic_accel(shortcut);
+
+      // Remove the closure matching user_data, or the last one
+      dt_shortcut_remove_closure(shortcut, params->data);
+
+      // Reattach the accel to the accel group using the last closure in the list
+      if(shortcut->key > 0) _add_generic_accel(shortcut, shortcut->accels->flags);
     }
     /* Should we handle that too ?
     else if(shortcut->widget)
@@ -482,13 +613,20 @@ static void _remove_accel_hashtable(gpointer _key, gpointer value, gpointer user
   }
 }
 
-void dt_accels_remove_accel(dt_accels_t *accels, const char *path)
+// For all shortcuts matching path (fully or partially), remove the closure instance referencing data
+void dt_accels_remove_accel(dt_accels_t *accels, const char *path, gpointer data)
 {
   if(!accels || !accels->acceleratables) return;
 
+  _accel_removal_t *params = malloc(sizeof(_accel_removal_t));
+  params->path = path;
+  params->data = data;
+
   dt_pthread_mutex_lock(&accels->lock);
-  g_hash_table_foreach(accels->acceleratables, _remove_accel_hashtable, (gpointer)path);
+  g_hash_table_foreach(accels->acceleratables, _remove_accel_hashtable, (gpointer)params);
   dt_pthread_mutex_unlock(&accels->lock);
+
+  free(params);
 }
 
 
@@ -1366,6 +1504,7 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
 
   // Build the search entry
   GtkWidget *search_entry = gtk_search_entry_new();
+  gtk_grab_add(search_entry);
   gtk_box_pack_start(GTK_BOX(gtk_dialog_get_content_area(GTK_DIALOG(dialog))), search_entry, TRUE, TRUE, 0);
 
   // Attach the completion list to the search entry
@@ -1407,6 +1546,7 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
 
   gtk_widget_show_all(dialog);
   gtk_dialog_run(GTK_DIALOG(dialog));
+  gtk_grab_remove(search_entry);
   gtk_widget_destroy(dialog);
   g_object_unref(store);
 }

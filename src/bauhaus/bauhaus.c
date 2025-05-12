@@ -382,13 +382,14 @@ gboolean dt_bauhaus_focus_callback(GtkWidget *widget, GtkDirectionType direction
 gboolean _action_request_focus(GtkAccelGroup *accel_group, GObject *accelerable, guint keyval,
                                GdkModifierType modifier, gpointer data)
 {
-  dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(data);
-
-  if(!w || !accelerable)
+  if(!data || !accelerable)
   {
     dt_toast_log(_("The target widget of the action does not exist anymore"));
+    fprintf(stderr, "The target widget of the action does not exist anymore");
     return FALSE;
   }
+
+  dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(data);
 
   // Make sure the parent module widget is visible, if we know it,
   // because we can't grab focus on invisible widgets
@@ -1226,7 +1227,6 @@ float dt_bauhaus_slider_get_default(GtkWidget *widget)
 void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
 {
   struct dt_bauhaus_widget_t *w = DT_BAUHAUS_WIDGET(widget);
-  memset(w->label, 0, sizeof(w->label)); // keep valgrind happy
   if(label)
   {
     g_strlcpy(w->label, label, sizeof(w->label));
@@ -1259,7 +1259,7 @@ void dt_bauhaus_widget_set_label(GtkWidget *widget, const char *label)
       dt_capitalize_label(plugin_name);
 
       gchar *scope = g_strdup_printf("%s/Modules", m->view);
-      dt_accels_new_darkroom_action(_action_request_focus, w, scope, plugin_name, 0, 0, _("Focuses the control"));
+      dt_accels_new_darkroom_action(_action_request_focus, widget, scope, plugin_name, 0, 0, _("Focuses the control"));
       g_object_set_data(G_OBJECT(widget), "accel-path", dt_accels_build_path("Darkroom/Modules", plugin_name));
       g_free(scope);
       g_free(plugin_name);

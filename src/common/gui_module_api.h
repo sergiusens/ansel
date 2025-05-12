@@ -40,6 +40,8 @@ struct dt_gui_module_t
    * @param toggle if TRUE, adopt a show/hide behaviour. Otherwise, always show.
   */
   int (*focus)(dt_gui_module_t *module, gboolean toggle);
+
+  char *accel_path;
 };
 
 /* Cast dt_lib_module_t and dt_iop_module_t to dt_gui_module_t */

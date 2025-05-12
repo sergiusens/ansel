@@ -1050,7 +1050,6 @@ void dt_iop_gui_set_enable_button(dt_iop_module_t *module)
 void dt_iop_gui_init(dt_iop_module_t *module)
 {
   ++darktable.gui->reset;
-  if(module->gui_init) module->gui_init(module);
 
   // Add the accelerators
   if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
@@ -1063,12 +1062,15 @@ void dt_iop_gui_init(dt_iop_module_t *module)
 
     dt_accels_new_darkroom_action(_iop_plugin_focus_accel, module, _("Darkroom/Modules"), clean_name, 0, 0, _("Focuses the module"));
 
-    if(module->widget)
-      g_object_set_data(G_OBJECT(module->widget), "accel-path",
-                        dt_accels_build_path(_("Darkroom/Modules"), clean_name));
+    dt_gui_module_t *mod = (dt_gui_module_t *)module;
+    mod->accel_path =  dt_accels_build_path(_("Darkroom/Modules"), clean_name);
 
     g_free(clean_name);
   }
+
+  // We absolutely need to init the module controls after the module object
+  if(module->gui_init) module->gui_init(module);
+
   --darktable.gui->reset;
 }
 
@@ -1767,11 +1769,11 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
   while(g_idle_remove_by_data(module->widget));
 
   // Detach accels
-  if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED) && module->widget)
+  if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
   {
-    gchar *accel_path = g_object_get_data(G_OBJECT(module->widget), "accel-path");
-    dt_accels_remove_accel(darktable.gui->accels, accel_path);
-    g_free(accel_path);
+    dt_gui_module_t *mod = (dt_gui_module_t *)module;
+    dt_accels_remove_accel(darktable.gui->accels, mod->accel_path, module);
+    g_free(mod->accel_path);
   }
 
   // widget_list doesn't own the widget referenced, so don't deep_free
@@ -1901,10 +1903,15 @@ void dt_iop_request_focus(dt_iop_module_t *module)
     gtk_widget_grab_focus(module->expander);
 
     /* set the focus on the first child to enable arrow-key navigation and accessibility stuff */
-    if(((dt_gui_module_t *)module)->widget_list)
+    GList *widget_list = ((dt_gui_module_t *)module)->widget_list;
+    if(widget_list)
     {
-      GtkWidget *first_child = (GtkWidget *)g_list_first(((dt_gui_module_t *)module)->widget_list)->data;
-      if(first_child) gtk_widget_grab_focus(first_child);
+      GList *first_child = g_list_first(widget_list);
+      if(first_child)
+      {
+        GtkWidget *widget = (GtkWidget *)first_child->data;
+        if(widget) gtk_widget_grab_focus(widget);
+      }
     }
 
     // we also add the focus css class

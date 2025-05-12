@@ -112,7 +112,7 @@ typedef enum dt_shortcut_type_t
 typedef struct dt_shortcut_t
 {
   GtkWidget *widget;          // link to the widget being accelerated. Can be NULL.
-  GClosure *closure;          // callback + data being accelerated. Has to be non-NULL if widget is NULL.
+  GList *closure;             // GList of GClosures, aka callback + data being accelerated. Has to be non-NULL if widget is NULL.
   char *path;                 // global path for that accel
   const char *signal;         // widget signal to be wired to that accel
   GtkAccelGroup *accel_group; // the accel_group to which this shortcut belongs
@@ -122,7 +122,7 @@ typedef struct dt_shortcut_t
   gboolean locked;            // if shortcut can't be changed by user
   gboolean virtual_shortcut;  // if shortcut is mapped to a key-pressed event handler instead of a global action callback
   const char *description;    // user-legible description of the action
-  dt_accels_t *accels;        // back-reference for convenience
+  dt_accels_t *accels; // back-reference for convenience
 } dt_shortcut_t;
 
 
@@ -283,9 +283,10 @@ static inline void dt_accels_disable(dt_accels_t *accels, gboolean state)
  * and that rule is entirely up to the developer to enforce.
  *
  * @param accels
- * @param path
+ * @param path accel path
+ * @param data the user-data used by the initial callback, if any
  */
-void dt_accels_remove_accel(dt_accels_t *accels, const char *path);
+void dt_accels_remove_accel(dt_accels_t *accels, const char *path, gpointer data);
 
 /**
  * @brief Show the modal dialog listing all available keyboard shortcuts and letting user to set them.
