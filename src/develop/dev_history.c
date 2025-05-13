@@ -1259,6 +1259,9 @@ static gboolean _init_default_history(dt_develop_t *dev, const int32_t imgid)
 {
   const gboolean is_inited = (dev->image_storage.flags & DT_IMAGE_AUTO_PRESETS_APPLIED);
 
+  // Make sure this is set
+  dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "modern");
+
   // make sure all modules default params are loaded to init history
   for(GList *iop = g_list_first(dev->iop); iop; iop = g_list_next(iop))
   {

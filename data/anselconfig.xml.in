@@ -833,6 +833,12 @@
     <longdescription>see manual for a list of the tags you can use.</longdescription>
   </dtconfig>
   <dtconfig>
+    <name>plugins/darkroom/chromatic-adaptation</name>
+    <type>string</type>
+    <default>modern</default>
+    <shortdescription>white balance</shortdescription>
+  </dtconfig>
+  <dtconfig>
     <name>database_cache_quality</name>
     <type>int</type>
     <default>89</default>
