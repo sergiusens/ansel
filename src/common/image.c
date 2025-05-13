@@ -1262,19 +1262,10 @@ static int32_t _image_import_internal(const int32_t film_id, const char *filenam
   int32_t id = dt_image_get_id(film_id, imgfname);
   if(id > UNKNOWN_IMAGE)
   {
+    dt_control_log(_("Image %s is already in library and will not be re-imported.\n"), imgfname);
     g_free(imgfname);
-    dt_image_t *img = dt_image_cache_get(darktable.image_cache, id, 'w');
-    img->flags &= ~DT_IMAGE_REMOVE & ~DT_IMAGE_AUTO_PRESETS_APPLIED;
-    dt_image_cache_write_release(darktable.image_cache, img, DT_IMAGE_CACHE_RELAXED);
-    dt_image_read_duplicates(id, normalized_filename, raise_signals);
-    dt_image_synch_all_xmp(normalized_filename);
     g_free(ext);
     g_free(normalized_filename);
-    if(raise_signals)
-    {
-      GList *imgs = g_list_prepend(NULL, GINT_TO_POINTER(id));
-      DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_GEOTAG_CHANGED, imgs, 0);
-    }
     return id;
   }
 
