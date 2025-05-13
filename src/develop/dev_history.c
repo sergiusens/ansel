@@ -779,25 +779,6 @@ void dt_dev_reload_history_items(dt_develop_t *dev)
   dt_dev_history_free_history(dev);
   dt_dev_read_history_ext(dev, dev->image_storage.id, FALSE);
   dt_pthread_mutex_unlock(&dev->history_mutex);
-
-  if(!dev->gui_attached) return;
-
-  ++darktable.gui->reset;
-
-  // Deal with GUI states update
-  for(GList *modules = g_list_first(dev->iop); modules; modules = g_list_next(modules))
-  {
-    dt_iop_module_t *module = (dt_iop_module_t *)(modules->data);
-    if(module->multi_priority > 0)
-    {
-      if(!dt_iop_is_hidden(module) && !module->expander)
-      {
-        dt_iop_gui_set_expanded(module, TRUE, FALSE);
-      }
-    }
-  }
-  --darktable.gui->reset;
-
   dt_dev_pop_history_items(dev);
 }
 
