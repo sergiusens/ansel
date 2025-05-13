@@ -43,7 +43,7 @@ static void _clean_shortcut(gpointer data)
 // Return the last closure in the list
 PayloadClosure *dt_shortcut_get_payload_closure(dt_shortcut_t *shortcut)
 {
-  GList *link = g_list_last(shortcut->closure);
+  GList *link = g_list_first(shortcut->closure);
   if(link)
     return (PayloadClosure *)link->data;
   else
@@ -92,7 +92,7 @@ void dt_shortcut_remove_closure(dt_shortcut_t *shortcut, gpointer data)
 
   if(cl)
   {
-    g_closure_unref((GClosure *)cl);
+    g_closure_unref(cl->base);
     shortcut->closure = g_list_delete_link(shortcut->closure, link);
     // fprintf(stdout, "removing: %s at %p - %i entries remaining\n", shortcut->path, data, g_list_length(shortcut->closure));
   }
@@ -424,7 +424,6 @@ void dt_accels_new_virtual_instance_shortcut(dt_accels_t *accels,
                                              const gchar *action_name)
 {
   gchar *accel_path = dt_accels_build_path(action_scope, action_name);
-  fprintf(stdout, "adding %s\n", accel_path);
 
   // Our own circuitery to keep track of things after user-defined shortcuts are updated
   dt_pthread_mutex_lock(&accels->lock);
@@ -444,10 +443,10 @@ void dt_accels_new_virtual_instance_shortcut(dt_accels_t *accels,
     shortcut->type = DT_SHORTCUT_DEFAULT;
     shortcut->locked = TRUE;
     shortcut->virtual_shortcut = TRUE;
-    shortcut->description = _("Virtual shortcut to instance");
+    shortcut->description = _("Focuses the instance");
     shortcut->accels = accels;
     dt_shortcut_set_closure(shortcut, action_callback, data);
-    
+
     dt_pthread_mutex_lock(&accels->lock);
     g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
     dt_pthread_mutex_unlock(&accels->lock);

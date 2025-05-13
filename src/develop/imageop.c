@@ -1006,7 +1006,7 @@ static void _iop_panel_label(dt_iop_module_t *module)
       "%s %s", clean_name, (module->multi_name[0] != '\0') ? module->multi_name : "0");
 
   dt_accels_new_virtual_instance_shortcut(darktable.gui->accels, _iop_plugin_focus_accel, module,
-                                          darktable.gui->accels->darkroom_accels, _("Darkroom/Modules"),
+                                          darktable.gui->accels->darkroom_accels, _("Darkroom/Modules/Instances"),
                                           mod->instance_name);
 
   g_free(clean_name);
