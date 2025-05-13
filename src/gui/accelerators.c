@@ -668,6 +668,13 @@ void dt_accels_remove_accel(dt_accels_t *accels, const char *path, gpointer data
   free(params);
 }
 
+void dt_accels_remove_shortcut(dt_accels_t *accels, const char *path)
+{
+  dt_pthread_mutex_lock(&accels->lock);
+  g_hash_table_remove(accels->acceleratables, path);
+  dt_pthread_mutex_unlock(&accels->lock);
+}
+
 
 gchar *dt_accels_build_path(const gchar *scope, const gchar *feature)
 {

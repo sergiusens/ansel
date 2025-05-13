@@ -293,7 +293,7 @@ static inline void dt_accels_disable(dt_accels_t *accels, gboolean state)
 }
 
 /**
- * @brief Recursively remove all accels containing `path`. This is unneeded for accels
+ * @brief Recursively remove all accels for all shortcuts containing `path`. This is unneeded for accels
  * attached to Gtk widgets through `dt_accels_new_widget_shortcut` because Gtk will handle that
  * internally when deleting a widget. But for our own widget-less `dt_accels_new_action_shortcut`, we need to handle
  * that ourselves.
@@ -309,11 +309,21 @@ static inline void dt_accels_disable(dt_accels_t *accels, gboolean state)
  * assuming that children will share their path root with their parent,
  * and that rule is entirely up to the developer to enforce.
  *
+ * This does not remove the shortcut object.
+ *
  * @param accels
  * @param path accel path
  * @param data the user-data used by the initial callback, if any
  */
 void dt_accels_remove_accel(dt_accels_t *accels, const char *path, gpointer data);
+
+/**
+ * @brief Remove the shortcut object identified by path and all its accels.
+ *
+ * @param accels
+ * @param path
+ */
+void dt_accels_remove_shortcut(dt_accels_t *accels, const char *path);
 
 /**
  * @brief Show the modal dialog listing all available keyboard shortcuts and letting user to set them.

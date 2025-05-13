@@ -993,24 +993,36 @@ static void _iop_panel_label(dt_iop_module_t *module)
   GtkWidget *lab = dt_gui_container_nth_child(GTK_CONTAINER(module->header), IOP_MODULE_LABEL);
   lab = gtk_bin_get_child(GTK_BIN(lab));
   gtk_widget_set_name(lab, "iop-panel-label");
-  char *module_name = dt_history_item_get_label(module);
 
+  char *module_name = dt_history_item_get_label(module);
   dt_capitalize_label(module_name);
   gtk_label_set_markup_with_mnemonic(GTK_LABEL(lab), module_name);
+  g_free(module_name);
+
+  // Module name hasn't changed or no instance name: abort now
+  if(!g_strcmp0(module_name, gtk_label_get_text(GTK_LABEL(lab))) || module->multi_name[0] == '\0')
+    return;
+
+  dt_gui_module_t *mod = (dt_gui_module_t *)module;
+  if(mod->instance_name)
+  {
+    char *instance_path = dt_accels_build_path(_("Darkroom/Modules/Instances"), mod->instance_name);
+    dt_accels_remove_shortcut(darktable.gui->accels, instance_path);
+    g_free(instance_path);
+    g_free(mod->instance_name);
+  }
 
   gchar *clean_name = delete_underscore(module->name());
   dt_capitalize_label(clean_name);
 
-  dt_gui_module_t *mod = (dt_gui_module_t *)module;
-  mod->instance_name = g_strdup_printf(
-      "%s %s", clean_name, (module->multi_name[0] != '\0') ? module->multi_name : "0");
+  mod->instance_name
+      = g_strdup_printf("%s/%s", clean_name, (module->multi_name[0] != '\0') ? module->multi_name : "0");
 
   dt_accels_new_virtual_instance_shortcut(darktable.gui->accels, _iop_plugin_focus_accel, module,
                                           darktable.gui->accels->darkroom_accels, _("Darkroom/Modules/Instances"),
                                           mod->instance_name);
 
   g_free(clean_name);
-  g_free(module_name);
 
   gtk_label_set_ellipsize(GTK_LABEL(lab), !module->multi_name[0] ? PANGO_ELLIPSIZE_END: PANGO_ELLIPSIZE_MIDDLE);
   g_object_set(G_OBJECT(lab), "xalign", 0.0, (gchar *)0);
@@ -1787,6 +1799,13 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
   {
     dt_accels_remove_accel(darktable.gui->accels, mod->accel_path, module);
     g_free(mod->accel_path);
+  }
+
+  if(mod->instance_name)
+  {
+    char *instance_path = dt_accels_build_path(_("Darkroom/Modules/Instances"), mod->instance_name);
+    dt_accels_remove_shortcut(darktable.gui->accels, instance_path);
+    g_free(instance_path);
   }
 
   g_free(mod->instance_name);
