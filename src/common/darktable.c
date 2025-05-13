@@ -122,7 +122,7 @@ static int usage(const char *argv0)
   printf("  --cachedir <user cache directory>\n");
   printf("  --conf <key>=<value>\n");
   printf("  --configdir <user config directory>\n");
-  printf("  -d {all,cache,camctl,camsupport,control,demosaic,dev,history,imageio,\n");
+  printf("  -d {all,cache,camctl,camsupport,control,demosaic,dev,history,imageio,import,\n");
   printf("      input,ioporder,lighttable,lua,masks,memory,nan,opencl,params,\n");
   printf("      perf,pipe,print,pwstorage,signal,sql,shortcuts,tiling,undo,verbose}\n");
   printf("  --d-signal <signal> \n");
@@ -672,6 +672,8 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
           darktable.unmuted |= DT_DEBUG_PIPE;
         else if(!strcmp(argv[k + 1], "history"))
           darktable.unmuted |= DT_DEBUG_HISTORY;
+        else if(!strcmp(argv[k + 1], "import"))
+          darktable.unmuted |= DT_DEBUG_IMPORT;
         else
           return usage(argv[0]);
         k++;

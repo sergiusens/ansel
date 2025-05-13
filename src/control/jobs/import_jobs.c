@@ -1,10 +1,10 @@
 #include "import_jobs.h"
+#include "common/collection.h"
+#include "common/datetime.h"
 #include "common/exif.h"
 #include "common/metadata.h"
-#include "common/datetime.h"
 #include "control/control.h"
 #include "control/jobs/control_jobs.h"
-#include "common/collection.h"
 
 
 /**
@@ -12,13 +12,14 @@
  * Returns TRUE if success.
  *
  * @param path a valid folders path to create.
- * @return gboolean
+ * @return gboolean TRUE on error, FALSE on success
  */
-gboolean create_dir(const char *path)
+gboolean _create_dir(const char *path)
 {
   if(g_mkdir_with_parents(path, 0755) == -1)
   {
-    fprintf(stderr, "failed to create path %s.\n", path);
+    fprintf(stderr, "failed to create directory %s.\n", path);
+    dt_control_log(_("Impossible to create directory %s.\nThe target may be full or read-only.\n"), path);
     return TRUE;
   }
   return FALSE;
@@ -58,13 +59,12 @@ gchar *dt_build_filename_from_pattern(const char *const filename, const int inde
   gchar *path = _path_cleanup(path_expand);
   g_free(file_expand);
   g_free(path_expand);
-  fprintf(stdout, "+Dir: %s\n", data->target_folder);
-  fprintf(stdout, "+Path: %s\n", path);
-  fprintf(stdout, "+File: %s\n", file);
 
-  gchar *dir = g_build_path(G_DIR_SEPARATOR_S, data->target_folder, path, (char *) NULL);
+  gchar *dir = g_build_path(G_DIR_SEPARATOR_S, data->base_folder, path, (char *) NULL);
   data->target_dir = dt_util_normalize_path(dir);
   gchar *res = g_build_path(G_DIR_SEPARATOR_S, data->target_dir, file, (char *) NULL);
+
+  dt_print(DT_DEBUG_PRINT, "[Import] Importing file to %s\n", res);
 
   g_free(file);
   g_free(path);
@@ -85,24 +85,6 @@ gboolean _file_exist(const char *dest_file_path)
 }
 
 /**
- * @brief just create a folder. Returns 0 if success.
- *
- * @param target_dir
- * @return gboolean
- */
-gboolean _create_folder(const char *target_dir)
-{
-  if(create_dir(target_dir))
-  {
-    fprintf(stdout, "Error while creating folder.\n");
-    return 1;
-  }
-
-  fprintf(stdout, "Target folder(s) created successfully.\n");
-  return 0;
-}
-
-/**
  * @brief Just copy a file. Returns 1 if success.
  *
  * @param filename
@@ -115,10 +97,7 @@ gboolean _copy_file(const char *filename, const char *dest_file_path)
   GFile *out = g_file_new_for_path(dest_file_path);
 
   gboolean res = g_file_copy(in, out, G_FILE_COPY_NONE, 0, 0, 0, NULL);
-  if(res)
-    fprintf(stdout, "File copied successfully.\n");
-  else
-    fprintf(stdout, "Error while copying file.\n");
+  if(!res) dt_print(DT_DEBUG_IMPORT, "[Import] Could not copy the file %s to %s\n", filename, dest_file_path);
 
   g_object_unref(in);
   g_object_unref(out);
@@ -135,15 +114,10 @@ gboolean _copy_file(const char *filename, const char *dest_file_path)
  */
 const int32_t _import_job(dt_control_import_t *data, gchar *img_path_to_db)
 {
-  fprintf(stdout, "::IMPORT FILE::\n%s to DB\n", img_path_to_db);
-
   gchar *dirname = g_strdup(dt_util_path_get_dirname(img_path_to_db));
 
   dt_film_t film;
   const int32_t filmid = dt_film_new(&film, dirname);
-
-  fprintf(stdout, "dirname: %s\tfilmid: %i\n", dirname, filmid);
-
   const int32_t imgid = dt_image_import(filmid, img_path_to_db, FALSE);
   g_free(dirname);
   return imgid;
@@ -164,7 +138,8 @@ const int32_t _import_job(dt_control_import_t *data, gchar *img_path_to_db)
 void dt_import_duplicate_get_dest_name(char *xmp_dest_name, const char *dest_file_path, const int counter)
 {
   char *norm_dest_file = dt_util_normalize_path(dest_file_path);
-  const char* ext = g_strrstr(norm_dest_file, ".");  // find dot
+  char *ext = norm_dest_file + safe_strlen(norm_dest_file);
+  while(*ext != '.' && ext > norm_dest_file) ext--;
   const size_t name_len = safe_strlen(norm_dest_file) - safe_strlen(ext);
 
   if(counter == 0)
@@ -172,7 +147,7 @@ void dt_import_duplicate_get_dest_name(char *xmp_dest_name, const char *dest_fil
   else
     g_snprintf(xmp_dest_name, PATH_MAX, "%.*s_%.2d%s.xmp", (int)name_len, norm_dest_file, counter, ext);
 
-  fprintf(stdout, "xmp_dest_name: %s\n", xmp_dest_name);
+  dt_print(DT_DEBUG_IMPORT, "[Import] XMP destination name: %s\n", xmp_dest_name);
 
   free(norm_dest_file);
 }
@@ -191,28 +166,19 @@ int _import_copy_xmp(const char *const filename, gchar *dest_file_path)
   GList *xmp_files = dt_image_find_xmps(filename); // the first xmp will be the original
   if(g_list_length(xmp_files) > 0)
   {
-    fprintf(stdout, "xmp found\n");
-
     for(GList *current_xmp = xmp_files; current_xmp; current_xmp = g_list_next(current_xmp))
     {
       char *xmp_source = g_strdup((char*) current_xmp->data);
-      fprintf(stdout, "xmp_source: %s\n", xmp_source);
-
       gchar xmp_dest_name[PATH_MAX] = { 0 };
       dt_import_duplicate_get_dest_name(xmp_dest_name, dest_file_path, xmp_cntr);
 
       // folder already created and writable, just copy.
       int success = _copy_file(xmp_source, xmp_dest_name);
-      if(success)
-        fprintf(stdout, "Xmp copy success\n");
-      else
-        fprintf(stdout, "Xmp copy failed\n");
-
-      xmp_cntr++;
+      dt_print(DT_DEBUG_IMPORT, "[Import] copying %s to %s %s\n", xmp_source, xmp_dest_name,
+               (success) ? "succeeded" : "failed");
+      if(success) xmp_cntr++;
       free(xmp_source);
     }
-    if(xmp_cntr > 1)
-    fprintf(stdout, "%d duplicate(s) have been found.\n", xmp_cntr - 1);
   }
   g_list_free(xmp_files);
   return xmp_cntr;
@@ -239,12 +205,12 @@ int _import_copy_file(const char *const filename, const int index, dt_control_im
   if(strstr(data->target_file_pattern, "$(EXIF") != NULL
     || strstr(data->target_subfolder_pattern, "$(EXIF") != NULL )
   {
-    fprintf(stdout, "reading EXIF\n");
+    dt_print(DT_DEBUG_IMPORT, "[Import] EXIF will be read for %s because the pattern needs it (performance penalty)\n", filename);
     dt_exif_read(img, filename);
   }
 
   gchar *dest_file_path = dt_build_filename_from_pattern(filename, index, img, data);
-  fprintf(stdout, "Pattern to path: %s\n", dest_file_path);
+  dt_print(DT_DEBUG_IMPORT, "[Import] Image %s will be copied into %s\n", filename, dest_file_path);
   free(img);
 
   int process = TRUE;
@@ -252,32 +218,32 @@ int _import_copy_file(const char *const filename, const int index, dt_control_im
   if(!_file_exist(dest_file_path))
   {
     if(!dt_util_dir_exist(data->target_dir))
-      process = !_create_folder(data->target_dir); // _create_folder returns 0 when OK
+      process = !_create_dir(data->target_dir);
     else
-      fprintf(stdout, "The folder already exist.\n");
+      dt_print(DT_DEBUG_PRINT, "[Import] target folder %s already exists. Nothing to do.\n", data->target_dir);
 
     if(process)
       process = dt_util_test_writable_dir(data->target_dir);
     else
-      fprintf(stdout, "Unable to create the target folder.\n");
+      fprintf(stdout, "[Import] Unable to create the target folder %s.\n", data->target_dir);
 
     if(process)
       process = _copy_file(filename, dest_file_path);
     else
-      fprintf(stdout, "Not allowed to write in the folder.\n");
+      fprintf(stdout, "[Import] Not allowed to write in the %s folder.\n", data->target_dir);
 
     if(process) _import_copy_xmp(filename, dest_file_path);
 
     if(process)
       g_strlcpy(img_path_to_db, dest_file_path, pathname_len);
     else
-      fprintf(stderr, "Unable to copy the file.\n");
+      fprintf(stderr, "[Import] Unable to copy the file %s to %s.\n", img_path_to_db, dest_file_path);
   }
   else
   {
     *discarded = g_list_prepend(*discarded, g_strdup(filename));
     g_strlcpy(img_path_to_db, dest_file_path, pathname_len);
-    fprintf(stderr, "File copy skipped, the target file already exist.\n");
+    dt_print(DT_DEBUG_IMPORT, "[Import] File copy skipped, the target file %s already exists on the destination.\n", dest_file_path);
   }
 
   g_free(dest_file_path);
@@ -323,7 +289,6 @@ void _write_xmp_id(const char *filename, int32_t imgid)
 int32_t _import_image(const GList *img, dt_control_import_t *data, const int index, GList **discarded, int *xmps)
 {
   const char *filename = (const char*) img->data;
-  fprintf(stdout, "Filename: %s\n", filename);
 
   gchar img_path_to_db[PATH_MAX] = { 0 };
   gboolean process_error = FALSE;
@@ -337,9 +302,9 @@ int32_t _import_image(const GList *img, dt_control_import_t *data, const int ind
     g_strlcpy(img_path_to_db, filename, sizeof(img_path_to_db));
 
   if(process_error)
-    fprintf(stderr, "Could not copy file on disk: %s\n", img_path_to_db);
+    ;
   else if(img_path_to_db[0] == 0)
-    fprintf(stderr, "Could not import file from disk: empty file path\n");
+    fprintf(stderr, "[Import] Could not import file from disk: empty file path\n");
   else
   {
     imgid = _import_job(data, img_path_to_db);
@@ -347,24 +312,16 @@ int32_t _import_image(const GList *img, dt_control_import_t *data, const int ind
     if(imgid == UNKNOWN_IMAGE)
     {
       dt_control_log(_("Error importing file in collection: %s"), img_path_to_db);
-      fprintf(stderr, "Error importing file in collection: %s", img_path_to_db);
+      fprintf(stderr, "[Import] Error importing file in collection: %s", img_path_to_db);
     }
     else
     {
       // read all sidecar files (including the original one) and import them if not found in db.
       *xmps = dt_image_read_duplicates(imgid, img_path_to_db, FALSE);
-      if(*xmps == 0)
-      {
-        fprintf(stderr, "Error: no sidecare found.\n");
-      }
-      else
-        fprintf(stdout, "Imported %i xmp(s).\n", *xmps);
-
-      fprintf(stdout, "imgid: %i\n", imgid);
+      dt_print(DT_DEBUG_IMPORT, "[Import] Found and imported %i XMP for %s.\n", *xmps, img_path_to_db);
+      dt_print(DT_DEBUG_IMPORT, "[Import] successfully imported %s in DB at imgid %i\n", img_path_to_db, imgid);
     }
   }
-
-  fprintf(stdout, "::End of import_image.\n");
 
   return imgid;
 }
@@ -381,7 +338,6 @@ void _refresh_progress_counter(dt_job_t *job, const int elements, const int inde
 
 static int32_t _control_import_job_run(dt_job_t *job)
 {
-  fprintf(stdout,"\n:::Control_Job_run:::\n");
   dt_control_image_enumerator_t *params = (dt_control_image_enumerator_t *)dt_control_job_get_params(job);
   dt_control_import_t *data = params->data;
 
@@ -391,15 +347,13 @@ static int32_t _control_import_job_run(dt_job_t *job)
 
   for(GList *img = g_list_first(data->imgs); img; img = g_list_next(img))
   {
-    fprintf(stdout, "\nIMG %i.\n", index);
+    dt_print(DT_DEBUG_IMPORT, "[Import] starting import of image #%i...\n", index);
 
     _refresh_progress_counter(job, data->elements, index);
     imgid = _import_image(img, data, index, &data->discarded, &xmps);
 
     if(imgid > UNKNOWN_IMAGE)
     {
-      fprintf(stdout, "N: %i\n", index);
-
       // On first image, we change the current filmroll in collection.
       // On the next, we simply update the collection.
       if(index == 0)
@@ -409,8 +363,6 @@ static int32_t _control_import_job_run(dt_job_t *job)
 
       index++;
     }
-
-    fprintf(stdout, "BOTTOM LOOP.\n\n");
   }
 
   if(index == 0)
@@ -429,8 +381,6 @@ static int32_t _control_import_job_run(dt_job_t *job)
     fprintf(stdout, "%d files imported in database.\n\n", index);
   }
 
-  fprintf(stdout,":::END OF IMPORT:::\n\n");
-
   dt_conf_set_int("ui_last/nb_imported", index);
 
   return index >= 1 ? 0 : 1;
@@ -440,7 +390,7 @@ void dt_control_import_data_free(dt_control_import_t *data)
 {
   g_date_time_unref(data->datetime);
   g_free(data->jobcode);
-  g_free(data->target_folder);
+  g_free(data->base_folder);
   g_free(data->target_subfolder_pattern);
   g_free(data->target_file_pattern);
   g_free(data->target_dir);
@@ -571,7 +521,6 @@ static dt_job_t *_control_import_job_create(dt_control_import_t data)
   params->index = NULL;
   dt_control_job_add_progress(job, _("import"), FALSE);
   dt_control_job_set_params(job, params, _control_import_job_cleanup);
-  fprintf(stdout, "END Job create.\n");
   return job;
 }
 

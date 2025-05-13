@@ -14,13 +14,28 @@ typedef struct dt_control_import_t
   GList *imgs;
   GDateTime *datetime;
   gboolean copy;
+
+  // String expanded as $(JOBCODE) in patterns
   char *jobcode;
-  char *target_folder;
+
+  // Base folder of all import subfolders. Input.
+  char *base_folder;
+
+  // Pattern to build import subfolders for imports with copy,
+  // child of base_folder. Input
   char *target_subfolder_pattern;
+
+  // Pattern to build file names for imports with copy. Input
   char *target_file_pattern;
+
+  // Computed base_folder/target_subfolder from expanding patterns and variables.
+  // Output.
   char *target_dir;
+
+  // Number of elements to import
   const int elements;
 
+  // List of pathes of files that couldn't be imported due to filesystem errors or overrides.
   GList *discarded;
 
 } dt_control_import_t;

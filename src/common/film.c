@@ -277,6 +277,11 @@ int dt_film_new(dt_film_t *film, const char *directory)
   }
 #endif
 
+  if(film->id <= 0)
+    dt_print(DT_DEBUG_IMPORT, "[Import] Could not create a new filmid for %s\n", directory);
+  else
+    dt_print(DT_DEBUG_IMPORT, "[Import] Reusing or creating filmid %i for %s\n", film->id, directory);
+
   if(film->id <= 0) return 0;
   film->last_loaded = 0;
   return film->id;

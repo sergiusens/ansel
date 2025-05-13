@@ -162,13 +162,11 @@ static void _filter_document(GVfs *vfs, GFile *document, dt_import_t *import)
   // so this test is only useful for the next levels if folders are selected at the first level.
   if(pathname && g_file_test(pathname, G_FILE_TEST_IS_REGULAR) && gtk_file_filter_filter(import->filter, &filter_info))
   {
-    //fprintf(stdout, "is regular file\n");
     import->files = g_list_prepend(import->files, pathname);
     // prepend is more efficient than append. Import control reorders alphabetically anyway.
   }
   else if(pathname && g_file_test(pathname, G_FILE_TEST_IS_DIR))
   {
-    //fprintf(stdout, "is dir\n");
     _recurse_folder(vfs, document, import);
     g_free(pathname);
   }
@@ -226,7 +224,7 @@ static void _recurse_selection(GSList *selection, dt_import_t *const import)
 
   if(first_element)
   {
-    fprintf(stdout,"IMPORT: first element: %s\n", first_element);
+    dt_print(DT_DEBUG_IMPORT, "IMPORT: first element: %s\n", first_element);
     dt_conf_set_string("ui_last/import_first_selected_str", first_element);
   }
   // get the number of selected elements
@@ -688,7 +686,7 @@ static void _set_test_path(dt_lib_import_t *d, dt_image_t *img)
                                 .datetime = dt_string_to_datetime(date),
                                 .copy = 1,
                                 .jobcode = dt_conf_get_string("ui_last/import_jobcode"),
-                                .target_folder = basedir,
+                                .base_folder = basedir,
                                 .target_subfolder_pattern = dt_conf_get_string("session/sub_directory_pattern"),
                                 .target_file_pattern = dt_conf_get_string("session/filename_pattern"),
                                 .target_dir = NULL,
@@ -867,8 +865,6 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
 
   dt_lib_import_t *d = (dt_lib_import_t *)user_data;
 
-  fprintf(stdout, "Nb Elements: %i\n", elements);
-
   if(elements > 0)
   {
     // WARNING: we copy a Glist of pathes as char*
@@ -878,7 +874,7 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
                                 .datetime = dt_string_to_datetime(gtk_entry_get_text(GTK_ENTRY(d->datetime))),
                                 .copy = dt_conf_get_bool("ui_last/import_copy"),
                                 .jobcode = dt_conf_get_string("ui_last/import_jobcode"),
-                                .target_folder = dt_conf_get_string("session/base_directory_pattern"),
+                                .base_folder = dt_conf_get_string("session/base_directory_pattern"),
                                 .target_subfolder_pattern = dt_conf_get_string("session/sub_directory_pattern"),
                                 .target_file_pattern = dt_conf_get_string("session/filename_pattern"),
                                 .target_dir = NULL,
@@ -894,7 +890,6 @@ static void _process_file_list(gpointer instance, GList *files, int elements, gb
 
   g_list_free(g_steal_pointer(&files));
   files = NULL;
-  fprintf(stdout, ":END:\n\n");
   DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_process_file_list), (gpointer)d);
   gui_cleanup(d);
   _cleanup(d);

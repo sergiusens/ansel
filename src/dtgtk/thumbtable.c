@@ -1385,7 +1385,7 @@ static gboolean _thumbtable_dnd_import(GtkSelectionData *selection_data)
                                   .datetime = g_date_time_new_now_local(),
                                   .copy = FALSE, // we only import in place.
                                   .jobcode = dt_conf_get_string("ui_last/import_jobcode"),
-                                  .target_folder = dt_conf_get_string("session/base_directory_pattern"),
+                                  .base_folder = dt_conf_get_string("session/base_directory_pattern"),
                                   .target_subfolder_pattern = dt_conf_get_string("session/sub_directory_pattern"),
                                   .target_file_pattern = dt_conf_get_string("session/filename_pattern"),
                                   .target_dir = NULL,
