@@ -34,6 +34,7 @@
 #include "control/conf.h"
 #include "control/control.h"
 #include "control/signal.h"
+#include "control/jobs/import_jobs.h"
 #include "dtgtk/button.h"
 
 #include "gui/draw.h"
