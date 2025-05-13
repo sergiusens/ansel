@@ -222,11 +222,8 @@ static void _recurse_selection(GSList *selection, dt_import_t *const import)
   const char *first_element = (const char*) g_file_get_path(filepath);
   g_object_unref(filepath);
 
-  if(first_element)
-  {
-    dt_print(DT_DEBUG_IMPORT, "IMPORT: first element: %s\n", first_element);
-    dt_conf_set_string("ui_last/import_first_selected_str", first_element);
-  }
+  if(first_element) dt_conf_set_string("ui_last/import_first_selected_str", first_element);
+
   // get the number of selected elements
   dt_conf_set_int("ui_last/import_selection_nb", g_slist_length(selection));
 
