@@ -1230,6 +1230,8 @@ static void _insert_default_modules(dt_develop_t *dev, dt_iop_module_t *module, 
         && (image->change_timestamp == -1) // change_timestamp is not defined for old pics
         && is_raw && is_inited && has_matrix)
     {
+      dt_print(DT_DEBUG_HISTORY, "[history] Image history seems older than Darktable 3.0, we will insert white balance.\n");
+
       // Temp revert to legacy defaults
       dt_conf_set_string("plugins/darkroom/chromatic-adaptation", "legacy");
       dt_iop_reload_defaults(module);
