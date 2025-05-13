@@ -587,7 +587,7 @@ static bool _exif_decode_xmp_data(dt_image_t *img, Exiv2::XmpData &xmpData, int 
        || FIND_XMP_TAG("Xmp.photoshop.DateCreated"))
     {
       char *datetime = strdup(pos->toString().c_str());
-      dt_datetime_exif_to_img(img, datetime);
+      if(datetime[0] != '\0') dt_datetime_exif_to_img(img, datetime);
       free(datetime);
     }
 
@@ -686,7 +686,7 @@ static bool _exif_decode_iptc_data(dt_image_t *img, Exiv2::IptcData &iptcData)
       else
         datetime = g_string_append(datetime, "00:00:00");
 
-      dt_datetime_exif_to_img(img, datetime->str);
+      if(datetime->str[0] != '\0') dt_datetime_exif_to_img(img, datetime->str);
       g_string_free(datetime, TRUE);
     }
 
@@ -1295,7 +1295,7 @@ static bool _exif_decode_exif_data(dt_image_t *img, Exiv2::ExifData &exifData)
 
     char datetime[DT_DATETIME_LENGTH];
     _find_datetime_taken(exifData, pos, datetime);
-    dt_datetime_exif_to_img(img, datetime);
+    if(datetime[0] != '\0') dt_datetime_exif_to_img(img, datetime);
 
     if(FIND_EXIF_TAG("Exif.Image.Artist"))
     {
