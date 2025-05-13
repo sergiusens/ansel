@@ -30,6 +30,8 @@ struct dt_gui_module_t
   /** translated name of the module */
   char *name;
 
+  char *instance_name;
+
   /** translated name of the view */
   char *view;
 

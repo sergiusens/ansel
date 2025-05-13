@@ -416,6 +416,46 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
   }
 }
 
+void dt_accels_new_virtual_instance_shortcut(dt_accels_t *accels,
+                                             gboolean (*action_callback)(GtkAccelGroup *group,
+                                                                         GObject *acceleratable, guint keyval,
+                                                                         GdkModifierType mods, gpointer user_data),
+                                             gpointer data, GtkAccelGroup *accel_group, const gchar *action_scope,
+                                             const gchar *action_name)
+{
+  gchar *accel_path = dt_accels_build_path(action_scope, action_name);
+  fprintf(stdout, "adding %s\n", accel_path);
+
+  // Our own circuitery to keep track of things after user-defined shortcuts are updated
+  dt_pthread_mutex_lock(&accels->lock);
+  dt_shortcut_t *shortcut = (dt_shortcut_t *)g_hash_table_lookup(accels->acceleratables, accel_path);
+  dt_pthread_mutex_unlock(&accels->lock);
+
+  if(!shortcut)
+  {
+    shortcut = malloc(sizeof(dt_shortcut_t));
+    shortcut->accel_group = accel_group;
+    shortcut->widget = NULL;
+    shortcut->closure = NULL;
+    shortcut->path = g_strdup(accel_path);
+    shortcut->signal = NULL;
+    shortcut->key = 0;
+    shortcut->mods = 0;
+    shortcut->type = DT_SHORTCUT_DEFAULT;
+    shortcut->locked = TRUE;
+    shortcut->virtual_shortcut = TRUE;
+    shortcut->description = _("Virtual shortcut to instance");
+    shortcut->accels = accels;
+    dt_shortcut_set_closure(shortcut, action_callback, data);
+    
+    dt_pthread_mutex_lock(&accels->lock);
+    g_hash_table_insert(accels->acceleratables, shortcut->path, shortcut);
+    dt_pthread_mutex_unlock(&accels->lock);
+  }
+
+  g_free(accel_path);
+}
+
 
 void dt_accels_new_widget_shortcut(dt_accels_t *accels, GtkWidget *widget, const gchar *signal,
                                    GtkAccelGroup *accel_group, const gchar *accel_path, guint key_val,

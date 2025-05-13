@@ -59,7 +59,7 @@ static void _remove_preset_flag(const int32_t imgid)
 
 void dt_history_delete_on_image_ext(int32_t imgid, gboolean undo)
 {
-  dt_undo_lt_history_t *hist = undo?dt_history_snapshot_item_init():NULL;
+  dt_undo_lt_history_t *hist = undo ? dt_history_snapshot_item_init() : NULL;
 
   if(undo)
   {

@@ -201,6 +201,14 @@ void dt_accels_new_virtual_shortcut(dt_accels_t *accels, GtkAccelGroup *accel_gr
                                     GtkWidget *widget,
                                     guint key_val, GdkModifierType accel_mods);
 
+                                    
+void dt_accels_new_virtual_instance_shortcut(dt_accels_t *accels,
+                                             gboolean (*action_callback)(GtkAccelGroup *group,
+                                                                         GObject *acceleratable, guint keyval,
+                                                                         GdkModifierType mods, gpointer user_data),
+                                             gpointer data, GtkAccelGroup *accel_group, const gchar *action_scope,
+                                             const gchar *action_name);
+
 /**
  * @brief Register a new shortcut for a widget, setting up its path, default keys and accel group.
  * This does everything but connecting it, so exists only as a defined slot to be connected later.

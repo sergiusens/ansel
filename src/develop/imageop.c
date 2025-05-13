@@ -997,6 +997,19 @@ static void _iop_panel_label(dt_iop_module_t *module)
 
   dt_capitalize_label(module_name);
   gtk_label_set_markup_with_mnemonic(GTK_LABEL(lab), module_name);
+
+  gchar *clean_name = delete_underscore(module->name());
+  dt_capitalize_label(clean_name);
+
+  dt_gui_module_t *mod = (dt_gui_module_t *)module;
+  mod->instance_name = g_strdup_printf(
+      "%s %s", clean_name, (module->multi_name[0] != '\0') ? module->multi_name : "0");
+
+  dt_accels_new_virtual_instance_shortcut(darktable.gui->accels, _iop_plugin_focus_accel, module,
+                                          darktable.gui->accels->darkroom_accels, _("Darkroom/Modules"),
+                                          mod->instance_name);
+
+  g_free(clean_name);
   g_free(module_name);
 
   gtk_label_set_ellipsize(GTK_LABEL(lab), !module->multi_name[0] ? PANGO_ELLIPSIZE_END: PANGO_ELLIPSIZE_MIDDLE);
@@ -1764,6 +1777,7 @@ void dt_iop_commit_params(dt_iop_module_t *module, dt_iop_params_t *params,
 void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
 {
   if(!module) return;
+  dt_gui_module_t *mod = (dt_gui_module_t *)module;
 
   // remove multiple delayed gtk_widget_queue_draw triggers
   while(g_idle_remove_by_data(module->widget));
@@ -1771,10 +1785,11 @@ void dt_iop_gui_cleanup_module(dt_iop_module_t *module)
   // Detach accels
   if(!dt_iop_is_hidden(module) && !(module->flags() & IOP_FLAGS_DEPRECATED))
   {
-    dt_gui_module_t *mod = (dt_gui_module_t *)module;
     dt_accels_remove_accel(darktable.gui->accels, mod->accel_path, module);
     g_free(mod->accel_path);
   }
+
+  g_free(mod->instance_name);
 
   // widget_list doesn't own the widget referenced, so don't deep_free
   dt_gui_module_t *m = DT_GUI_MODULE(module);
