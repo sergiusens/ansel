@@ -634,7 +634,8 @@ void dt_metadata_set_import(const int32_t imgid, const char *key, const char *va
 
   if(keyid != -1) // known key
   {
-    gboolean imported = (dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER);
+    // FIXME: what does XMP writing preference has to do with anything here ???
+    gboolean imported = dt_image_get_xmp_mode();
     if(!imported && dt_metadata_get_type(keyid) != DT_METADATA_TYPE_INTERNAL)
     {
       const gchar *name = dt_metadata_get_name(keyid);

@@ -199,7 +199,7 @@ static const test_t test_real_paths = {
 
 int main(int argc, char* argv[])
 {
-  char *argv_override[] = {"ansel-test-variables", "--library", ":memory:", "--conf", "write_sidecar_files=never", NULL};
+  char *argv_override[] = {"ansel-test-variables", "--library", ":memory:", "--conf", "write_sidecar_files=FALSE", NULL};
   int argc_override = sizeof(argv_override) / sizeof(*argv_override) - 1;
 
   // init dt without gui and without data.db:

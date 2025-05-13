@@ -144,7 +144,7 @@ static void _import_tags_changed(GtkWidget *widget, dt_import_metadata_t *metada
 
 static void _update_layout(dt_import_metadata_t *metadata)
 {
-  const gboolean write_xmp = (dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER);
+  const gboolean write_xmp = dt_image_get_xmp_mode();
   GtkWidget *w = gtk_grid_get_child_at(GTK_GRID(metadata->grid), 2, DT_META_META_HEADER);
   gtk_widget_set_visible(w, !write_xmp);
   for(unsigned int i = 0; i < DT_METADATA_NUMBER; i++)
@@ -480,7 +480,7 @@ void dt_import_metadata_init(dt_import_metadata_t *metadata)
 
   GtkWidget *entry = gtk_entry_new();
   dt_accels_disconnect_on_text_input(entry);
-  
+
   gtk_widget_set_visible(entry, TRUE);
   const char *str = dt_conf_get_string_const("ui_last/import_last_tags");
   _set_up_entry(entry, str, "tags", DT_META_TAGS_VALUE, metadata);

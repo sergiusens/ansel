@@ -270,37 +270,32 @@ void dt_image_film_roll(const dt_image_t *img, char *pathname, size_t pathname_l
   pathname[pathname_len - 1] = '\0';
 }
 
-dt_imageio_write_xmp_t dt_image_get_xmp_mode()
+gboolean dt_image_get_xmp_mode()
 {
-  dt_imageio_write_xmp_t res = DT_WRITE_XMP_NEVER;
+  // Set to FALSE by default so it doesn't create issue with upstream Darktable
+  // for people who are not aware.
+  gboolean res = FALSE;
   const char *config = dt_conf_get_string_const("write_sidecar_files");
   if(config)
   {
-    if(!strcmp(config, "after edit"))
-      res = DT_WRITE_XMP_LAZY;
-    else if(!strcmp(config, "on import"))
-      res = DT_WRITE_XMP_ALWAYS;
+    // Darktable > 3.6
+    if(!strcmp(config, "after edit") || !strcmp(config, "on import") || !strcmp(config, "always")) res = TRUE;
+
+    // Darktable < 3.8 and Ansel
     else if(!strcmp(config, "TRUE"))
-    {
-      // migration path from boolean settings in <= 3.6, lazy mode was introduced in 3.8
-      // as scripts or tools might use FALSE we can only update TRUE in a safe way.
-      // This leaves others like "false" or "FALSE" as DT_WRITE_XMP_NEVER without conf string update
-      dt_conf_set_string("write_sidecar_files", "on import");
-      res = DT_WRITE_XMP_ALWAYS;
-    }
+      res = TRUE;
   }
-  else
-  {
-    res = DT_WRITE_XMP_ALWAYS;
-    dt_conf_set_string("write_sidecar_files", "on import");
-  }
+
+  // sanitize keys:
+  dt_conf_set_string("write_sidecar_files", (res) ? "TRUE" : "FALSE");
+
   return res;
 }
 
 gboolean dt_image_safe_remove(const int32_t imgid)
 {
   // always safe to remove if we do not have .xmp
-  if(dt_image_get_xmp_mode() == DT_WRITE_XMP_NEVER) return TRUE;
+  if(!dt_image_get_xmp_mode()) return TRUE;
 
   // check whether the original file is accessible
   char pathname[PATH_MAX] = { 0 };
@@ -1226,7 +1221,6 @@ int dt_image_read_duplicates(const uint32_t id, const char *filename, const gboo
 static int32_t _image_import_internal(const int32_t film_id, const char *filename,
                                        gboolean lua_locking, gboolean raise_signals)
 {
-  const dt_imageio_write_xmp_t xmp_mode = dt_image_get_xmp_mode();
   char *normalized_filename = dt_util_normalize_path(filename);
   if(!normalized_filename || !dt_util_test_image_file(normalized_filename))
   {
@@ -1429,13 +1423,8 @@ static int32_t _image_import_internal(const int32_t film_id, const char *filenam
 
   if((res != 0) && (nb_xmp == 0))
   {
-    // Search for Lightroom sidecar file, import tags if found
-    // Actually this was extended by morons to load existing dt/Ansel history from XMP
-    // so the name is actively misleading.
     const gboolean lr_xmp = dt_lightroom_import(id, NULL, TRUE);
-    // Make sure that lightroom xmp data (label in particular) are saved in dt xmp
-    if(lr_xmp)
-      dt_control_save_xmp(id);
+    if(lr_xmp) dt_control_save_xmp(id);
   }
 
   // add a tag with the file extension
@@ -1450,8 +1439,7 @@ static int32_t _image_import_internal(const int32_t film_id, const char *filenam
   dt_mipmap_cache_remove(darktable.mipmap_cache, id, TRUE);
 
   //synch database entries to xmp
-  if(xmp_mode == DT_WRITE_XMP_ALWAYS)
-    dt_image_synch_all_xmp(normalized_filename);
+  if(dt_image_get_xmp_mode()) dt_image_synch_all_xmp(normalized_filename);
 
   g_free(imgfname);
   g_free(basename);
@@ -2239,7 +2227,7 @@ int dt_image_write_sidecar_file(const int32_t imgid)
   // FIXME: [CRITICAL] should lock the image history at the app level
   // TODO: compute hash and don't write if not needed!
   // write .xmp file
-  if((imgid > 0) && (dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER))
+  if((imgid > 0) && dt_image_get_xmp_mode())
   {
     char filename[PATH_MAX] = { 0 };
 
@@ -2282,7 +2270,7 @@ int dt_image_write_sidecar_file(const int32_t imgid)
 void dt_image_synch_xmps(const GList *img)
 {
   if(!img) return;
-  if(dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER)
+  if(dt_image_get_xmp_mode())
   {
     for(const GList *imgs = img; imgs; imgs = g_list_next(imgs))
     {
@@ -2315,7 +2303,7 @@ void dt_image_synch_xmp(const int selected)
 
 void dt_image_synch_all_xmp(const gchar *pathname)
 {
-  if(dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER)
+  if(dt_image_get_xmp_mode())
   {
     const int32_t imgid = dt_image_get_id_full_path(pathname);
     if(imgid != UNKNOWN_IMAGE)
@@ -2328,7 +2316,7 @@ void dt_image_synch_all_xmp(const gchar *pathname)
 void dt_image_local_copy_synch()
 {
   // nothing to do if not creating .xmp
-  if(dt_image_get_xmp_mode() == DT_WRITE_XMP_NEVER) return;
+  if(!dt_image_get_xmp_mode()) return;
   sqlite3_stmt *stmt;
 
   DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db), "SELECT id FROM main.images WHERE flags&?1=?1", -1,

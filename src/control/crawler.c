@@ -107,7 +107,6 @@ GList *dt_control_crawler_run(void)
 {
   sqlite3_stmt *stmt, *inner_stmt;
   GList *result = NULL;
-  gboolean look_for_xmp = (dt_image_get_xmp_mode() != DT_WRITE_XMP_NEVER);
 
   // clang-format off
   sqlite3_prepare_v2(dt_database_get(darktable.db),
@@ -141,7 +140,7 @@ GList *dt_control_crawler_run(void)
     }
 
     // no need to look for xmp files if none get written anyway.
-    if(look_for_xmp)
+    if(dt_image_get_xmp_mode())
     {
       // construct the xmp filename for this image
       gchar xmp_path[PATH_MAX] = { 0 };
