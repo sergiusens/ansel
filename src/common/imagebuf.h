@@ -138,9 +138,6 @@ void dt_iop_image_linear_blend(float *const __restrict__ buf, const float lambda
 // maximal number of threads before saturating the memory bus
 void dt_iop_image_copy_benchmark();
 
-// load configurable settings from anselrc
-void dt_iop_image_copy_configure();
-
 #ifdef __cplusplus
 }
 #endif
