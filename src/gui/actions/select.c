@@ -41,6 +41,13 @@ static gboolean invert_selection_callback(GtkAccelGroup *group, GObject *acceler
   return TRUE;
 }
 
+static gboolean scroll_to_selection_callback(GtkAccelGroup *group, GObject *acceleratable, guint keyval, GdkModifierType mods, gpointer user_data)
+{
+  dt_thumbtable_scroll_to_selection(darktable.gui->ui->thumbtable_filmstrip);
+  dt_thumbtable_scroll_to_selection(darktable.gui->ui->thumbtable_lighttable);
+  return TRUE;
+}
+
 void append_select(GtkWidget **menus, GList **lists, const dt_menus_t index)
 {
   add_sub_menu_entry(menus, lists, _("Select all"), index, NULL, select_all_callback, NULL, NULL, select_all_sensitive_callback, GDK_KEY_a, GDK_CONTROL_MASK);
@@ -49,5 +56,7 @@ void append_select(GtkWidget **menus, GList **lists, const dt_menus_t index)
 
   add_sub_menu_entry(menus, lists, _("Invert selection"), index, NULL, invert_selection_callback, NULL, NULL, clear_selection_sensitive_callback, GDK_KEY_i, GDK_CONTROL_MASK);
 
-  //add_menu_separator(menus[index]);
+  add_menu_separator(menus[index]);
+
+  add_sub_menu_entry(menus, lists, _("Scroll back to selection"), index, NULL, scroll_to_selection_callback, NULL, NULL, NULL, 0, 0);
 }

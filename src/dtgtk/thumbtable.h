@@ -207,6 +207,10 @@ int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table);
 // Internally update the first visible thumbnail index based on current scrolling position
 void dt_thumbtable_set_active_rowid(dt_thumbtable_t *table);
 
+// Scroll to the first-selected image, or default to keyboard "over" then mouse "over", then last active image,
+// in this order.
+int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table);
+
 /**
  * Gtk quick wrappers/helpers
  */
