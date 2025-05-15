@@ -594,7 +594,7 @@ void reset(dt_view_t *self)
 
 int try_enter(dt_view_t *self)
 {
-  int32_t imgid = dt_control_get_mouse_over_id();
+  int32_t imgid = dt_selection_get_first_id(darktable.selection);
   dt_view_active_images_reset(FALSE);
 
   if(imgid < 0)
