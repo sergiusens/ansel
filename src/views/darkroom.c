@@ -594,7 +594,31 @@ void reset(dt_view_t *self)
 
 int try_enter(dt_view_t *self)
 {
-  int32_t imgid = dt_selection_get_first_id(darktable.selection);
+  uint32_t num_selected = dt_selection_get_length(darktable.selection);
+  int32_t imgid = dt_control_get_mouse_over_id();
+
+  if(imgid != UNKNOWN_IMAGE)
+  {
+    ; // Needed to open image from filmstrip
+  }
+  else if(num_selected > 1)
+  {
+    dt_control_log(_("The current selection contains more than one image, which is ambiguous.\n"
+                     "Select exactly one image to enter the darkroom."));
+    return 1;
+  }
+  else if(num_selected == 0 && imgid == UNKNOWN_IMAGE)
+  {
+    dt_control_log(_("There is no image selected.\n"
+                    "Select exactly one image to enter the darkroom."));
+    return 1;
+  }
+  else
+  {
+    // Needed to open image at startup
+    imgid = dt_selection_get_first_id(darktable.selection);
+  }
+
   dt_view_active_images_reset(FALSE);
 
   if(imgid < 0)

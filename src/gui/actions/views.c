@@ -29,7 +29,8 @@ gboolean views_sensitive_callback(GtkWidget *menu_item)
   static gboolean view_switch_to_##view(GtkAccelGroup *group, GObject *acceleratable, guint keyval,               \
                                         GdkModifierType mods, GtkWidget *widget)                                  \
   {                                                                                                               \
-    dt_ctl_switch_mode_to(#view);                                                                                 \
+    if(views_sensitive_callback(widget))                                                                          \
+      dt_ctl_switch_mode_to(#view);                                                                               \
     return TRUE;                                                                                                  \
 }
 
