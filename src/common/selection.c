@@ -296,13 +296,13 @@ void dt_selection_select_list(struct dt_selection_t *selection, const GList *con
   while(list)
   {
     int count = 0;
-    int32_t imgid = _list_iterate(selection, &list, &count, TRUE);
-    gchar *query = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images VALUES (%i)", imgid);
+    gchar *ids = g_strdup("");
     while(list && count < 400)
     {
-      imgid = _list_iterate(selection, &list, &count, TRUE);
-      query = dt_util_dstrcat(query, ",(%i)", imgid);
+      int32_t imgid = _list_iterate(selection, &list, &count, TRUE);
+      ids = dt_util_dstrcat(ids, (ids[0] != '\0') ? ", (%i)" : "(%i)", imgid);
     }
+    gchar *query = g_strdup_printf("INSERT OR IGNORE INTO main.selected_images VALUES %s", ids);
     DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), query, NULL, NULL, NULL);
     g_free(query);
   }
@@ -319,15 +319,16 @@ void dt_selection_deselect_list(struct dt_selection_t *selection, const GList *c
   while(list)
   {
     int count = 0;
-    int32_t imgid = _list_iterate(selection, &list, &count, FALSE);
-    gchar *query = g_strdup_printf("DELETE FROM main.selected_images WHERE imgid IN (%i)", imgid);
+    gchar *ids = g_strdup("");
     while(list && count < 400)
     {
-      imgid = _list_iterate(selection, &list, &count, FALSE);
-      query = dt_util_dstrcat(query, ",(%i)", imgid);
+      int32_t imgid = _list_iterate(selection, &list, &count, FALSE);
+      ids = dt_util_dstrcat(ids, (ids[0] != '\0') ? ", %i" : "%i", imgid);
     }
+    gchar *query = g_strdup_printf("DELETE FROM main.selected_images WHERE imgid IN (%s)", ids);
     DT_DEBUG_SQLITE3_EXEC(dt_database_get(darktable.db), query, NULL, NULL, NULL);
     g_free(query);
+    g_free(ids);
   }
 
   _update_gui();
