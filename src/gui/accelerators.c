@@ -1533,7 +1533,7 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
 
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-  gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
+  gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
   gtk_window_set_default_size(GTK_WINDOW(dialog), 800, 32);
