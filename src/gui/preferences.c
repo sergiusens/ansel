@@ -523,21 +523,12 @@ void dt_gui_preferences_show()
 
   //setup tabs
   init_tab_general(_preferences_dialog, stack, tweak_widgets);
-  init_tab_lighttable(_preferences_dialog, stack);
-  init_tab_darkroom(_preferences_dialog, stack);
-  init_tab_otherviews(_preferences_dialog, stack);
+  init_tab_views(_preferences_dialog, stack);
   init_tab_processing(_preferences_dialog, stack);
   init_tab_security(_preferences_dialog, stack);
   init_tab_storage(_preferences_dialog, stack);
   init_tab_misc(_preferences_dialog, stack);
   init_tab_presets(stack);
-
-  //open in the appropriate tab if currently in darkroom or lighttable view
-  const gchar *current_view = darktable.view_manager->current_view->name(darktable.view_manager->current_view);
-  if(strcmp(current_view, _("darkroom")) == 0 || strcmp(current_view, _("lighttable")) == 0)
-  {
-    gtk_stack_set_visible_child(GTK_STACK(stack), gtk_stack_get_child_by_name(GTK_STACK(stack), current_view));
-  }
 
 #ifdef USE_LUA
   GtkGrid* lua_grid = init_tab_lua(_preferences_dialog, stack);
