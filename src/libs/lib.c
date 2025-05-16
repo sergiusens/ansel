@@ -611,10 +611,29 @@ static int _lib_plugin_body_button_press(GtkWidget *w, GdkEventButton *e, gpoint
 static int dt_lib_load_module(void *m, const char *libname, const char *module_name)
 {
   dt_lib_module_t *module = (dt_lib_module_t *)m;
-  g_strlcpy(module->plugin_name, module_name, sizeof(module->plugin_name));
 
 #define INCLUDE_API_FROM_MODULE_LOAD "lib_load_module"
 #include "libs/lib_api.h"
+
+  // Load modules only if they belong to a loaded view
+  gboolean load = FALSE;
+  for(const char **view_m = module->views(module); *view_m; ++view_m)
+  {
+    for(GList *iter = darktable.view_manager->views; iter; iter = g_list_next(iter))
+    {
+      dt_view_t *view = (dt_view_t *)iter->data;
+      if(!g_strcmp0(view->module_name, *view_m) || !g_strcmp0("*", *view_m))
+      {
+        load = TRUE;
+        break;
+      }
+    }
+    if(load) break;
+  }
+
+  if(!load) return 1;
+
+  g_strlcpy(module->plugin_name, module_name, sizeof(module->plugin_name));
 
   if(((!module->get_params || !module->set_params)
       && (module->legacy_params || module->set_params || module->get_params))

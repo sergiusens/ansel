@@ -68,23 +68,18 @@ GList *dt_module_load_modules(const char *subdir, size_t module_size,
       // fprintf(stdout, "%s does NOT exist\n", pref_line);
     }
 
+    g_free(pref_line);
+
     if(load) res = load_module_so(module, libname, plugin_name);
+    // if(res) fprintf(stdout, "Plugin %s/%s NOT loaded\n", subdir, plugin_name);
+
+    g_free(plugin_name);
+    g_free(libname);
 
     if(res)
     {
-      //fprintf(stdout, "Plugin %s/%s NOT loaded\n", subdir, plugin_name);
       free(module);
-      g_free(libname);
-      g_free(plugin_name);
-      g_free(pref_line);
       continue;
-    }
-    else
-    {
-      //fprintf(stdout, "%s loaded\n", pref_line);
-      g_free(libname);
-      g_free(plugin_name);
-      g_free(pref_line);
     }
 
     plugin_list = g_list_prepend(plugin_list, module);
