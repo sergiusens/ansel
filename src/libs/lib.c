@@ -624,7 +624,7 @@ static int dt_lib_load_module(void *m, const char *libname, const char *module_n
     for(GList *iter = darktable.view_manager->views; iter; iter = g_list_next(iter))
     {
       dt_view_t *view = (dt_view_t *)iter->data;
-      if(!g_strcmp0(view->module_name, *view_m) || !g_strcmp0("*", *view_m))
+      if(!g_strcmp0(view->module_name, *view_m) || !g_strcmp0("*", *view_m) || !g_strcmp0("special", *view_m))
       {
         load = TRUE;
         break;
