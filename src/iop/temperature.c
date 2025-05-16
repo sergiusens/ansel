@@ -1772,66 +1772,15 @@ static void gui_sliders_update(struct dt_iop_module_t *self)
   gtk_widget_set_visible(GTK_WIDGET(g->scale_g2), (img->flags & DT_IMAGE_4BAYER));
 }
 
-static void temp_label_click(GtkWidget *label, GdkEventButton *event, gpointer user_data)
-{
-  dt_iop_module_t *self = (dt_iop_module_t *)user_data;
-  dt_iop_temperature_gui_data_t *g = (dt_iop_temperature_gui_data_t *)self->gui_data;
-
-  gchar *old_config = dt_conf_get_string("plugins/darkroom/temperature/colored_sliders");
-
-  if(!g_strcmp0(old_config, "no color"))
-  {
-    dt_conf_set_string("plugins/darkroom/temperature/colored_sliders", "illuminant color");
-    g->colored_sliders = TRUE;
-    g->blackbody_is_confusing = FALSE;
-  }
-  else if (!g_strcmp0(old_config, "illuminant color"))
-  {
-    dt_conf_set_string("plugins/darkroom/temperature/colored_sliders", "effect emulation");
-    g->colored_sliders = TRUE;
-    g->blackbody_is_confusing = TRUE;
-  }
-  else
-  {
-    dt_conf_set_string("plugins/darkroom/temperature/colored_sliders", "no color");
-    g->colored_sliders = FALSE;
-    g->blackbody_is_confusing = FALSE;
-  }
-
-  g_free(old_config);
-
-  color_temptint_sliders(self);
-  color_rgb_sliders(self);
-  color_finetuning_slider(self);
-}
-
-static void _preference_changed(gpointer instance, gpointer user_data)
-{
-  dt_iop_module_t *self = (dt_iop_module_t *)user_data;
-  dt_iop_temperature_gui_data_t *g = (dt_iop_temperature_gui_data_t *)self->gui_data;
-
-  const char *config = dt_conf_get_string_const("plugins/darkroom/temperature/colored_sliders");
-  g->colored_sliders = g_strcmp0(config, "no color"); // true if config != "no color"
-  g->blackbody_is_confusing = g->colored_sliders && g_strcmp0(config, "illuminant color"); // true if config != "illuminant color"
-
-  g->button_bar_visible = dt_conf_get_bool("plugins/darkroom/temperature/button_bar");
-  gtk_widget_set_visible(g->buttonbar, g->button_bar_visible);
-
-  color_temptint_sliders(self);
-  color_rgb_sliders(self);
-  color_finetuning_slider(self);
-}
-
 void gui_init(struct dt_iop_module_t *self)
 {
   dt_iop_temperature_gui_data_t *g = IOP_GUI_ALLOC(temperature);
 
-  const char *config = dt_conf_get_string_const("plugins/darkroom/temperature/colored_sliders");
-  g->colored_sliders = g_strcmp0(config, "no color"); // true if config != "no color"
-  g->blackbody_is_confusing = g->colored_sliders && g_strcmp0(config, "illuminant color"); // true if config != "illuminant color"
+  g->colored_sliders = TRUE; // true if config != "no color"
+  g->blackbody_is_confusing = FALSE; // true if config != "illuminant color"
 
-  const int feedback = g->colored_sliders ? 0 : 1;
-  g->button_bar_visible = dt_conf_get_bool("plugins/darkroom/temperature/button_bar");
+  const int feedback = TRUE;
+  g->button_bar_visible = TRUE;
 
   GtkBox *box_enabled = GTK_BOX(gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE));
 
@@ -1891,8 +1840,6 @@ void gui_init(struct dt_iop_module_t *self)
   gtk_widget_set_tooltip_text(g->temp_label, _("click to cycle color mode on sliders"));
   gtk_container_add(GTK_CONTAINER(temp_label_box), g->temp_label);
 
-  g_signal_connect(G_OBJECT(temp_label_box), "button-release-event", G_CALLBACK(temp_label_click), self);
-
   gtk_box_pack_start(box_enabled, temp_label_box, TRUE, TRUE, 0);
 
   //Match UI order: temp first, then tint (like every other app ever)
@@ -1934,10 +1881,6 @@ void gui_init(struct dt_iop_module_t *self)
   g_signal_connect(G_OBJECT(g->presets), "value-changed", G_CALLBACK(preset_tune_callback), self);
   g_signal_connect(G_OBJECT(g->finetune), "value-changed", G_CALLBACK(preset_tune_callback), self);
 
-  // update the gui when the preferences changed (i.e. colored sliders stuff)
-  DT_DEBUG_CONTROL_SIGNAL_CONNECT(darktable.signals, DT_SIGNAL_PREFERENCES_CHANGE,
-                                  G_CALLBACK(_preference_changed), (gpointer)self);
-
   // start building top level widget
   self->widget = gtk_stack_new();
   gtk_stack_set_homogeneous(GTK_STACK(self->widget), FALSE);
@@ -1953,7 +1896,6 @@ void gui_init(struct dt_iop_module_t *self)
 void gui_cleanup(struct dt_iop_module_t *self)
 {
   self->request_color_pick = DT_REQUEST_COLORPICK_OFF;
-  DT_DEBUG_CONTROL_SIGNAL_DISCONNECT(darktable.signals, G_CALLBACK(_preference_changed), self);
 
   IOP_GUI_FREE;
 }
