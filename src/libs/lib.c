@@ -799,7 +799,7 @@ static void dt_lib_init_module(void *m)
   if(darktable.gui)
   {
     module->gui_init(module);
-    g_object_ref_sink(module->widget);
+    if(module->widget) g_object_ref_sink(module->widget);
 
     // TODO: look for active view. Do we know it at init time ?
     module->common_fields.view = g_strdup(_("Lighttable"));
