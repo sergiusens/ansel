@@ -615,7 +615,9 @@ static int dt_lib_load_module(void *m, const char *libname, const char *module_n
 #define INCLUDE_API_FROM_MODULE_LOAD "lib_load_module"
 #include "libs/lib_api.h"
 
-  // Load modules only if they belong to a loaded view
+  // Load modules only if they belong to a loaded view.
+  // Designed for print settings, which loads all installed CUPS printers at gui_init() time,
+  // which can take some time.
   gboolean load = FALSE;
   for(const char **view_m = module->views(module); *view_m; ++view_m)
   {
