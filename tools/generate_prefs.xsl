@@ -187,86 +187,81 @@ gboolean restart_required = FALSE;
 
   <!-- preferences tabs -->
 
-  <!-- lighttable -->
+  <!-- views -->
 
-  <xsl:text>&#xA;static void&#xA;init_tab_lighttable</xsl:text><xsl:value-of select="$tab_start"/><xsl:text>  gtk_stack_add_titled(GTK_STACK(stack), scroll, _("lighttable"), _("lighttable"));&#xA;</xsl:text>
-
-  <!-- general section -->
-  <xsl:text>
-    {
-      GtkWidget *seclabel = gtk_label_new(_("general"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-    }
-  </xsl:text>
-
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='lighttable' and @section='general']">
-    <xsl:apply-templates select="." mode="tab_block"/>
-  </xsl:for-each>
-
-  <!-- module section -->
+  <xsl:text>&#xA;static void&#xA;init_tab_views</xsl:text><xsl:value-of select="$tab_start"/><xsl:text>  gtk_stack_add_titled(GTK_STACK(stack), scroll, _("views"), _("views"));&#xA;</xsl:text>
 
   <xsl:text>
-   {
-      GtkWidget *seclabel = gtk_label_new(_("thumbnails"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-   }
+  {
+    GtkWidget *seclabel = gtk_label_new(_("Lighttable"));
+    GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
+    gtk_widget_set_name(lbox, "pref_section");
+    gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
+  }
   </xsl:text>
 
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='lighttable' and @section='thumbs']">
+  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='views' and @section='lighttable']">
     <xsl:apply-templates select="." mode="tab_block"/>
   </xsl:for-each>
-
-  <xsl:value-of select="$tab_end" />
-
-  <!-- darkroom -->
-
-  <xsl:text>&#xA;static void&#xA;init_tab_darkroom</xsl:text><xsl:value-of select="$tab_start"/><xsl:text>  gtk_stack_add_titled(GTK_STACK(stack), scroll, _("darkroom"), _("darkroom"));&#xA;</xsl:text>
-
-  <!-- general section -->
-  <xsl:text>
-    {
-      GtkWidget *seclabel = gtk_label_new(_("general"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-    }
-  </xsl:text>
-
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='darkroom' and @section='general']">
-    <xsl:apply-templates select="." mode="tab_block"/>
-  </xsl:for-each>
-
-  <!-- module section -->
 
   <xsl:text>
-   {
-      GtkWidget *seclabel = gtk_label_new(_("modules"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-   }
+  {
+    GtkWidget *seclabel = gtk_label_new(_("Darkroom"));
+    GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
+    gtk_widget_set_name(lbox, "pref_section");
+    gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
+  }
   </xsl:text>
 
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='darkroom' and @section='modules']">
+  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='views' and @section='darkroom']">
     <xsl:apply-templates select="." mode="tab_block"/>
   </xsl:for-each>
 
-  <xsl:value-of select="$tab_end" />
+  <xsl:text>
+  {
+    GtkWidget *seclabel = gtk_label_new(_("Other views"));
+    GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
+    gtk_widget_set_name(lbox, "pref_section");
+    gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
+  }
+  </xsl:text>
 
-  <!-- other views -->
-
-  <xsl:text>&#xA;static void&#xA;init_tab_otherviews</xsl:text><xsl:value-of select="$tab_start"/><xsl:text>  gtk_stack_add_titled(GTK_STACK(stack), scroll, _("other views"), _("other views"));&#xA;</xsl:text>
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='otherviews' and @section='views']">
+  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='views' and @section='otherviews']">
     <xsl:apply-templates select="." mode="tab_block"/>
   </xsl:for-each>
+
+  <xsl:text>
+  {
+    GtkWidget *seclabel = gtk_label_new(_("Map"));
+    GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
+    gtk_widget_set_name(lbox, "pref_section");
+    gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
+  }
+  </xsl:text>
+
+  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='views' and @section='geoloc']">
+    <xsl:apply-templates select="." mode="tab_block"/>
+  </xsl:for-each>
+
+  <!-- slideshow section -->
+  <xsl:text>
+  {
+    GtkWidget *seclabel = gtk_label_new(_("Slideshow"));
+    GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
+    gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
+    gtk_widget_set_name(lbox, "pref_section");
+    gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
+  }
+  </xsl:text>
+
+  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='otherviews' and @section='slideshow']">
+    <xsl:apply-templates select="." mode="tab_block"/>
+  </xsl:for-each>
+
   <xsl:value-of select="$tab_end" />
 
 
@@ -426,51 +421,6 @@ gboolean restart_required = FALSE;
     <xsl:apply-templates select="." mode="tab_block"/>
   </xsl:for-each>
 
-<xsl:text>
-   {
-      GtkWidget *seclabel = gtk_label_new(_("shortcuts with multiple instances"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-      g_object_set(lbox,  "tooltip-text", _("where multiple module instances are present, these preferences control rules that are applied (in order) to decide which module instance shortcuts will be applied to"), (gchar *)0);
-   }
-</xsl:text>
-
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='misc' and @section='accel']">
-    <xsl:apply-templates select="." mode="tab_block"/>
-  </xsl:for-each>
-
-  <!-- other views -->
-
-  <xsl:text>
-   {
-      GtkWidget *seclabel = gtk_label_new(_("map / geolocalization view"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-   }
-  </xsl:text>
-
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='otherviews' and @section='geoloc']">
-    <xsl:apply-templates select="." mode="tab_block"/>
-  </xsl:for-each>
-
-  <!-- slideshow section -->
-  <xsl:text>
-   {
-      GtkWidget *seclabel = gtk_label_new(_("slideshow view"));
-      GtkWidget *lbox = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 0);
-      gtk_box_pack_start(GTK_BOX(lbox), seclabel, FALSE, FALSE, 0);
-      gtk_widget_set_name(lbox, "pref_section");
-      gtk_grid_attach(GTK_GRID(grid), lbox, 0, line++, 2, 1);
-   }
-</xsl:text>
-
-  <xsl:for-each select="./dtconfiglist/dtconfig[@prefs='otherviews' and @section='slideshow']">
-    <xsl:apply-templates select="." mode="tab_block"/>
-  </xsl:for-each>
   <xsl:value-of select="$tab_end" />
 
   <!-- dialog: collect -->
