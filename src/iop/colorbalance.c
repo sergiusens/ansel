@@ -1738,60 +1738,20 @@ static void _configure_slider_blocks(gpointer instance, dt_iop_module_t *self)
          N_("highlights: gain / slope") };
 
   gchar *layout = dt_conf_get_string("plugins/darkroom/colorbalance/layout");
+  new_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
 
-  if(!g_strcmp0(layout, "list"))
+  for(int i=0; i<3; i++)
   {
-    new_container = gtk_box_new(GTK_ORIENTATION_VERTICAL, DT_BAUHAUS_SPACE);
-
-    for(int i=0; i<3; i++)
-    {
-      if(i == 0)
-        gtk_label_set_text(GTK_LABEL(g->main_label), _(long_label[0]));
-      else
-      {
-        GtkWidget *label = dt_ui_section_label_new(_(long_label[i]));
-        gtk_container_add(GTK_CONTAINER(new_container), label);
-        if(old_container) gtk_widget_show(label);
-      }
-
-      gtk_container_add(GTK_CONTAINER(new_container), g->blocks[i]);
-    }
-  }
-  else
-  {
-    gtk_label_set_text(GTK_LABEL(g->main_label), _("shadows / mid-tones / highlights"));
-
-    GtkWidget *label[3];
-    for(int i=0; i<3; i++)
-    {
-      label[i] = gtk_label_new(_(short_label[i]));
-      gtk_widget_set_tooltip_text(label[i], _(long_label[i]));
-      gtk_label_set_ellipsize(GTK_LABEL(label[i]), PANGO_ELLIPSIZE_END);
-      gtk_widget_set_hexpand(label[i], TRUE);
-    }
-
-    if(!g_strcmp0(layout, "columns"))
-    {
-      new_container = gtk_grid_new();
-
-      gtk_grid_set_column_homogeneous(GTK_GRID(new_container), TRUE);
-      gtk_grid_set_column_spacing(GTK_GRID(new_container), 8);
-
-      for(int i=0; i<3; i++)
-      {
-        dt_gui_add_class(label[i], "dt_section_label");
-
-        gtk_container_add(GTK_CONTAINER(new_container), label[i]);
-        if(old_container) gtk_widget_show(label[i]);
-        gtk_grid_attach_next_to(GTK_GRID(new_container), g->blocks[i], label[i], GTK_POS_BOTTOM, 1, 1);
-      }
-    }
+    if(i == 0)
+      gtk_label_set_text(GTK_LABEL(g->main_label), _(long_label[0]));
     else
     {
-      new_container = gtk_notebook_new();
-
-      for(int i=0; i<3; i++) gtk_notebook_append_page(GTK_NOTEBOOK(new_container), g->blocks[i], label[i]);
+      GtkWidget *label = dt_ui_section_label_new(_(long_label[i]));
+      gtk_container_add(GTK_CONTAINER(new_container), label);
+      if(old_container) gtk_widget_show(label);
     }
+
+    gtk_container_add(GTK_CONTAINER(new_container), g->blocks[i]);
   }
 
   g_free(layout);
@@ -1804,14 +1764,6 @@ static void _configure_slider_blocks(gpointer instance, dt_iop_module_t *self)
 
 static void _cycle_layout_callback(GtkWidget *label, GdkEventButton *event, dt_iop_module_t *self)
 {
-  gchar *layout = dt_conf_get_string("plugins/darkroom/colorbalance/layout");
-
-  dt_conf_set_string("plugins/darkroom/colorbalance/layout",
-                     !g_strcmp0(layout, "columns") ? "tabs" :
-                     !g_strcmp0(layout, "list") ? "columns" : "list");
-
-  g_free(layout);
-
   _configure_slider_blocks(NULL, self);
 }
 
