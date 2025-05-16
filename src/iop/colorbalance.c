@@ -1715,7 +1715,6 @@ static gboolean dt_iop_area_draw(GtkWidget *widget, cairo_t *cr, dt_iop_module_t
 
 static void _configure_slider_blocks(gpointer instance, dt_iop_module_t *self)
 {
-  dt_iop_colorbalance_params_t *p = (dt_iop_colorbalance_params_t *)self->params;
   dt_iop_colorbalance_gui_data_t *g = (dt_iop_colorbalance_gui_data_t *)self->gui_data;
 
   GtkWidget *new_container = NULL;
@@ -1729,9 +1728,6 @@ static void _configure_slider_blocks(gpointer instance, dt_iop_module_t *self)
 
   if(old_container) gtk_widget_destroy(old_container);
 
-  const gchar *short_label_ops[] = { C_("color", "offset"), C_("color", "power"), C_("color", "slope") };
-  const gchar *short_label_lgg[] = { C_("color", "lift"), C_("color", "gamma"), C_("color", "gain") };
-  const gchar **short_label = (p->mode == SLOPE_OFFSET_POWER) ? short_label_ops : short_label_lgg;
   const gchar *long_label[]
      = { N_("shadows: lift / offset"),
          N_("mid-tones: gamma / power"),
