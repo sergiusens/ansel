@@ -19,7 +19,9 @@
 #include <stdarg.h>
 #include "common/imagebuf.h"
 
+#ifdef _OPENMP
 static size_t parallel_imgop_minimum = 500000;
+#endif
 
 // Allocate one or more buffers as detailed in the given parameters.  If any allocation fails, free all of them,
 // set the module's trouble flag, and return FALSE.
