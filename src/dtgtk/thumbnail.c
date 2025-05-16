@@ -1161,6 +1161,7 @@ dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid,
   thumb->table = table;
   thumb->zoomx = 0.;
   thumb->zoomy = 0.;
+  thumb->no_draw = FALSE;
 
   dt_pthread_mutex_init(&thumb->lock, NULL);
 

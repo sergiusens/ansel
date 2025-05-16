@@ -2076,7 +2076,6 @@ void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int3
   {
     // Active mouse pointer interactions: accept unconditionnaly
     dt_control_set_mouse_over_id(imgid);
-    gtk_widget_grab_focus(table->grid);
   }
   else
   {
