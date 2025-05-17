@@ -196,7 +196,6 @@ void dt_gui_gtk_run(dt_gui_gtk_t *gui);
 void dt_gui_gtk_cleanup(dt_gui_gtk_t *gui);
 void dt_gui_gtk_quit();
 void dt_gui_store_last_preset(const char *name);
-int dt_gui_gtk_load_config();
 int dt_gui_gtk_write_config();
 void dt_gui_gtk_set_source_rgb(cairo_t *cr, dt_gui_color_t);
 void dt_gui_gtk_set_source_rgba(cairo_t *cr, dt_gui_color_t, float opacity_coef);

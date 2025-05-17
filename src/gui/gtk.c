@@ -287,27 +287,17 @@ static gboolean _scrolled(GtkWidget *widget, GdkEventScroll *event, gpointer use
   return FALSE;
 }
 
-int dt_gui_gtk_load_config()
-{
-  // Warning : needs to be called within a dt_pthread_mutex_lock(&darktable.gui->mutex) section
-  GtkWidget *widget = dt_ui_main_window(darktable.gui->ui);
-  // NOTE: allowing full-screen on startup shits the bed with MacOS
-
-  if(dt_conf_get_bool("ui_last/maximized"))
-    gtk_window_maximize(GTK_WINDOW(widget));
-  else
-    gtk_window_unmaximize(GTK_WINDOW(widget));
-
-  return 0;
-}
 
 int dt_gui_gtk_write_config()
 {
   dt_pthread_mutex_lock(&darktable.gui->mutex);
-
   GtkWidget *widget = dt_ui_main_window(darktable.gui->ui);
   dt_conf_set_bool("ui_last/maximized",
                    (gdk_window_get_state(gtk_widget_get_window(widget)) & GDK_WINDOW_STATE_MAXIMIZED));
+  int width, height;
+  gtk_window_get_size(GTK_WINDOW(widget), &width, &height);
+  dt_conf_set_int("ui_last/window_width", width);
+  dt_conf_set_int("ui_last/window_height", height);
   dt_pthread_mutex_unlock(&darktable.gui->mutex);
 
   return 0;
@@ -797,8 +787,19 @@ static void _init_widgets(dt_gui_gtk_t *gui)
 
   dt_configure_ppd_dpi(gui);
 
-  gtk_window_set_default_size(GTK_WINDOW(gui->ui->main_window), DT_PIXEL_APPLY_DPI(800), DT_PIXEL_APPLY_DPI(500));
-  dt_gui_gtk_load_config();
+  gtk_window_set_default_size(GTK_WINDOW(gui->ui->main_window), DT_PIXEL_APPLY_DPI(1200), DT_PIXEL_APPLY_DPI(800));
+
+  // NOTE: allowing full-screen on startup shits the bed with MacOS
+  if(dt_conf_get_bool("ui_last/maximized"))
+  {
+    gtk_window_maximize(GTK_WINDOW(gui->ui->main_window));
+  }
+  else
+  {
+    int width = dt_conf_get_int("ui_last/window_width");
+    int height = dt_conf_get_int("ui_last/window_height");
+    gtk_window_resize(GTK_WINDOW(gui->ui->main_window), width, height);
+  }
 
   g_signal_connect(G_OBJECT(gui->ui->main_window ), "delete_event", G_CALLBACK(dt_gui_quit_callback), NULL);
   g_signal_connect(G_OBJECT(gui->ui->main_window ), "focus-in-event", G_CALLBACK(_focus_in_out_event), NULL);
