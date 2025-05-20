@@ -304,7 +304,8 @@ void dt_control_get_selected_files(dt_lib_import_t *d, gboolean destroy_window)
   }
 }
 
-static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, const int height)
+static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, const int height,
+                                        const gboolean valid_exif, dt_image_t *img)
 {
   GdkPixbuf *pixbuf = NULL;
 
@@ -317,6 +318,7 @@ static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, 
   char *mime_type = NULL;
   if(!dt_exif_get_thumbnail(filename, &buffer, &size, &mime_type))
   {
+
     // Scale the image to the correct size
     GdkPixbuf *tmp;
     GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
@@ -333,6 +335,7 @@ static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, 
 
     if(valid)
     {
+      fprintf(stdout, "RAW PREVIEW SIZE: %ix%i px\n", gdk_pixbuf_get_width(tmp), gdk_pixbuf_get_height(tmp));
       const float ratio = ((float)gdk_pixbuf_get_height(tmp)) / ((float)gdk_pixbuf_get_width(tmp));
       pixbuf = gdk_pixbuf_scale_simple(tmp, width / ratio, height, GDK_INTERP_BILINEAR);
     }
@@ -350,19 +353,18 @@ static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, 
 
   if(pixbuf == NULL) return NULL;
 
-  // get image orientation
-  dt_image_t img = { 0 };
-  (void)dt_exif_read(&img, filename);
-
   // Rotate the image to the correct orientation
   GdkPixbuf *tmp = pixbuf;
 
-  if(img.orientation == ORIENTATION_ROTATE_CCW_90_DEG)
-    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
-  else if(img.orientation == ORIENTATION_ROTATE_CW_90_DEG)
-    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_CLOCKWISE);
-  else if(img.orientation == ORIENTATION_ROTATE_180_DEG)
-    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
+  if(img && valid_exif)
+  {
+    if(img->orientation == ORIENTATION_ROTATE_CCW_90_DEG)
+      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+    else if(img->orientation == ORIENTATION_ROTATE_CW_90_DEG)
+      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_CLOCKWISE);
+    else if(img->orientation == ORIENTATION_ROTATE_180_DEG)
+      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
+  }
 
   if(pixbuf != tmp)
   {
@@ -565,7 +567,7 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
   }
 
   /* Get the thumbnail */
-  GdkPixbuf *pixbuf = _import_get_thumbnail(filename, (int) DT_PIXEL_APPLY_DPI(180), (int) DT_PIXEL_APPLY_DPI(180));
+  GdkPixbuf *pixbuf = _import_get_thumbnail(filename, (int) DT_PIXEL_APPLY_DPI(180), (int) DT_PIXEL_APPLY_DPI(180), valid_exif, img);
   gtk_image_set_from_pixbuf(GTK_IMAGE(d->preview), pixbuf);
   gtk_widget_show_all(d->preview);
   if(pixbuf) g_object_unref(pixbuf);
