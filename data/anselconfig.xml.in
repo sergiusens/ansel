@@ -859,6 +859,13 @@
     <shortdescription>sort built-in presets first</shortdescription>
     <longdescription>whether to show built-in presets first before user's presets in presets menu.</longdescription>
   </dtconfig>
+  <dtconfig prefs="misc" section="interface">
+    <name>import/disable_thumbnail</name>
+    <type>bool</type>
+    <default>false</default>
+    <shortdescription>Disable thumbnail preview in import popup</shortdescription>
+    <longdescription>Check this if you are impacted by extra-slow loading when accessing images on memory card through camera USB link and PTP/MTP drivers.</longdescription>
+  </dtconfig>
   <dtconfig prefs="views" section="darkroom">
     <name>plugins/darkroom/hide_default_presets</name>
     <type>bool</type>

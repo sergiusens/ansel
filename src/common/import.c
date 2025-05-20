@@ -554,10 +554,15 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
 
   /* Get the thumbnail */
   // 160x120 px seems a reasonably generic size for small thumbs from RAW files
-  GdkPixbuf *pixbuf = _import_get_thumbnail(filename, (int) DT_PIXEL_APPLY_DPI(160), (int) DT_PIXEL_APPLY_DPI(160), valid_exif, img);
-  gtk_image_set_from_pixbuf(GTK_IMAGE(d->preview), pixbuf);
+  if(!dt_conf_get_bool("import/disable_thumbnail"))
+  {
+    GdkPixbuf *pixbuf = _import_get_thumbnail(filename, (int) DT_PIXEL_APPLY_DPI(180), (int) DT_PIXEL_APPLY_DPI(180), valid_exif, img);
+    gtk_image_set_from_pixbuf(GTK_IMAGE(d->preview), pixbuf);
+    if(pixbuf) g_object_unref(pixbuf);
+  }
+
   gtk_widget_show_all(d->preview);
-  if(pixbuf) g_object_unref(pixbuf);
+
 
   // Reset everything
   gtk_label_set_text(GTK_LABEL(d->exif_info[EXIF_DATETIME_FIELD]), "");
