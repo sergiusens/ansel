@@ -456,7 +456,7 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     new_width = gtk_widget_get_allocated_width(table->parent_overlay);
     new_height = gtk_widget_get_allocated_height(table->parent_overlay);
     GtkWidget *v_scroll = gtk_scrolled_window_get_vscrollbar(GTK_SCROLLED_WINDOW(table->scroll_window));
-    new_width -= gtk_widget_get_allocated_width(v_scroll);
+    new_width -= gtk_widget_get_allocated_width(v_scroll) + 1;
     cols = dt_conf_get_int("plugins/lighttable/images_in_row");
   }
   else if(table->mode == DT_THUMBTABLE_MODE_FILMSTRIP)
@@ -464,15 +464,10 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     new_width = gtk_widget_get_allocated_width(table->parent_overlay);
     new_height = gtk_widget_get_allocated_height(table->parent_overlay);
     GtkWidget *h_scroll = gtk_scrolled_window_get_hscrollbar(GTK_SCROLLED_WINDOW(table->scroll_window));
-    new_height -= gtk_widget_get_allocated_height(h_scroll);
+    new_height -= gtk_widget_get_allocated_height(h_scroll) + 1;
     cols = table->thumbs_per_row; // whatever that doesn't make the next if think layout changed
   }
-  else
-  {
-    gtk_widget_set_size_request(table->grid, -1, -1);
-    return;
-  }
-
+  
   if((new_width > 0 && new_width != table->view_width) ||
      (new_height > 0 && new_height != table->view_height) ||
      (cols != table->thumbs_per_row))

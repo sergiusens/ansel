@@ -307,72 +307,58 @@ void dt_control_get_selected_files(dt_lib_import_t *d, gboolean destroy_window)
 static GdkPixbuf *_import_get_thumbnail(const gchar *filename, const int width, const int height,
                                         const gboolean valid_exif, dt_image_t *img)
 {
-  GdkPixbuf *pixbuf = NULL;
-
   if(!filename || !g_file_test(filename, G_FILE_TEST_IS_REGULAR)) return NULL;
 
-  // Step 1: try to check whether the picture contains embedded thumbnail
-  // In case it has, we'll use that thumbnail to show on the dialog
+  GdkPixbuf *pixbuf = NULL;
   uint8_t *buffer = NULL;
-  size_t size = 0;
+  int th_width;
+  int th_height;
   char *mime_type = NULL;
-  if(!dt_exif_get_thumbnail(filename, &buffer, &size, &mime_type))
+  dt_colorspaces_color_profile_type_t color_space;
+  if(!dt_imageio_large_thumbnail(filename, &buffer, &th_width, &th_height, &color_space, width, height))
   {
+    const float ratio = ((float)th_height) / ((float)th_width);
 
-    // Scale the image to the correct size
-    GdkPixbuf *tmp;
-    GdkPixbufLoader *loader = gdk_pixbuf_loader_new();
-
-    // Calling gdk_pixbuf_loader_close forces the data to be parsed by the
-    // loader. We must do this before calling gdk_pixbuf_loader_get_pixbuf.
-    gboolean valid = gdk_pixbuf_loader_write(loader, buffer, size, NULL);
-
-    if(valid)
+    // Convert RGBa to RGB because GdkPixbuf doesn't do RGBa
+    uint8_t *rgb = dt_alloc_align(th_width * th_height * 3 * sizeof(uint8_t));
+    for(size_t k = 0; k < th_width * th_height; k++)
     {
-      tmp = gdk_pixbuf_loader_get_pixbuf(loader);
-      valid = (tmp != NULL);
+      rgb[k * 3] = buffer[k * 4];
+      rgb[k * 3 + 1] = buffer[k * 4 + 1];
+      rgb[k * 3 + 2] = buffer[k * 4 + 2];
     }
+    dt_free_align(buffer);
 
-    if(valid)
-    {
-      fprintf(stdout, "RAW PREVIEW SIZE: %ix%i px\n", gdk_pixbuf_get_width(tmp), gdk_pixbuf_get_height(tmp));
-      const float ratio = ((float)gdk_pixbuf_get_height(tmp)) / ((float)gdk_pixbuf_get_width(tmp));
-      pixbuf = gdk_pixbuf_scale_simple(tmp, width / ratio, height, GDK_INTERP_BILINEAR);
-    }
+    // Build the actual pixbuf object
+    GdkPixbuf *tmp = gdk_pixbuf_new_from_data(rgb, 0, FALSE, 8, th_width, th_height,
+                                              th_width * 3 * sizeof(uint8_t), NULL, NULL);
 
-    gdk_pixbuf_loader_close(loader, NULL);
-    free(mime_type);
-    free(buffer);
-    g_object_unref(loader); // This should clean up tmp as well
+    if(tmp)
+      pixbuf = gdk_pixbuf_scale_simple(tmp, roundf((float)width / ratio), height, GDK_INTERP_HYPER);
+
+    dt_free_align(rgb);
+    g_free(mime_type);
+    g_object_unref(tmp);
   }
-  else
-  {
-    // Fallback to whatever Gtk found in the file
+
+  // Fallback to whatever Gtk found in the file
+  if(pixbuf == NULL)
     pixbuf = gdk_pixbuf_new_from_file_at_size(filename, width, height, NULL);
-  }
 
   if(pixbuf == NULL) return NULL;
 
   // Rotate the image to the correct orientation
   GdkPixbuf *tmp = pixbuf;
+  if(img->orientation == ORIENTATION_ROTATE_CCW_90_DEG)
+    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
+  else if(img->orientation == ORIENTATION_ROTATE_CW_90_DEG)
+    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_CLOCKWISE);
+  else if(img->orientation == ORIENTATION_ROTATE_180_DEG)
+    tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
 
-  if(img && valid_exif)
-  {
-    if(img->orientation == ORIENTATION_ROTATE_CCW_90_DEG)
-      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_COUNTERCLOCKWISE);
-    else if(img->orientation == ORIENTATION_ROTATE_CW_90_DEG)
-      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_CLOCKWISE);
-    else if(img->orientation == ORIENTATION_ROTATE_180_DEG)
-      tmp = gdk_pixbuf_rotate_simple(pixbuf, GDK_PIXBUF_ROTATE_UPSIDEDOWN);
-  }
+  if(pixbuf != tmp) g_object_unref(pixbuf);
 
-  if(pixbuf != tmp)
-  {
-    g_object_unref(pixbuf);
-    pixbuf = tmp;
-  }
-
-  return pixbuf;
+  return tmp;
 }
 
 void _dt_check_basedir()
@@ -567,7 +553,8 @@ static void update_preview_cb(GtkFileChooser *file_chooser, gpointer userdata)
   }
 
   /* Get the thumbnail */
-  GdkPixbuf *pixbuf = _import_get_thumbnail(filename, (int) DT_PIXEL_APPLY_DPI(180), (int) DT_PIXEL_APPLY_DPI(180), valid_exif, img);
+  // 160x120 px seems a reasonably generic size for small thumbs from RAW files
+  GdkPixbuf *pixbuf = _import_get_thumbnail(filename, (int) DT_PIXEL_APPLY_DPI(160), (int) DT_PIXEL_APPLY_DPI(160), valid_exif, img);
   gtk_image_set_from_pixbuf(GTK_IMAGE(d->preview), pixbuf);
   gtk_widget_show_all(d->preview);
   if(pixbuf) g_object_unref(pixbuf);

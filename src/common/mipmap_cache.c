@@ -1258,7 +1258,7 @@ static void _init_8(uint8_t *buf, uint32_t *width, uint32_t *height, float *isca
       // try to load the embedded thumbnail. Might not be large enough though.
       uint8_t *tmp = NULL;
       int32_t thumb_width, thumb_height;
-      res = dt_imageio_large_thumbnail(filename, &tmp, &thumb_width, &thumb_height, color_space);
+      res = dt_imageio_large_thumbnail(filename, &tmp, &thumb_width, &thumb_height, color_space, *width, *height);
       if(!res)
       {
         // We take the thumbnail no matter its size. It might be too small for the requested dimension,

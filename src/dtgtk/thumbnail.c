@@ -414,7 +414,7 @@ int32_t _get_image_buffer(dt_job_t *job)
     char path[PATH_MAX] = { 0 };
     gboolean from_cache = TRUE;
     dt_image_full_path(thumb->imgid,  path,  sizeof(path),  &from_cache, __FUNCTION__);
-    if(!dt_imageio_large_thumbnail(path, &full_res_thumb, &full_res_thumb_wd, &full_res_thumb_ht, &color_space))
+    if(!dt_imageio_large_thumbnail(path, &full_res_thumb, &full_res_thumb_wd, &full_res_thumb_ht, &color_space, thumb->img_width, thumb->img_height))
     {
       // we look for focus areas
       dt_focus_cluster_t full_res_focus[49];

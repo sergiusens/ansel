@@ -108,9 +108,22 @@ void dt_imageio_flip_buffers_ui8_to_float(float *out, const uint8_t *in, const f
                                           const int fht, const int stride,
                                           const dt_image_orientation_t orientation);
 
-// allocate buffer and return 0 on success along with largest jpg thumbnail from raw.
-int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *width, int32_t *height,
-                               dt_colorspaces_color_profile_type_t *color_space);
+/**
+ * @brief Load the thumbnail embedded into a RAW file having at least the size MAX(width, height) x MAX(width, height)
+ *
+ *
+ * @param filename
+ * @param buffer returned image buffer (allocated)
+ * @param th_width returned actual width of the thumbnail
+ * @param th_height returned actual height of the thumbnail
+ * @param color_space returned color space found for the thumbnail
+ * @param width input target width. th_width will be at least this.
+ * @param height input target height th_height will be at least this.
+ * @return int 0 on success
+ */
+int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *th_width, int32_t *th_height,
+                               dt_colorspaces_color_profile_type_t *color_space, const int width,
+                               const int height);
 
 // lookup maker and model, dispatch lookup to rawspeed or libraw
 gboolean dt_imageio_lookup_makermodel(const char *maker, const char *model,

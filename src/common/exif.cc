@@ -1640,7 +1640,7 @@ int dt_exif_read_from_blob(dt_image_t *img, uint8_t *blob, const int size)
 /**
  * Get the largest possible thumbnail from the image
  */
-int dt_exif_get_thumbnail(const char *path, uint8_t **buffer, size_t *size, char **mime_type)
+int dt_exif_get_thumbnail(const char *path, uint8_t **buffer, size_t *size, char **mime_type, int *width, int *height, int min_width)
 {
   try
   {
@@ -1658,10 +1658,21 @@ int dt_exif_get_thumbnail(const char *path, uint8_t **buffer, size_t *size, char
       return 1;
     }
 
-    // Select the largest one
-    // FIXME: We could probably select a smaller thumbnail to match the mip size
-    //        we actually want to create. Is it really much faster though?
-    Exiv2::PreviewProperties selected = list.back();
+    // Select the desired target mipmap
+    Exiv2::PreviewProperties selected;
+    if(min_width < 1)
+    {
+      // Largest mipmap
+      selected = list.back();
+    }
+    else
+    {
+      for(size_t i = 0; i < list.size(); i++)
+      {
+        selected = list[i];
+        if(MAX(selected.width_, selected.height_) >= (size_t)min_width) break;
+      }
+    }
 
     // Get the selected preview image
     Exiv2::PreviewImage preview = loader.getPreviewImage(selected);
@@ -1669,6 +1680,8 @@ int dt_exif_get_thumbnail(const char *path, uint8_t **buffer, size_t *size, char
     size_t _size = preview.size();
 
     *size = _size;
+    *width = preview.width();
+    *height = preview.height();
     *mime_type = strdup(preview.mimeType().c_str());
     *buffer = (uint8_t *)malloc(_size);
     if(!*buffer) {

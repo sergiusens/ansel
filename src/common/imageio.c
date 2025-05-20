@@ -123,9 +123,8 @@ dt_image_flags_t dt_imageio_get_type_from_extension(const char *extension)
   return 0;
 }
 
-// load a full-res thumbnail:
-int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *width, int32_t *height,
-                               dt_colorspaces_color_profile_type_t *color_space)
+int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *th_width, int32_t *th_height,
+                               dt_colorspaces_color_profile_type_t *color_space, const int width, const int height)
 {
   int res = 1;
 
@@ -133,8 +132,7 @@ int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *
   char *mime_type = NULL;
   size_t bufsize;
 
-  // get the biggest thumb from exif
-  if(dt_exif_get_thumbnail(filename, &buf, &bufsize, &mime_type)) goto error;
+  if(dt_exif_get_thumbnail(filename, &buf, &bufsize, &mime_type, th_width, th_height, MAX(width, height))) goto error;
 
   if(strcmp(mime_type, "image/jpeg") == 0)
   {
@@ -144,8 +142,8 @@ int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *
     *buffer = (uint8_t *)dt_alloc_align(sizeof(uint8_t) * 4 * jpg.width * jpg.height);
     if(!*buffer) goto error;
 
-    *width = jpg.width;
-    *height = jpg.height;
+    *th_width = jpg.width;
+    *th_height = jpg.height;
     // TODO: check if the embedded thumbs have a color space set! currently we assume that it's always sRGB
     *color_space = DT_COLORSPACE_SRGB;
     if(dt_imageio_jpeg_decompress(&jpg, *buffer))
@@ -177,8 +175,8 @@ int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *
       goto error_gm;
     }
 
-    *width = image->columns;
-    *height = image->rows;
+    *th_width = image->columns;
+    *th_height = image->rows;
     *color_space = DT_COLORSPACE_SRGB; // FIXME: this assumes that embedded thumbnails are always srgb
 
     *buffer = (uint8_t *)dt_alloc_align(sizeof(uint8_t) * 4 * image->columns * image->rows);
@@ -220,8 +218,8 @@ int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *
       goto error_im;
     }
 
-    *width = MagickGetImageWidth(image);
-    *height = MagickGetImageHeight(image);
+    *th_width = MagickGetImageWidth(image);
+    *th_height = MagickGetImageHeight(image);
     switch (MagickGetImageColorspace(image)) {
     case sRGBColorspace:
       *color_space = DT_COLORSPACE_SRGB;
@@ -233,10 +231,10 @@ int dt_imageio_large_thumbnail(const char *filename, uint8_t **buffer, int32_t *
       break;
     }
 
-    *buffer = malloc(sizeof(uint8_t) * (*width) * (*height) * 4);
+    *buffer = malloc(sizeof(uint8_t) * (*th_width) * (*th_height) * 4);
     if(*buffer == NULL) goto error_im;
 
-    mret = MagickExportImagePixels(image, 0, 0, *width, *height, "RGBP", CharPixel, *buffer);
+    mret = MagickExportImagePixels(image, 0, 0, *th_width, *th_height, "RGBP", CharPixel, *buffer);
     if(mret != MagickTrue) {
       free(*buffer);
       *buffer = NULL;
@@ -281,7 +279,7 @@ gboolean dt_imageio_has_mono_preview(const char *filename)
   int32_t thumb_width = 0, thumb_height = 0;
   gboolean mono = FALSE;
 
-  if(dt_imageio_large_thumbnail(filename, &tmp, &thumb_width, &thumb_height, &color_space))
+  if(dt_imageio_large_thumbnail(filename, &tmp, &thumb_width, &thumb_height, &color_space, -1, -1))
     goto cleanup;
   if((thumb_width < 32) || (thumb_height < 32) || (tmp == NULL))
     goto cleanup;
