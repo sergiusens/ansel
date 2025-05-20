@@ -6,6 +6,16 @@
 #include "control/control.h"
 #include "control/jobs/control_jobs.h"
 
+#ifndef _WIN32
+#include <glob.h>
+#endif
+#ifdef __APPLE__
+#include "osx/osx.h"
+#endif
+#ifdef _WIN32
+#include "win/dtwin.h"
+#endif
+
 
 /**
  * @brief Creates folders from path.
