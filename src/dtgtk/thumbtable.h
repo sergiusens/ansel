@@ -1,3 +1,16 @@
+/**
+ * @file thumbtable.h
+ * @brief A widget to manage and display image thumbnails in Ansel's lighttable and filmstrip views
+ *
+ * This implements an efficient thumbnail grid/table with support for:
+ * - Dynamic loading/unloading of thumbnails based on visibility
+ * - Drag and drop for reordering and file import
+ * - Keyboard navigation
+ * - Multiple selection modes
+ * - Group management
+ * - Custom overlays and zooming
+ */
+
 /*
     This file is part of darktable,
     Copyright (C) 2019-2021 darktable developers.
@@ -16,7 +29,7 @@
     You should have received a copy of the GNU General Public License
     along with darktable.  If not, see <http://www.gnu.org/licenses/>.
 */
-/** a class to manage a table of thumbnail for lighttable and filmstrip.  */
+
 #include "dtgtk/thumbnail.h"
 #include "common/dtpthread.h"
 #include "common/darktable.h"
@@ -27,30 +40,46 @@
 
 #pragma once
 
+
+/**
+ * @enum dt_thumbtable_mode_t
+ * @brief Display modes for the thumbnail table
+ */
 typedef enum dt_thumbtable_mode_t
 {
-  DT_THUMBTABLE_MODE_NONE,
-  DT_THUMBTABLE_MODE_FILEMANAGER,
-  DT_THUMBTABLE_MODE_FILMSTRIP
+  DT_THUMBTABLE_MODE_NONE,       /**< Invalid/uninitialized mode */
+  DT_THUMBTABLE_MODE_FILEMANAGER,/**< Grid layout for lighttable view */
+  DT_THUMBTABLE_MODE_FILMSTRIP   /**< Horizontal strip layout */
 } dt_thumbtable_mode_t;
 
 
+
+/**
+ * @enum dt_thumbtable_zoom_t
+ * @brief Zoom levels for thumbnail display
+ */
 typedef enum dt_thumbtable_zoom_t
 {
-  DT_THUMBTABLE_ZOOM_FIT = 0,
-  DT_THUMBTABLE_ZOOM_HALF = 1,
-  DT_THUMBTABLE_ZOOM_FULL = 2,
-  DT_THUMBTABLE_ZOOM_TWICE = 3
+  DT_THUMBTABLE_ZOOM_FIT = 0,    /**< Fit thumbnails to available space */
+  DT_THUMBTABLE_ZOOM_HALF = 1,   /**< Display at 50% size */
+  DT_THUMBTABLE_ZOOM_FULL = 2,   /**< Display at 100% size */
+  DT_THUMBTABLE_ZOOM_TWICE = 3   /**< Display at 200% size */
 } dt_thumbtable_zoom_t;
 
+
+/**
+ * @struct dt_thumbtable_cache_t
+ * @brief Cache entry for a single thumbnail
+ */
 typedef struct dt_thumbtable_cache_t
 {
-  int32_t imgid;          // image ID as found in database
-  int32_t groupid;        // image group ID as found in database
-  dt_thumbnail_t *thumb;  // reference to the thumbnail object
-  uint32_t group_members; // numbers of images in the same group
-  uint32_t history_items;
+  int32_t imgid;          /**< Image ID from database */
+  int32_t groupid;        /**< Group ID this image belongs to */
+  dt_thumbnail_t *thumb;  /**< Pointer to thumbnail widget */
+  uint32_t group_members; /**< Number of images in this group */
+  uint32_t history_items; /**< Number of history items */
 } dt_thumbtable_cache_t;
+
 
 typedef struct dt_thumbtable_t
 {
@@ -140,13 +169,18 @@ typedef struct dt_thumbtable_t
 
   gboolean draw_group_borders;
 
-  // Gtk signal id for the redraw event
-  unsigned long draw_signal_id;
-  gboolean no_drawing;
-
 } dt_thumbtable_t;
 
 
+/**
+ * @brief Create a new thumbnail table widget
+ * @param mode The display mode (filemanager or filmstrip)
+ * @return New thumbtable instance or NULL on error
+ *
+ * Creates and initializes a new thumbnail table widget with drag-and-drop support,
+ * keyboard navigation, and configurable overlays. The widget automatically handles
+ * thumbnail loading/unloading as the view scrolls.
+ */
 dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode);
 void dt_thumbtable_cleanup(dt_thumbtable_t *table);
 void dt_thumbtable_configure(dt_thumbtable_t *table);
@@ -154,10 +188,30 @@ void dt_thumbtable_update(dt_thumbtable_t *table);
 void dt_thumbtable_set_parent(dt_thumbtable_t *table, dt_thumbtable_mode_t mode);
 void dt_thumbtable_update_parent(dt_thumbtable_t *table);
 
-// drag & drop receive function - handles dropping of files in the center view (files are added to the library)
+/**
+ * @brief Handle drag-and-drop data received
+ * @param widget The widget receiving the drop
+ * @param context The drag context
+ * @param x Drop x coordinate
+ * @param y Drop y coordinate
+ * @param selection_data The dropped data
+ * @param target_type Target type ID
+ * @param time Timestamp
+ * @param user_data User data (thumbtable instance)
+ *
+ * Handles drops of files/URIs onto the thumbtable. Files are imported into
+ * the current film roll.
+ */
 void dt_thumbtable_event_dnd_received(GtkWidget *widget, GdkDragContext *context, gint x, gint y, GtkSelectionData *selection_data, guint target_type, guint time, gpointer user_data);
 
-// change the type of overlays that should be shown (over or under the image)
+/**
+ * @brief Set the overlay display mode for thumbnails
+ * @param table The thumbnail table
+ * @param over New overlay mode to use
+ *
+ * Changes how overlays (text, icons etc) are displayed on thumbnails.
+ * Updates all visible thumbnails immediately.
+ */
 void dt_thumbtable_set_overlays_mode(dt_thumbtable_t *table, dt_thumbnail_overlay_t over);
 
 // set zoom level
@@ -187,24 +241,74 @@ gboolean dt_thumbtable_key_pressed_grid(GtkWidget *self, GdkEventKey *event, gpo
 void dt_thumbtable_refresh_thumbnail_real(dt_thumbtable_t *table, int32_t imgid, gboolean reinit);
 #define dt_thumbtable_refresh_thumbnail(table, imgid, reinit) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_LIGHTTABLE, dt_thumbtable_refresh_thumbnail_real, (table), (imgid), (reinit))
 
-// select all images from the current collection through the GUI list of thumbnails
+/**
+ * @brief Select all images in the current grid
+ * @param table The thumbnail table
+ *
+ * Selects all images currently displayed in the thumbnail table through the GUI.
+ */
 void dt_thumbtable_select_all(dt_thumbtable_t *table);
 
-// select all images from the current collection that lie between the closest current selection bound
-// and the specified rowid index.
+/**
+ * @brief Select a range of images in the collection
+ * @param table The thumbnail table
+ * @param rowid Target row index to extend selection to
+ *
+ * Selects all images between the closest current selection bound and the specified rowid.
+ * Used for shift-click selection behavior.
+ */
 void dt_thumbtable_select_range(dt_thumbtable_t *table, const int rowid);
 
-// invert the selection of images from the current collection through the GUI list of thumbnails
+/**
+ * @brief Invert the current selection
+ * @param table The thumbnail table
+ *
+ * Inverts the selection state of all images in the current collection.
+ */
 void dt_thumbtable_invert_selection(dt_thumbtable_t *table);
 
-// set mouse_over imgid while resolving conflicts between mouse and keyboard events
+/**
+ * @brief Update the mouse-over image ID with conflict resolution
+ * @param table The thumbnail table
+ * @param type The event type triggering the update
+ * @param imgid Image ID the mouse is over
+ *
+ * Updates which image is considered "under the mouse", resolving conflicts
+ * between mouse and keyboard events.
+ */
 void dt_thumbtable_dispatch_over(dt_thumbtable_t *table, GdkEventType type, int32_t imgid);
 
+/**
+ * @brief Scroll the view to show a specific image
+ * @param table The thumbnail table
+ * @param imgid The image ID to scroll to
+ * @return 1 if successful, 0 if image not found
+ */
 int dt_thumbtable_scroll_to_imgid(dt_thumbtable_t *table, int32_t imgid);
+
+/**
+ * @brief Scroll to show the active row
+ * @param table The thumbnail table
+ * @return 1 if successful, 0 if no active row
+ */
 int dt_thumbtable_scroll_to_active_rowid(dt_thumbtable_t *table);
+
+/**
+ * @brief Scroll to show selected content
+ * @param table The thumbnail table
+ * @return 1 if successful, 0 if nothing to scroll to
+ *
+ * Scrolls to the first-selected image. If none selected, tries keyboard "over",
+ * then mouse "over", then last active image, in this order.
+ */
 int dt_thumbtable_scroll_to_selection(dt_thumbtable_t *table);
 
-// Internally update the first visible thumbnail index based on current scrolling position
+/**
+ * @brief Update internal active row tracking
+ * @param table The thumbnail table
+ *
+ * Updates the internal first visible thumbnail index based on current scroll position.
+ */
 void dt_thumbtable_set_active_rowid(dt_thumbtable_t *table);
 
 // Scroll to the first-selected image, or default to keyboard "over" then mouse "over", then last active image,
@@ -222,6 +326,12 @@ static inline void dt_thumbtable_redraw_real(dt_thumbtable_t *table)
 
 #define dt_thumbtable_redraw(table) DT_DEBUG_TRACE_WRAPPER(DT_DEBUG_LIGHTTABLE, dt_thumbtable_redraw_real, (table))
 
+/**
+ * @brief Show the thumbnail table widget
+ * @param table The thumbnail table
+ *
+ * Makes the widget visible and forces an update of the display.
+ */
 static inline void dt_thumbtable_show(dt_thumbtable_t *table)
 {
   gtk_widget_show(table->parent_overlay);
@@ -232,6 +342,10 @@ static inline void dt_thumbtable_show(dt_thumbtable_t *table)
   dt_thumbtable_redraw(table);
 }
 
+/**
+ * @brief Hide the thumbnail table widget
+ * @param table The thumbnail table
+ */
 static inline void dt_thumbtable_hide(dt_thumbtable_t *table)
 {
   gtk_widget_hide(table->parent_overlay);

@@ -135,13 +135,6 @@ typedef struct
   // In that case, don't send more requests to the mipmap cache,
   // listen and wait for the MIPMAP_UPDATED signal.
 
-  // Gtk signal id for the redraw event
-  unsigned long draw_signal_id;
-  unsigned long img_draw_signal_id;
-
-  // Redraw events are blocked
-  gboolean no_draw;
-
   // Number of background jobs handling the backbuf Cairo surface.
   // Those will fetch a mipmap thumbnail and possibly repaint focus regions on top.
   // Because they all free/recreate the Cairo buffer internally, we need
@@ -188,9 +181,6 @@ int dt_thumbnail_get_image_buffer(dt_thumbnail_t *thumb);
 
 // temporarily block all redraw events
 int dt_thumbnail_block_redraw(dt_thumbnail_t *thumb);
-
-// unblock previously-blocked redraw events
-int dt_thumbnail_unblock_redraw(dt_thumbnail_t *thumb);
 
 // Get the number of background jobs currently running.
 // Shouldn't be more than 1 if everything goes well

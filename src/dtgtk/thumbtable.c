@@ -447,9 +447,9 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
 {
   if(!gtk_widget_is_visible(table->scroll_window)) return;
 
-  int cols;
-  int new_width;
-  int new_height;
+  int cols = 1;
+  int new_width = 0;
+  int new_height = 0;
 
   if(table->mode == DT_THUMBTABLE_MODE_FILEMANAGER)
   {
@@ -465,9 +465,8 @@ void dt_thumbtable_configure(dt_thumbtable_t *table)
     new_height = gtk_widget_get_allocated_height(table->parent_overlay);
     GtkWidget *h_scroll = gtk_scrolled_window_get_hscrollbar(GTK_SCROLLED_WINDOW(table->scroll_window));
     new_height -= gtk_widget_get_allocated_height(h_scroll) + 1;
-    cols = table->thumbs_per_row; // whatever that doesn't make the next if think layout changed
   }
-  
+
   if((new_width > 0 && new_width != table->view_width) ||
      (new_height > 0 && new_height != table->view_height) ||
      (cols != table->thumbs_per_row))
@@ -688,7 +687,6 @@ void _add_thumbnail_at_rowid(dt_thumbtable_t *table, const size_t rowid, const i
 
   _add_thumbnail_group_borders(table, thumb);
   gtk_widget_show(thumb->widget);
-  dt_thumbnail_unblock_redraw(thumb);
 }
 
 
@@ -730,80 +728,6 @@ void _resize_thumbnails(dt_thumbtable_t *table)
     _add_thumbnail_group_borders(table, thumb);
     gtk_widget_queue_draw(thumb->widget);
   }
-}
-
-#if 0
-// Don't redraw the visible thumbs while we allocate new ones,
-// because we allocate them out of the visible area.
-void _disable_redraws(dt_thumbtable_t *table)
-{
-  g_signal_handler_block(G_OBJECT(table->grid), table->draw_signal_id);
-  table->no_drawing = TRUE;
-}
-
-// Restore the redraw on allocate default behaviour to follow window resizing.
-void _enable_redraws(dt_thumbtable_t *table)
-{
-  g_signal_handler_unblock(G_OBJECT(table->grid), table->draw_signal_id);
-  table->no_drawing = FALSE;
-  gtk_widget_queue_draw(table->grid);
-}
-#endif
-
-unsigned long timeout_handle = 0;
-
-// Populate the immediate next and previous thumbs
-int dt_thumbtable_prefetch(dt_thumbtable_t *table)
-{
-  if(table->thumb_nb == table->collection_count || table->collection_count == MAX_THUMBNAILS)
-  {
-    timeout_handle = 0;
-    return G_SOURCE_REMOVE;
-  }
-
-  const int32_t mouse_over = dt_control_get_mouse_over_id();
-
-  dt_pthread_mutex_lock(&table->lock);
-
-  const int page_size = table->max_row_id - table->min_row_id + 1;
-
-  // We prefetch only up to 1 full pagebefore and after
-  const int min_range = table->min_row_id - page_size;
-  const int max_range = table->max_row_id + page_size;
-
-  // Populate the previous thumb
-  gboolean full_before = TRUE;
-  for(int rowid = CLAMP(table->min_row_id, 0, table->collection_count - 1);
-      rowid >= MAX(0, min_range); rowid--)
-    if(table->lut[rowid].thumb == NULL)
-    {
-      _add_thumbnail_at_rowid(table, rowid, mouse_over);
-      dt_thumbnail_get_image_buffer(table->lut[rowid].thumb);
-      full_before = FALSE;
-      break;
-    }
-
-  // Populate the next thumb
-  gboolean full_after = TRUE;
-  for(int rowid = CLAMP(table->max_row_id, 0, table->collection_count - 1);
-      rowid < MIN(table->collection_count, max_range); rowid++)
-    if(table->lut[rowid].thumb == NULL)
-    {
-      _add_thumbnail_at_rowid(table, rowid, mouse_over);
-      dt_thumbnail_get_image_buffer(table->lut[rowid].thumb);
-      full_after = FALSE;
-      break;
-    }
-
-  dt_pthread_mutex_unlock(&table->lock);
-
-  if(table->thumb_nb == table->collection_count || table->collection_count == MAX_THUMBNAILS || (full_before && full_after))
-  {
-    timeout_handle = 0;
-    return G_SOURCE_REMOVE;
-  }
-
-  return G_SOURCE_CONTINUE;
 }
 
 
@@ -1761,7 +1685,7 @@ dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
   g_signal_connect(table->grid, "drag-data-received", G_CALLBACK(dt_thumbtable_event_dnd_received), table);
 
   gtk_widget_add_events(table->grid, GDK_STRUCTURE_MASK | GDK_EXPOSURE_MASK | GDK_KEY_PRESS_MASK | GDK_KEY_RELEASE_MASK);
-  table->draw_signal_id = g_signal_connect(table->grid, "draw", G_CALLBACK(_draw_callback), table);
+  g_signal_connect(table->grid, "draw", G_CALLBACK(_draw_callback), table);
   g_signal_connect(table->grid, "key-press-event", G_CALLBACK(dt_thumbtable_key_pressed_grid), table);
   g_signal_connect(table->grid, "key-release-event", G_CALLBACK(dt_thumbtable_key_released_grid), table);
   gtk_widget_show(table->grid);
@@ -1847,6 +1771,10 @@ dt_thumbtable_t *dt_thumbtable_new(dt_thumbtable_mode_t mode)
                                  path, table->grid, GDK_KEY_space, 0);
   g_free(path);
   path = dt_accels_build_path(_("Lighttable/Thumbtable"), _("Toogle the current thumbnail from selection"));
+  dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
+                                 path, table->grid, GDK_KEY_space, GDK_CONTROL_MASK);
+  g_free(path);
+  path = dt_accels_build_path(_("Lighttable/Thumbtable"), _("Expand the current selection up to the hovered thumbnail"));
   dt_accels_new_virtual_shortcut(darktable.gui->accels, darktable.gui->accels->lighttable_accels,
                                  path, table->grid, GDK_KEY_space, GDK_SHIFT_MASK);
   g_free(path);

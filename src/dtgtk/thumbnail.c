@@ -776,31 +776,6 @@ static gboolean _event_star_leave(GtkWidget *widget, GdkEventCrossing *event, gp
 }
 
 
-int dt_thumbnail_block_redraw(dt_thumbnail_t *thumb)
-{
-  if(thumb->table && thumb->table->no_drawing && !thumb->no_draw)
-  {
-    g_signal_handler_block(G_OBJECT(thumb->widget), thumb->draw_signal_id);
-    g_signal_handler_block(G_OBJECT(thumb->w_image), thumb->img_draw_signal_id);
-    thumb->no_draw = TRUE;
-  }
-
-  return G_SOURCE_REMOVE;
-}
-
-
-int dt_thumbnail_unblock_redraw(dt_thumbnail_t *thumb)
-{
-  if(thumb->table && !thumb->table->no_drawing && thumb->no_draw)
-  {
-    g_signal_handler_unblock(G_OBJECT(thumb->widget), thumb->draw_signal_id);
-    g_signal_handler_unblock(G_OBJECT(thumb->w_image), thumb->img_draw_signal_id);
-    thumb->no_draw = FALSE;
-    gtk_widget_queue_draw(thumb->widget);
-  }
-  return G_SOURCE_REMOVE;
-}
-
 gboolean _event_expose(GtkWidget *self, cairo_t *cr, gpointer user_data)
 {
   dt_thumbnail_t *thumb = (dt_thumbnail_t *)user_data;
@@ -963,7 +938,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   g_signal_connect(G_OBJECT(thumb->widget), "enter-notify-event", G_CALLBACK(_event_main_enter), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "leave-notify-event", G_CALLBACK(_event_main_leave), thumb);
   g_signal_connect(G_OBJECT(thumb->widget), "motion-notify-event", G_CALLBACK(_event_main_motion), thumb);
-  thumb->draw_signal_id = g_signal_connect(G_OBJECT(thumb->widget), "draw", G_CALLBACK(_event_expose), thumb);
+  g_signal_connect(G_OBJECT(thumb->widget), "draw", G_CALLBACK(_event_expose), thumb);
 
   // Main widget
   thumb->w_main = gtk_overlay_new();
@@ -995,7 +970,7 @@ GtkWidget *dt_thumbnail_create_widget(dt_thumbnail_t *thumb)
   gtk_widget_set_valign(thumb->w_image, GTK_ALIGN_CENTER);
   gtk_widget_set_halign(thumb->w_image, GTK_ALIGN_CENTER);
   gtk_widget_set_events(thumb->w_image, GDK_BUTTON_PRESS_MASK | GDK_BUTTON_RELEASE_MASK | GDK_POINTER_MOTION_MASK);
-  thumb->img_draw_signal_id = g_signal_connect(G_OBJECT(thumb->w_image), "draw", G_CALLBACK(_thumb_draw_image), thumb);
+  g_signal_connect(G_OBJECT(thumb->w_image), "draw", G_CALLBACK(_thumb_draw_image), thumb);
   g_signal_connect(G_OBJECT(thumb->w_image), "button-press-event", G_CALLBACK(_event_image_press), thumb);
   g_signal_connect(G_OBJECT(thumb->w_image), "button-release-event", G_CALLBACK(_event_image_release), thumb);
   g_signal_connect(G_OBJECT(thumb->w_image), "motion-notify-event", G_CALLBACK(_event_image_motion), thumb);
@@ -1161,7 +1136,6 @@ dt_thumbnail_t *dt_thumbnail_new(int32_t imgid, int rowid, int32_t groupid,
   thumb->table = table;
   thumb->zoomx = 0.;
   thumb->zoomy = 0.;
-  thumb->no_draw = FALSE;
 
   dt_pthread_mutex_init(&thumb->lock, NULL);
 
@@ -1421,7 +1395,6 @@ int dt_thumbnail_image_refresh_real(dt_thumbnail_t *thumb)
 {
   thumb_return_if_fails(thumb, G_SOURCE_REMOVE);
   thumb->image_inited = FALSE;
-  dt_thumbnail_unblock_redraw(thumb);
   gtk_widget_queue_draw(thumb->w_main);
   return G_SOURCE_REMOVE;
 }
