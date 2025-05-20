@@ -860,28 +860,7 @@ dialog .sidebar row:selected:hover label,
   - Dialog windows -
   ------------------*/
 /* Set default settings */
-.dt_accels_window,
-dialog .dialog-vbox
-{
-  margin: 0.42em;
-}
 
-/* set top margin in bottom button bar to be the same as bottom margin applied above for main dialog window */
-dialog .dialog-action-box
-{
-  margin-top: 0.42em;
-}
-
-/* remove margin on the left for first left button only, then do the same for right margin for last right button only */
-dialog .dialog-action-box button:first-child
-{
-  margin-left: 0;
-}
-
-dialog .dialog-action-box button:last-child
-{
-  margin-right: 0;
-}
 
 /* remove left and reduce top margin only on dialog filechooser box */
 dialog filechooser

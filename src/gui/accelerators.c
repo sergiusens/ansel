@@ -1531,12 +1531,15 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
   dt_osx_disallow_fullscreen(dialog);
 #endif
 
+  const int dialog_width = 800;
+  const int dialog_height = 0;
+
   gtk_dialog_set_default_response(GTK_DIALOG(dialog), GTK_RESPONSE_CANCEL);
   gtk_window_set_decorated(GTK_WINDOW(dialog), FALSE);
-  gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER);
+  gtk_window_set_position(GTK_WINDOW(dialog), GTK_WIN_POS_CENTER_ON_PARENT);
   gtk_window_set_modal(GTK_WINDOW(dialog), TRUE);
   gtk_window_set_transient_for(GTK_WINDOW(dialog), main_window);
-  gtk_window_set_default_size(GTK_WINDOW(dialog), 800, 32);
+  gtk_window_set_default_size(GTK_WINDOW(dialog), dialog_width, dialog_height);
   gtk_widget_set_name(dialog, "shortcut-search-dialog");
 
   // Build the list of currently-relevant shortcut pathes
@@ -1591,6 +1594,13 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
   g_signal_connect(G_OBJECT(completion), "match-selected", G_CALLBACK(_match_selected), main_window);
 
   gtk_widget_show_all(dialog);
+
+  // Manually-position the popup at the top of the window
+  GtkAllocation tmp = { 0 };
+  gtk_window_get_size(main_window, &tmp.width, &tmp.height);
+  gdk_window_move_to_rect(GDK_WINDOW(gtk_widget_get_window(dialog)), &tmp, GDK_WINDOW_EDGE_NORTH, GDK_WINDOW_EDGE_NORTH,
+                          0, tmp.width / 2 - dialog_width / 2, 0);
+
   gtk_dialog_run(GTK_DIALOG(dialog));
   gtk_grab_remove(search_entry);
   gtk_widget_destroy(dialog);
