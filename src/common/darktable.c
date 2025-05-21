@@ -1472,7 +1472,7 @@ int dt_worker_threads()
 
 size_t dt_get_available_mem()
 {
-  return darktable.dtresources.available_memory;
+  return darktable.dtresources.buffer_memory * 4;
 }
 
 size_t dt_get_singlebuffer_mem()
@@ -1553,32 +1553,12 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   }
 
   // Get the minimal memory size needed at ANY time for ANY running pipeline
-  // to be guaranteed workable.
-  // That is 4 buffers: in/out and 1 in-module temporary alloc and 1 mask.
-  // Note: preview pipe and main pipe in darkroom don't run at the same time,
-  // and if users want to run export from darkroom, it's their own responsibility.
+  // to be guaranteed workable, that is 4 temporary buffers of the largest pipeline
   resources->buffer_memory = MAX(MAX(darkroom_pipe_size, preview_pipe_size), export_pipe_size);
   const size_t min_pipeline_memory = 4 * resources->buffer_memory;
 
-  // Thumbnail and export pipes have a static pixel cache size : 4 entries (in/out + mask + raster). Done !
-
-  // But darkroom pipes have a pixelpipe cache that can save intermediate module outputs
-  // to restart computing from the last unchanged module.
-  // Estimate the max temporary memory used in darkroom at runtime for 10 buffers
-  // (wavelets separation, local laplacian) such that we avoid tiling.
-  const size_t ideal_pipeline_memory = MAX(min_pipeline_memory, 10 * MAX(darkroom_pipe_size, preview_pipe_size));
-
-  // Now, assign our final pipeline memory.
-  // Remaining memory so far is at least 50% of total system memory.
-  size_t remaining_memory = resources->total_memory - resources->mipmap_memory - resources->headroom_memory;
-  resources->available_memory = MAX(ideal_pipeline_memory, min_pipeline_memory);
-  resources->available_memory = MIN(resources->available_memory, remaining_memory / 2);
-
-  // Sanitize buffer memory in case min_pipeline_memory was already > remaining_memory
-  resources->buffer_memory = MIN(resources->buffer_memory, resources->available_memory / 4);
-
-  // So, now, split all remaining memory between caches lines
-  resources->pixelpipe_memory = resources->available_memory;
+  // Pipeline cache gets the rest
+  resources->pixelpipe_memory = resources->total_memory - resources->mipmap_memory - resources->headroom_memory - min_pipeline_memory;
 
   // Print
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Total system RAM: %lu MiB\n"),
@@ -1592,9 +1572,6 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
 
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache size: %lu MiB\n"),
            resources->pixelpipe_memory / (1024 * 1024));
-
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Available RAM for pixel processing: %lu MiB\n"),
-           resources->available_memory / (1024 * 1024));
 
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Max pixel buffer size: %lu MiB (%s RGBA float32)\n"),
            resources->buffer_memory / (1024 * 1024), resolution_str);

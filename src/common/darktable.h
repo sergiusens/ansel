@@ -513,7 +513,6 @@ typedef struct dt_sys_resources_t
   size_t mipmap_memory;    // RAM allocated to mipmap cache
   size_t headroom_memory;  // RAM left to OS & other Apps
   size_t pixelpipe_memory; // RAM used by the pixelpipe cache (approx.)
-  size_t available_memory; // All RAM available minus all the others
   size_t buffer_memory;    // Max size of a single image buffer, fraction of available_memory
 
   // pixel size of a main darkroom image cache line
