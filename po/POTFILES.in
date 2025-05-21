@@ -141,6 +141,7 @@ src/control/jobs/control_jobs.c
 src/control/jobs/develop_jobs.c
 src/control/jobs/film_jobs.c
 src/control/jobs/image_jobs.c
+src/control/jobs/import_jobs.c
 src/develop/blend.c
 src/develop/blend_gui.c
 src/develop/develop.c
@@ -179,6 +180,7 @@ src/gui/actions/edit.c
 src/gui/actions/file.c
 src/gui/actions/help.c
 src/gui/actions/image.c
+src/gui/actions/menu.c
 src/gui/actions/run.c
 src/gui/actions/select.c
 src/gui/window_manager.c
