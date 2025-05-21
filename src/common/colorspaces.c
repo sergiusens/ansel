@@ -2443,6 +2443,7 @@ int dt_colorspaces_conversion_matrices_xyz(const float adobe_XYZ_to_CAM[4][3], f
 }
 
 // Converted from dcraw's cam_xyz_coeff()
+// Build the camera RGB to sRGB conversion matrix
 int dt_colorspaces_conversion_matrices_rgb(const float adobe_XYZ_to_CAM[4][3],
                                            double out_RGB_to_CAM[4][3], double out_CAM_to_RGB[3][4],
                                            const float *embedded_matrix,
