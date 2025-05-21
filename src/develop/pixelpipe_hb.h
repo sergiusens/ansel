@@ -158,7 +158,6 @@ typedef struct dt_dev_pixelpipe_t
   dt_dev_pixelpipe_change_t changed;
   // backbuffer (output)
   uint8_t *backbuf;
-  size_t backbuf_size;
   int backbuf_width, backbuf_height;
   float backbuf_scale;
   float backbuf_zoom_x, backbuf_zoom_y;
@@ -254,7 +253,7 @@ int dt_dev_pixelpipe_init_thumbnail(dt_dev_pixelpipe_t *pipe, int32_t width, int
 // distortions)
 int dt_dev_pixelpipe_init_dummy(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t height);
 // inits the pixelpipe with given cacheline size and number of entries.
-int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t entries);
+int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t memory);
 // constructs a new input buffer from given RGB float array.
 void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev, int32_t imgid, int width,
                                 int height, float iscale, dt_mipmap_size_t size);

@@ -135,7 +135,7 @@ inline static void _uint8_to_float(const uint8_t *const input, float *const outp
 int dt_dev_pixelpipe_init_export(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t height, int levels,
                                  gboolean store_masks)
 {
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * width * height, 2);
+  const int res = dt_dev_pixelpipe_init_cached(pipe, darktable.dtresources.pixelpipe_memory);
   pipe->type = DT_DEV_PIXELPIPE_EXPORT;
   pipe->levels = levels;
   pipe->store_all_raster_masks = store_masks;
@@ -144,14 +144,14 @@ int dt_dev_pixelpipe_init_export(dt_dev_pixelpipe_t *pipe, int32_t width, int32_
 
 int dt_dev_pixelpipe_init_thumbnail(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t height)
 {
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * width * height, 2);
+  const int res = dt_dev_pixelpipe_init_cached(pipe, darktable.dtresources.pixelpipe_memory);
   pipe->type = DT_DEV_PIXELPIPE_THUMBNAIL;
   return res;
 }
 
 int dt_dev_pixelpipe_init_dummy(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t height)
 {
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * width * height, 0);
+  const int res = dt_dev_pixelpipe_init_cached(pipe, darktable.dtresources.pixelpipe_memory);
   pipe->type = DT_DEV_PIXELPIPE_THUMBNAIL;
   return res;
 }
@@ -159,7 +159,7 @@ int dt_dev_pixelpipe_init_dummy(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t
 int dt_dev_pixelpipe_init_preview(dt_dev_pixelpipe_t *pipe)
 {
   // Init with the size of MIPMAP_F
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * 720 * 450, dt_conf_get_int("cachelines"));
+  const int res = dt_dev_pixelpipe_init_cached(pipe, darktable.dtresources.pixelpipe_memory);
   pipe->type = DT_DEV_PIXELPIPE_PREVIEW;
 
   // Needed for caching
@@ -169,7 +169,7 @@ int dt_dev_pixelpipe_init_preview(dt_dev_pixelpipe_t *pipe)
 
 int dt_dev_pixelpipe_init(dt_dev_pixelpipe_t *pipe)
 {
-  const int res = dt_dev_pixelpipe_init_cached(pipe, sizeof(float) * 4 * darktable.dtresources.darkroom_cache, dt_conf_get_int("cachelines"));
+  const int res = dt_dev_pixelpipe_init_cached(pipe, darktable.dtresources.pixelpipe_memory);
   pipe->type = DT_DEV_PIXELPIPE_FULL;
 
   // Needed for caching
@@ -177,14 +177,13 @@ int dt_dev_pixelpipe_init(dt_dev_pixelpipe_t *pipe)
   return res;
 }
 
-int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t entries)
+int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t memory)
 {
   pipe->devid = -1;
   pipe->changed = DT_DEV_PIPE_UNCHANGED;
   pipe->processed_width = pipe->backbuf_width = pipe->iwidth = 0;
   pipe->processed_height = pipe->backbuf_height = pipe->iheight = 0;
   pipe->nodes = NULL;
-  pipe->backbuf_size = size;
   pipe->backbuf = NULL;
   pipe->backbuf_scale = 0.0f;
   pipe->backbuf_zoom_x = 0.0f;
@@ -225,7 +224,7 @@ int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t size, int32_t 
   pipe->flush_cache = FALSE;
 
   dt_dev_pixelpipe_reset_reentry(pipe);
-  if(!dt_dev_pixelpipe_cache_init(&(pipe->cache), entries, pipe->backbuf_size)) return 0;
+  if(!dt_dev_pixelpipe_cache_init(&(pipe->cache), memory)) return 0;
 
   return 1;
 }
@@ -1983,7 +1982,7 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
                              const size_t bufsize, const size_t bpp)
 {
   // Note: dt_dev_pixelpipe_cache_get actually init/alloc *output
-  if(bypass_cache || dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, output, out_format))
+  if(bypass_cache || dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, "base buffer", output, out_format))
   {
     // Grab input buffer from mipmap cache.
     // We will have to copy it here and in pixelpipe cache because it can get evicted from mipmap cache
@@ -2129,11 +2128,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   const gboolean bypass_cache = (module) ? piece->bypass_cache : FALSE;
   if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_available(&(pipe->cache), hash))
   {
-    if(module)
-      dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache available for pipe %i and module %s (%s) with hash %lu\n",
-             pipe->type, module->op, module->multi_name, hash);
-
-    (void)dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, output, out_format);
+    dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, "", output, out_format);
 
     // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
     // except for gamma which outputs uint8 so we need to deal with that internally
@@ -2164,9 +2159,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   }
 
   // 3b) recurse and obtain output array in &input
-  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache not available for pipe %i and module %s (%s) with hash %lu\n",
-             pipe->type, module->op, module->multi_name, hash);
-
   // get region of interest which is needed in input
   // This is already computed ahead of running at init time in _get_roi_in()
   memcpy(&roi_in, &piece->planned_roi_in, sizeof(dt_iop_roi_t));
@@ -2194,7 +2186,9 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   const size_t out_bpp = dt_iop_buffer_dsc_to_bpp(*out_format);
 
   // reserve new cache line: output
-  (void)dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, output, out_format);
+  char *name = g_strdup_printf("module %s (%s) for pipe %i", module->op, module->multi_name, pipe->type);
+  dt_dev_pixelpipe_cache_get(&(pipe->cache), hash, bufsize, name, output, out_format);
+  g_free(name);
 
   dt_times_t start;
   dt_get_times(&start);
@@ -2405,7 +2399,7 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
   dt_iop_roi_t roi = (dt_iop_roi_t){ x, y, width, height, scale };
   // printf("pixelpipe homebrew process start\n");
-  if(darktable.unmuted & DT_DEBUG_DEV) dt_dev_pixelpipe_cache_print(&pipe->cache);
+  dt_dev_pixelpipe_cache_print(&pipe->cache);
 
   // get a snapshot of mask list
   if(pipe->forms) g_list_free_full(pipe->forms, (void (*)(void *))dt_masks_free_form);
@@ -2748,7 +2742,7 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
   if(!err_ret)
   {
     const uint64_t raster_hash = current_piece->global_mask_hash;
-    
+
     gchar *clean_source_name = delete_underscore(source_piece->module->name());
     gchar *source_name = g_strdup_printf("%s (%s)", clean_source_name, source_piece->module->multi_name);
     raster_mask = g_hash_table_lookup(source_piece->raster_masks, GINT_TO_POINTER(raster_mask_id));

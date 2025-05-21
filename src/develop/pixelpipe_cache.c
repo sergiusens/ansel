@@ -1,13 +1,13 @@
 /*
-    This file is part of darktable,
-    Copyright (C) 2009-2021 darktable developers.
+    This file is part of Ansel
+    Copyright (C) 2025 - Aurélien PIERRE
 
-    darktable is free software: you can redistribute it and/or modify
+    Ansel is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
     the Free Software Foundation, either version 3 of the License, or
     (at your option) any later version.
 
-    darktable is distributed in the hope that it will be useful,
+    Ansel is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -17,200 +17,251 @@
 */
 
 #include "develop/pixelpipe_cache.h"
+#include "common/darktable.h"
+#include "common/debug.h"
 #include "develop/format.h"
 #include "develop/pixelpipe_hb.h"
-#include "libs/lib.h"
-#include "libs/colorpicker.h"
+#include <glib.h>
 #include <stdlib.h>
 
 
-// TODO: make cache global (needs to be thread safe then)
-// plan:
-// - look at mipmap_cache.c, for the full buffer allocs
-// - do that, but for `large' and `regular' buffers (full + export/dr mode), so 2 caches
-//   (in fact, maybe 3, one for preview pipes?)
-// - have at most 3 read locks all the time per pipe, get them at create time
-//   ping, pong, and priority buffer (focused plugin)
-// - drop read by the time another is requested (with priority, drop that, or alternating ping and pong?)
-
-int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, int entries, size_t size)
+typedef struct dt_pixel_cache_entry_t
 {
-  cache->entries = entries;
-  cache->data = (void **)calloc(entries, sizeof(void *));
-  cache->size = (size_t *)calloc(entries, sizeof(size_t));
-  cache->dsc = (dt_iop_buffer_dsc_t *)calloc(entries, sizeof(dt_iop_buffer_dsc_t));
-#ifdef _DEBUG
-  memset(cache->dsc, 0x2c, sizeof(dt_iop_buffer_dsc_t) * entries);
-#endif
-  cache->hash = (uint64_t *)calloc(entries, sizeof(uint64_t));
-  cache->used = (int32_t *)calloc(entries, sizeof(int32_t));
-  for(int k = 0; k < entries; k++)
-  {
-    cache->size[k] = size;
-    if(size)
-    { // allow 0 initial buffer size (yet unknown dimensions)
-      cache->data[k] = (void *)dt_alloc_align(size);
-      if(!cache->data[k]) goto alloc_memory_fail;
-#ifdef _DEBUG
-      memset(cache->data[k], 0x5d, size);
-#endif
-      ASAN_POISON_MEMORY_REGION(cache->data[k], cache->size[k]);
-    }
-    else cache->data[k] = 0;
-    cache->hash[k] = -1;
-    cache->used[k] = 0;
-  }
-  cache->queries = cache->misses = 0;
-  return 1;
+  uint64_t hash;
+  void *data;
+  size_t size;
+  dt_iop_buffer_dsc_t dsc;
+  int age;
+  char *name; // name of the cache entry, for debugging
+} dt_pixel_cache_entry_t;
 
-alloc_memory_fail:
-  //  dt_dev_pixelpipe_cache_cleanup(cache);
-  // The above code seems to be not correct as failing to allocate the cache->data buffers
-  // should not cleanup the whole pixelpipe cache but only reset the buffers to null.
-  // A warning about low memory will appear but the pipeline still has valid data so dt won't crash
-  // but will only fail to generate thumbnails for example.
-  for(int k = 0; k < cache->entries; k++)
-  {
-    dt_free_align(cache->data[k]);
-    cache->size[k] = 0;
-    cache->data[k] = NULL;
-  }
-  return 0;
+
+size_t dt_pixel_cache_get_size(dt_pixel_cache_entry_t *cache_entry)
+{
+  return cache_entry->size / (1024 * 1024);
 }
+
+void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *message)
+{
+  if(!(darktable.unmuted & DT_DEBUG_PIPE)) return;
+  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu: %s (%lu MiB) %s\n", cache_entry->hash, cache_entry->name,
+           dt_pixel_cache_get_size(cache_entry), message);
+}
+
+// remove the cache entry with the given hash and update the cache memory usage
+void dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
+{
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry)
+  {
+    cache->current_memory -= cache_entry->size;
+    g_hash_table_remove(cache->entries, GINT_TO_POINTER(hash));
+  }
+  else
+  {
+    dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, will not be removed\n", hash);
+  }
+}
+
+typedef struct _cache_lru_t
+{
+  int max_age;
+  uint64_t hash;
+} _cache_lru_t;
+
+
+// find the cache entry hash with the oldest use
+void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
+{
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+  _cache_lru_t *lru = (_cache_lru_t *)user_data;
+  if(cache_entry->age > lru->max_age)
+  {
+    lru->max_age = cache_entry->age;
+    lru->hash = cache_entry->hash;
+  }
+}
+
+
+// remove the least used cache entry
+void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
+{
+  _cache_lru_t *lru = (_cache_lru_t *)malloc(sizeof(_cache_lru_t));
+  lru->max_age = -1;
+  lru->hash = 0;
+  g_hash_table_foreach(cache->entries, _cache_get_oldest, lru);
+  dt_dev_pixel_pipe_cache_remove(cache, lru->hash);
+  free(lru);
+}
+
+
+static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, const size_t size,
+                                                        const dt_iop_buffer_dsc_t dsc, const char *name,
+                                                        dt_dev_pixelpipe_cache_t *cache)
+{
+  // Free up space if needed to match the max memory limit
+  while(cache->current_memory + size > cache->max_memory && g_hash_table_size(cache->entries) > 0)
+    dt_dev_pixel_pipe_cache_remove_lru(cache);
+
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)malloc(sizeof(dt_pixel_cache_entry_t));
+  if(!cache_entry) return NULL;
+
+  // allocate the data buffer
+  cache_entry->data = dt_alloc_align(size);
+
+  // if allocation failed, remove the least recently used cache entry, then try again
+  while(cache_entry->data == NULL && g_hash_table_size(cache->entries) > 0)
+  {
+    dt_dev_pixel_pipe_cache_remove_lru(cache);
+    cache_entry->data = dt_alloc_align(size);
+  }
+
+  if(!cache_entry->data)
+  {
+    free(cache_entry);
+    return NULL;
+  }
+
+  cache_entry->size = size;
+  cache_entry->age = 0;
+  cache_entry->dsc = dsc;
+  cache_entry->hash = hash;
+  cache_entry->name = g_strdup(name);
+
+  g_hash_table_insert(cache->entries, GINT_TO_POINTER(hash), cache_entry);
+  cache->current_memory += size;
+
+  return cache_entry;
+}
+
+
+static void _free_cache_entry(dt_pixel_cache_entry_t *cache_entry)
+{
+  if(!cache_entry) return;
+  dt_pixel_cache_message(cache_entry, "freed");
+  dt_free_align(cache_entry->data);
+  cache_entry->data = NULL;
+  g_free(cache_entry->name);
+  free(cache_entry);
+}
+
+
+int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, size_t max_memory)
+{
+  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache init at size: %lu MiB\n", max_memory / (1024 * 1024));
+  cache->entries = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)_free_cache_entry);
+  cache->max_memory = max_memory;
+  cache->current_memory = 0;
+  cache->queries = cache->hits = 0;
+  return 1;
+}
+
 
 void dt_dev_pixelpipe_cache_cleanup(dt_dev_pixelpipe_cache_t *cache)
 {
   if(!cache) return;
-  if(cache->data)
-  {
-    for(int k = 0; k < cache->entries; k++)
-      dt_free_align(cache->data[k]);
-    free(cache->data);
-  }
-  free(cache->dsc);
-  free(cache->hash);
-  free(cache->used);
-  free(cache->size);
+  g_hash_table_destroy(cache->entries);
+  cache->entries = NULL;
 }
+
 
 int dt_dev_pixelpipe_cache_available(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
 {
-  // search for hash in cache
-  for(int32_t k = 0; k < cache->entries; k++)
-    if(cache->hash[k] == hash) return 1;
-  return 0;
+  return g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash)) != NULL;
 }
 
-int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache,const uint64_t hash,
-                               const size_t size, void **data, dt_iop_buffer_dsc_t **dsc)
+
+void _age_cache_entry(gpointer key, gpointer value, gpointer user_data)
 {
-  return dt_dev_pixelpipe_cache_get_weighted(cache, hash, size, data, dsc, 0);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+  cache_entry->age++;
 }
 
-int dt_dev_pixelpipe_cache_get_weighted(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
-                                        const size_t size, void **data, dt_iop_buffer_dsc_t **dsc, int weight)
+
+int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
+                               const size_t size, const char *name, void **data, dt_iop_buffer_dsc_t **dsc)
 {
   cache->queries++;
-  *data = NULL;
-  int max_used = -1;
-  size_t index_max = 0;
-  size_t sz = 0;
-  for(int k = 0; k < cache->entries; k++)
+
+  // Age all cache entries
+  g_hash_table_foreach(cache->entries, _age_cache_entry, NULL);
+
+  // Find the cache entry for this hash, if any
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  gboolean cache_entry_found = (cache_entry != NULL);
+
+  if(cache_entry)
+    cache->hits++;
+  else
+    cache_entry = dt_pixel_cache_new_entry(hash, size, **dsc, name, cache);
+
+  if(cache_entry)
   {
-    // search for hash in cache
-    if(cache->used[k] > max_used)
-    {
-      max_used = cache->used[k];
-      index_max = k;
-    }
-
-    cache->used[k]++; // age all entries
-
-    if(cache->hash[k] == hash)
-    {
-      *data = cache->data[k];
-      *dsc = &cache->dsc[k];
-      sz = cache->size[k];
-      cache->used[k] = weight; // this is the MRU entry
-
-      ASAN_POISON_MEMORY_REGION(*data, sz);
-      ASAN_UNPOISON_MEMORY_REGION(*data, size);
-    }
-  }
-
-  if(!*data || sz < size)
-  {
-    // kill LRU entry
-    // printf("[pixelpipe_cache_get] hash not found, returning slot %d/%d age %d\n", index_max, cache->entries,
-    // weight);
-    if(cache->size[index_max] < size)
-    {
-      dt_free_align(cache->data[index_max]);
-      cache->data[index_max] = (void *)dt_alloc_align(size);
-      cache->size[index_max] = size;
-    }
-    *data = cache->data[index_max];
-    sz = cache->size[index_max];
-
-    ASAN_POISON_MEMORY_REGION(*data, sz);
-    ASAN_UNPOISON_MEMORY_REGION(*data, size);
-
-    // first, update our copy, then update the pointer to point at our copy
-    cache->dsc[index_max] = **dsc;
-    *dsc = &cache->dsc[index_max];
-
-    cache->hash[index_max] = hash;
-    cache->used[index_max] = weight;
-    cache->misses++;
-    return 1;
+    cache_entry->age = 0; // this is the MRU entry
+    *data = cache_entry->data;
+    *dsc = &cache_entry->dsc;
+    dt_pixel_cache_message(cache_entry, (cache_entry_found) ? "found" : "created");
+    return !cache_entry_found;
   }
   else
-    return 0;
+  {
+    *data = NULL;
+    *dsc = NULL;
+    dt_print(DT_DEBUG_PIPE, "couldn't allocate new cache entry %lu\n", hash);
+    return 1;
+  }
 }
+
 
 void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache)
 {
-  for(int k = 0; k < cache->entries; k++)
-  {
-    cache->hash[k] = -1;
-    cache->used[k] = 0;
-    ASAN_POISON_MEMORY_REGION(cache->data[k], cache->size[k]);
-  }
+  g_hash_table_remove_all(cache->entries);
+  cache->current_memory = 0;
 }
 
-void dt_dev_pixelpipe_cache_reweight(dt_dev_pixelpipe_cache_t *cache, void *data)
+typedef struct _cache_invalidate_t
 {
-  for(int k = 0; k < cache->entries; k++)
+  void *data;
+  size_t size;
+} _cache_invalidate_t;
+
+
+gboolean _cache_invalidate(gpointer key, gpointer value, gpointer user_data)
+{
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+  _cache_invalidate_t *cache_invalidate = (_cache_invalidate_t *)user_data;
+
+  if(cache_entry->data == cache_invalidate->data)
   {
-    if(cache->data[k] == data)
-    {
-      cache->used[k] = -cache->entries;
-    }
+    cache_invalidate->size = cache_entry->size;
+    return TRUE; // remove this entry
   }
+
+  return FALSE; // keep this entry
 }
+
 
 void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *data)
 {
-  for(int k = 0; k < cache->entries; k++)
-  {
-    if(cache->data[k] == data)
-    {
-      cache->hash[k] = -1;
-      ASAN_POISON_MEMORY_REGION(cache->data[k], cache->size[k]);
-    }
-  }
+  _cache_invalidate_t *cache_invalidate = (_cache_invalidate_t *)malloc(sizeof(_cache_invalidate_t));
+  cache_invalidate->data = data;
+  cache_invalidate->size = 0;
+
+  // Remove the cache entry with the given data
+  g_hash_table_foreach_remove(cache->entries, _cache_invalidate, cache_invalidate);
+
+  // Update the current memory usage
+  cache->current_memory -= cache_invalidate->size;
+
+  free(cache_invalidate);
 }
+
 
 void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache)
 {
-  for(int k = 0; k < cache->entries; k++)
-  {
-    if(cache->hash[k] == (uint64_t)-1)
-      dt_print(DT_DEBUG_CACHE, "pixelpipe cacheline %d unused\n", k);
-    else
-      dt_print(DT_DEBUG_CACHE, "pixelpipe cacheline %d used %d by %llu\n", k, cache->used[k], (long long unsigned int)cache->hash[k]);
-  }
-  dt_print(DT_DEBUG_CACHE, "cache hit rate so far: %.3f\n", (cache->queries - cache->misses) / (float)cache->queries);
+  if(!(darktable.unmuted & DT_DEBUG_PIPE)) return;
+
+  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache hit rate so far: %.3f%% - size: %lu MiB\n", 100. * (cache->hits) / (float)cache->queries, cache->current_memory / (1024 * 1024));
 }
 
 // clang-format off

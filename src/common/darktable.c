@@ -1116,6 +1116,11 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
   else
     darktable.gui = NULL;
 
+  // This needs to run after gui init because we init cache lines size with window size
+  // but before image cache init and pipeline cache init (aka dev init aka darkroom init aka viewmanager init)
+  // because we init its size here
+  dt_configure_runtime_performance(&darktable.dtresources, init_gui);
+
   darktable.view_manager = (dt_view_manager_t *)calloc(1, sizeof(dt_view_manager_t));
   dt_view_manager_init(darktable.view_manager);
 
@@ -1125,10 +1130,6 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     fprintf(stderr, "ERROR: can't init develop system, aborting.\n");
     return 1;
   }
-
-  // This needs to run after gui init because we init cache lines size with window size
-  // but before image cache init because we init its size here
-  dt_configure_runtime_performance(&darktable.dtresources, init_gui);
 
   // must come before mipmap_cache, because that one will need to access
   // image dimensions stored in here:
@@ -1566,20 +1567,13 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   // Remaining memory so far is at least 50% of total system memory.
   size_t remaining_memory = resources->total_memory - resources->mipmap_memory - resources->headroom_memory;
   resources->available_memory = MAX(ideal_pipeline_memory, min_pipeline_memory);
-  resources->available_memory = MIN(resources->available_memory, remaining_memory);
-  // don't use CLAMP, because we have no guaranty that min_pipeline_memory < remaining_memory
-  // and remaining_memory gets the last say since we can't stretch it
-  remaining_memory -= resources->available_memory;
+  resources->available_memory = MIN(resources->available_memory, remaining_memory / 2);
 
   // Sanitize buffer memory in case min_pipeline_memory was already > remaining_memory
   resources->buffer_memory = MIN(resources->buffer_memory, resources->available_memory / 4);
 
   // So, now, split all remaining memory between caches lines
-  resources->pixelpipe_memory = MAX(remaining_memory, 0);
-
-  // Can't work with fewer than 4 cachelines, we need at least in/out + mask + raster
-  const int cache_lines = MAX(remaining_memory / MAX(darkroom_pipe_size + preview_pipe_size, 1), 4);
-  dt_conf_set_int("cachelines", cache_lines);
+  resources->pixelpipe_memory = resources->available_memory;
 
   // Print
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Total system RAM: %lu MiB\n"),
@@ -1593,9 +1587,6 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
 
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache size: %lu MiB\n"),
            resources->pixelpipe_memory / (1024 * 1024));
-
-  dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Pixelpipe cache lines: %i\n"),
-           cache_lines);
 
   dt_print(DT_DEBUG_MEMORY | DT_DEBUG_CACHE, _("[MEMORY CONFIGURATION] Available RAM for pixel processing: %lu MiB\n"),
            resources->available_memory / (1024 * 1024));

@@ -32,43 +32,38 @@ struct dt_iop_roi_t;
 
 typedef struct dt_dev_pixelpipe_cache_t
 {
-  int32_t entries;
-  void **data;
-  size_t *size;
-  struct dt_iop_buffer_dsc_t *dsc;
-  uint64_t *hash;
-  int32_t *used;
-#ifdef HAVE_OPENCL
-  void **gpu_mem;
-#endif
-  // profiling:
+  GHashTable *entries;
   uint64_t queries;
-  uint64_t misses;
+  uint64_t hits;
+  size_t max_memory;
+  size_t current_memory;
 } dt_dev_pixelpipe_cache_t;
 
 /** constructs a new cache with given cache line count (entries) and float buffer entry size in bytes.
   \param[out] returns 0 if fail to allocate mem cache.
 */
-int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, int entries, size_t size);
+int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, size_t max_memory);
 void dt_dev_pixelpipe_cache_cleanup(dt_dev_pixelpipe_cache_t *cache);
 
-/** returns the float data buffer for the given hash from the cache. if the hash does not match any
-  * cache line, the least recently used cache line will be cleared and an empty buffer is returned
-  * together with a non-zero return value. */
+/**
+ * @brief Get a cache line from the cache.
+ *
+ * @param cache
+ * @param hash State checksum of the cache line.
+ * @param size Buffer size in bytes.
+ * @param name Name of the cache line (for debugging).
+ * @param data Pointer to the buffer pointer (returned).
+ * @param dsc Pointer to the buffer descriptor (returned).
+ * @return int 1 if the cache line was freshly allocated, 0 if it was found in the cache.
+ */
 int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
-                               const size_t size, void **data, struct dt_iop_buffer_dsc_t **dsc);
-int dt_dev_pixelpipe_cache_get_weighted(dt_dev_pixelpipe_cache_t *cache,
-                                        const uint64_t hash, const size_t size,
-                                        void **data, struct dt_iop_buffer_dsc_t **dsc, int weight);
+                               const size_t size, const char *name, void **data, struct dt_iop_buffer_dsc_t **dsc);
 
 /** test availability of a cache line without destroying another, if it is not found. */
 int dt_dev_pixelpipe_cache_available(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash);
 
 /** invalidates all cachelines. */
 void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache);
-
-/** makes this buffer very important after it has been pulled from the cache. */
-void dt_dev_pixelpipe_cache_reweight(dt_dev_pixelpipe_cache_t *cache, void *data);
 
 /** mark the given cache line pointer as invalid. */
 void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *data);
