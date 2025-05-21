@@ -2246,11 +2246,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   // Note that GPU is forced to write its output to RAM cache, so we don't use the cl_mem_output anymore.
   pixelpipe_get_histogram_backbuf(pipe, dev, *output, *cl_mem_output, *out_format, roi_out, module, piece, hash, bpp);
 
-  // Don't cache outputs if we requested to bypass the cache,
-  // it's assumed to be temporary view (mask display, etc.),
-  if(bypass_cache || pipe->flush_cache)
-    dt_dev_pixelpipe_cache_invalidate(&(pipe->cache), *output);
-
   KILL_SWITCH_AND_FLUSH_CACHE;
 
   _print_perf_debug(pipe, pixelpipe_flow, piece, module, &start);
