@@ -146,14 +146,14 @@ static void _free_cache_entry(dt_pixel_cache_entry_t *cache_entry)
 }
 
 
-int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, size_t max_memory)
+dt_dev_pixelpipe_cache_t * dt_dev_pixelpipe_cache_init(size_t max_memory)
 {
-  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache init at size: %lu MiB\n", max_memory / (1024 * 1024));
+  dt_dev_pixelpipe_cache_t *cache = (dt_dev_pixelpipe_cache_t *)malloc(sizeof(dt_dev_pixelpipe_cache_t));
   cache->entries = g_hash_table_new_full(g_direct_hash, g_direct_equal, NULL, (GDestroyNotify)_free_cache_entry);
   cache->max_memory = max_memory;
   cache->current_memory = 0;
   cache->queries = cache->hits = 0;
-  return 1;
+  return cache;
 }
 
 

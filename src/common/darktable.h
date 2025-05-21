@@ -546,7 +546,6 @@ typedef struct darktable_t
   struct dt_bauhaus_t *bauhaus;
   const struct dt_database_t *db;
   const struct dt_pwstorage_t *pwstorage;
-  const struct dt_camctl_t *camctl;
   struct dt_collection_t *collection;
   struct dt_selection_t *selection;
   struct dt_points_t *points;
@@ -556,6 +555,7 @@ typedef struct darktable_t
   struct dt_undo_t *undo;
   struct dt_colorspaces_t *color_profiles;
   struct dt_l10n_t *l10n;
+  struct dt_dev_pixelpipe_cache_t *pixelpipe_cache;
 
   // Protects from concurrent writing at export time
   dt_pthread_mutex_t plugin_threadsafe;

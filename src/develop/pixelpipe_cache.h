@@ -1,6 +1,7 @@
 /*
     This file is part of darktable,
     Copyright (C) 2009-2020 darktable developers.
+    Copyright (C) 2022-2025 Aurélien PIERRE.
 
     darktable is free software: you can redistribute it and/or modify
     it under the terms of the GNU General Public License as published by
@@ -24,10 +25,15 @@ struct dt_dev_pixelpipe_t;
 struct dt_iop_buffer_dsc_t;
 struct dt_iop_roi_t;
 
+
 /**
- * implements a simple pixel cache suitable for caching float images
- * corresponding to history items and zoom/pan settings in the develop module.
- * it is optimized for very few entries (~5), so most operations are O(N).
+ * @file pixelpipe_cache.h
+ * @brief Pixelpipe cache for storing intermediate results in the pixelpipe.
+ *
+ * This cache can be used locally (in the pixelpipe) or globally (in the whole app).
+ * Current implementation is global, using `darktable.pipeline_threadsafe` mutex lock
+ * to protect cache entries addition/removal accross threads. The mutex lock
+ * protects the whole recursive pixelpipe, so no internal locking is needed nor implemented here.
  */
 
 typedef struct dt_dev_pixelpipe_cache_t
@@ -42,7 +48,7 @@ typedef struct dt_dev_pixelpipe_cache_t
 /** constructs a new cache with given cache line count (entries) and float buffer entry size in bytes.
   \param[out] returns 0 if fail to allocate mem cache.
 */
-int dt_dev_pixelpipe_cache_init(dt_dev_pixelpipe_cache_t *cache, size_t max_memory);
+dt_dev_pixelpipe_cache_t * dt_dev_pixelpipe_cache_init(size_t max_memory);
 void dt_dev_pixelpipe_cache_cleanup(dt_dev_pixelpipe_cache_t *cache);
 
 /**

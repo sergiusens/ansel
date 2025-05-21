@@ -61,6 +61,7 @@
 #include "control/signal.h"
 #include "develop/blend.h"
 #include "develop/imageop.h"
+#include "develop/pixelpipe_cache.h"
 
 #include "gui/gtk.h"
 #include "gui/guides.h"
@@ -1131,6 +1132,8 @@ int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load
     return 1;
   }
 
+  darktable.pixelpipe_cache = dt_dev_pixelpipe_cache_init(darktable.dtresources.pixelpipe_memory);
+
   // must come before mipmap_cache, because that one will need to access
   // image dimensions stored in here:
   darktable.image_cache = (dt_image_cache_t *)calloc(1, sizeof(dt_image_cache_t));
@@ -1301,6 +1304,8 @@ void dt_cleanup()
     dt_accels_cleanup(darktable.gui->accels);
     free(darktable.gui);
   }
+
+  dt_dev_pixelpipe_cache_cleanup(darktable.pixelpipe_cache);
 
   dt_image_cache_cleanup(darktable.image_cache);
   free(darktable.image_cache);

@@ -125,9 +125,6 @@ typedef enum dt_dev_pixelpipe_status_t
  */
 typedef struct dt_dev_pixelpipe_t
 {
-  // store history/zoom caches
-  dt_dev_pixelpipe_cache_t cache;
-
   // input image. Will be fetched directly from mipmap cache
   int32_t imgid;
   dt_mipmap_size_t size;
@@ -252,8 +249,8 @@ int dt_dev_pixelpipe_init_thumbnail(dt_dev_pixelpipe_t *pipe, int32_t width, int
 // inits all but the pixel caches, so you can't actually process an image (just get dimensions and
 // distortions)
 int dt_dev_pixelpipe_init_dummy(dt_dev_pixelpipe_t *pipe, int32_t width, int32_t height);
-// inits the pixelpipe with given cacheline size and number of entries.
-int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe, size_t memory);
+// inits the pixelpipe
+int dt_dev_pixelpipe_init_cached(dt_dev_pixelpipe_t *pipe);
 // constructs a new input buffer from given RGB float array.
 void dt_dev_pixelpipe_set_input(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev, int32_t imgid, int width,
                                 int height, float iscale, dt_mipmap_size_t size);

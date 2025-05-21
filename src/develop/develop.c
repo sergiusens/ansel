@@ -55,7 +55,6 @@ void dt_dev_init(dt_develop_t *dev, int32_t gui_attached)
   dev->average_delay = DT_DEV_AVERAGE_DELAY_START;
   dev->preview_average_delay = DT_DEV_PREVIEW_AVERAGE_DELAY_START;
   dt_pthread_mutex_init(&dev->history_mutex, NULL);
-  dt_pthread_mutex_init(&dev->pipe_mutex, NULL);
   dev->history_end = 0;
   dev->history = NULL; // empty list
   dev->history_hash = 0;
@@ -197,7 +196,6 @@ void dt_dev_cleanup(dt_develop_t *dev)
     dev->allprofile_info = g_list_delete_link(dev->allprofile_info, dev->allprofile_info);
   }
   dt_pthread_mutex_destroy(&dev->history_mutex);
-  dt_pthread_mutex_destroy(&dev->pipe_mutex);
 
   free(dev->histogram_pre_tonecurve);
   free(dev->histogram_pre_levels);
@@ -413,13 +411,15 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
+    dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
     // In case of re-entry, we will rerun the whole pipe, so we need
     // to resynch it in full too before.
     // Need to be before dt_dev_pixelpipe_change()
     if(dt_dev_pixelpipe_has_reentry(pipe))
     {
       pipe->changed |= DT_DEV_PIPE_REMOVE;
-      dt_dev_pixelpipe_cache_flush(&(pipe->cache));
+      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
     }
 
     // this locks dev->history_mutex.
@@ -431,11 +431,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     // Signal that we are starting
     pipe->status = DT_DEV_PIXELPIPE_UNDEF;
 
-    // OpenCL devices have their own lock, called internally
-    // Here we lock the whole stack, including CPU.
-    // Processing pipelines in parallel triggers memory contention.
-    dt_pthread_mutex_lock(&dev->pipe_mutex);
-
     dt_times_t start;
     dt_get_times(&start);
 
@@ -445,7 +440,8 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
 
     dt_show_times(&start, "[dev_process_preview] pixel pipeline processing");
 
-    dt_pthread_mutex_unlock(&dev->pipe_mutex);
+    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
+
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();
 
@@ -572,13 +568,15 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
+    dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
     // In case of re-entry, we will rerun the whole pipe, so we need
     // too resynch it in full too before.
     // Need to be before dt_dev_pixelpipe_change()
     if(dt_dev_pixelpipe_has_reentry(pipe))
     {
       pipe->changed |= DT_DEV_PIPE_REMOVE;
-      dt_dev_pixelpipe_cache_flush(&(pipe->cache));
+      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
     }
 
     // this locks dev->history_mutex
@@ -601,11 +599,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     // Signal that we are starting
     pipe->status = DT_DEV_PIXELPIPE_UNDEF;
 
-    // OpenCL devices have their own lock, called internally
-    // Here we lock the whole stack, including CPU.
-    // Processing pipelines in parallel triggers memory contention.
-    dt_pthread_mutex_lock(&dev->pipe_mutex);
-
     dt_times_t start;
     dt_get_times(&start);
 
@@ -613,7 +606,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
 
     dt_show_times(&start, "[dev_process_image] pixel pipeline processing");
 
-    dt_pthread_mutex_unlock(&dev->pipe_mutex);
+    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();
@@ -758,9 +751,11 @@ void dt_dev_configure_real(dt_develop_t *dev, int wd, int ht)
 
 void dt_dev_reprocess_all(dt_develop_t *dev)
 {
+  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+  dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
+
   if(darktable.gui->reset || !dev || !dev->gui_attached) return;
-  dt_dev_pixelpipe_cache_flush(&(dev->pipe->cache));
-  dt_dev_pixelpipe_cache_flush(&(dev->preview_pipe->cache));
   dt_dev_pixelpipe_rebuild(dev);
 }
 
