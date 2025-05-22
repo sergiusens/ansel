@@ -336,6 +336,7 @@ static inline void dt_thumbtable_show(dt_thumbtable_t *table)
 {
   gtk_widget_show(table->parent_overlay);
   gtk_widget_show(table->scroll_window);
+  gtk_widget_show(table->grid);
 
   // Thumbtable is prevented to configure and update, for
   // as long as it's hidden. We need to force the update now.
@@ -350,6 +351,7 @@ static inline void dt_thumbtable_hide(dt_thumbtable_t *table)
 {
   gtk_widget_hide(table->parent_overlay);
   gtk_widget_hide(table->scroll_window);
+  gtk_widget_hide(table->grid);
 }
 
 // clang-format off
