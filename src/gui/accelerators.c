@@ -1599,7 +1599,7 @@ void dt_accels_search(dt_accels_t *accels, GtkWindow *main_window)
   GtkAllocation tmp = { 0 };
   gtk_window_get_size(main_window, &tmp.width, &tmp.height);
   gdk_window_move_to_rect(GDK_WINDOW(gtk_widget_get_window(dialog)), &tmp, GDK_GRAVITY_NORTH, GDK_GRAVITY_NORTH, 0,
-                          tmp.width / 2 - dialog_width / 2, 0);
+                          0, 0);
 
   gtk_dialog_run(GTK_DIALOG(dialog));
   gtk_grab_remove(search_entry);
