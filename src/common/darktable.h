@@ -290,7 +290,7 @@ static inline size_t dt_round_size_sse(const size_t size)
   return dt_round_size(size, 64);
 }
 
-static inline void *dt_alloc_align(size_t size)
+static inline void *dt_alloc_align_internal(size_t size)
 {
   const size_t alignment = DT_CACHELINE_BYTES;
   const size_t aligned_size = dt_round_size(size, alignment);
@@ -313,6 +313,7 @@ static inline void *dt_alloc_align(size_t size)
 #endif
 }
 
+void *dt_alloc_align(size_t size);
 
 #ifdef _WIN32
   static inline void dt_free_align(void *mem)

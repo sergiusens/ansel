@@ -388,6 +388,17 @@ static inline size_t _get_total_memory()
 #endif
 }
 
+void *dt_alloc_align(size_t size)
+{
+  void *buf = dt_alloc_align_internal(size);
+  while(buf == NULL && size > 0)
+  {
+    dt_dev_pixel_pipe_cache_remove_lru(darktable.pixelpipe_cache);
+    buf = dt_alloc_align_internal(size);
+  }
+  return buf;
+}
+
 int dt_init(int argc, char *argv[], const gboolean init_gui, const gboolean load_data, lua_State *L)
 {
   double start_wtime = dt_get_wtime();

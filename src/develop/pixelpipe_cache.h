@@ -77,6 +77,9 @@ void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *da
 /** print out cache lines/hashes (debug). */
 void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache);
 
+/** remove the least used cache entry */
+void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache);
+
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
 // vim: shiftwidth=2 expandtab tabstop=2 cindent

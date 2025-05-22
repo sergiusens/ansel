@@ -90,7 +90,13 @@ void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
   lru->max_age = -1;
   lru->hash = 0;
   g_hash_table_foreach(cache->entries, _cache_get_oldest, lru);
-  dt_dev_pixel_pipe_cache_remove(cache, lru->hash);
+
+  // age = 0 means this is the most recently used entry, typically our output
+  // age = 1 means this is the second most recently used entry, typically our input
+  // we can't remove those without risk of segfaulting
+  if(lru->max_age > 1)
+    dt_dev_pixel_pipe_cache_remove(cache, lru->hash);
+
   free(lru);
 }
 
