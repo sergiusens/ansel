@@ -2491,7 +2491,8 @@ restart:;
   }
 
   // terminate
-
+  dt_dev_pixelpipe_cache_print(darktable.pixelpipe_cache);
+  
   // If an intermediate module set that, be sure to reset it at the end
   pipe->flush_cache = FALSE;
 

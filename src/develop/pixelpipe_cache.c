@@ -44,7 +44,7 @@ size_t dt_pixel_cache_get_size(dt_pixel_cache_entry_t *cache_entry)
 
 void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *message)
 {
-  if(!(darktable.unmuted & DT_DEBUG_PIPE)) return;
+  if(!((darktable.unmuted & DT_DEBUG_PIPE) && (darktable.unmuted & DT_DEBUG_VERBOSE))) return;
   dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu: %s (%lu MiB) %s\n", cache_entry->hash, cache_entry->name,
            dt_pixel_cache_get_size(cache_entry), message);
 }
