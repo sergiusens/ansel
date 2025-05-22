@@ -277,9 +277,6 @@ gboolean dt_dev_pixelpipe_activemodule_disables_currentmodule(struct dt_develop_
 // destroys all allocated data.
 void dt_dev_pixelpipe_cleanup(dt_dev_pixelpipe_t *pipe);
 
-// flushes all cached data. useful if input pixels unexpectedly change.
-void dt_dev_pixelpipe_flush_caches(dt_dev_pixelpipe_t *pipe);
-
 // wrapper for cleanup_nodes, create_nodes, synch_all and synch_top, decides upon changed event which one to
 // take on. also locks dev->history_mutex.
 void dt_dev_pixelpipe_change(dt_dev_pixelpipe_t *pipe, struct dt_develop_t *dev);

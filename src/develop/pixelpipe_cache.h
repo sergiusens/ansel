@@ -58,18 +58,25 @@ void dt_dev_pixelpipe_cache_cleanup(dt_dev_pixelpipe_cache_t *cache);
  * @param hash State checksum of the cache line.
  * @param size Buffer size in bytes.
  * @param name Name of the cache line (for debugging).
+ * @param id ID of the pipeline owning the cache line.
  * @param data Pointer to the buffer pointer (returned).
  * @param dsc Pointer to the buffer descriptor (returned).
  * @return int 1 if the cache line was freshly allocated, 0 if it was found in the cache.
  */
 int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
-                               const size_t size, const char *name, void **data, struct dt_iop_buffer_dsc_t **dsc);
+                               const size_t size, const char *name, const int id,
+                               void **data, struct dt_iop_buffer_dsc_t **dsc);
 
 /** test availability of a cache line without destroying another, if it is not found. */
 int dt_dev_pixelpipe_cache_available(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash);
 
-/** invalidates all cachelines. */
-void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache);
+/**
+ * @brief Remove cache lines matching id
+ *
+ * @param cache
+ * @param id ID of the pipeline owning the cache line, or -1 to remove all lines.
+ */
+void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache, const int id);
 
 /** mark the given cache line pointer as invalid. */
 void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *data);

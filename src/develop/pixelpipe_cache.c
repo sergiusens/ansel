@@ -33,6 +33,7 @@ typedef struct dt_pixel_cache_entry_t
   dt_iop_buffer_dsc_t dsc;
   int age;
   char *name; // name of the cache entry, for debugging
+  int id;
 } dt_pixel_cache_entry_t;
 
 
@@ -102,7 +103,7 @@ void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
 
 
 static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, const size_t size,
-                                                        const dt_iop_buffer_dsc_t dsc, const char *name,
+                                                        const dt_iop_buffer_dsc_t dsc, const char *name, const int id,
                                                         dt_dev_pixelpipe_cache_t *cache)
 {
   // Free up space if needed to match the max memory limit
@@ -132,6 +133,7 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
   cache_entry->age = 0;
   cache_entry->dsc = dsc;
   cache_entry->hash = hash;
+  cache_entry->id = id;
   cache_entry->name = g_strdup(name);
 
   g_hash_table_insert(cache->entries, GINT_TO_POINTER(hash), cache_entry);
@@ -185,7 +187,8 @@ void _age_cache_entry(gpointer key, gpointer value, gpointer user_data)
 
 
 int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
-                               const size_t size, const char *name, void **data, dt_iop_buffer_dsc_t **dsc)
+                               const size_t size, const char *name, const int id,
+                               void **data, dt_iop_buffer_dsc_t **dsc)
 {
   cache->queries++;
 
@@ -199,7 +202,7 @@ int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t h
   if(cache_entry)
     cache->hits++;
   else
-    cache_entry = dt_pixel_cache_new_entry(hash, size, **dsc, name, cache);
+    cache_entry = dt_pixel_cache_new_entry(hash, size, **dsc, name, id, cache);
 
   if(cache_entry)
   {
@@ -218,10 +221,16 @@ int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t h
   }
 }
 
-
-void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache)
+gboolean _for_each_remove(gpointer key, gpointer value, gpointer user_data)
 {
-  g_hash_table_remove_all(cache->entries);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+  const int id = GPOINTER_TO_INT(user_data);
+  return cache_entry->id == id || id == -1;
+}
+
+void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache, const int id)
+{
+  g_hash_table_foreach_remove(cache->entries, _for_each_remove, GINT_TO_POINTER(id));
   cache->current_memory = 0;
 }
 

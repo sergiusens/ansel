@@ -419,7 +419,7 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     if(dt_dev_pixelpipe_has_reentry(pipe))
     {
       pipe->changed |= DT_DEV_PIPE_REMOVE;
-      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
+      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
     }
 
     // this locks dev->history_mutex.
@@ -576,7 +576,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     if(dt_dev_pixelpipe_has_reentry(pipe))
     {
       pipe->changed |= DT_DEV_PIPE_REMOVE;
-      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
+      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
     }
 
     // this locks dev->history_mutex
@@ -752,7 +752,7 @@ void dt_dev_configure_real(dt_develop_t *dev, int wd, int ht)
 void dt_dev_reprocess_all(dt_develop_t *dev)
 {
   dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
-  dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
+  dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, -1);
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
   if(darktable.gui->reset || !dev || !dev->gui_attached) return;

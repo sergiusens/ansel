@@ -1979,7 +1979,7 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
                              const size_t bufsize, const size_t bpp)
 {
   // Note: dt_dev_pixelpipe_cache_get actually init/alloc *output
-  if(bypass_cache || dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "base buffer", output, out_format))
+  if(bypass_cache || dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "base buffer", pipe->type, output, out_format))
   {
     // Grab input buffer from mipmap cache.
     // We will have to copy it here and in pixelpipe cache because it can get evicted from mipmap cache
@@ -2125,7 +2125,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   const gboolean bypass_cache = (module) ? piece->bypass_cache : FALSE;
   if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_available(darktable.pixelpipe_cache, hash))
   {
-    dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "", output, out_format);
+    dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "", pipe->type, output, out_format);
 
     // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
     // except for gamma which outputs uint8 so we need to deal with that internally
@@ -2184,7 +2184,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
 
   // reserve new cache line: output
   char *name = g_strdup_printf("module %s (%s) for pipe %i", module->op, module->multi_name, pipe->type);
-  dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, name, output, out_format);
+  dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, name, pipe->type, output, out_format);
   g_free(name);
 
   dt_times_t start;
@@ -2460,7 +2460,7 @@ restart:;
                "[opencl] opencl errors encountered; disabling opencl for this pipeline!\n");
     }
 
-    dt_dev_pixelpipe_flush_caches(pipe);
+    dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
     dt_dev_pixelpipe_change(pipe, dev);
     dt_dev_pixelpipe_get_roi_in(pipe, dev, roi);
     dt_pixelpipe_get_global_hash(pipe, dev);
@@ -2521,11 +2521,6 @@ restart:;
   }
   dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
   return 0;
-}
-
-void dt_dev_pixelpipe_flush_caches(dt_dev_pixelpipe_t *pipe)
-{
-  dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache);
 }
 
 gboolean dt_dev_pixelpipe_activemodule_disables_currentmodule(struct dt_develop_t *dev, struct dt_iop_module_t *current_module)
