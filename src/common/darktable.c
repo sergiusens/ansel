@@ -1316,6 +1316,9 @@ void dt_cleanup()
     free(darktable.gui);
   }
 
+  dt_collection_free(darktable.collection);
+  dt_selection_free(darktable.selection);
+
   dt_dev_pixelpipe_cache_cleanup(darktable.pixelpipe_cache);
 
   dt_image_cache_cleanup(darktable.image_cache);
