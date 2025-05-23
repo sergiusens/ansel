@@ -257,6 +257,14 @@ static int32_t dt_control_write_sidecar_files_job_run(dt_job_t *job)
   return 0;
 }
 
+void dt_control_write_sidecar_files()
+{
+  dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_FG,
+                     dt_control_generic_images_job_create(&dt_control_write_sidecar_files_job_run,
+                                                          N_("write sidecar files"), 0, NULL, PROGRESS_NONE,
+                                                          FALSE));
+}
+
 typedef struct dt_control_merge_hdr_t
 {
   uint32_t first_imgid;
