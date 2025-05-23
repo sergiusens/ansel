@@ -1121,13 +1121,6 @@ _gui_preferences_bool_reset(GtkWidget *label, GdkEventButton *event, GtkWidget *
   return FALSE;
 }
 
-void dt_gui_preferences_bool_update(GtkWidget *widget)
-{
-  const char *key = gtk_widget_get_name(widget);
-  const gboolean val = dt_conf_get_bool(key);
-  gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget), val);
-}
-
 GtkWidget *dt_gui_preferences_bool(GtkGrid *grid, const char *key, const guint col,
                                    const guint line, const gboolean swap)
 {
@@ -1174,27 +1167,6 @@ void dt_gui_preferences_int_update(GtkWidget *widget)
   const char *key = gtk_widget_get_name(widget);
   const int val = dt_conf_get_int(key);
   gtk_spin_button_set_value(GTK_SPIN_BUTTON(widget), val);
-}
-
-GtkWidget *dt_gui_preferences_int(GtkGrid *grid, const char *key, const guint col,
-                                  const guint line)
-{
-  GtkWidget *w_label = dt_ui_label_new(_(dt_confgen_get_label(key)));
-  gtk_widget_set_tooltip_text(w_label, _(dt_confgen_get_tooltip(key)));
-  GtkWidget *labelev = gtk_event_box_new();
-  gtk_widget_add_events(labelev, GDK_BUTTON_PRESS_MASK);
-  gtk_container_add(GTK_CONTAINER(labelev), w_label);
-  gint min = MAX(G_MININT, dt_confgen_get_int(key, DT_MIN));
-  gint max = MIN(G_MAXINT, dt_confgen_get_int(key, DT_MAX));
-  GtkWidget *w = gtk_spin_button_new_with_range(min, max, 1.0);
-  gtk_widget_set_hexpand(w, FALSE);
-  gtk_spin_button_set_digits(GTK_SPIN_BUTTON(w), 0);
-  gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), dt_conf_get_int(key));
-  gtk_grid_attach(GTK_GRID(grid), labelev, col, line, 1, 1);
-  gtk_grid_attach(GTK_GRID(grid), w, col + 1, line, 1, 1);
-  g_signal_connect(G_OBJECT(w), "value-changed", G_CALLBACK(_gui_preferences_int_callback), (gpointer)key);
-  g_signal_connect(G_OBJECT(labelev), "button-press-event", G_CALLBACK(_gui_preferences_int_reset), (gpointer)w);
-  return w;
 }
 
 static void
@@ -1335,12 +1307,6 @@ _gui_preferences_string_reset(GtkWidget *label, GdkEventButton *event, GtkWidget
   return FALSE;
 }
 
-void dt_gui_preferences_string_update(GtkWidget *widget)
-{
-  const char *key = gtk_widget_get_name(widget);
-  const char *str = dt_conf_get_string_const(key);
-  gtk_entry_set_text(GTK_ENTRY(widget), str);
-}
 
 GtkWidget *dt_gui_preferences_string(GtkGrid *grid, const char *key, const guint col,
                                      const guint line)

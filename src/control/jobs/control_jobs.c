@@ -223,38 +223,6 @@ static dt_job_t *dt_control_generic_image_job_create(dt_job_execute_callback exe
   return job;
 }
 
-static int32_t dt_control_write_sidecar_files_job_run(dt_job_t *job)
-{
-  dt_control_image_enumerator_t *params = dt_control_job_get_params(job);
-  GList *t = params->index;
-  sqlite3_stmt *stmt;
-  DT_DEBUG_SQLITE3_PREPARE_V2(dt_database_get(darktable.db),
-                              "UPDATE main.images SET write_timestamp = STRFTIME('%s', 'now') WHERE id = ?1", -1,
-                              &stmt, NULL);
-  while(t)
-  {
-    gboolean from_cache = FALSE;
-    const int32_t imgid = GPOINTER_TO_INT(t->data);
-    const dt_image_t *img = dt_image_cache_get(darktable.image_cache, (int32_t)imgid, 'r');
-    char dtfilename[PATH_MAX] = { 0 };
-    dt_image_full_path(img->id,  dtfilename,  sizeof(dtfilename),  &from_cache, __FUNCTION__);
-    dt_image_path_append_version(img->id, dtfilename, sizeof(dtfilename));
-    g_strlcat(dtfilename, ".xmp", sizeof(dtfilename));
-    if(!dt_exif_xmp_write(imgid, dtfilename))
-    {
-      // put the timestamp into db. this can't be done in exif.cc since that code gets called
-      // for the copy exporter, too
-      DT_DEBUG_SQLITE3_BIND_INT(stmt, 1, imgid);
-      sqlite3_step(stmt);
-      sqlite3_reset(stmt);
-      sqlite3_clear_bindings(stmt);
-    }
-    dt_image_cache_read_release(darktable.image_cache, img);
-    t = g_list_next(t);
-  }
-  sqlite3_finalize(stmt);
-  return 0;
-}
 
 typedef struct dt_control_merge_hdr_t
 {
@@ -2024,14 +1992,6 @@ void dt_control_datetime(const GTimeSpan offset, const char *datetime, GList *im
 {
   dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_FG,
                      dt_control_datetime_job_create(offset, datetime, imgs));
-}
-
-void dt_control_write_sidecar_files()
-{
-  dt_control_add_job(darktable.control, DT_JOB_QUEUE_USER_FG,
-                     dt_control_generic_images_job_create(&dt_control_write_sidecar_files_job_run,
-                                                          N_("write sidecar files"), 0, NULL, PROGRESS_NONE,
-                                                          FALSE));
 }
 
 // clang-format off
