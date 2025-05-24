@@ -43,6 +43,7 @@ typedef struct dt_dev_pixelpipe_cache_t
   uint64_t hits;
   size_t max_memory;
   size_t current_memory;
+  dt_pthread_mutex_t lock; // mutex to protect the cache entries
 } dt_dev_pixelpipe_cache_t;
 
 /** constructs a new cache with given cache line count (entries) and float buffer entry size in bytes.

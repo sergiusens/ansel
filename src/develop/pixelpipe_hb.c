@@ -2356,12 +2356,15 @@ static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, d
     }                                                                                                             \
     pipe->status = DT_DEV_PIXELPIPE_DIRTY;                                                                        \
     dt_iop_nap(200);                                                                                              \
+    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);                                                      \
     return 1;                                                                                                     \
   }
 
 int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x, int y, int width, int height,
                              float scale)
 {
+  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
   KILL_SWITCH_PIPE
 
   pipe->backbuf = NULL;
@@ -2397,6 +2400,8 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
 // re-entry point: in case of late opencl errors we start all over again with opencl-support disabled
 restart:;
+  // WARNING: buf will actually be a reference to a pixelpipe cache line, so it will be freed
+  // when the cache line is flushed or invalidated.
   void *buf = NULL;
   void *cl_mem_out = NULL;
 
@@ -2478,6 +2483,7 @@ restart:;
     // If the pipe returned because the killswitch was triggered, consir it unfinished.
     // Then the main loop will attempt it again.
     pipe->flush_cache = FALSE;
+    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
     return 1;
   }
 
@@ -2512,6 +2518,8 @@ restart:;
     pipe->output_imgid = pipe->image.id;
   }
   dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
+
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   return 0;
 }
 

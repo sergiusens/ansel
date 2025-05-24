@@ -411,8 +411,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
-    dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
-
     // In case of re-entry, we will rerun the whole pipe, so we need
     // to resynch it in full too before.
     // Need to be before dt_dev_pixelpipe_change()
@@ -439,8 +437,6 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
                                        pipe->processed_height, 1.f);
 
     dt_show_times(&start, "[dev_process_preview] pixel pipeline processing");
-
-    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();
@@ -568,8 +564,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     // We are starting fresh, reset the killswitch signal
     dt_atomic_set_int(&pipe->shutdown, FALSE);
 
-    dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
-
     // In case of re-entry, we will rerun the whole pipe, so we need
     // too resynch it in full too before.
     // Need to be before dt_dev_pixelpipe_change()
@@ -605,8 +599,6 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     int ret = dt_dev_pixelpipe_process(pipe, dev, x, y, wd, ht, scale);
 
     dt_show_times(&start, "[dev_process_image] pixel pipeline processing");
-
-    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();
