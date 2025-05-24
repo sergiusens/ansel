@@ -80,7 +80,11 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
   _cache_lru_t *lru = (_cache_lru_t *)user_data;
 
   // Don't remove LRU entries that are still in use
-  if(cache_entry->age > lru->max_age && dt_atomic_get_int(&cache_entry->refcount) == 0)
+  // NOTE: with all the killswitches mechanisms and safety measures,
+  // we might have more things decreasing refcount than increasing it.
+  // It's no big deal though, as long as the (final output) backbuf
+  // is checked for NULL and not reused if pipeline is DIRTY.
+  if(cache_entry->age > lru->max_age && dt_atomic_get_int(&cache_entry->refcount) <= 0)
   {
     lru->max_age = cache_entry->age;
     lru->hash = cache_entry->hash;
@@ -341,7 +345,10 @@ void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, con
   if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
+  {
     dt_atomic_add_int(&cache_entry->refcount, 1);
+    fprintf(stdout, "locking %p\n", cache_entry->data);
+  }
   else
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot lock\n", hash);
   if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
@@ -352,7 +359,10 @@ void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, c
   if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
+  {
     dt_atomic_sub_int(&cache_entry->refcount, 1);
+    fprintf(stdout, "unlocking %p\n", cache_entry->data);
+  }
   else
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot unlock\n", hash);
   if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);

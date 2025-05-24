@@ -79,7 +79,13 @@ int dt_dev_pixelpipe_cache_available(dt_dev_pixelpipe_cache_t *cache, const uint
  */
 void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache, const int id);
 
-/** mark the given cache line pointer as invalid. */
+/**
+ * @brief Force-delete a cache line without checking if it's locked.
+ * Reserve this to garbled outputs that can't be used at all.
+ *
+ * @param cache
+ * @param data
+ */
 void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *data);
 
 /** print out cache lines/hashes (debug). */

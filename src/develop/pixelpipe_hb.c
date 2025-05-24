@@ -2118,6 +2118,9 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   {
     dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "", pipe->type, output, out_format);
 
+    // This will become the input for the next module, lock it until next module process ends
+    dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, FALSE);
+
     // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
     // except for gamma which outputs uint8 so we need to deal with that internally
     pixelpipe_get_histogram_backbuf(pipe, dev, *output, NULL, *out_format, roi_out, module, piece, hash, bpp);
@@ -2178,6 +2181,9 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, name, pipe->type, output, out_format);
   g_free(name);
 
+  // This will become the input for the next module, lock it until next module process ends
+  dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, FALSE);
+
   dt_times_t start;
   dt_get_times(&start);
 
@@ -2222,11 +2228,21 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
 #ifdef HAVE_OPENCL
   if (pixelpipe_process_on_GPU(pipe, dev, input, cl_mem_input, input_format, &roi_in, output, cl_mem_output, out_format, roi_out,
                                module, piece, &tiling, &pixelpipe_flow, in_bpp, bpp))
+  {
+    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input, FALSE);
     return 1;
+  }
+  else
+    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input, FALSE);
 #else
   if (pixelpipe_process_on_CPU(pipe, dev, input, input_format, &roi_in, output, out_format, roi_out,
                                module, piece, &tiling, &pixelpipe_flow))
+  {
+    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input, FALSE);
     return 1;
+  }
+  else
+    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input, FALSE);
 #endif
 
   // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
@@ -2452,12 +2468,16 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
       pipe->backbuf_width = width;
       pipe->backbuf_height = height;
 
-      // The output buffer actually belongs to the pixelpipe cache.
-      // Protect the cache line from being flushed until something consumes it.
-      dt_dev_pixelpipe_cache_lock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, FALSE);
+      // Note : the last output (backbuf) of the pixelpipe cache is internally locked
+      // Whatever consuming it will need to unlock it.
     }
-    // else if killswitch triggered, we need to resync pipeline modules
-    // with history parameters, meaning exiting this function ASAP.
+    else // if killswitch triggered but no OpenCL error
+    {
+      // We will need to resynch pipeline with
+      // with history parameters, meaning exiting this function ASAP.
+      // Our backuf is garbled though, so unlock it for LRU deletion.
+      dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, FALSE);
+    }
 
     dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   }
