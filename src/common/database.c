@@ -3125,7 +3125,6 @@ start:
     return db;
   }
 
-
   /* opening / creating database */
   if(sqlite3_open(db->dbfilename_library, &db->handle))
   {
@@ -3146,6 +3145,8 @@ start:
     g_free(db);
     return NULL;
   }
+
+  dt_print(DT_DEBUG_SQL, "[sql] Opened database: '%s'\n", db->dbfilename_library);
 
   sqlite3_stmt *stmt;
   int rc;
@@ -3183,6 +3184,8 @@ start:
     return NULL;
   }
 
+  dt_print(DT_DEBUG_SQL, "[sql] Checked that we can write in database: '%s'\n", db->dbfilename_library);
+
   /* attach a memory database to db connection for use with temporary tables
      used during instance life time, which is discarded on exit.
   */
@@ -3202,6 +3205,8 @@ start:
   }
   sqlite3_finalize(stmt);
 
+  dt_print(DT_DEBUG_SQL, "[sql] Opened database: '%s'\n", dbfilename_data);
+
   // some sqlite3 config
   sqlite3_exec(db->handle, "PRAGMA synchronous = OFF", NULL, NULL, NULL);
   sqlite3_exec(db->handle, "PRAGMA journal_mode = MEMORY", NULL, NULL, NULL);
@@ -3210,6 +3215,8 @@ start:
   // WARNING: the foreign_keys pragma must not be used, the integrity of the
   // database rely on it.
   sqlite3_exec(db->handle, "PRAGMA foreign_keys = ON", NULL, NULL, NULL);
+
+  dt_print(DT_DEBUG_SQL, "[sql] Configured database\n");
 
   /* now that we got functional databases that are locked for us we can make sure that the schema is set up */
 
@@ -3226,6 +3233,7 @@ start:
     if(!g_strcmp0(data_status, "ok") && rc == SQLITE_OK && sqlite3_step(stmt) == SQLITE_ROW)
     {
       g_free(data_status); // status is OK and we don't need to care :)
+
       // compare the version of the db with what is current for this executable
       const int db_version = sqlite3_column_int(stmt, 0);
       sqlite3_finalize(stmt);
@@ -3243,11 +3251,6 @@ start:
           db = NULL;
           goto error;
         }
-
-        // upgrade was successfull, time for some housekeeping
-        sqlite3_exec(db->handle, "VACUUM data", NULL, NULL, NULL);
-        sqlite3_exec(db->handle, "ANALYZE data", NULL, NULL, NULL);
-
       }
       else if(db_version > CURRENT_DATABASE_VERSION_DATA)
       {
@@ -3398,6 +3401,8 @@ start:
     }
   }
 
+  dt_print(DT_DEBUG_SQL, "[sql] Checked database schema and migrated if needed\n");
+
   gchar* libdb_status = _get_pragma_string_val(db->handle, "main.quick_check");
   // next we are looking at the library database
   // does the db contain the new 'db_info' table?
@@ -3408,8 +3413,8 @@ start:
 
     // compare the version of the db with what is current for this executable
     const int db_version = sqlite3_column_int(stmt, 0);
-
     sqlite3_finalize(stmt);
+
     if(db_version < CURRENT_DATABASE_VERSION_LIBRARY)
     {
       ask_for_upgrade(dbfilename_library, has_gui);
@@ -3424,10 +3429,6 @@ start:
         db = NULL;
         goto error;
       }
-
-      // upgrade was successfull, time for some housekeeping
-      sqlite3_exec(db->handle, "VACUUM main", NULL, NULL, NULL);
-      sqlite3_exec(db->handle, "ANALYZE main", NULL, NULL, NULL);
     }
     else if(db_version > CURRENT_DATABASE_VERSION_LIBRARY)
     {
@@ -3611,11 +3612,17 @@ start:
     }
   }
 
+  dt_print(DT_DEBUG_SQL, "[sql] Checked db_info\n");
+
   // create the in-memory tables
   _create_memory_schema(db);
 
+  dt_print(DT_DEBUG_SQL, "[sql] Created in-memory DB\n");
+
   // create a table legacy_presets with all the presets from pre-auto-apply-cleanup darktable.
   dt_legacy_presets_create(db);
+
+  dt_print(DT_DEBUG_SQL, "[sql] Loaded legacy presets\n");
 
   // drop table settings -- we don't want old versions of dt to drop our tables
   sqlite3_exec(db->handle, "drop table main.settings", NULL, NULL, NULL);
