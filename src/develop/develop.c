@@ -454,14 +454,9 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
     // Signal that we are starting
     pipe->status = DT_DEV_PIXELPIPE_UNDEF;
 
-    dt_times_t start;
-    dt_get_times(&start);
-
     // NOTE: preview size is constant: 720x450 px
     int ret = dt_dev_pixelpipe_process(pipe, dev, 0, 0, pipe->processed_width,
                                        pipe->processed_height, 1.f);
-
-    dt_show_times(&start, "[dev_process_preview] pixel pipeline processing");
 
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();
@@ -621,12 +616,7 @@ void dt_dev_process_image_job(dt_develop_t *dev)
     // Signal that we are starting
     pipe->status = DT_DEV_PIXELPIPE_UNDEF;
 
-    dt_times_t start;
-    dt_get_times(&start);
-
     int ret = dt_dev_pixelpipe_process(pipe, dev, x, y, wd, ht, scale);
-
-    dt_show_times(&start, "[dev_process_image] pixel pipeline processing");
 
     dt_control_log_busy_leave();
     dt_control_toast_busy_leave();

@@ -2314,46 +2314,44 @@ void dt_dev_pixelpipe_disable_before(dt_dev_pixelpipe_t *pipe, const char *op)
       pipe->devid = -1;                                                                                           \
     }                                                                                                             \
     pipe->status = DT_DEV_PIXELPIPE_DIRTY;                                                                        \
+    if(pipe->forms) g_list_free_full(pipe->forms, (void (*)(void *))dt_masks_free_form);                          \
     dt_iop_nap(200);                                                                                              \
-    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);                                                      \
     return 1;                                                                                                     \
   }
 
 int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x, int y, int width, int height,
                              float scale)
 {
-  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
-
-  KILL_SWITCH_PIPE
-
-  pipe->backbuf = NULL;
-  pipe->opencl_enabled = dt_opencl_update_settings(); // update enabled flag and profile from preferences
-  pipe->devid = (pipe->opencl_enabled) ? dt_opencl_lock_device(pipe->type)
-                                       : -1; // try to get/lock opencl resource
-
-  dt_print(DT_DEBUG_OPENCL, "[pixelpipe_process] [%s] using device %d\n", _pipe_type_to_str(pipe->type),
-           pipe->devid);
-
   if(darktable.unmuted & DT_DEBUG_MEMORY)
   {
     fprintf(stderr, "[memory] before pixelpipe process\n");
     dt_print_mem_usage();
   }
 
-  if(pipe->devid >= 0) dt_opencl_events_reset(pipe->devid);
-
-  dt_iop_roi_t roi = (dt_iop_roi_t){ x, y, width, height, scale };
-  // printf("pixelpipe homebrew process start\n");
   dt_dev_pixelpipe_cache_print(darktable.pixelpipe_cache);
 
   // get a snapshot of mask list
-  if(pipe->forms) g_list_free_full(pipe->forms, (void (*)(void *))dt_masks_free_form);
   pipe->forms = dt_masks_dup_forms_deep(dev->forms, NULL);
 
-  //  go through list of modules from the end:
+  // go through list of modules from the end:
   const guint pos = g_list_length(pipe->iop);
   GList *modules = g_list_last(pipe->iop);
   GList *pieces = g_list_last(pipe->nodes);
+
+  // Get the roi_out hash
+  // Get the previous output size of the module, for cache invalidation.
+  dt_iop_roi_t roi = (dt_iop_roi_t){ x, y, width, height, scale };
+  dt_dev_pixelpipe_get_roi_in(pipe, dev, roi);
+  dt_pixelpipe_get_global_hash(pipe, dev);
+
+  pipe->backbuf = NULL;
+  pipe->opencl_enabled = dt_opencl_update_settings(); // update enabled flag and profile from preferences
+  pipe->devid = (pipe->opencl_enabled) ? dt_opencl_lock_device(pipe->type)
+                                       : -1; // try to get/lock opencl resource
+
+  if(pipe->devid > -1) dt_opencl_events_reset(pipe->devid);
+  dt_print(DT_DEBUG_OPENCL, "[pixelpipe_process] [%s] using device %d\n", _pipe_type_to_str(pipe->type),
+           pipe->devid);
 
   KILL_SWITCH_PIPE
 
@@ -2374,14 +2372,14 @@ restart:;
 
   KILL_SWITCH_PIPE
 
-  // Get the roi_out hash
-  // Get the previous output size of the module, for cache invalidation.
-  dt_dev_pixelpipe_get_roi_in(pipe, dev, roi);
-  dt_pixelpipe_get_global_hash(pipe, dev);
+  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
 
-  KILL_SWITCH_PIPE
-
+  dt_times_t start;
+  dt_get_times(&start);
   const int err = dt_dev_pixelpipe_process_rec(pipe, dev, &buf, &cl_mem_out, &out_format, &roi, modules, pieces, pos);
+  dt_show_times(&start, "[pixelpipe] pixel pipeline processing");
+
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
 #ifdef HAVE_OPENCL
   if(cl_mem_out != NULL) dt_opencl_release_mem_object(cl_mem_out);
@@ -2423,9 +2421,6 @@ restart:;
     }
 
     dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
-    dt_dev_pixelpipe_change(pipe, dev);
-    dt_dev_pixelpipe_get_roi_in(pipe, dev, roi);
-    dt_pixelpipe_get_global_hash(pipe, dev);
 
     dt_print(DT_DEBUG_OPENCL, "[pixelpipe_process] [%s] falling back to cpu path\n",
              _pipe_type_to_str(pipe->type));
@@ -2446,10 +2441,9 @@ restart:;
   // ... and in case of other errors ...
   if(err)
   {
-    // If the pipe returned because the killswitch was triggered, consir it unfinished.
+    // If the pipe returned because the killswitch was triggered, consider it unfinished.
     // Then the main loop will attempt it again.
     pipe->flush_cache = FALSE;
-    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
     return 1;
   }
 
@@ -2464,8 +2458,7 @@ restart:;
   pipe->backbuf = buf;
   pipe->backbuf_width = width;
   pipe->backbuf_height = height;
-  
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
+
   return 0;
 }
 
