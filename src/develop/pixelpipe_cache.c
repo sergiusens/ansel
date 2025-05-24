@@ -251,7 +251,7 @@ gboolean _for_each_remove(gpointer key, gpointer value, gpointer user_data)
 {
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
   const int id = GPOINTER_TO_INT(user_data);
-  return cache_entry->id == id || id == -1;
+  return (cache_entry->id == id || id == -1) && dt_atomic_get_int(&cache_entry->refcount) <= 0;
 }
 
 void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache, const int id)
