@@ -2305,24 +2305,6 @@ void dt_dev_pixelpipe_disable_before(dt_dev_pixelpipe_t *pipe, const char *op)
   }
 }
 
-static int dt_dev_pixelpipe_process_rec_and_backcopy(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void **output,
-                                                     void **cl_mem_output, dt_iop_buffer_dsc_t **out_format,
-                                                     const dt_iop_roi_t *roi_out, GList *modules, GList *pieces,
-                                                     int pos)
-{
-#ifdef HAVE_OPENCL
-  dt_opencl_check_tuning(pipe->devid);
-#endif
-
-  int ret = dt_dev_pixelpipe_process_rec(pipe, dev, output, cl_mem_output, out_format, roi_out, modules, pieces, pos);
-
-#ifdef HAVE_OPENCL
-  if(*cl_mem_output != NULL) dt_opencl_release_mem_object(*cl_mem_output);
-  *cl_mem_output = NULL;
-#endif
-  return ret;
-}
-
 #define KILL_SWITCH_PIPE                                                                                          \
   if(dt_atomic_get_int(&pipe->shutdown))                                                                          \
   {                                                                                                               \
@@ -2377,6 +2359,11 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
 // re-entry point: in case of late opencl errors we start all over again with opencl-support disabled
 restart:;
+
+#ifdef HAVE_OPENCL
+  dt_opencl_check_tuning(pipe->devid);
+#endif
+
   // WARNING: buf will actually be a reference to a pixelpipe cache line, so it will be freed
   // when the cache line is flushed or invalidated.
   void *buf = NULL;
@@ -2394,10 +2381,12 @@ restart:;
 
   KILL_SWITCH_PIPE
 
-  // run pixelpipe recursively and get error status
-  const int err =
-    dt_dev_pixelpipe_process_rec_and_backcopy(pipe, dev, &buf, &cl_mem_out, &out_format, &roi, modules,
-                                              pieces, pos);
+  const int err = dt_dev_pixelpipe_process_rec(pipe, dev, &buf, &cl_mem_out, &out_format, &roi, modules, pieces, pos);
+
+#ifdef HAVE_OPENCL
+  if(cl_mem_out != NULL) dt_opencl_release_mem_object(cl_mem_out);
+  cl_mem_out = NULL;
+#endif
 
   // get status summary of opencl queue by checking the eventlist
   const int oclerr = (pipe->devid >= 0) ? (dt_opencl_events_flush(pipe->devid, 1) != 0) : 0;
