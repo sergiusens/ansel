@@ -2319,6 +2319,26 @@ void dt_dev_pixelpipe_disable_before(dt_dev_pixelpipe_t *pipe, const char *op)
     return 1;                                                                                                     \
   }
 
+
+static void _print_opencl_errors(int error, dt_dev_pixelpipe_t *pipe)
+{
+  switch(error)
+  {
+    case 1:
+      dt_print(DT_DEBUG_OPENCL, "[opencl] Opencl errors; disabling opencl for %s pipeline!\n", _pipe_type_to_str(pipe->type));
+      dt_control_log(_("Ansel discovered problems with your OpenCL setup; disabling OpenCL for %s pipeline!"), _pipe_type_to_str(pipe->type));
+      break;
+    case 2:
+      dt_print(DT_DEBUG_OPENCL,
+                 "[opencl] Too many opencl errors; disabling opencl for this session!\n");
+      dt_control_log(_("Ansel discovered problems with your OpenCL setup; disabling OpenCL for this session!"));
+      break;
+    default:
+      break;
+  }
+}
+
+
 int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x, int y, int width, int height,
                              float scale)
 {
@@ -2330,10 +2350,10 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
   dt_dev_pixelpipe_cache_print(darktable.pixelpipe_cache);
 
-  // get a snapshot of mask list
+  // get a snapshot of the mask list
   pipe->forms = dt_masks_dup_forms_deep(dev->forms, NULL);
 
-  // go through list of modules from the end:
+  // go through the list of modules from the end:
   const guint pos = g_list_length(pipe->iop);
   GList *modules = g_list_last(pipe->iop);
   GList *pieces = g_list_last(pipe->nodes);
@@ -2355,76 +2375,91 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
   KILL_SWITCH_PIPE
 
-// re-entry point: in case of late opencl errors we start all over again with opencl-support disabled
-restart:;
+  gboolean keep_running = TRUE;
+  int opencl_error = 0;
+  int err = 0;
 
-#ifdef HAVE_OPENCL
-  dt_opencl_check_tuning(pipe->devid);
-#endif
-
-  // WARNING: buf will actually be a reference to a pixelpipe cache line, so it will be freed
-  // when the cache line is flushed or invalidated.
-  void *buf = NULL;
-  void *cl_mem_out = NULL;
-
-  dt_iop_buffer_dsc_t _out_format = { 0 };
-  dt_iop_buffer_dsc_t *out_format = &_out_format;
-
-  KILL_SWITCH_PIPE
-
-  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
-
-  dt_times_t start;
-  dt_get_times(&start);
-  const int err = dt_dev_pixelpipe_process_rec(pipe, dev, &buf, &cl_mem_out, &out_format, &roi, modules, pieces, pos);
-  dt_show_times(&start, "[pixelpipe] pixel pipeline processing");
-
-  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
-
-#ifdef HAVE_OPENCL
-  if(cl_mem_out != NULL) dt_opencl_release_mem_object(cl_mem_out);
-  cl_mem_out = NULL;
-#endif
-
-  // get status summary of opencl queue by checking the eventlist
-  const int oclerr = (pipe->devid >= 0) ? (dt_opencl_events_flush(pipe->devid, 1) != 0) : 0;
-
-  // Check if we had opencl errors ....
-  // remark: opencl errors can come in two ways: pipe->opencl_error is TRUE (and err is TRUE) OR oclerr is
-  // TRUE
-  if(oclerr || (err && pipe->opencl_error))
+  while(keep_running)
   {
-    // Well, there were errors -> we might need to free an invalid opencl memory object
-    dt_opencl_release_mem_object(cl_mem_out);
-    dt_opencl_unlock_device(pipe->devid); // release opencl resource
-    pipe->opencl_enabled = 0; // disable opencl for this pipe
-    pipe->opencl_error = 0;   // reset error status
-    pipe->devid = -1;
 
-    darktable.opencl->error_count++; // increase error count
-    if(darktable.opencl->error_count >= DT_OPENCL_MAX_ERRORS)
+#ifdef HAVE_OPENCL
+    dt_opencl_check_tuning(pipe->devid);
+#endif
+
+    // WARNING: buf will actually be a reference to a pixelpipe cache line, so it will be freed
+    // when the cache line is flushed or invalidated.
+    void *buf = NULL;
+    void *cl_mem_out = NULL;
+
+    dt_iop_buffer_dsc_t _out_format = { 0 };
+    dt_iop_buffer_dsc_t *out_format = &_out_format;
+
+    KILL_SWITCH_PIPE
+
+    dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
+    dt_times_t start;
+    dt_get_times(&start);
+    err = dt_dev_pixelpipe_process_rec(pipe, dev, &buf, &cl_mem_out, &out_format, &roi, modules, pieces, pos);
+    dt_show_times(&start, "[pixelpipe] pixel pipeline processing");
+
+    // The pipeline has copied cl_mem_out into buf, so we can release it now.
+  #ifdef HAVE_OPENCL
+    if(cl_mem_out != NULL) dt_opencl_release_mem_object(cl_mem_out);
+    cl_mem_out = NULL;
+  #endif
+
+    // get status summary of opencl queue by checking the eventlist
+    const int oclerr = (pipe->devid > -1) ? (dt_opencl_events_flush(pipe->devid, 1) != 0) : 0;
+
+    // Check if we had opencl errors ....
+    // remark: opencl errors can come in two ways: pipe->opencl_error is TRUE (and err is TRUE) OR oclerr is
+    // TRUE
+    keep_running = (oclerr || (err && pipe->opencl_error));
+    if(keep_running)
     {
-      // too frequent opencl errors encountered: this is a clear sign of a broken setup. give up on opencl
-      // during this session.
-      darktable.opencl->stopped = 1;
-      dt_print(DT_DEBUG_OPENCL,
-               "[opencl] frequent opencl errors encountered; disabling opencl for this session!\n");
-      dt_control_log(
-          _("Ansel discovered problems with your OpenCL setup; disabling OpenCL for this session!"));
-      // also remove "opencl" from capabilities so that the preference entry is greyed out
-      dt_capabilities_remove("opencl");
+      // Log the error
+      darktable.opencl->error_count++; // increase error count
+      opencl_error = 1; // = any OpenCL error, next run goes to CPU
+
+      // Disable OpenCL for this pipe
+      dt_opencl_unlock_device(pipe->devid);
+      pipe->opencl_enabled = 0;
+      pipe->opencl_error = 0;
+      pipe->devid = -1;
+
+      if(darktable.opencl->error_count >= DT_OPENCL_MAX_ERRORS)
+      {
+        // Too many errors : dispable OpenCL for this session
+        darktable.opencl->stopped = 1;
+        dt_capabilities_remove("opencl");
+        opencl_error = 2; // = too many OpenCL errors, all runs go to CPU
+      }
+
+      _print_opencl_errors(opencl_error, pipe);
+
+      // FIXME: this might be too extreme, and only the first faulty module output should be flushed
+      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
     }
-    else
+    else if(!dt_atomic_get_int(&pipe->shutdown))
     {
-      dt_print(DT_DEBUG_OPENCL,
-               "[opencl] opencl errors encountered; disabling opencl for this pipeline!\n");
+      // No opencl errors, no killswitch triggered: we should have a valid output buffer now.
+
+      // Store the back buffer hash and reference
+      const dt_dev_pixelpipe_iop_t *last_module = _last_node_in_pipe(pipe);
+      pipe->backbuf_hash = _node_hash(pipe, last_module, &roi, pos);
+      pipe->backbuf = buf;
+      pipe->backbuf_width = width;
+      pipe->backbuf_height = height;
+
+      // The output buffer actually belongs to the pixelpipe cache.
+      // Protect the cache line from being flushed until something consumes it.
+      dt_dev_pixelpipe_cache_lock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, FALSE);
     }
+    // else if killswitch triggered, we need to resync pipeline modules
+    // with history parameters, meaning exiting this function ASAP.
 
-    dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
-
-    dt_print(DT_DEBUG_OPENCL, "[pixelpipe_process] [%s] falling back to cpu path\n",
-             _pipe_type_to_str(pipe->type));
-    goto restart; // try again (this time without opencl)
+    dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   }
 
   // release resources:
@@ -2438,28 +2473,13 @@ restart:;
     dt_opencl_unlock_device(pipe->devid);
     pipe->devid = -1;
   }
-  // ... and in case of other errors ...
-  if(err)
-  {
-    // If the pipe returned because the killswitch was triggered, consider it unfinished.
-    // Then the main loop will attempt it again.
-    pipe->flush_cache = FALSE;
-    return 1;
-  }
 
   // terminate
   dt_dev_pixelpipe_cache_print(darktable.pixelpipe_cache);
 
   // If an intermediate module set that, be sure to reset it at the end
   pipe->flush_cache = FALSE;
-
-  const dt_dev_pixelpipe_iop_t *last_module = _last_node_in_pipe(pipe);
-  pipe->backbuf_hash = _node_hash(pipe, last_module, &roi, pos);
-  pipe->backbuf = buf;
-  pipe->backbuf_width = width;
-  pipe->backbuf_height = height;
-
-  return 0;
+  return err;
 }
 
 gboolean dt_dev_pixelpipe_activemodule_disables_currentmodule(struct dt_develop_t *dev, struct dt_iop_module_t *current_module)

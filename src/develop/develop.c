@@ -374,7 +374,11 @@ static void _flag_pipe(dt_dev_pixelpipe_t *pipe, gboolean error)
 
 static void _update_gui_backbuf(dt_dev_pixelpipe_t *pipe)
 {
-  if(pipe->status != DT_DEV_PIXELPIPE_VALID) return;
+  if(pipe->status != DT_DEV_PIXELPIPE_VALID)
+  {
+    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, TRUE);
+    return;
+  }
 
   dt_pthread_mutex_lock(&pipe->backbuf_mutex);
 
@@ -394,6 +398,9 @@ static void _update_gui_backbuf(dt_dev_pixelpipe_t *pipe)
   pipe->output_imgid = pipe->image.id;
 
   dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
+
+  // We are done with pipe->backbuf, the pipe cache can now delete it, unlock it.
+  dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, TRUE);
 }
 
 
