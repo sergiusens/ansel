@@ -363,7 +363,7 @@ static void _flag_pipe(dt_dev_pixelpipe_t *pipe, gboolean error)
 
   // Before calling dt_dev_pixelpipe_process(), we set the status to DT_DEV_PIXELPIPE_UNDEF.
   // If it's still set to this value and we have a backbuf, everything went well.
-  else if(pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
+  else if(pipe->output_backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
     pipe->status = DT_DEV_PIXELPIPE_VALID;
 
   // Otherwise, the main thread will have reset the status to DT_DEV_PIXELPIPE_DIRTY
@@ -722,7 +722,7 @@ void dt_dev_configure_real(dt_develop_t *dev, int wd, int ht)
 {
   // Called only from Darkroom to init and update drawing size
   // depending on sidebars and main window resizing.
-  if(dev->width != wd || dev->height != ht || !dev->pipe->backbuf)
+  if(dev->width != wd || dev->height != ht || !dev->pipe->output_backbuf)
   {
     // If dimensions didn't change or we don't have a valid output image to display
 
