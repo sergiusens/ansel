@@ -34,6 +34,7 @@ typedef struct dt_pixel_cache_entry_t
   int age;
   char *name; // name of the cache entry, for debugging
   int id;
+  dt_atomic_int refcount; // reference count for the cache entry, to avoid freeing it while still in use
 } dt_pixel_cache_entry_t;
 
 
@@ -77,7 +78,9 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
 {
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
   _cache_lru_t *lru = (_cache_lru_t *)user_data;
-  if(cache_entry->age > lru->max_age)
+
+  // Don't remove LRU entries that are still in use
+  if(cache_entry->age > lru->max_age && dt_atomic_get_int(&cache_entry->refcount) == 0)
   {
     lru->max_age = cache_entry->age;
     lru->hash = cache_entry->hash;
@@ -143,6 +146,7 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
   cache_entry->hash = hash;
   cache_entry->id = id;
   cache_entry->name = g_strdup(name);
+  cache_entry->refcount = 0;
 
   g_hash_table_insert(cache->entries, GINT_TO_POINTER(hash), cache_entry);
   cache->current_memory += size;
@@ -295,6 +299,64 @@ void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *da
   free(cache_invalidate);
 }
 
+void _lock_entry(gpointer key, gpointer value, gpointer user_data)
+{
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+  if(cache_entry->data == user_data)
+  {
+    dt_atomic_add_int(&cache_entry->refcount, 1);
+    fprintf(stdout, "locking %p\n", user_data);
+  }
+}
+
+void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock_thread)
+{
+  if(data == NULL) return;
+  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  g_hash_table_foreach(cache->entries, _lock_entry, data);
+  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+}
+
+void _unlock_entry(gpointer key, gpointer value, gpointer user_data)
+{
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+  if(cache_entry->data == user_data)
+  {
+    dt_atomic_sub_int(&cache_entry->refcount, 1);
+    fprintf(stdout, "unlocking %p\n", user_data);
+  }
+}
+
+void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock_thread)
+{
+  if(data == NULL) return;
+  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  g_hash_table_foreach(cache->entries, _unlock_entry, data);
+  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+}
+
+
+void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock_thread)
+{
+  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry)
+    dt_atomic_add_int(&cache_entry->refcount, 1);
+  else
+    dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot lock\n", hash);
+  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+}
+
+void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock_thread)
+{
+  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry)
+    dt_atomic_sub_int(&cache_entry->refcount, 1);
+  else
+    dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot unlock\n", hash);
+  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+}
 
 void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache)
 {
