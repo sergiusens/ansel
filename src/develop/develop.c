@@ -363,12 +363,37 @@ static void _flag_pipe(dt_dev_pixelpipe_t *pipe, gboolean error)
 
   // Before calling dt_dev_pixelpipe_process(), we set the status to DT_DEV_PIXELPIPE_UNDEF.
   // If it's still set to this value and we have a backbuf, everything went well.
-  else if(pipe->output_backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
+  else if(pipe->backbuf && pipe->status == DT_DEV_PIXELPIPE_UNDEF)
     pipe->status = DT_DEV_PIXELPIPE_VALID;
 
   // Otherwise, the main thread will have reset the status to DT_DEV_PIXELPIPE_DIRTY
   // and the pipe->shutdown to TRUE because history has changed in the middle of a process.
   // In that case, do nothing and do another loop
+}
+
+
+static void _update_gui_backbuf(dt_dev_pixelpipe_t *pipe)
+{
+  if(pipe->status != DT_DEV_PIXELPIPE_VALID) return;
+
+  dt_pthread_mutex_lock(&pipe->backbuf_mutex);
+
+  if(pipe->output_backbuf == NULL ||
+      pipe->output_backbuf_width != pipe->backbuf_width ||
+      pipe->output_backbuf_height != pipe->backbuf_height)
+  {
+    g_free(pipe->output_backbuf);
+    pipe->output_backbuf_width = pipe->backbuf_width;
+    pipe->output_backbuf_height = pipe->backbuf_height;
+    pipe->output_backbuf = malloc(sizeof(uint8_t) * 4 * pipe->output_backbuf_width * pipe->output_backbuf_height);
+  }
+
+  if(pipe->output_backbuf)
+    memcpy(pipe->output_backbuf, pipe->backbuf, sizeof(uint8_t) * 4 * pipe->output_backbuf_width * pipe->output_backbuf_height);
+
+  pipe->output_imgid = pipe->image.id;
+
+  dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
 }
 
 
@@ -451,7 +476,10 @@ void dt_dev_process_preview_job(dt_develop_t *dev)
       pipe->status = DT_DEV_PIXELPIPE_DIRTY;
     }
     else
+    {
       _flag_pipe(pipe, ret);
+      _update_gui_backbuf(pipe);
+    }
 
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)
       DT_DEBUG_CONTROL_SIGNAL_RAISE(darktable.signals, DT_SIGNAL_DEVELOP_PREVIEW_PIPE_FINISHED);
@@ -613,7 +641,10 @@ void dt_dev_process_image_job(dt_develop_t *dev)
       pipe->status = DT_DEV_PIXELPIPE_DIRTY;
     }
     else
+    {
       _flag_pipe(pipe, ret);
+      _update_gui_backbuf(pipe);
+    }
 
     // cool, we got a new image!
     if(pipe->status == DT_DEV_PIXELPIPE_VALID)

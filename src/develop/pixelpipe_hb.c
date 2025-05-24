@@ -2459,32 +2459,12 @@ restart:;
   // If an intermediate module set that, be sure to reset it at the end
   pipe->flush_cache = FALSE;
 
-  dt_pthread_mutex_lock(&pipe->backbuf_mutex);
   const dt_dev_pixelpipe_iop_t *last_module = _last_node_in_pipe(pipe);
   pipe->backbuf_hash = _node_hash(pipe, last_module, &roi, pos);
   pipe->backbuf = buf;
   pipe->backbuf_width = width;
   pipe->backbuf_height = height;
-
-  if(dev->gui_attached)
-  {
-    if(pipe->output_backbuf == NULL ||
-       pipe->output_backbuf_width != pipe->backbuf_width ||
-       pipe->output_backbuf_height != pipe->backbuf_height)
-    {
-      g_free(pipe->output_backbuf);
-      pipe->output_backbuf_width = pipe->backbuf_width;
-      pipe->output_backbuf_height = pipe->backbuf_height;
-      pipe->output_backbuf = g_malloc0(sizeof(uint8_t) * 4 * pipe->output_backbuf_width * pipe->output_backbuf_height);
-    }
-
-    if(pipe->output_backbuf)
-      memcpy(pipe->output_backbuf, pipe->backbuf, sizeof(uint8_t) * 4 * pipe->output_backbuf_width * pipe->output_backbuf_height);
-
-    pipe->output_imgid = pipe->image.id;
-  }
-  dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
-
+  
   dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
   return 0;
 }
