@@ -313,12 +313,12 @@ void _lock_entry(gpointer key, gpointer value, gpointer user_data)
   }
 }
 
-void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock_thread)
+void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data)
 {
   if(data == NULL) return;
-  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  dt_pthread_mutex_lock(&cache->lock);
   g_hash_table_foreach(cache->entries, _lock_entry, data);
-  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+  dt_pthread_mutex_unlock(&cache->lock);
 }
 
 void _unlock_entry(gpointer key, gpointer value, gpointer user_data)
@@ -331,18 +331,18 @@ void _unlock_entry(gpointer key, gpointer value, gpointer user_data)
   }
 }
 
-void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock_thread)
+void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data)
 {
   if(data == NULL) return;
-  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  dt_pthread_mutex_lock(&cache->lock);
   g_hash_table_foreach(cache->entries, _unlock_entry, data);
-  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+  dt_pthread_mutex_unlock(&cache->lock);
 }
 
 
-void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock_thread)
+void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
 {
-  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  dt_pthread_mutex_lock(&cache->lock);
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
   {
@@ -351,12 +351,12 @@ void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, con
   }
   else
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot lock\n", hash);
-  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+  dt_pthread_mutex_unlock(&cache->lock);
 }
 
-void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock_thread)
+void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
 {
-  if(lock_thread) dt_pthread_mutex_lock(&cache->lock);
+  dt_pthread_mutex_lock(&cache->lock);
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
   {
@@ -365,7 +365,7 @@ void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, c
   }
   else
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot unlock\n", hash);
-  if(lock_thread) dt_pthread_mutex_unlock(&cache->lock);
+  dt_pthread_mutex_unlock(&cache->lock);
 }
 
 void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache)

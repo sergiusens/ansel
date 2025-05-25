@@ -376,7 +376,7 @@ static void _update_gui_backbuf(dt_dev_pixelpipe_t *pipe)
 {
   if(pipe->status != DT_DEV_PIXELPIPE_VALID)
   {
-    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, TRUE);
+    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf);
     return;
   }
 
@@ -400,7 +400,7 @@ static void _update_gui_backbuf(dt_dev_pixelpipe_t *pipe)
   dt_pthread_mutex_unlock(&pipe->backbuf_mutex);
 
   // We are done with pipe->backbuf, the pipe cache can now delete it, unlock it.
-  dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, TRUE);
+  dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf);
 }
 
 

@@ -104,7 +104,7 @@ void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache);
  * Set this to FALSE if the function is called from a code block that already holds the cache lock,
  * otherwise it will deadlock.
  */
-void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock_thread);
+void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data);
 
 /**
  * @brief Same as `dt_dev_pixelpipe_cache_lock_entry_data`, but locks the cache entry by its hash.
@@ -115,7 +115,7 @@ void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, voi
  * Set this to FALSE if the function is called from a code block that already holds the cache lock,
  * otherwise it will deadlock.
  */
-void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock_thread);
+void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash);
 
 
 /**
@@ -128,7 +128,7 @@ void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, con
  * Set this to FALSE if the function is called from a code block that already holds the cache lock,
  * otherwise it will deadlock.
  */
-void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock_thread);
+void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data);
 
 /**
  * @brief Same as `dt_dev_pixelpipe_cache_unlock_entry_data`, but unlocks the cache entry by its hash.
@@ -139,7 +139,7 @@ void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, v
  * Set this to FALSE if the function is called from a code block that already holds the cache lock.
  * Otherwise it will deadlock.
  */
-void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock_thread);
+void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py
