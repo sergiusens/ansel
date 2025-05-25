@@ -2116,8 +2116,8 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   const gboolean bypass_cache = (module) ? piece->bypass_cache : FALSE;
   if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_available(darktable.pixelpipe_cache, hash))
   {
-    dt_print(DT_DEBUG_PIPE, "[pipeline] found %s for %s pipeline in cache\n", module->op,
-             _pipe_type_to_str(pipe->type));
+    dt_print(DT_DEBUG_PIPE, "[pipeline] found %lu (%s) for %s pipeline in cache\n", hash, (module) ? module->op : "noop",
+               _pipe_type_to_str(pipe->type));
     dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "", pipe->type, output, out_format);
 
     // This will become the input for the next module, lock it until next module process ends
