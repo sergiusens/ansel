@@ -35,6 +35,7 @@ typedef struct dt_pixel_cache_entry_t
   char *name; // name of the cache entry, for debugging
   int id;
   dt_atomic_int refcount; // reference count for the cache entry, to avoid freeing it while still in use
+  dt_pthread_rwlock_t lock;
 } dt_pixel_cache_entry_t;
 
 
@@ -55,7 +56,9 @@ void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *mes
 void dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
 {
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
-  if(cache_entry)
+  if(cache_entry &&
+     dt_atomic_get_int(&cache_entry->refcount) <= 0 &&
+     !dt_pthread_rwlock_tryrdlock(&cache_entry->lock))
   {
     cache->current_memory -= cache_entry->size;
     g_hash_table_remove(cache->entries, GINT_TO_POINTER(hash));
@@ -84,7 +87,9 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
   // we might have more things decreasing refcount than increasing it.
   // It's no big deal though, as long as the (final output) backbuf
   // is checked for NULL and not reused if pipeline is DIRTY.
-  if(cache_entry->age > lru->max_age && dt_atomic_get_int(&cache_entry->refcount) <= 0)
+  if(cache_entry->age > lru->max_age &&
+     dt_atomic_get_int(&cache_entry->refcount) <= 0 &&
+     !dt_pthread_rwlock_tryrdlock(&cache_entry->lock))
   {
     lru->max_age = cache_entry->age;
     lru->hash = cache_entry->hash;
@@ -151,6 +156,7 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
   cache_entry->id = id;
   cache_entry->name = g_strdup(name);
   cache_entry->refcount = 0;
+  dt_pthread_rwlock_init(&cache_entry->lock, NULL);
 
   g_hash_table_insert(cache->entries, GINT_TO_POINTER(hash), cache_entry);
   cache->current_memory += size;
@@ -165,6 +171,7 @@ static void _free_cache_entry(dt_pixel_cache_entry_t *cache_entry)
   dt_pixel_cache_message(cache_entry, "freed");
   dt_free_align(cache_entry->data);
   cache_entry->data = NULL;
+  dt_pthread_rwlock_destroy(&cache_entry->lock);
   g_free(cache_entry->name);
   free(cache_entry);
 }
@@ -251,7 +258,9 @@ gboolean _for_each_remove(gpointer key, gpointer value, gpointer user_data)
 {
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
   const int id = GPOINTER_TO_INT(user_data);
-  return (cache_entry->id == id || id == -1) && dt_atomic_get_int(&cache_entry->refcount) <= 0;
+  return (cache_entry->id == id || id == -1) &&
+    dt_atomic_get_int(&cache_entry->refcount) <= 0 &&
+    !dt_pthread_rwlock_tryrdlock(&cache_entry->lock);
 }
 
 void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache, const int id)
@@ -274,7 +283,7 @@ gboolean _cache_invalidate(gpointer key, gpointer value, gpointer user_data)
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
   _cache_invalidate_t *cache_invalidate = (_cache_invalidate_t *)user_data;
 
-  if(cache_entry->data == cache_invalidate->data)
+  if(cache_entry->data == cache_invalidate->data && !dt_pthread_rwlock_tryrdlock(&cache_entry->lock))
   {
     cache_invalidate->size = cache_entry->size;
     return TRUE; // remove this entry
@@ -303,68 +312,76 @@ void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *da
   free(cache_invalidate);
 }
 
-void _lock_entry(gpointer key, gpointer value, gpointer user_data)
+uint64_t dt_dev_pixelpipe_cache_get_hash_data(dt_dev_pixelpipe_cache_t *cache, void *data)
 {
-  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
-  if(cache_entry->data == user_data)
-  {
-    dt_atomic_add_int(&cache_entry->refcount, 1);
-    fprintf(stdout, "locking %p\n", user_data);
-  }
-}
+  GHashTableIter iter;
+  gpointer key, value;
+  uint64_t hash = 0;
 
-void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data)
-{
-  if(data == NULL) return;
   dt_pthread_mutex_lock(&cache->lock);
-  g_hash_table_foreach(cache->entries, _lock_entry, data);
-  dt_pthread_mutex_unlock(&cache->lock);
-}
-
-void _unlock_entry(gpointer key, gpointer value, gpointer user_data)
-{
-  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
-  if(cache_entry->data == user_data)
+  g_hash_table_iter_init(&iter, cache->entries);
+  while(g_hash_table_iter_next(&iter, &key, &value))
   {
-    dt_atomic_sub_int(&cache_entry->refcount, 1);
-    fprintf(stdout, "unlocking %p\n", user_data);
+    dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
+    if(cache_entry->data == data)
+    {
+      hash = cache_entry->hash;
+      break;
+    }
   }
-}
-
-void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data)
-{
-  if(data == NULL) return;
-  dt_pthread_mutex_lock(&cache->lock);
-  g_hash_table_foreach(cache->entries, _unlock_entry, data);
   dt_pthread_mutex_unlock(&cache->lock);
+
+  return hash;
 }
 
 
-void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
+void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock)
+{
+  uint64_t hash = dt_dev_pixelpipe_cache_get_hash_data(cache, data);
+  dt_dev_pixelpipe_cache_lock_entry_hash(cache, hash, lock);
+}
+
+
+void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock)
 {
   dt_pthread_mutex_lock(&cache->lock);
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
   {
-    dt_atomic_add_int(&cache_entry->refcount, 1);
-    fprintf(stdout, "locking %p\n", cache_entry->data);
+    if(lock)
+      dt_atomic_add_int(&cache_entry->refcount, 1);
+    else
+      dt_atomic_sub_int(&cache_entry->refcount, 1);
   }
-  else
-    dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot lock\n", hash);
   dt_pthread_mutex_unlock(&cache->lock);
 }
 
-void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
+
+void dt_dev_pixelpipe_cache_wrlock_entry(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock)
 {
   dt_pthread_mutex_lock(&cache->lock);
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
   {
-    dt_atomic_sub_int(&cache_entry->refcount, 1);
-    fprintf(stdout, "unlocking %p\n", cache_entry->data);
+    if(lock)
+      dt_pthread_rwlock_wrlock(&cache_entry->lock);
+    else
+      dt_pthread_rwlock_unlock(&cache_entry->lock);
   }
-  else
-    dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, cannot unlock\n", hash);
+  dt_pthread_mutex_unlock(&cache->lock);
+}
+
+void dt_dev_pixelpipe_cache_rdlock_entry(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock)
+{
+  dt_pthread_mutex_lock(&cache->lock);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry)
+  {
+    if(lock)
+      dt_pthread_rwlock_rdlock(&cache_entry->lock);
+    else
+      dt_pthread_rwlock_unlock(&cache_entry->lock);
+  }
   dt_pthread_mutex_unlock(&cache->lock);
 }
 

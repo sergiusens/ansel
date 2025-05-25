@@ -2116,10 +2116,12 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   const gboolean bypass_cache = (module) ? piece->bypass_cache : FALSE;
   if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_available(darktable.pixelpipe_cache, hash))
   {
+    dt_print(DT_DEBUG_PIPE, "[pipeline] found %s for %s pipeline in cache\n", module->op,
+             _pipe_type_to_str(pipe->type));
     dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "", pipe->type, output, out_format);
 
     // This will become the input for the next module, lock it until next module process ends
-    dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash);
+    dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, TRUE);
 
     // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
     // except for gamma which outputs uint8 so we need to deal with that internally
@@ -2182,7 +2184,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   g_free(name);
 
   // This will become the input for the next module, lock it until next module process ends
-  dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash);
+  dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, TRUE);
 
   dt_times_t start;
   dt_get_times(&start);
@@ -2224,26 +2226,29 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   assert(tiling.factor > 0.0f);
   assert(tiling.factor_cl > 0.0f);
 
+  // Lock input in read-only, output in write-only
+  // Reference count is already increased from previous module
+  uint64_t input_hash = dt_dev_pixelpipe_cache_get_hash_data(darktable.pixelpipe_cache, input);
+  dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, input_hash, TRUE);
+  dt_dev_pixelpipe_cache_wrlock_entry(darktable.pixelpipe_cache, hash, TRUE);
+
   // Actual pixel processing for this module
+  int error = 0;
 #ifdef HAVE_OPENCL
-  if (pixelpipe_process_on_GPU(pipe, dev, input, cl_mem_input, input_format, &roi_in, output, cl_mem_output, out_format, roi_out,
-                               module, piece, &tiling, &pixelpipe_flow, in_bpp, bpp))
-  {
-    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input);
-    return 1;
-  }
-  else
-    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input);
+  error = pixelpipe_process_on_GPU(pipe, dev, input, cl_mem_input, input_format, &roi_in, output, cl_mem_output,
+                                   out_format, roi_out, module, piece, &tiling, &pixelpipe_flow, in_bpp, bpp);
 #else
-  if (pixelpipe_process_on_CPU(pipe, dev, input, input_format, &roi_in, output, out_format, roi_out,
-                               module, piece, &tiling, &pixelpipe_flow))
-  {
-    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input);
-    return 1;
-  }
-  else
-    dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, input);
+  error = pixelpipe_process_on_CPU(pipe, dev, input, input_format, &roi_in, output, out_format, roi_out, module,
+                                   piece, &tiling, &pixelpipe_flow);
 #endif
+
+  // Unlock read ond write locks, decrease reference count
+  dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, input_hash, FALSE);
+  dt_dev_pixelpipe_cache_wrlock_entry(darktable.pixelpipe_cache, hash, FALSE);
+  dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, input_hash, FALSE);
+
+  if(error) return 1;
+
 
   // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
   // except for gamma which outputs uint8 so we need to deal with that internally
@@ -2474,7 +2479,7 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
       // We will need to resynch pipeline with
       // with history parameters, meaning exiting this function ASAP.
       // Our backuf is garbled though, so unlock it for LRU deletion.
-      dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, pipe->backbuf);
+      dt_dev_pixelpipe_cache_lock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, FALSE);
     }
   }
 

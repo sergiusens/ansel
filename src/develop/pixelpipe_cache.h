@@ -95,51 +95,54 @@ void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache);
 void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache);
 
 /**
- * @brief Lock the cache entry holding the given data buffer, which will prevent it from being removed
- * until it is unlocked. This is thread-safe and allows multiple threads to lock the same entry.
- *
- * @param cache
- * @param data
- * @param lock_thread If TRUE, lock the whole cache.
- * Set this to FALSE if the function is called from a code block that already holds the cache lock,
- * otherwise it will deadlock.
- */
-void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data);
-
-/**
- * @brief Same as `dt_dev_pixelpipe_cache_lock_entry_data`, but locks the cache entry by its hash.
+ * @brief Increase/Decrease the reference count on the cache line as to prevent
+ * LRU item removal.
  *
  * @param cache
  * @param hash
- * @param lock If TRUE, lock the whole cache.
- * Set this to FALSE if the function is called from a code block that already holds the cache lock,
- * otherwise it will deadlock.
+ * @param lock TRUE to lock, FALSE to unlock
  */
-void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash);
-
+void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock);
 
 /**
- * @brief Unlock the cache entry holding the given data buffer, which will allow it to be removed
- * if it becomes the least recently used entry.
+ * @brief Find the hash of the cache entry holding the buffer data
  *
  * @param cache
  * @param data
- * @param lock_thread If TRUE, lock the whole cache.
- * Set this to FALSE if the function is called from a code block that already holds the cache lock,
- * otherwise it will deadlock.
+ * @return uint64_t defaults to 0 if nothing was found.
  */
-void dt_dev_pixelpipe_cache_unlock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data);
+uint64_t dt_dev_pixelpipe_cache_get_hash_data(dt_dev_pixelpipe_cache_t *cache, void *data);
 
 /**
- * @brief Same as `dt_dev_pixelpipe_cache_unlock_entry_data`, but unlocks the cache entry by its hash.
+ * @brief Chains `dt_dev_pixelpipe_cache_lock_entry_hash` with
+ * `dt_dev_pixelpipe_cache_get_hash_data`
+ *
+ * @param cache
+ * @param data
+ * @param lock TRUE to lock, FALSE to unlock
+ */
+void dt_dev_pixelpipe_cache_lock_entry_data(dt_dev_pixelpipe_cache_t *cache, void *data, gboolean lock);
+
+
+/**
+ * @brief Lock or release the write lock on the entry
  *
  * @param cache
  * @param hash
- * @param lock_thread If TRUE, lock the whole cache.
- * Set this to FALSE if the function is called from a code block that already holds the cache lock.
- * Otherwise it will deadlock.
+ * @param lock TRUE to lock, FALSE to release
  */
-void dt_dev_pixelpipe_cache_unlock_entry_hash(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash);
+void dt_dev_pixelpipe_cache_wrlock_entry(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock);
+
+
+/**
+ * @brief Lock or release the read lock on the entry
+ *
+ * @param cache
+ * @param hash
+ * @param lock TRUE to lock, FALSE to release
+ */
+void dt_dev_pixelpipe_cache_rdlock_entry(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock);
+
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -1192,7 +1192,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   res = format->write_image(format_params, filename, outbuf, icc_type, icc_filename, exif_profile, length, imgid,
                             num, total, &pipe, export_masks);
 
-  dt_dev_pixelpipe_cache_unlock_entry_data(darktable.pixelpipe_cache, outbuf);
+  dt_dev_pixelpipe_cache_lock_entry_data(darktable.pixelpipe_cache, outbuf, FALSE);
 
   if(exif_profile) free(exif_profile);
   if(res) goto error;
