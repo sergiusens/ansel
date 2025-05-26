@@ -831,18 +831,17 @@ gboolean _get_export_size(dt_develop_t *dev, dt_dev_pixelpipe_t *pipe,
     // fluid height, fixed width
     *processed_width = MIN(pipe->processed_width, width);
     *processed_height = (int)roundf(*processed_width / image_ratio);
-    *scale = (double)pipe->processed_width / (double)*processed_width;
-    return 0;
   }
-
-  if(height > 0)
+  else if(height > 0)
   {
     // fluid width, fixed height
     *processed_height = MIN(pipe->processed_height, height);
     *processed_width = (int)roundf(*processed_height * image_ratio);
-    *scale = (double)pipe->processed_height / (double)*processed_height;
-    return 0;
   }
+
+  double scale_x = (double)*processed_width / (double)pipe->processed_width;
+  double scale_y = (double)*processed_height / (double)pipe->processed_height;
+  *scale = fmin(scale_x, scale_y);
 
   return 0;
 }
