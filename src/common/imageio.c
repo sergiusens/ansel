@@ -768,105 +768,81 @@ void _filter_pipeline(const char *filter, dt_dev_pixelpipe_t *pipe)
 }
 
 
-gboolean _get_export_size(dt_develop_t *dev, dt_dev_pixelpipe_t *pipe, const dt_imageio_module_data_t *format_params, const gboolean is_scaling, const float image_ratio,
-                          double *scale, float *origin, int width, int height, int *processed_width, int *processed_height)
+gboolean _get_export_size(dt_develop_t *dev, dt_dev_pixelpipe_t *pipe,
+                          const dt_imageio_module_data_t *format_params, const gboolean is_scaling, double *scale,
+                          int width, int height, int *processed_width, int *processed_height)
 {
-// Set to TRUE if width size is explicitly set by user
-  gboolean force_width;
-  // Set to TRUE if height size is explicitly set by user
-  gboolean force_height;
+  const double image_ratio = (double)pipe->processed_width / (double)pipe->processed_height;
 
-  if(dt_dev_distort_backtransform_plus(dev, pipe, 0.f, DT_DEV_TRANSFORM_DIR_ALL, origin, 1))
+  if(is_scaling)
   {
-    if(is_scaling)
-    {
-      double _num, _denum;
-      dt_imageio_resizing_factor_get_and_parsing(&_num, &_denum);
-      const double scale_factor = _num / _denum;
-      *scale = fmin(scale_factor, 1.);
-      *processed_height = pipe->processed_height * (*scale);
-      *processed_width = pipe->processed_width * (*scale);
-      force_width = TRUE;
-      force_height = TRUE;
-    }
-    else
-    {
-      double scalex = 1.;
-      double scaley = 1.;
-
-      if(width == 0)
-      {
-        force_width = FALSE;
-        width = pipe->processed_width;
-      }
-      else
-      {
-        force_width = TRUE;
-        scalex = fmin((double)width / (double)pipe->processed_width, 1.);
-      }
-
-      if(height == 0)
-      {
-        force_height = FALSE;
-        height = pipe->processed_height;
-      }
-      else
-      {
-        force_height = TRUE;
-        scaley = fmin((double)height / (double)pipe->processed_height, 1.);
-      }
-
-      *scale = fmin(scalex, scaley);
-    }
-  }
-  else
-  {
-    // error reading pipeline pieces for distort transforms
-    fprintf(stderr, "[export_with_flags] could not get output size from pipeline\n");
-    return 1;
+    double _num, _denum;
+    dt_imageio_resizing_factor_get_and_parsing(&_num, &_denum);
+    const double scale_factor = _num / _denum;
+    *scale = fmin(scale_factor, 1.);
+    *processed_height = (int)roundf(pipe->processed_height * (*scale));
+    *processed_width = (int)roundf(pipe->processed_width * (*scale));
+    return 0;
   }
 
-  if(force_height && force_width)
+  // if width and height are both 0, we use the full resolution of the image
+  if(width == 0 && height == 0)
   {
-    // width and height both specified by user in pixels
-    if(pipe->processed_width > pipe->processed_height)
-    {
-      *processed_width = MIN(round(*scale * pipe->processed_width), width);
-      *processed_height = round(*processed_width / image_ratio);
-    }
-    else if(pipe->processed_width < pipe->processed_height)
-    {
-      *processed_height = MIN(round(*scale * pipe->processed_height), height);
-      *processed_width = round(*processed_height * image_ratio);
-    }
-    else
-    {
-      *processed_width = MIN(round(*scale * pipe->processed_width), width);
-      *processed_height = MIN(round(*scale * pipe->processed_height), height);
-    }
-  }
-  else if(force_width)
-  {
-    // width only specified by user in pixels, fluid height
-    *processed_width = MIN(round(*scale * pipe->processed_width), width);
-    *processed_height = round(*processed_width / image_ratio);
-  }
-  else if(force_height)
-  {
-    // height only specified by user in pixels, fluid width
-    *processed_height = MIN(round(*scale * pipe->processed_height), height);
-    *processed_width = round(*processed_height * image_ratio);
-  }
-  else
-  {
-    // nothing specified by user aka full resolution given cropping, lens and perspective distortions
+    // original resolution
     *processed_width = pipe->processed_width;
     *processed_height = pipe->processed_height;
+    *scale = 1.;
+    return 0;
   }
 
-  dt_print(DT_DEBUG_IMAGEIO,"[dt_imageio_export] (direct) pipe %ix%i, range %ix%i --> size %ix%i / %ix%i - ratio %.5f\n",
-            pipe->processed_width, pipe->processed_height, format_params->max_width, format_params->max_height,
-            *processed_width, *processed_height, width, height, image_ratio);
+  if(width > 0 && height > 0)
+  {
+    // fixed width and height : fit within a bounding box
+    *processed_width = MIN(pipe->processed_width, width);
+    *processed_height = MIN(pipe->processed_height, height);
+    double scale_x = (double)*processed_width / (double)pipe->processed_width;
+    double scale_y = (double)*processed_height / (double)pipe->processed_height;
+    *scale = fmin(scale_x, scale_y);
+
+    // Note : we handle each case separately to avoid rounding errors
+    if(image_ratio > 1.0)
+    {
+      // landscape image, width is the limiting factor
+      *processed_width = MIN((int)roundf(pipe->processed_width * (*scale)), pipe->processed_width);
+      *processed_height = MIN((int)roundf(*processed_width / image_ratio), pipe->processed_height);
+    }
+    else if(image_ratio < 1.0)
+    {
+      // portrait image, height is the limiting factor
+      *processed_height = MIN((int)roundf(pipe->processed_height * (*scale)), pipe->processed_height);
+      *processed_width = MIN((int)roundf(*processed_height * image_ratio), pipe->processed_width);
+    }
+    else
+    {
+      // square image, both width and height are the limiting factors
+      *processed_width = MIN((int)roundf(pipe->processed_width * (*scale)), pipe->processed_width);
+      *processed_height = MIN((int)roundf(pipe->processed_height * (*scale)), pipe->processed_height);
+    }
+    return 0;
+  }
+
+  if(width > 0)
+  {
+    // fluid height, fixed width
+    *processed_width = MIN(pipe->processed_width, width);
+    *processed_height = (int)roundf(*processed_width / image_ratio);
+    *scale = (double)pipe->processed_width / (double)*processed_width;
+    return 0;
+  }
+
+  if(height > 0)
+  {
+    // fluid width, fixed height
+    *processed_height = MIN(pipe->processed_height, height);
+    *processed_width = (int)roundf(*processed_height * image_ratio);
+    *scale = (double)pipe->processed_height / (double)*processed_height;
+    return 0;
+  }
 
   return 0;
 }
@@ -1108,19 +1084,26 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   // Useful for partial exports, for technical purposes (HDR merge)
   _filter_pipeline(filter, &pipe);
 
-  // Get theoritical final size of image, taking distortions and croppings into account, considering full-size original input
+  // Get theoritical final size of image, taking distortions and croppings AND borders into account,
+  // considering full-size original input. Meaning we can enlarge or reduce the original image,
+  // even taking full-res input.
   // Needs to be done after optional filtering, in case we filter out distortion modules
   dt_dev_pixelpipe_get_roi_out(&pipe, &dev, pipe.iwidth, pipe.iheight, &pipe.processed_width,
                                &pipe.processed_height);
-  const double image_ratio = (double)pipe.processed_width / (double)pipe.processed_height;
 
   dt_show_times(&start, "[export] creating pixelpipe");
 
   int processed_width = 0;
   int processed_height = 0;
-  float origin[] = { 0.0f, 0.0f };
-  if(_get_export_size(&dev, &pipe, format_params, is_scaling, image_ratio, &scale, origin, width, height, &processed_width, &processed_height))
-    goto error;
+  _get_export_size(&dev, &pipe, format_params, is_scaling, &scale, width, height,
+                   &processed_width, &processed_height);
+
+  dt_print(DT_DEBUG_IMAGEIO,
+           "[dt_imageio_export] (direct) image input %ix%i, turned to output %ix%i, will be exported to fit %ix%i "
+           "--> final size is %ix%i\n",
+           pipe.iwidth, pipe.iheight, pipe.processed_width, pipe.processed_height, width, height, processed_width,
+           processed_height);
+
 
   const int bpp = format->bpp(format_params);
 
