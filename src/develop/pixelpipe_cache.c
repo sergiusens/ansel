@@ -101,7 +101,7 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
   // we might have more things decreasing refcount than increasing it.
   // It's no big deal though, as long as the (final output) backbuf
   // is checked for NULL and not reused if pipeline is DIRTY.
-  if(cache_entry->age > lru->max_age)
+  if(cache_entry->age < lru->max_age)
   {
     // Returns 1 if the lock is captured by another thread
     // 0 if WE capture the lock, and then need to release it
@@ -130,7 +130,7 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
 static int _non_thread_safe_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
 {
   _cache_lru_t *lru = (_cache_lru_t *)malloc(sizeof(_cache_lru_t));
-  lru->max_age = -1;
+  lru->max_age = g_get_monotonic_time();
   lru->hash = 0;
   int error = 1;
   g_hash_table_foreach(cache->entries, _cache_get_oldest, lru);
@@ -248,13 +248,6 @@ int dt_dev_pixelpipe_cache_available(dt_dev_pixelpipe_cache_t *cache, const uint
 }
 
 
-void _age_cache_entry(gpointer key, gpointer value, gpointer user_data)
-{
-  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)value;
-  cache_entry->age++;
-}
-
-
 int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
                                const size_t size, const char *name, const int id,
                                void **data, dt_iop_buffer_dsc_t **dsc)
@@ -262,9 +255,6 @@ int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t h
   dt_pthread_mutex_lock(&cache->lock);
 
   cache->queries++;
-
-  // Age all cache entries
-  g_hash_table_foreach(cache->entries, _age_cache_entry, NULL);
 
   // Find the cache entry for this hash, if any
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
@@ -279,7 +269,7 @@ int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t h
 
   if(cache_entry)
   {
-    cache_entry->age = 0; // this is the MRU entry
+    cache_entry->age = g_get_monotonic_time(); // this is the MRU entry
     *data = cache_entry->data;
     *dsc = &cache_entry->dsc;
     dt_pixel_cache_message(cache_entry, (cache_entry_found) ? "found" : "created");
@@ -455,7 +445,7 @@ void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache)
 {
   if(!(darktable.unmuted & DT_DEBUG_PIPE)) return;
 
-  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache hit rate so far: %.3f%% - size: %lu MiB over %lu MiB\n", 100. * (cache->hits) / (float)cache->queries, cache->current_memory / (1024 * 1024), cache->max_memory / (1024 * 1024));
+  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache hit rate so far: %.3f%% - size: %lu MiB over %lu MiB - %i items\n", 100. * (cache->hits) / (float)cache->queries, cache->current_memory / (1024 * 1024), cache->max_memory / (1024 * 1024), g_hash_table_size(cache->entries));
 }
 
 // clang-format off
