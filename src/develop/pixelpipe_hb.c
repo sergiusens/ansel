@@ -1404,10 +1404,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     gboolean success_opencl = TRUE;
     dt_iop_colorspace_type_t input_cst_cl = input_format->cst;
 
-    /* if input is on gpu memory only, remember this fact to later take appropriate action */
-    gboolean valid_input_on_gpu_only = (cl_mem_input != NULL);
-
-    const float required_factor_cl = fmaxf(1.0f, (valid_input_on_gpu_only) ? tiling->factor_cl - 1.0f : tiling->factor_cl);
+    const float required_factor_cl = fmaxf(1.0f, (cl_mem_input != NULL) ? tiling->factor_cl - 1.0f : tiling->factor_cl);
     /* pre-check if there is enough space on device for non-tiled processing */
     const gboolean fits_on_device = dt_opencl_image_fits_device(pipe->devid, MAX(roi_in->width, roi_out->width),
                                                                 MAX(roi_in->height, roi_out->height), MAX(in_bpp, bpp),
@@ -1602,24 +1599,8 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
         /* we might need to copy back valid image from device to host */
         if(cl_mem_input != NULL)
         {
-          /* copy back to CPU buffer, then clean unneeded buffer */
-          cl_int err = dt_opencl_copy_device_to_host(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height,
-                                              in_bpp);
-          if(err != CL_SUCCESS)
-          {
-            /* late opencl error */
-            dt_print(
-                DT_DEBUG_OPENCL,
-                "[opencl_pixelpipe (a)] late opencl error detected while copying back to cpu buffer: %i\n", err);
-            dt_opencl_release_mem_object(cl_mem_input);
-            pipe->opencl_error = 1;
-            return 1;
-          }
-          else
-            input_format->cst = input_cst_cl;
           dt_opencl_release_mem_object(cl_mem_input);
           cl_mem_input = NULL;
-          valid_input_on_gpu_only = FALSE;
         }
 
         // indirectly give gpu some air to breathe (and to do display related stuff)
@@ -1723,37 +1704,25 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
            Also, since the cache actually works and can use a lot more memory, caching GPU output
            enables to bypass a serious number of modules, so the memory I/O cost is a good overall investment.
         */
-        /* write back input into cache for faster re-usal (not for export or thumbnails) */
-        if(cl_mem_input != NULL
+        /* write back output into cache for faster re-usal (not for export or thumbnails) */
+        if(cl_mem_output != NULL
             && (pipe->type & DT_DEV_PIXELPIPE_EXPORT) != DT_DEV_PIXELPIPE_EXPORT
             && (pipe->type & DT_DEV_PIXELPIPE_THUMBNAIL) != DT_DEV_PIXELPIPE_THUMBNAIL)
         {
-          /* copy input to host memory, so we can find it in cache */
-          cl_int err = dt_opencl_copy_device_to_host(pipe->devid, input, cl_mem_input, roi_in->width,
-                                              roi_in->height, in_bpp);
+          /* copy output to host memory, so we can find it in cache */
+          cl_int err = dt_opencl_copy_device_to_host(pipe->devid, *output, *cl_mem_output, roi_out->width,
+                                                     roi_out->height, bpp);
           if(err != CL_SUCCESS)
-          {
-            /* late opencl error, not likely to happen here */
             dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe (e)] late opencl error detected while copying "
                                       "back to cpu buffer: %i\n", err);
-            /* that's all we do here, we later make sure to invalidate cache line */
-          }
-          else
-          {
-            /* success: cache line is valid now, so we will not need to invalidate it later */
-            valid_input_on_gpu_only = FALSE;
-
-            input_format->cst = input_cst_cl;
-            // TODO: check if we need to wait for finished opencl pipe before we release cl_mem_input
-            // dt_dev_finish(pipe->devid);
-          }
         }
 
-        /* we can now release cl_mem_input */
-        dt_opencl_release_mem_object(cl_mem_input);
-        cl_mem_input = NULL;
-        // we speculate on the next plug-in to possibly copy back cl_mem_output to output,
-        // so we're not just yet invalidating the (empty) output cache line.
+        if(cl_mem_input != NULL)
+        {
+          input_format->cst = input_cst_cl;
+          dt_opencl_release_mem_object(cl_mem_input);
+          cl_mem_input = NULL;
+        }
       }
       else
       {
@@ -1773,29 +1742,12 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
         /* check where our input buffer is located */
         if(cl_mem_input != NULL)
         {
-          /* copy back to host memory, then clean no longer needed opencl buffer.
-             important info: in order to make this possible, opencl modules must
-             not spoil their input buffer, even in case of errors. */
-          cl_int err = dt_opencl_copy_device_to_host(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height,
-                                              in_bpp);
-          if(err != CL_SUCCESS)
-          {
-            /* late opencl error */
-            dt_print(
-                DT_DEBUG_OPENCL,
-                "[opencl_pixelpipe (b)] late opencl error detected while copying back to cpu buffer: %i\n", err);
-            dt_opencl_release_mem_object(cl_mem_input);
-            pipe->opencl_error = 1;
-            return 1;
-          }
-          else
-            input_format->cst = input_cst_cl;
-
-          /* this is a good place to release event handles as we anyhow need to move from gpu to cpu here */
+          input_format->cst = input_cst_cl;
           dt_opencl_finish(pipe->devid);
           dt_opencl_release_mem_object(cl_mem_input);
-          valid_input_on_gpu_only = FALSE;
+          cl_mem_input = NULL;
         }
+
         if (pixelpipe_process_on_CPU(pipe, dev, input, input_format, roi_in, output, out_format, roi_out,
                                      module, piece, tiling, pixelpipe_flow))
           return 1;
@@ -1813,35 +1765,16 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
       /* cleanup unneeded opencl buffer, and copy back to CPU buffer */
       if(cl_mem_input != NULL)
       {
-        cl_int err = dt_opencl_copy_device_to_host(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height,
-                                            in_bpp);
-        // if (rand() % 5 == 0) err = !CL_SUCCESS; // Test code: simulate spurious failures
-        if(err != CL_SUCCESS)
-        {
-          /* late opencl error */
-          dt_print(
-              DT_DEBUG_OPENCL,
-              "[opencl_pixelpipe (c)] late opencl error detected while copying back to cpu buffer: %i\n", err);
-          dt_opencl_release_mem_object(cl_mem_input);
-          pipe->opencl_error = 1;
-          return 1;
-        }
-        else
-          input_format->cst = input_cst_cl;
-
-        /* this is a good place to release event handles as we anyhow need to move from gpu to cpu here */
+        input_format->cst = input_cst_cl;
         dt_opencl_finish(pipe->devid);
         dt_opencl_release_mem_object(cl_mem_input);
-        valid_input_on_gpu_only = FALSE;
+        cl_mem_input = NULL;
       }
 
       if (pixelpipe_process_on_CPU(pipe, dev, input, input_format, roi_in, output, out_format, roi_out,
                                    module, piece, tiling, pixelpipe_flow))
         return 1;
     }
-
-    /* input is still only on GPU? Let's invalidate CPU input buffer then */
-    if(valid_input_on_gpu_only) dt_dev_pixelpipe_cache_invalidate(darktable.pixelpipe_cache, input);
   }
   else
   {
