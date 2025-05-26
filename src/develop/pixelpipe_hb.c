@@ -2126,15 +2126,16 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   // 1) if cached buffer is still available, return data.
   uint64_t hash = _node_hash(pipe, piece, roi_out, pos);
   const gboolean bypass_cache = (module) ? piece->bypass_cache : FALSE;
-  if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_available(darktable.pixelpipe_cache, hash))
+  if(!bypass_cache && !pipe->reentry && dt_dev_pixelpipe_cache_get_existing(darktable.pixelpipe_cache, hash, output, out_format))
   {
     dt_print(DT_DEBUG_PIPE, "[pipeline] found %lu (%s) for %s pipeline in cache\n", hash, (module) ? module->op : "noop",
                _pipe_type_to_str(pipe->type));
-    dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "", pipe->type, output, out_format);
 
     // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
     // except for gamma which outputs uint8 so we need to deal with that internally
+    dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, hash, TRUE);
     pixelpipe_get_histogram_backbuf(pipe, dev, *output, NULL, *out_format, roi_out, module, piece, hash, bpp);
+    dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, hash, FALSE);
 
     KILL_SWITCH_AND_FLUSH_CACHE;
     return 0;

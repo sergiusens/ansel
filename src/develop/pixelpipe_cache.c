@@ -280,12 +280,40 @@ int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t h
   }
   else
   {
-    *data = NULL;
-    *dsc = NULL;
+    // Don't write on *dsc and *data here
     dt_print(DT_DEBUG_PIPE, "couldn't allocate new cache entry %lu\n", hash);
     return 1;
   }
 }
+
+int dt_dev_pixelpipe_cache_get_existing(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash,
+                                        void **data, dt_iop_buffer_dsc_t **dsc)
+{
+  // Find the cache entry for this hash, if any
+  dt_pthread_mutex_lock(&cache->lock);
+  cache->queries++;
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry) cache->hits++;
+  dt_pthread_mutex_unlock(&cache->lock);
+
+  if(cache_entry)
+  {
+    cache_entry->age = g_get_monotonic_time(); // this is the MRU entry
+    *data = cache_entry->data;
+    *dsc = &cache_entry->dsc;
+    dt_pixel_cache_message(cache_entry, "found");
+
+    // This will become the input for the next module, lock it until next module process ends
+    dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, TRUE);
+    return TRUE;
+  }
+  else
+  {
+    // Don't write on *dsc and *data here
+    return FALSE;
+  }
+}
+
 
 gboolean _for_each_remove(gpointer key, gpointer value, gpointer user_data)
 {
