@@ -1961,7 +1961,7 @@ static void _print_nan_debug(dt_dev_pixelpipe_t *pipe, void *cl_mem_output, void
   }
 }
 
-
+// return 1 on error
 static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void **output,
                              void **cl_mem_output, dt_iop_buffer_dsc_t **out_format,
                              dt_iop_roi_t *roi_in, const dt_iop_roi_t *roi_out,
@@ -1970,10 +1970,12 @@ static int _init_base_buffer(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, void *
                              const size_t bufsize, const size_t bpp)
 {
   // Note: dt_dev_pixelpipe_cache_get actually init/alloc *output
-  if(bypass_cache || dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "base buffer", pipe->type, output, out_format))
-  {
-    dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, TRUE);
+  int new_entry = dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, "base buffer", pipe->type,
+                                             output, out_format);
+  if(*output == NULL) return 1;
 
+  if(bypass_cache || new_entry)
+  {
     // Grab input buffer from mipmap cache.
     // We will have to copy it here and in pixelpipe cache because it can get evicted from mipmap cache
     // anytime after we release the lock, so it would not be thread-safe to just use a reference
@@ -2189,6 +2191,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   char *name = g_strdup_printf("module %s (%s) for pipe %i", module->op, module->multi_name, pipe->type);
   dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, name, pipe->type, output, out_format);
   g_free(name);
+  if(*output == NULL) return 1;
 
   dt_times_t start;
   dt_get_times(&start);

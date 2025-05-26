@@ -53,7 +53,8 @@ void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *mes
 
 // remove the cache entry with the given hash and update the cache memory usage
 // WARNING: not internally thread-safe, protect its calls with mutex lock
-void dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
+// return 0 on success, 1 on error
+int dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
 {
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
@@ -68,6 +69,7 @@ void dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint6
     {
       cache->current_memory -= cache_entry->size;
       g_hash_table_remove(cache->entries, GINT_TO_POINTER(hash));
+      return 0;
     }
     else if(used)
       dt_pixel_cache_message(cache_entry, "cannot remove: used");
@@ -78,6 +80,7 @@ void dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint6
   {
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, will not be removed\n", hash);
   }
+  return 1;
 }
 
 typedef struct _cache_lru_t
@@ -121,21 +124,33 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
 
 
 // remove the least used cache entry
-static void _non_thread_safe_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
+// return 0 on success, 1 on error
+// error is : we couldn't find a candidate for deletion because all entries are either locked or in use
+// or we found one but failed to remove it.
+static int _non_thread_safe_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
 {
   _cache_lru_t *lru = (_cache_lru_t *)malloc(sizeof(_cache_lru_t));
   lru->max_age = -1;
   lru->hash = 0;
+  int error = 1;
   g_hash_table_foreach(cache->entries, _cache_get_oldest, lru);
-  dt_dev_pixel_pipe_cache_remove(cache, lru->hash);
+
+  if(lru->hash > 0)
+    error = dt_dev_pixel_pipe_cache_remove(cache, lru->hash);
+  else
+    dt_print(DT_DEBUG_PIPE, "[pixelpipe] couldn't remove LRU, %i items and all are used\n", g_hash_table_size(cache->entries));
+
   free(lru);
+  return error;
 }
 
-void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
+// return 0 on success 1 on error
+int dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache)
 {
   dt_pthread_mutex_lock(&cache->lock);
-  _non_thread_safe_pixel_pipe_cache_remove_lru(cache);
+  int error = _non_thread_safe_pixel_pipe_cache_remove_lru(cache);
   dt_pthread_mutex_unlock(&cache->lock);
+  return error;
 }
 
 // WARNING: not thread-safe, protect its calls with mutex lock
@@ -144,8 +159,16 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
                                                         dt_dev_pixelpipe_cache_t *cache)
 {
   // Free up space if needed to match the max memory limit
-  while(cache->current_memory + size > cache->max_memory && g_hash_table_size(cache->entries) > 0)
-    _non_thread_safe_pixel_pipe_cache_remove_lru(cache);
+  // If error, all entries are currently locked or in use, so we cannot free space to allocate a new entry.
+  int error = 0;
+  while(cache->current_memory + size > cache->max_memory && g_hash_table_size(cache->entries) > 0 && !error)
+    error = _non_thread_safe_pixel_pipe_cache_remove_lru(cache);
+
+  if(cache->current_memory + size > cache->max_memory)
+  {
+    dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache is full, cannot allocate new entry %lu (%s)\n", hash, name);
+    return NULL; // not enough memory
+  }
 
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)malloc(sizeof(dt_pixel_cache_entry_t));
   if(!cache_entry) return NULL;

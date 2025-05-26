@@ -377,9 +377,10 @@ static inline size_t _get_total_memory()
 void *dt_alloc_align(size_t size)
 {
   void *buf = dt_alloc_align_internal(size);
-  while(buf == NULL && size > 0)
+  int error = 0;
+  while(buf == NULL && size > 0 && !error)
   {
-    dt_dev_pixel_pipe_cache_remove_lru(darktable.pixelpipe_cache);
+    error = dt_dev_pixel_pipe_cache_remove_lru(darktable.pixelpipe_cache);
     buf = dt_alloc_align_internal(size);
   }
   return buf;

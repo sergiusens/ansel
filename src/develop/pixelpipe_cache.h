@@ -91,8 +91,10 @@ void dt_dev_pixelpipe_cache_invalidate(dt_dev_pixelpipe_cache_t *cache, void *da
 /** print out cache lines/hashes (debug). */
 void dt_dev_pixelpipe_cache_print(dt_dev_pixelpipe_cache_t *cache);
 
-/** remove the least used cache entry */
-void dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache);
+/** remove the least used cache entry
+ * @return 0 on success, 1 on error
+ */
+int dt_dev_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t *cache);
 
 /**
  * @brief Increase/Decrease the reference count on the cache line as to prevent
