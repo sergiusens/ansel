@@ -31,7 +31,7 @@ typedef struct dt_pixel_cache_entry_t
   void *data;
   size_t size;
   dt_iop_buffer_dsc_t dsc;
-  int age;
+  int64_t age;
   char *name; // name of the cache entry, for debugging
   int id;
   dt_atomic_int refcount; // reference count for the cache entry, to avoid freeing it while still in use
@@ -85,7 +85,7 @@ int dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64
 
 typedef struct _cache_lru_t
 {
-  int max_age;
+  int64_t max_age;
   uint64_t hash;
 } _cache_lru_t;
 
