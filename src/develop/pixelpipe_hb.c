@@ -1563,6 +1563,19 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
 
     *pixelpipe_flow |= (PIXELPIPE_FLOW_BLENDED_ON_GPU);
     *pixelpipe_flow &= ~(PIXELPIPE_FLOW_BLENDED_ON_CPU);
+
+    /* write back output into cache for faster re-usal */
+    cl_int err = dt_opencl_read_host_from_device(pipe->devid, *output, *cl_mem_output, roi_out->width,
+                                                 roi_out->height, bpp);
+
+    if(err != CL_SUCCESS)
+    {
+      dt_print(DT_DEBUG_OPENCL,
+              "[opencl_pixelpipe (e)] late opencl error detected while copying "
+              "back to cpu buffer: %i\n",
+              err);
+      goto error;
+    }
   }
   else if(piece->process_tiling_ready)
   {
@@ -1638,35 +1651,16 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
 
   // if (rand() % 20 == 0) success_opencl = FALSE; // Test code: simulate spurious failures
 
-  /* write back output into cache for faster re-usal */
-  cl_int err = dt_opencl_copy_device_to_host(pipe->devid, *output, *cl_mem_output, roi_out->width,
-                                              roi_out->height, bpp);
-
-  // FIXME: temporary ugly hack. What currently happens is we could copy the output
-  // while it's not ready yet, which results in a garbage output.
-  // But this output will become the input of the next module, and then copyng
-  // the input is guaranteed to have valid data. Problem is, it's twice as much memcopy.
-  // TODO: find out how we can wait for the output to be ready before copying it.
-  err = dt_opencl_copy_device_to_host(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height, in_bpp);
-
-  if(err != CL_SUCCESS)
-  {
-    dt_print(DT_DEBUG_OPENCL,
-             "[opencl_pixelpipe (e)] late opencl error detected while copying "
-             "back to cpu buffer: %i\n",
-             err);
-    goto error;
-  }
-
   // clean up OpenCL input memory and resync pipeline
   if(cl_mem_input != NULL)
   {
-    input_format->cst = input_cst_cl;
     dt_opencl_release_mem_object(cl_mem_input);
     cl_mem_input = NULL;
   }
 
-  dt_opencl_finish_sync_pipe(pipe->devid, pipe->type);
+  // Wait for the above to complete - we need to synchronize the device and our cache
+  dt_iop_nap(dt_opencl_micro_nap(pipe->devid));
+  dt_opencl_finish(pipe->devid);
 
   // don't free cl_mem_output here, as it will be the input for the next module
   // the last module in the pipe will need to be freed by the pipeline process function
@@ -1687,7 +1681,6 @@ error:;
 
   if(cl_mem_input != NULL)
   {
-    input_format->cst = input_cst_cl;
     dt_opencl_release_mem_object(cl_mem_input);
     cl_mem_input = NULL;
   }
@@ -2080,6 +2073,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
 
   // Actual pixel processing for this module
   int error = 0;
+
 #ifdef HAVE_OPENCL
   error = pixelpipe_process_on_GPU(pipe, dev, input, cl_mem_input, input_format, &roi_in, output, cl_mem_output,
                                    out_format, roi_out, module, piece, &tiling, &pixelpipe_flow, in_bpp, bpp);
@@ -2094,7 +2088,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, input_hash, FALSE);
 
   if(error) return 1;
-
 
   // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
   // except for gamma which outputs uint8 so we need to deal with that internally
@@ -2284,7 +2277,7 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
   #endif
 
     // get status summary of opencl queue by checking the eventlist
-    const int oclerr = (pipe->devid > -1) ? !dt_opencl_finish(pipe->devid) : 0;
+    const int oclerr = (pipe->devid > -1) ? dt_opencl_events_flush(pipe->devid, TRUE) != 0 : 0;
 
     // Check if we had opencl errors ....
     // remark: opencl errors can come in two ways: pipe->opencl_error is TRUE (and err is TRUE) OR oclerr is
@@ -2311,9 +2304,6 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
       }
 
       _print_opencl_errors(opencl_error, pipe);
-
-      // FIXME: this might be too extreme, and only the first faulty module output should be flushed
-      dt_dev_pixelpipe_cache_flush(darktable.pixelpipe_cache, pipe->type);
     }
     else if(!dt_atomic_get_int(&pipe->shutdown))
     {
