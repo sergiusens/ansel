@@ -815,6 +815,13 @@ static void pixelpipe_get_histogram_backbuf(dt_dev_pixelpipe_t *pipe, dt_develop
   {
     // Buffer uninited
     backbuf->buffer = dt_alloc_align(roi->width * roi->height * bpp);
+    if(backbuf->buffer == NULL)
+    {
+      // Out of memory to allocate. Notify histogram
+      backbuf->hash = -1;
+      return;
+    }
+
     backbuf->height = roi->height;
     backbuf->width = roi->width;
     backbuf->bpp = bpp;
@@ -824,8 +831,15 @@ static void pixelpipe_get_histogram_backbuf(dt_dev_pixelpipe_t *pipe, dt_develop
     // Cached buffer size doesn't match current one.
     // There is no reason yet why this should happen because the preview pipe doesn't change size during its lifetime.
     // But let's future-proof it in case someone gets creative.
-    dt_free_align(backbuf->buffer); // maybe write a dt_realloc_align routine ?
+    if(backbuf->buffer) dt_free_align(backbuf->buffer); // maybe write a dt_realloc_align routine ?
     backbuf->buffer = dt_alloc_align(roi->width * roi->height * bpp);
+    if(backbuf->buffer == NULL)
+    {
+      // Out of memory to allocate. Notify histogram
+      backbuf->hash = -1;
+      return;
+    }
+
     backbuf->height = roi->height;
     backbuf->width = roi->width;
     backbuf->bpp = bpp;
@@ -2606,6 +2620,15 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
         {
           float *transformed_mask = dt_alloc_align_float((size_t)module->processed_roi_out.width
                                                           * module->processed_roi_out.height);
+          if(!transformed_mask)
+          {
+            fprintf(stderr, "[raster masks] could not allocate memory for transformed mask\n");
+            if(error) *error = 1;
+            g_free(clean_target_name);
+            g_free(target_name);
+            return NULL;
+          }
+          
           module->module->distort_mask(module->module,
                                       module,
                                       raster_mask,

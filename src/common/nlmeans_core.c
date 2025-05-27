@@ -112,7 +112,9 @@ define_patches(const dt_nlmeans_param_t *const params, const int stride, int *nu
     n_patches = (n_patches + 1) / 2;
   *num_patches = n_patches ;
   // allocate a cacheline-aligned buffer
-  struct patch_t* patches = dt_alloc_align(sizeof(struct patch_t) * n_patches);
+  struct patch_t *patches = dt_alloc_align(sizeof(struct patch_t) * n_patches);
+  if(patches == NULL) return NULL;
+
   // set up the patch offsets
   int patch_num = 0;
   int shift = 0;
@@ -414,6 +416,8 @@ void nlmeans_denoise(const float *const inbuf, float *const outbuf,
 #endif /* CACHE_PIXDIFFS */
   size_t padded_scratch_size;
   float *const restrict scratch_buf = dt_alloc_perthread_float(scratch_size, &padded_scratch_size);
+  if(scratch_buf == NULL) return;
+
   const int chk_height = compute_slice_height(roi_out->height);
   const int chk_width = compute_slice_width(roi_out->width);
 #ifdef _OPENMP
@@ -638,6 +642,8 @@ void nlmeans_denoise_sse2(const float *const inbuf, float *const outbuf,
 #endif /* CACHE_PIXDIFFS_SSE */
   size_t padded_scratch_size;
   float *const restrict scratch_buf = dt_alloc_perthread_float(scratch_size, &padded_scratch_size);
+  if(scratch_buf == NULL) return;
+
   const int chk_height = compute_slice_height(roi_out->height);
   const int chk_width = compute_slice_width(roi_out->width);
 #ifdef _OPENMP

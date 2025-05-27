@@ -1173,6 +1173,7 @@ void commit_params(struct dt_iop_module_t *self, dt_iop_params_t *p1, dt_dev_pix
   if(!d->lut_inited)
   {
     float *const restrict LUT_saturation = dt_alloc_align_float(LUT_ELEM);
+    if(LUT_saturation == NULL) return;
 
     // init the LUT between -pi and pi by increments of 1°
     for(size_t k = 0; k < LUT_ELEM; k++) LUT_saturation[k] = 0.f;
