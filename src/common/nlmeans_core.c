@@ -994,7 +994,7 @@ int nlmeans_denoise_cl(const dt_nlmeans_param_t *const params, const int devid,
     err = nlmeans_cl_accu(devid,params->kernel_accu,dev_in,dev_U4_tt,dev_out,q,height,width,sizes);
     if(err != CL_SUCCESS) break;
 
-    dt_opencl_finish_sync_pipe(devid, params->pipetype);
+    dt_opencl_finish(devid);
 
     // indirectly give gpu some air to breathe (and to do display related stuff)
     dt_iop_nap(dt_opencl_micro_nap(devid));
@@ -1089,7 +1089,7 @@ int nlmeans_denoiseprofile_cl(const dt_nlmeans_param_t *const params, const int 
     err = nlmeans_cl_accu(devid,params->kernel_accu,dev_in,dev_U4_tt,dev_out,q,height,width,sizes);
     if(err != CL_SUCCESS) break;
 
-    dt_opencl_finish_sync_pipe(devid, params->pipetype);
+    dt_opencl_finish(devid);
 
     // indirectly give gpu some air to breathe (and to do display related stuff)
     dt_iop_nap(dt_opencl_micro_nap(devid));
@@ -1110,4 +1110,3 @@ error:
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-
