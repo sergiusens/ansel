@@ -27,15 +27,16 @@
 
 typedef struct dt_pixel_cache_entry_t
 {
-  uint64_t hash;
-  void *data;
-  size_t size;
-  dt_iop_buffer_dsc_t dsc;
-  int64_t age;
-  char *name; // name of the cache entry, for debugging
-  int id;
-  dt_atomic_int refcount; // reference count for the cache entry, to avoid freeing it while still in use
-  dt_pthread_rwlock_t lock;
+  uint64_t hash;            // unique identifier of the entry
+  void *data;               // buffer holding pixels... or anything else
+  size_t size;              // size of the data buffer
+  dt_iop_buffer_dsc_t dsc;  // metadata of the data buffer
+  int64_t age;              // timestamp of creation. Oldest entry will be the first freed if it's not locked
+  char *name;               // name of the cache entry, for debugging
+  int id;                   // id of the pipeline owning this entry. Used when flushing, a pipe can only flush its own.
+  dt_atomic_int refcount;   // reference count for the cache entry, to avoid freeing it while still in use
+  dt_pthread_rwlock_t lock; // read/write lock to avoid threads conflicts
+  gboolean auto_destroy;    // TRUE for auto-destruction the next time it's used. Used for short-lived entries (transient states).
 } dt_pixel_cache_entry_t;
 
 
@@ -55,7 +56,7 @@ void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *mes
 // remove the cache entry with the given hash and update the cache memory usage
 // WARNING: not internally thread-safe, protect its calls with mutex lock
 // return 0 on success, 1 on error
-int dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash)
+int _non_thread_safe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, const gboolean force)
 {
   dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
   if(cache_entry)
@@ -66,7 +67,7 @@ int dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64
     if(!locked) dt_pthread_rwlock_unlock(&cache_entry->lock);
     gboolean used = dt_atomic_get_int(&cache_entry->refcount) > 0;
 
-    if(!used && !locked)
+    if((!used && !locked) || force)
     {
       cache->current_memory -= cache_entry->size;
       g_hash_table_remove(cache->entries, GINT_TO_POINTER(hash));
@@ -82,6 +83,13 @@ int dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu not found, will not be removed\n", hash);
   }
   return 1;
+}
+
+void dt_dev_pixelpipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, const gboolean force)
+{
+  dt_pthread_mutex_lock(&cache->lock);
+  int error = _non_thread_safe_cache_remove(cache, hash, force);
+  dt_pthread_mutex_unlock(&cache->lock);
 }
 
 typedef struct _cache_lru_t
@@ -137,7 +145,7 @@ static int _non_thread_safe_pixel_pipe_cache_remove_lru(dt_dev_pixelpipe_cache_t
   g_hash_table_foreach(cache->entries, _cache_get_oldest, lru);
 
   if(lru->hash > 0)
-    error = dt_dev_pixel_pipe_cache_remove(cache, lru->hash);
+    error = _non_thread_safe_cache_remove(cache, lru->hash, FALSE);
   else
     dt_print(DT_DEBUG_PIPE, "[pixelpipe] couldn't remove LRU, %i items and all are used\n", g_hash_table_size(cache->entries));
 
@@ -197,6 +205,7 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
   cache_entry->id = id;
   cache_entry->name = g_strdup(name);
   cache_entry->refcount = 0;
+  cache_entry->auto_destroy = FALSE;
   dt_pthread_rwlock_init(&cache_entry->lock, NULL);
 
   g_hash_table_insert(cache->entries, GINT_TO_POINTER(hash), cache_entry);
@@ -466,6 +475,26 @@ void dt_dev_pixelpipe_cache_rdlock_entry(dt_dev_pixelpipe_cache_t *cache, const 
       dt_pthread_rwlock_unlock(&cache_entry->lock);
       dt_pixel_cache_message(cache_entry, "read unlock", TRUE);
     }
+  }
+  dt_pthread_mutex_unlock(&cache->lock);
+}
+
+void dt_dev_pixelpipe_cache_flag_auto_destroy(dt_dev_pixelpipe_cache_t *cache, uint64_t hash)
+{
+  dt_pthread_mutex_lock(&cache->lock);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry) cache_entry->auto_destroy = TRUE;
+  dt_pthread_mutex_unlock(&cache->lock);
+}
+
+void dt_dev_pixel_pipe_cache_auto_destroy_apply(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, const int id)
+{
+  dt_pthread_mutex_lock(&cache->lock);
+  dt_pixel_cache_entry_t *cache_entry = (dt_pixel_cache_entry_t *)g_hash_table_lookup(cache->entries, GINT_TO_POINTER(hash));
+  if(cache_entry && cache_entry->auto_destroy && id == cache_entry->id)
+  {
+    cache->current_memory -= cache_entry->size;
+    g_hash_table_remove(cache->entries, GINT_TO_POINTER(hash));
   }
   dt_pthread_mutex_unlock(&cache->lock);
 }

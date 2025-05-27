@@ -93,6 +93,18 @@ int dt_dev_pixelpipe_cache_available(dt_dev_pixelpipe_cache_t *cache, const uint
 void dt_dev_pixelpipe_cache_flush(dt_dev_pixelpipe_cache_t *cache, const int id);
 
 /**
+ * @brief Arbitrarily remove the cache entry matching hash. Entries
+ * having a reference count > 0 (inter-thread locked) or being having their read/write lock
+ * locked will be ignored, unless `force` is TRUE.
+ *
+ * @param cache
+ * @param hash
+ * @param force
+ */
+void dt_dev_pixelpipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, const gboolean force);
+
+
+/**
  * @brief Force-delete a cache line without checking if it's locked.
  * Reserve this to garbled outputs that can't be used at all.
  *
@@ -158,6 +170,31 @@ void dt_dev_pixelpipe_cache_wrlock_entry(dt_dev_pixelpipe_cache_t *cache, const 
  */
 void dt_dev_pixelpipe_cache_rdlock_entry(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, gboolean lock);
 
+
+/**
+ * @brief Flag the cache entry matching hash as "auto_destroy". This is useful for short-lived/disposable
+ * cache entries, that won't be needed in the future. These will be freed out of the typical LRU, aged-based
+ * garbage collection. The thread that tagged this entry as "auto_destroy" is responsible for freeing it
+ * as soon as it is done with it, using `dt_dev_pixelpipe_cache_auto_destroy_apply()`.
+ * If not manually freed this way, the entry will be caught using the generic LRU garbage collection.
+ *
+ * @param cache
+ * @param hash
+ */
+void dt_dev_pixelpipe_cache_flag_auto_destroy(dt_dev_pixelpipe_cache_t *cache, uint64_t hash);
+
+/**
+ * @brief Free the entry matching hash if it has the flag "auto_destroy" and its pipe id matches.
+ * See `dt_dev_pixelpipe_cache_flag_auto_destroy()`.
+ * This will not check reference count nor read/write locks, so it has to happen in the thread that created the entry,
+ * flagged it and owns it.
+ * Ensure your hashes are truly unique and not shared between pipelines to ensure another thread will not free this
+ * or that another thread ends up using it.
+ *
+ * @param cache
+ * @param hash
+ */
+void dt_dev_pixelpipe_cache_auto_destroy_apply(dt_dev_pixelpipe_cache_t *cache, const uint64_t hash, const int id);
 
 // clang-format off
 // modelines: These editor modelines have been set for all relevant files by tools/update_modelines.py

@@ -1270,8 +1270,8 @@ static void collect_histogram_on_CPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev
 #define KILL_SWITCH_AND_FLUSH_CACHE                                                                               \
   if(dt_atomic_get_int(&pipe->shutdown))                                                                          \
   {                                                                                                               \
-    dt_dev_pixel_pipe_cache_remove(darktable.pixelpipe_cache, input_hash);                                        \
-    dt_dev_pixel_pipe_cache_remove(darktable.pixelpipe_cache, hash);                                              \
+    dt_dev_pixelpipe_cache_remove(darktable.pixelpipe_cache, input_hash, TRUE);                                   \
+    dt_dev_pixelpipe_cache_remove(darktable.pixelpipe_cache, hash, TRUE);                                         \
     if(*cl_mem_output != NULL)                                                                                    \
     {                                                                                                             \
       dt_opencl_release_mem_object(*cl_mem_output);                                                               \
@@ -2098,7 +2098,18 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, input_hash, FALSE);
   dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, input_hash, FALSE);
 
-  if(error) return 1;
+  // Flag to throw away the output as soon as we are done consuming it in this thread, at the next module.
+  if(bypass_cache || pipe->reentry)
+    dt_dev_pixelpipe_cache_flag_auto_destroy(darktable.pixelpipe_cache, hash);
+
+  // And throw away the current input if it was flagged before as in the above
+  dt_dev_pixel_pipe_cache_auto_destroy_apply(darktable.pixelpipe_cache, input_hash, pipe->type);
+
+  if(error)
+  {
+    dt_dev_pixelpipe_cache_remove(darktable.pixelpipe_cache, hash, TRUE);
+    return 1;
+  }
 
   // Get the pipe-global histograms. We want float32 buffers, so we take all outputs
   // except for gamma which outputs uint8 so we need to deal with that internally
@@ -2626,7 +2637,7 @@ float *dt_dev_get_raster_mask(dt_dev_pixelpipe_t *pipe, const dt_iop_module_t *r
             g_free(target_name);
             return NULL;
           }
-          
+
           module->module->distort_mask(module->module,
                                       module,
                                       raster_mask,
