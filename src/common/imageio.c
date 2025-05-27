@@ -1114,6 +1114,13 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
 
   dt_get_times(&start);
 
+  // Because it's possible here that we export at full resolution,
+  // and our memory planning doesn't account for several concurrent pipelines
+  // at full size, we allow only one pipeline at a time to run.
+  // This is because wavelets decompositions and such use 6 copies,
+  // so the RAM usage can go out of control here.
+  dt_pthread_mutex_lock(&darktable.pipeline_threadsafe);
+
   /*
     if high-quality processing was requested, downsampling will be done
     at the very end of the pipe (just before border and watermark)
@@ -1138,6 +1145,8 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     // Warning: finalscale is still disabled in pipeline. It's no issue for now since we don't re-use it
     // before destroying it. Mind that if you extend the code.
   }
+
+  dt_pthread_mutex_unlock(&darktable.pipeline_threadsafe);
 
   dt_show_times(&start, thumbnail_export ? "[dev_process_thumbnail] pixel pipeline processing"
                                          : "[dev_process_export] pixel pipeline processing");
