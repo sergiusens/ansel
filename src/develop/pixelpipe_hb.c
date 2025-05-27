@@ -406,11 +406,8 @@ void dt_dev_pixelpipe_create_nodes(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev)
 
 static uint64_t _default_pipe_hash(dt_dev_pixelpipe_t *pipe)
 {
-  // Start with a hash that is unique, image-wise and duplicate-wise.
-  uint64_t hash = dt_hash(5381, (const char *)&pipe->image.id, sizeof(int32_t));
-  hash = dt_hash(hash, (const char *)&pipe->image.version, sizeof(int32_t));
-  hash = dt_hash(hash, (const char *)&pipe->image.film_id, sizeof(int32_t));
-  return hash;
+  // Start with a hash that is unique, image-wise.
+  return dt_hash(5381, (const char *)&pipe->image.filename, DT_MAX_FILENAME_LEN);
 }
 
 static uint64_t _node_hash(dt_dev_pixelpipe_t *pipe, const dt_dev_pixelpipe_iop_t *piece, const dt_iop_roi_t *roi_out, const int pos)
@@ -1727,12 +1724,6 @@ static void _print_nan_debug(dt_dev_pixelpipe_t *pipe, void *cl_mem_output, void
 {
   if((darktable.unmuted & DT_DEBUG_NAN) && strcmp(module->op, "gamma") != 0)
   {
-
-#ifdef HAVE_OPENCL
-    if(cl_mem_output != NULL)
-      dt_opencl_copy_device_to_host(pipe->devid, output, cl_mem_output, roi_out->width, roi_out->height, bpp);
-#endif
-
     gchar *module_label = dt_history_item_get_name(module);
 
     if(out_format->datatype == TYPE_FLOAT && out_format->channels == 4)

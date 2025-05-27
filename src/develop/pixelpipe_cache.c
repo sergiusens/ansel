@@ -44,11 +44,12 @@ size_t dt_pixel_cache_get_size(dt_pixel_cache_entry_t *cache_entry)
   return cache_entry->size / (1024 * 1024);
 }
 
-void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *message)
+void dt_pixel_cache_message(dt_pixel_cache_entry_t *cache_entry, const char *message, gboolean verbose)
 {
-  if(!((darktable.unmuted & DT_DEBUG_PIPE) && (darktable.unmuted & DT_DEBUG_VERBOSE))) return;
-  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu: %s (%lu MiB - age %i) %s\n", cache_entry->hash, cache_entry->name,
-           dt_pixel_cache_get_size(cache_entry), cache_entry->age, message);
+  if(!(darktable.unmuted & DT_DEBUG_PIPE)) return;
+  if(verbose && !(darktable.unmuted & DT_DEBUG_VERBOSE)) return;
+  dt_print(DT_DEBUG_PIPE, "[pixelpipe] cache entry %lu: %s (%lu MiB - age %li) %s\n", cache_entry->hash,
+           cache_entry->name, dt_pixel_cache_get_size(cache_entry), cache_entry->age, message);
 }
 
 // remove the cache entry with the given hash and update the cache memory usage
@@ -72,9 +73,9 @@ int dt_dev_pixel_pipe_cache_remove(dt_dev_pixelpipe_cache_t *cache, const uint64
       return 0;
     }
     else if(used)
-      dt_pixel_cache_message(cache_entry, "cannot remove: used");
+      dt_pixel_cache_message(cache_entry, "cannot remove: used", TRUE);
     else if(locked)
-      dt_pixel_cache_message(cache_entry, "cannot remove: locked");
+      dt_pixel_cache_message(cache_entry, "cannot remove: locked", TRUE);
   }
   else
   {
@@ -113,12 +114,12 @@ void _cache_get_oldest(gpointer key, gpointer value, gpointer user_data)
     {
       lru->max_age = cache_entry->age;
       lru->hash = cache_entry->hash;
-      dt_pixel_cache_message(cache_entry, "candidate for deletion");
+      dt_pixel_cache_message(cache_entry, "candidate for deletion", TRUE);
     }
     else if(used)
-      dt_pixel_cache_message(cache_entry, "cannot be deleted: used");
+      dt_pixel_cache_message(cache_entry, "cannot be deleted: used", TRUE);
     else if(locked)
-      dt_pixel_cache_message(cache_entry, "cannot be deleted: locked");
+      dt_pixel_cache_message(cache_entry, "cannot be deleted: locked", TRUE);
   }
 }
 
@@ -208,7 +209,7 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
 static void _free_cache_entry(dt_pixel_cache_entry_t *cache_entry)
 {
   if(!cache_entry) return;
-  dt_pixel_cache_message(cache_entry, "freed");
+  dt_pixel_cache_message(cache_entry, "freed", FALSE);
   dt_free_align(cache_entry->data);
   cache_entry->data = NULL;
   dt_pthread_rwlock_destroy(&cache_entry->lock);
@@ -272,7 +273,7 @@ int dt_dev_pixelpipe_cache_get(dt_dev_pixelpipe_cache_t *cache, const uint64_t h
     cache_entry->age = g_get_monotonic_time(); // this is the MRU entry
     *data = cache_entry->data;
     *dsc = &cache_entry->dsc;
-    dt_pixel_cache_message(cache_entry, (cache_entry_found) ? "found" : "created");
+    dt_pixel_cache_message(cache_entry, (cache_entry_found) ? "found" : "created", FALSE);
 
     // This will become the input for the next module, lock it until next module process ends
     dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, TRUE);
@@ -301,7 +302,7 @@ int dt_dev_pixelpipe_cache_get_existing(dt_dev_pixelpipe_cache_t *cache, const u
     cache_entry->age = g_get_monotonic_time(); // this is the MRU entry
     *data = cache_entry->data;
     *dsc = &cache_entry->dsc;
-    dt_pixel_cache_message(cache_entry, "found");
+    dt_pixel_cache_message(cache_entry, "found", FALSE);
 
     // This will become the input for the next module, lock it until next module process ends
     dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, hash, TRUE);
@@ -417,12 +418,12 @@ void dt_dev_pixelpipe_cache_lock_entry_hash(dt_dev_pixelpipe_cache_t *cache, con
     if(lock)
     {
       dt_atomic_add_int(&cache_entry->refcount, 1);
-      dt_pixel_cache_message(cache_entry, "ref count ++");
+      dt_pixel_cache_message(cache_entry, "ref count ++", TRUE);
     }
     else
     {
       dt_atomic_sub_int(&cache_entry->refcount, 1);
-      dt_pixel_cache_message(cache_entry, "ref count --");
+      dt_pixel_cache_message(cache_entry, "ref count --", TRUE);
     }
   }
   dt_pthread_mutex_unlock(&cache->lock);
@@ -438,12 +439,12 @@ void dt_dev_pixelpipe_cache_wrlock_entry(dt_dev_pixelpipe_cache_t *cache, const 
     if(lock)
     {
       dt_pthread_rwlock_wrlock(&cache_entry->lock);
-      dt_pixel_cache_message(cache_entry, "write lock");
+      dt_pixel_cache_message(cache_entry, "write lock", TRUE);
     }
     else
     {
       dt_pthread_rwlock_unlock(&cache_entry->lock);
-      dt_pixel_cache_message(cache_entry, "write unlock");
+      dt_pixel_cache_message(cache_entry, "write unlock", TRUE);
     }
   }
   dt_pthread_mutex_unlock(&cache->lock);
@@ -458,12 +459,12 @@ void dt_dev_pixelpipe_cache_rdlock_entry(dt_dev_pixelpipe_cache_t *cache, const 
     if(lock)
     {
       dt_pthread_rwlock_rdlock(&cache_entry->lock);
-      dt_pixel_cache_message(cache_entry, "read lock");
+      dt_pixel_cache_message(cache_entry, "read lock", TRUE);
     }
     else
     {
       dt_pthread_rwlock_unlock(&cache_entry->lock);
-      dt_pixel_cache_message(cache_entry, "read unlock");
+      dt_pixel_cache_message(cache_entry, "read unlock", TRUE);
     }
   }
   dt_pthread_mutex_unlock(&cache->lock);

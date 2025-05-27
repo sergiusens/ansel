@@ -67,7 +67,7 @@ typedef struct dt_dev_pixelpipe_iop_t
   dt_dev_histogram_stats_t histogram_stats; // stats of captured histogram
   uint32_t histogram_max[4];                // maximum levels in histogram, one per channel
 
-  float iscale;        // input actually just downscaled buffer? iscale*iwidth = actual width
+  double iscale;        // input actually just downscaled buffer? iscale*iwidth = actual width
   int iwidth, iheight; // width and height of input buffer
 
   // Hash representing the current state of the params, blend params and enabled state of this individual module
