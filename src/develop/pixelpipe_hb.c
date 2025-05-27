@@ -468,6 +468,10 @@ void dt_pixelpipe_get_global_hash(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev)
     // Just ensure to not call a preview pipe recompute on GUI toggle state...
     local_hash = dt_hash(local_hash, (const char *)&piece->module->request_mask_display, sizeof(int));
 
+    // If the cache bypass is on, the corresponding cache lines will be freed immediately after use,
+    // we need to track that. It somewhat overlaps module->request_mask_display, but...
+    local_hash = dt_hash(local_hash, (const char *)&piece->bypass_cache, sizeof(gboolean));
+
     // Update global hash for this stage
     hash = dt_hash(hash, (const char *)&local_hash, sizeof(uint64_t));
     piece->global_hash = hash;
