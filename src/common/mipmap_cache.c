@@ -987,6 +987,11 @@ void dt_mipmap_cache_remove_at_size(dt_mipmap_cache_t *cache, const int32_t imgi
     dt_cache_release(&_get_cache(cache, mip)->cache, entry);
     dt_cache_remove(&_get_cache(cache, mip)->cache, key);
   }
+  else
+  {
+    // directly remove the file on disk cache even if we don't have a memory entry
+    dt_mipmap_cache_unlink_ondisk_thumbnail(cache, key, mip);
+  }
 }
 
 // get rid of all ldr thumbnails:
