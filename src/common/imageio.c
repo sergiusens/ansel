@@ -1160,18 +1160,18 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
   // Inplace downconversion to low-precision formats:
   if(bpp == 8)
     _export_final_buffer_to_uint8((const float *const restrict)pipe.backbuf, &outbuf, display_byteorder,
-                                  high_quality, processed_width, processed_height);
+                                  high_quality, pipe.backbuf_width, pipe.backbuf_height);
   else if(bpp == 16)
     _export_final_buffer_to_uint16((const float *const restrict)pipe.backbuf, (uint16_t **)&outbuf,
-                                   processed_width, processed_height);
+                                   pipe.backbuf_width, pipe.backbuf_height);
   // else output float, no further harm done to the pixels :)
 
   dt_dev_pixelpipe_cache_lock_entry_data(darktable.pixelpipe_cache, pipe.backbuf, FALSE);
 
   if(outbuf == NULL) goto error;
 
-  format_params->width = processed_width;
-  format_params->height = processed_height;
+  format_params->width = pipe.backbuf_width;
+  format_params->height = pipe.backbuf_height;
 
   // Exif data should be 65536 bytes max, but if original size is close to that,
   // adding new tags could make it go over that... so let it be and see what
@@ -1187,7 +1187,7 @@ int dt_imageio_export_with_flags(const int32_t imgid, const char *filename,
     // find output color profile for this image:
     int sRGB = (icc_type == DT_COLORSPACE_SRGB);
     // last param is dng mode, it's false here
-    length = dt_exif_read_blob(&exif_profile, pathname, imgid, sRGB, processed_width, processed_height, 0);
+    length = dt_exif_read_blob(&exif_profile, pathname, imgid, sRGB, pipe.backbuf_width, pipe.backbuf_height, 0);
   }
 
   // Finally: write image buffer to target container
