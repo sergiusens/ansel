@@ -1270,8 +1270,8 @@ static void collect_histogram_on_CPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev
 #define KILL_SWITCH_AND_FLUSH_CACHE                                                                               \
   if(dt_atomic_get_int(&pipe->shutdown))                                                                          \
   {                                                                                                               \
-    dt_dev_pixelpipe_cache_invalidate(darktable.pixelpipe_cache, input);                                          \
-    dt_dev_pixelpipe_cache_invalidate(darktable.pixelpipe_cache, *output);                                        \
+    dt_dev_pixel_pipe_cache_remove(darktable.pixelpipe_cache, input_hash);                                        \
+    dt_dev_pixel_pipe_cache_remove(darktable.pixelpipe_cache, hash);                                              \
     if(*cl_mem_output != NULL)                                                                                    \
     {                                                                                                             \
       dt_opencl_release_mem_object(*cl_mem_output);                                                               \
@@ -1978,7 +1978,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
     pixelpipe_get_histogram_backbuf(pipe, dev, *output, NULL, *out_format, roi_out, module, piece, hash, bpp);
     dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, hash, FALSE);
 
-    KILL_SWITCH_AND_FLUSH_CACHE;
+    KILL_SWITCH_ABORT;
     return 0;
   }
 
