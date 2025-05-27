@@ -1641,6 +1641,14 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   /* write back output into cache for faster re-usal */
   cl_int err = dt_opencl_copy_device_to_host(pipe->devid, *output, *cl_mem_output, roi_out->width,
                                               roi_out->height, bpp);
+
+  // FIXME: temporary ugly hack. What currently happens is we could copy the output
+  // while it's not ready yet, which results in a garbage output.
+  // But this output will become the input of the next module, and then copyng
+  // the input is guaranteed to have valid data. Problem is, it's twice as much memcopy.
+  // TODO: find out how we can wait for the output to be ready before copying it.
+  err = dt_opencl_copy_device_to_host(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height, in_bpp);
+
   if(err != CL_SUCCESS)
   {
     dt_print(DT_DEBUG_OPENCL,
@@ -1654,10 +1662,11 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   if(cl_mem_input != NULL)
   {
     input_format->cst = input_cst_cl;
-    dt_opencl_finish_sync_pipe(pipe->devid, pipe->type);
     dt_opencl_release_mem_object(cl_mem_input);
     cl_mem_input = NULL;
   }
+
+  dt_opencl_finish_sync_pipe(pipe->devid, pipe->type);
 
   // don't free cl_mem_output here, as it will be the input for the next module
   // the last module in the pipe will need to be freed by the pipeline process function
