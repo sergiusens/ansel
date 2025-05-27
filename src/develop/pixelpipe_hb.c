@@ -1911,9 +1911,6 @@ static int _process_masks_preview(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, d
      && !(module->operation_tags() & IOP_TAG_DISTORT)
      && (in_bpp == out_bpp) && !memcmp(roi_in, roi_out, sizeof(struct dt_iop_roi_t)))
   {
-    // since we're not actually running the module, the output format is the same as the input format
-    **out_format = pipe->dsc = piece->dsc_out = piece->dsc_in;
-
 #ifdef HAVE_OPENCL
     if(dt_opencl_is_inited() && pipe->opencl_enabled && pipe->devid >= 0 && (cl_mem_input != NULL))
       *cl_mem_output = cl_mem_input;
@@ -1922,10 +1919,6 @@ static int _process_masks_preview(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, d
 #else
     *output = input;
 #endif
-    /* Previously: used full buffer copy on CPU:
-    _copy_buffer((const char *const)input, (char *const)*output, roi_out->height, roi_out->width, roi_in.width,
-                   0, 0, in_bpp * roi_in.width, in_bpp); */
-
     return 0;
   }
 
@@ -2032,6 +2025,12 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   **out_format = pipe->dsc = piece->dsc_out;
   const size_t out_bpp = dt_iop_buffer_dsc_to_bpp(*out_format);
 
+  // Bypass pixel filtering and return early if we only want the pipe to display mask previews
+  // Note: this references the input buffer as *output, no alloc, no copy, no color space conversion.
+  if(!_process_masks_preview(pipe, dev, piece, input, output, cl_mem_input, cl_mem_output, out_format, &roi_in, roi_out,
+                         in_bpp, out_bpp, module))
+    return 0;
+
   // reserve new cache line: output
   char *name = g_strdup_printf("module %s (%s) for pipe %i", module->op, module->multi_name, pipe->type);
   dt_dev_pixelpipe_cache_get(darktable.pixelpipe_cache, hash, bufsize, name, pipe->type, output, out_format);
@@ -2042,11 +2041,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   dt_get_times(&start);
 
   dt_pixelpipe_flow_t pixelpipe_flow = (PIXELPIPE_FLOW_NONE | PIXELPIPE_FLOW_HISTOGRAM_NONE);
-
-  // Bypass pixel filtering and return early if we only want the pipe to display mask previews
-  if(!_process_masks_preview(pipe, dev, piece, input, output, cl_mem_input, cl_mem_output, out_format, &roi_in, roi_out,
-                         in_bpp, out_bpp, module))
-    return 0;
 
   /* get tiling requirement of module */
   dt_develop_tiling_t tiling = { 0 };
