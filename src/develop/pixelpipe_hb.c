@@ -1374,8 +1374,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
 {
   // We don't have OpenCL or we couldn't lock a GPU: fallback to CPU processing
   if(!(dt_opencl_is_inited() && pipe->opencl_enabled && pipe->devid >= 0))
-    return pixelpipe_process_on_CPU(pipe, dev, input, input_format, roi_in, output, out_format, roi_out, module,
-                                    piece, tiling, pixelpipe_flow);
+    goto error;
 
   // Fetch RGB working profile
   // if input is RAW, we can't color convert because RAW is not in a color space
@@ -1646,6 +1645,9 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   }
   else
   {
+    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] could not run module '%s' on gpu. falling back to cpu path\n",
+             module->op);
+
     goto error;
   }
 
@@ -1669,9 +1671,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   // any error in OpenCL ends here
   // free everything and fall back to CPU processing
 error:;
-
-  dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] could not run module '%s' on gpu. falling back to cpu path\n",
-           module->op);
 
   if(*cl_mem_output != NULL)
   {
