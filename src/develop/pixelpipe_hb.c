@@ -1382,6 +1382,51 @@ static dt_dev_pixelpipe_iop_t *_last_node_in_pipe(dt_dev_pixelpipe_t *pipe)
 }
 
 #ifdef HAVE_OPENCL
+
+static void *_gpu_init_input(int devid, void *const input, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
+{
+  void *cl_mem_input = dt_opencl_alloc_device(devid, roi->width, roi->height, bpp);
+  if(cl_mem_input == NULL)
+  {
+    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't generate input buffer for module %s\n",
+              module->op);
+    return NULL;
+  }
+
+  cl_int err = dt_opencl_write_host_to_device(devid, input, cl_mem_input, roi->width, roi->height, bpp);
+  if(err != CL_SUCCESS)
+  {
+    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't copy image to opencl device for module %s\n",
+              module->op);
+    if(cl_mem_input) dt_opencl_release_mem_object(cl_mem_input);
+    return NULL;
+  }
+
+  return cl_mem_input;
+}
+
+
+static void *_gpu_init_output(int devid, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
+{
+  void *cl_mem_output = dt_opencl_alloc_device(devid, roi->width, roi->height, bpp);
+  if(cl_mem_output == NULL)
+  {
+    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't allocate output buffer for module %s\n",
+              module->op);
+  }
+  return cl_mem_output;
+}
+
+
+static void _gpu_clear_buffer(void **cl_mem_buffer)
+{
+  if(*cl_mem_buffer != NULL)
+  {
+    dt_opencl_release_mem_object(*cl_mem_buffer);
+    *cl_mem_buffer = NULL;
+  }
+}
+
 static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
                                     float *input, void *cl_mem_input, dt_iop_buffer_dsc_t *input_format, const dt_iop_roi_t *roi_in,
                                     void **output, void **cl_mem_output, dt_iop_buffer_dsc_t **out_format, const dt_iop_roi_t *roi_out,
@@ -1448,34 +1493,12 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     /* image is small enough -> try to directly process entire image with opencl */
 
     /* input is not on gpu memory -> copy it there */
-    if(cl_mem_input == NULL)
-    {
-      cl_mem_input = dt_opencl_alloc_device(pipe->devid, roi_in->width, roi_in->height, in_bpp);
-      if(cl_mem_input == NULL)
-      {
-        dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't generate input buffer for module %s\n",
-                  module->op);
-        goto error;
-      }
-
-      cl_int err = dt_opencl_write_host_to_device(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height,
-                                                  in_bpp);
-      if(err != CL_SUCCESS)
-      {
-        dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't copy image to opencl device for module %s\n",
-                  module->op);
-        goto error;
-      }
-    }
+    if(cl_mem_input == NULL) cl_mem_input = _gpu_init_input(pipe->devid, input, roi_in, in_bpp, module);
+    if(cl_mem_input == NULL) goto error;
 
     // Allocate GPU memory for output
-    *cl_mem_output = dt_opencl_alloc_device(pipe->devid, roi_out->width, roi_out->height, bpp);
-    if(*cl_mem_output == NULL)
-    {
-      dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't allocate output buffer for module %s\n",
-                module->op);
-      goto error;
-    }
+    *cl_mem_output = _gpu_init_output(pipe->devid, roi_out, bpp, module);
+    if(*cl_mem_output == NULL) goto error;
 
     // transform to input colorspace if we got our input in a different colorspace
     if(!dt_ioppr_transform_image_colorspace_cl(
@@ -1596,11 +1619,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   else if(piece->process_tiling_ready)
   {
     /* image is too big for direct opencl processing -> try to process image via tiling */
-    if(cl_mem_input != NULL)
-    {
-      dt_opencl_release_mem_object(cl_mem_input);
-      cl_mem_input = NULL;
-    }
+    _gpu_clear_buffer(&cl_mem_input);
 
     // transform to module input colorspace
     dt_ioppr_transform_image_colorspace(module, input, input, roi_in->width, roi_in->height, input_format->cst,
@@ -1671,11 +1690,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   // if (rand() % 20 == 0) success_opencl = FALSE; // Test code: simulate spurious failures
 
   // clean up OpenCL input memory and resync pipeline
-  if(cl_mem_input != NULL)
-  {
-    dt_opencl_release_mem_object(cl_mem_input);
-    cl_mem_input = NULL;
-  }
+  _gpu_clear_buffer(&cl_mem_input);
 
   // Wait for the above to complete - we need to synchronize the device and our cache
   dt_iop_nap(dt_opencl_micro_nap(pipe->devid));
@@ -1689,17 +1704,8 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   // free everything and fall back to CPU processing
 error:;
 
-  if(*cl_mem_output != NULL)
-  {
-    dt_opencl_release_mem_object(*cl_mem_output);
-    *cl_mem_output = NULL;
-  }
-
-  if(cl_mem_input != NULL)
-  {
-    dt_opencl_release_mem_object(cl_mem_input);
-    cl_mem_input = NULL;
-  }
+  _gpu_clear_buffer(cl_mem_output);
+  _gpu_clear_buffer(&cl_mem_input);
 
   dt_opencl_finish(pipe->devid);
 
@@ -2300,11 +2306,7 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
     // The pipeline has copied cl_mem_out into buf, so we can release it now.
   #ifdef HAVE_OPENCL
-    if(cl_mem_out != NULL)
-    {
-      dt_opencl_release_mem_object(cl_mem_out);
-      cl_mem_out = NULL;
-    }
+    _gpu_clear_buffer(&cl_mem_out);
   #endif
 
     // get status summary of opencl queue by checking the eventlist
