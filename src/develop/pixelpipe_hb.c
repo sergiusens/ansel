@@ -2351,13 +2351,6 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
       // Note : the last output (backbuf) of the pixelpipe cache is internally locked
       // Whatever consuming it will need to unlock it.
     }
-    else // if killswitch triggered but no OpenCL error
-    {
-      // We will need to resynch pipeline with
-      // with history parameters, meaning exiting this function ASAP.
-      // Our backuf is garbled though, so unlock it for LRU deletion.
-      dt_dev_pixelpipe_cache_lock_entry_data(darktable.pixelpipe_cache, pipe->backbuf, FALSE);
-    }
   }
 
   // release resources:
