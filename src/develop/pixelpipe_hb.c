@@ -1913,16 +1913,16 @@ static int _process_masks_preview(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, d
   if(strcmp(module->op, "gamma") != 0
      && (pipe->mask_display != DT_DEV_PIXELPIPE_DISPLAY_NONE)
      && !(module->operation_tags() & IOP_TAG_DISTORT)
-     && (in_bpp == out_bpp) && !memcmp(roi_in, roi_out, sizeof(struct dt_iop_roi_t)))
+     && (in_bpp == out_bpp)
+     && !memcmp(roi_in, roi_out, sizeof(struct dt_iop_roi_t)))
   {
-#ifdef HAVE_OPENCL
-    if(dt_opencl_is_inited() && pipe->opencl_enabled && pipe->devid >= 0 && (cl_mem_input != NULL))
-      *cl_mem_output = cl_mem_input;
-    else
-      *output = input;
-#else
+    // since we're not actually running the module, the output format is the same as the input format
+    //**out_format = pipe->dsc = piece->dsc_out = piece->dsc_in;
     *output = input;
-#endif
+    /*
+    _copy_buffer((const char *const)input, (char *const)*output, roi_out->height, roi_out->width, roi_in->width,
+                   0, 0, in_bpp * roi_in->width, in_bpp);
+    */
     return 0;
   }
 
@@ -1974,12 +1974,13 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
     dt_print(DT_DEBUG_PIPE, "[pipeline] found %lu (%s) for %s pipeline in cache\n", hash, (module) ? module->op : "noop",
                _pipe_type_to_str(pipe->type));
 
+    KILL_SWITCH_ABORT;
+
     // Get the pipe-global histograms.
     dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, hash, TRUE, existing_cache);
     pixelpipe_get_histogram_backbuf(pipe, dev, *output, NULL, *out_format, roi_out, module, piece, hash, bpp);
     dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, hash, FALSE, existing_cache);
 
-    KILL_SWITCH_ABORT;
     return 0;
   }
 
@@ -2044,9 +2045,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   g_free(name);
   if(*output == NULL) return 1;
 
-  dt_times_t start;
-  dt_get_times(&start);
-
   dt_pixelpipe_flow_t pixelpipe_flow = (PIXELPIPE_FLOW_NONE | PIXELPIPE_FLOW_HISTOGRAM_NONE);
 
   /* get tiling requirement of module */
@@ -2091,6 +2089,9 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   // Actual pixel processing for this module
   int error = 0;
 
+  dt_times_t start;
+  dt_get_times(&start);
+
 #ifdef HAVE_OPENCL
   error = pixelpipe_process_on_GPU(pipe, dev, input, cl_mem_input, input_format, &roi_in, output, cl_mem_output,
                                    out_format, roi_out, module, piece, &tiling, &pixelpipe_flow, in_bpp, bpp);
@@ -2098,6 +2099,8 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   error = pixelpipe_process_on_CPU(pipe, dev, input, input_format, &roi_in, output, out_format, roi_out, module,
                                    piece, &tiling, &pixelpipe_flow);
 #endif
+
+  _print_perf_debug(pipe, pixelpipe_flow, piece, module, &start);
 
   // Flag to throw away the output as soon as we are done consuming it in this thread, at the next module.
   // Cache bypass is requested by modules like crop/perspective, when they show the full image,
@@ -2126,8 +2129,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   // except for gamma which outputs uint8 so we need to deal with that internally
   // Note that GPU is forced to write its output to RAM cache, so we don't use the cl_mem_output anymore.
   pixelpipe_get_histogram_backbuf(pipe, dev, *output, *cl_mem_output, *out_format, roi_out, module, piece, hash, bpp);
-
-  _print_perf_debug(pipe, pixelpipe_flow, piece, module, &start);
 
   // in case we get this buffer from the cache in the future, cache some stuff:
   **out_format = piece->dsc_out = pipe->dsc;
