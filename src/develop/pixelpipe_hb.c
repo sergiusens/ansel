@@ -2110,16 +2110,11 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, input_hash, FALSE, input_entry);
   dt_dev_pixelpipe_cache_lock_entry_hash(darktable.pixelpipe_cache, input_hash, FALSE, input_entry);
 
-  // And throw away the current input if it was flagged before as in the above
-  dt_dev_pixel_pipe_cache_auto_destroy_apply(darktable.pixelpipe_cache, input_hash, pipe->type, input_entry);
-
-  // Note : for the last module of the pipeline, even if it's flagged for auto_destroy, it will not be
-  // because it is the input of nothing (but the GUI backbuf). This is by design.
-
   if(error)
   {
     // No point in keeping garbled output
     dt_dev_pixelpipe_cache_remove(darktable.pixelpipe_cache, hash, TRUE, output_entry);
+    dt_dev_pixel_pipe_cache_auto_destroy_apply(darktable.pixelpipe_cache, input_hash, pipe->type, input_entry);
     return 1;
   }
 
@@ -2150,6 +2145,12 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
   }
 
   dt_dev_pixelpipe_cache_rdlock_entry(darktable.pixelpipe_cache, hash, FALSE, output_entry);
+
+  // And throw away the current input if it was flagged before as in the above
+  dt_dev_pixel_pipe_cache_auto_destroy_apply(darktable.pixelpipe_cache, input_hash, pipe->type, input_entry);
+
+  // Note : for the last module of the pipeline, even if it's flagged for auto_destroy, it will not be
+  // because it is the input of nothing (but the GUI backbuf). This is by design.
 
   KILL_SWITCH_AND_FLUSH_CACHE;
   return 0;
