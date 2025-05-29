@@ -24,38 +24,6 @@
 #include <glib.h>
 #include <stdlib.h>
 
-// Memory pinning in RAM is necessary for OpenCL pinned buffer to work
-// aka spare the I/O cost of host <-> device copies on module input and output
-// in cache
-#if defined(_WIN32)
-    #include <windows.h>
-    #define PIN_MEMORY(ptr, size)    VirtualLock(ptr, size)
-    #define UNPIN_MEMORY(ptr, size) VirtualUnlock(ptr, size)
-#else
-    #include <sys/mman.h>
-    #define PIN_MEMORY(ptr, size)    (mlock(ptr, size) == 0)
-    #define UNPIN_MEMORY(ptr, size) (munlock(ptr, size) == 0)
-#endif
-
-int pin_host_memory(void *ptr, size_t size)
-{
-  if(!PIN_MEMORY(ptr, size))
-  {
-    perror("Failed to pin memory");
-    return 0;
-  }
-  return 1;
-}
-
-int unpin_host_memory(void *ptr, size_t size)
-{
-  if(!UNPIN_MEMORY(ptr, size))
-  {
-    perror("Failed to unpin memory");
-    return 0;
-  }
-  return 1;
-}
 
 typedef struct dt_pixel_cache_entry_t
 {
@@ -446,7 +414,6 @@ dt_pixel_cache_entry_t *dt_dev_pixelpipe_cache_get_entry_from_data(dt_dev_pixelp
   if(cache_entry)
   {
     dt_pthread_rwlock_rdlock(&cache_entry->lock);
-    pin_host_memory(cache_entry->data, cache_entry->size);
     dt_pixel_cache_message(cache_entry, "read lock", TRUE);
   }
 
@@ -498,12 +465,10 @@ void dt_dev_pixelpipe_cache_wrlock_entry(dt_dev_pixelpipe_cache_t *cache, const 
     if(lock)
     {
       dt_pthread_rwlock_wrlock(&cache_entry->lock);
-      pin_host_memory(cache_entry->data, cache_entry->size);
       dt_pixel_cache_message(cache_entry, "write lock", TRUE);
     }
     else
     {
-      unpin_host_memory(cache_entry->data, cache_entry->size);
       dt_pthread_rwlock_unlock(&cache_entry->lock);
       dt_pixel_cache_message(cache_entry, "write unlock", TRUE);
     }
@@ -524,12 +489,10 @@ void dt_dev_pixelpipe_cache_rdlock_entry(dt_dev_pixelpipe_cache_t *cache, const 
     if(lock)
     {
       dt_pthread_rwlock_rdlock(&cache_entry->lock);
-      pin_host_memory(cache_entry->data, cache_entry->size);
       dt_pixel_cache_message(cache_entry, "read lock", TRUE);
     }
     else
     {
-      unpin_host_memory(cache_entry->data, cache_entry->size);
       dt_pthread_rwlock_unlock(&cache_entry->lock);
       dt_pixel_cache_message(cache_entry, "read unlock", TRUE);
     }

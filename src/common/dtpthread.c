@@ -72,7 +72,7 @@ int dt_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *a
   if(ret != 0 && realtime)
   {
     // Set SCHED_RR policy: realtime round robin
-    ret = pthread_attr_setschedpolicy(&attr, SCHED_RR);
+    ret = pthread_attr_setschedpolicy(&attr, SCHED_FIFO);
     if(ret != 0)
     {
       fprintf(stderr, "setschedpolicy: %s\n", strerror(ret));
