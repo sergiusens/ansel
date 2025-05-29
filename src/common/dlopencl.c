@@ -196,6 +196,8 @@ dt_dlopencl_t *dt_dlopencl_init(const char *name)
                                            (void (**)(void)) & ocl->symbols->dt_clEnqueueCopyBuffer);
     success = success && dt_gmodule_symbol(module, "clEnqueueMapBuffer",
                                            (void (**)(void)) & ocl->symbols->dt_clEnqueueMapBuffer);
+    success = success && dt_gmodule_symbol(module, "clEnqueueMapImage",
+                                           (void (**)(void)) & ocl->symbols->dt_clEnqueueMapImage);
     success = success && dt_gmodule_symbol(module, "clEnqueueUnmapMemObject",
                                            (void (**)(void)) & ocl->symbols->dt_clEnqueueUnmapMemObject);
     success = success && dt_gmodule_symbol(module, "clGetMemObjectInfo",
@@ -228,4 +230,3 @@ dt_dlopencl_t *dt_dlopencl_init(const char *name)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

@@ -1385,7 +1385,10 @@ static dt_dev_pixelpipe_iop_t *_last_node_in_pipe(dt_dev_pixelpipe_t *pipe)
 
 static void *_gpu_init_input(int devid, void *const input, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
 {
-  void *cl_mem_input = dt_opencl_alloc_device(devid, roi->width, roi->height, bpp);
+  // Need to use read-write mode because of in-place color space conversions
+  void *cl_mem_input = dt_opencl_alloc_device_use_host_pointer(devid, roi->width, roi->height, bpp, input,
+                                                               CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR);
+
   if(cl_mem_input == NULL)
   {
     dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't generate input buffer for module %s\n",
@@ -1393,22 +1396,14 @@ static void *_gpu_init_input(int devid, void *const input, const dt_iop_roi_t *r
     return NULL;
   }
 
-  cl_int err = dt_opencl_write_host_to_device(devid, input, cl_mem_input, roi->width, roi->height, bpp);
-  if(err != CL_SUCCESS)
-  {
-    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't copy image to opencl device for module %s\n",
-              module->op);
-    if(cl_mem_input) dt_opencl_release_mem_object(cl_mem_input);
-    return NULL;
-  }
-
   return cl_mem_input;
 }
 
 
-static void *_gpu_init_output(int devid, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
+static void *_gpu_init_output(int devid, void *const output, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
 {
-  void *cl_mem_output = dt_opencl_alloc_device(devid, roi->width, roi->height, bpp);
+  void *cl_mem_output = dt_opencl_alloc_device_use_host_pointer(devid, roi->width, roi->height, bpp, output,
+                                                                CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR);
   if(cl_mem_output == NULL)
   {
     dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't allocate output buffer for module %s\n",
@@ -1424,6 +1419,20 @@ static void _gpu_clear_buffer(void **cl_mem_buffer)
   {
     dt_opencl_release_mem_object(*cl_mem_buffer);
     *cl_mem_buffer = NULL;
+  }
+}
+
+static gboolean _check_zero_memory(void *cl_mem_pinned, void *host_ptr, dt_iop_module_t *module, const char *message)
+{
+  if(cl_mem_pinned == host_ptr)
+  {
+    printf("✅ Zero-copy: GPU is using your host memory directly for %s %s\n", module->op, message);
+    return TRUE;
+  }
+  else
+  {
+    printf("❌ Not zero-copy: OpenCL made a temporary device-side copy for %s %s\n", module->op, message);
+    return FALSE;
   }
 }
 
@@ -1493,11 +1502,34 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     /* image is small enough -> try to directly process entire image with opencl */
 
     /* input is not on gpu memory -> copy it there */
-    if(cl_mem_input == NULL) cl_mem_input = _gpu_init_input(pipe->devid, input, roi_in, in_bpp, module);
-    if(cl_mem_input == NULL) goto error;
+    if(cl_mem_input == NULL)
+    {
+      cl_mem_input = _gpu_init_input(pipe->devid, input, roi_in, in_bpp, module);
+      if(cl_mem_input == NULL) goto error; // mem alloc failed
+
+      void *cl_mem_pinned_input = dt_opencl_map_image(pipe->devid, cl_mem_input, TRUE, CL_MAP_WRITE, roi_in->width,
+                                                      roi_in->height, in_bpp);
+      dt_opencl_unmap_mem_object(pipe->devid, cl_mem_input, cl_mem_pinned_input);
+
+      // Wait for memory mapping (aka copy) to finish
+      //dt_opencl_events_wait_for(pipe->devid);
+
+      // Map/Unmap synchronizes host -> device input pixels if we have a zero-copy buffer.
+      // If we couldn't get a zero-copy buffer, we need to manually copy pixels from host to device
+      if(!_check_zero_memory(cl_mem_pinned_input, input, module, "input"))
+      {
+        cl_int err = dt_opencl_write_host_to_device(pipe->devid, input, cl_mem_input, roi_in->width, roi_in->height, in_bpp);
+        if(err != CL_SUCCESS)
+        {
+          dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't copy image to opencl device for module %s\n",
+                    module->op);
+          goto error;
+        }
+      }
+    }
 
     // Allocate GPU memory for output
-    *cl_mem_output = _gpu_init_output(pipe->devid, roi_out, bpp, module);
+    *cl_mem_output = _gpu_init_output(pipe->devid, *output, roi_out, bpp, module);
     if(*cl_mem_output == NULL) goto error;
 
     // transform to input colorspace if we got our input in a different colorspace
@@ -1603,18 +1635,28 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     *pixelpipe_flow |= (PIXELPIPE_FLOW_BLENDED_ON_GPU);
     *pixelpipe_flow &= ~(PIXELPIPE_FLOW_BLENDED_ON_CPU);
 
-    /* write back output into cache for faster re-usal */
-    cl_int err = dt_opencl_read_host_from_device(pipe->devid, *output, *cl_mem_output, roi_out->width,
-                                                 roi_out->height, bpp);
+    void *cl_mem_pinned_output = dt_opencl_map_image(pipe->devid, *cl_mem_output, TRUE, CL_MAP_READ, roi_out->width,
+                                                     roi_out->height, bpp);
+    dt_opencl_unmap_mem_object(pipe->devid, *cl_mem_output, cl_mem_pinned_output);
 
-    if(err != CL_SUCCESS)
+    /* write back output into cache for faster re-usal */
+    if(!_check_zero_memory(cl_mem_pinned_output, *output, module, "output"))
     {
-      dt_print(DT_DEBUG_OPENCL,
-              "[opencl_pixelpipe (e)] late opencl error detected while copying "
-              "back to cpu buffer: %i\n",
-              err);
-      goto error;
+      cl_int err = dt_opencl_read_host_from_device(pipe->devid, *output, *cl_mem_output, roi_out->width,
+                                                  roi_out->height, bpp);
+      if(err != CL_SUCCESS)
+      {
+        dt_print(DT_DEBUG_OPENCL,
+                "[opencl_pixelpipe (e)] late opencl error detected while copying "
+                "back to cpu buffer: %i\n",
+                err);
+        goto error;
+      }
     }
+
+    //dt_opencl_events_flush(pipe->devid, FALSE);
+    //dt_opencl_events_wait_for(pipe->devid);
+    //dt_opencl_finish(pipe->devid);
   }
   else if(piece->process_tiling_ready)
   {
