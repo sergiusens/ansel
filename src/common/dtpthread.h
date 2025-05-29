@@ -365,7 +365,7 @@ static inline int dt_pthread_mutex_BAD_unlock(dt_pthread_mutex_t *mutex)
   return pthread_mutex_unlock(&mutex->mutex);
 };
 
-int dt_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *arg);
+int dt_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *arg, const gboolean realtime);
 
 void dt_pthread_setname(const char *name);
 

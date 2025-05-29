@@ -24,9 +24,9 @@
 
 #define DT_CONTROL_DESCRIPTION_LEN 256
 // reserved workers
-#define DT_CTL_WORKER_RESERVED 3
-#define DT_CTL_WORKER_ZOOM_1 0    // dev zoom 1
-#define DT_CTL_WORKER_ZOOM_FILL 1 // dev zoom fill
+#define DT_CTL_WORKER_RESERVED 2
+#define DT_CTL_WORKER_DARKROOM_THUMB 0    // dev zoom 1
+#define DT_CTL_WORKER_DARKROOM_MAIN 1 // dev zoom fill
 
 typedef enum dt_job_state_t
 {

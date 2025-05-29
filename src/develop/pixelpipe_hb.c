@@ -1729,7 +1729,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
 
   // Wait for kernels and copies to complete before accessing the cache again and releasing the locks
   dt_opencl_events_wait_for(pipe->devid);
-  dt_iop_nap(dt_opencl_micro_nap(pipe->devid));
 
   // don't free cl_mem_output here, as it will be the input for the next module
   // the last module in the pipe will need to be freed by the pipeline process function
@@ -2156,6 +2155,7 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
     // No point in keeping garbled output
     dt_dev_pixelpipe_cache_remove(darktable.pixelpipe_cache, hash, TRUE, output_entry);
     dt_dev_pixel_pipe_cache_auto_destroy_apply(darktable.pixelpipe_cache, input_hash, pipe->type, input_entry);
+    dt_iop_nap(5000);
     return 1;
   }
 
@@ -2190,7 +2190,6 @@ static int dt_dev_pixelpipe_process_rec(dt_dev_pixelpipe_t *pipe, dt_develop_t *
 
   // Note : for the last module of the pipeline, even if it's flagged for auto_destroy, it will not be
   // because it is the input of nothing (but the GUI backbuf). This is by design.
-
   KILL_SWITCH_AND_FLUSH_CACHE;
   return 0;
 }
@@ -2253,7 +2252,7 @@ void dt_dev_pixelpipe_disable_before(dt_dev_pixelpipe_t *pipe, const char *op)
     }                                                                                                             \
     pipe->status = DT_DEV_PIXELPIPE_DIRTY;                                                                        \
     if(pipe->forms) g_list_free_full(pipe->forms, (void (*)(void *))dt_masks_free_form);                          \
-    dt_iop_nap(200);                                                                                              \
+    dt_iop_nap(5000);                                                                                             \
     return 1;                                                                                                     \
   }
 
@@ -2346,6 +2345,9 @@ int dt_dev_pixelpipe_process(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev, int x,
 
     // get status summary of opencl queue by checking the eventlist
     const int oclerr = (pipe->devid > -1) ? dt_opencl_events_flush(pipe->devid, TRUE) != 0 : 0;
+
+    // Relinquish the CPU because we are in a realtime thread
+    dt_iop_nap(5000);
 
     // Check if we had opencl errors ....
     // remark: opencl errors can come in two ways: pipe->opencl_error is TRUE (and err is TRUE) OR oclerr is

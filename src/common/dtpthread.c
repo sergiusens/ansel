@@ -22,16 +22,18 @@
 #include "config.h"
 #endif
 
+#include <sched.h>
 #include <pthread.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <inttypes.h>
+#include <glib.h>
 
 #ifdef _WIN32
 #include "win/dtwin.h"
 #endif // _WIN32
 
-int dt_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *arg)
+int dt_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *arg, const gboolean realtime)
 {
   int ret;
 
@@ -67,6 +69,34 @@ int dt_pthread_create(pthread_t *thread, void *(*start_routine)(void *), void *a
     }
   }
 
+  if(ret != 0 && realtime)
+  {
+    // Set SCHED_RR policy: realtime round robin
+    ret = pthread_attr_setschedpolicy(&attr, SCHED_RR);
+    if(ret != 0)
+    {
+      fprintf(stderr, "setschedpolicy: %s\n", strerror(ret));
+      exit(EXIT_FAILURE);
+    }
+
+    // Set thread priority (between 1 and 99)
+    struct sched_param param = { .sched_priority = 80 };
+    ret = pthread_attr_setschedparam(&attr, &param);
+    if(ret != 0)
+    {
+      fprintf(stderr, "setschedparam: %s\n", strerror(ret));
+      exit(EXIT_FAILURE);
+    }
+
+    // Make sure the thread uses the explicitly set policy and param
+    ret = pthread_attr_setinheritsched(&attr, PTHREAD_EXPLICIT_SCHED);
+    if(ret != 0)
+    {
+      fprintf(stderr, "setinheritsched: %s\n", strerror(ret));
+      exit(EXIT_FAILURE);
+    }
+  }
+
   ret = pthread_create(thread, &attr, start_routine, arg);
 
   pthread_attr_destroy(&attr);
@@ -99,4 +129,3 @@ void dt_pthread_setname(const char *name)
 // vim: shiftwidth=2 expandtab tabstop=2 cindent
 // kate: tab-indents: off; indent-width 2; replace-tabs on; indent-mode cstyle; remove-trailing-spaces modified;
 // clang-format on
-

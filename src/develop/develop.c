@@ -218,7 +218,7 @@ void dt_dev_process_image(dt_develop_t *dev)
 {
   if(!dev->gui_attached) return;
   const int err
-      = dt_control_add_job_res(darktable.control, dt_dev_process_image_job_create(dev), DT_CTL_WORKER_ZOOM_1);
+      = dt_control_add_job_res(darktable.control, dt_dev_process_image_job_create(dev), DT_CTL_WORKER_DARKROOM_THUMB);
   if(err) fprintf(stderr, "[dev_process_image] job queue exceeded!\n");
 }
 
@@ -226,7 +226,7 @@ void dt_dev_process_preview(dt_develop_t *dev)
 {
   if(!dev->gui_attached) return;
   const int err
-      = dt_control_add_job_res(darktable.control, dt_dev_process_preview_job_create(dev), DT_CTL_WORKER_ZOOM_FILL);
+      = dt_control_add_job_res(darktable.control, dt_dev_process_preview_job_create(dev), DT_CTL_WORKER_DARKROOM_MAIN);
   if(err) fprintf(stderr, "[dev_process_preview] job queue exceeded!\n");
 }
 
