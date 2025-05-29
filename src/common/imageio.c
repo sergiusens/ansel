@@ -872,7 +872,7 @@ void _swap_byteorder_uint8_to_uint8(const uint8_t *const restrict inbuf, uint8_t
   dt_omp_firstprivate(processed_width, processed_height, inbuf, outbuf) \
   schedule(static)
 #endif
-  for(size_t k = 0; k < (size_t)processed_width * processed_height; k++)
+  for(size_t k = 0; k < processed_width * processed_height; k++)
   {
     outbuf[4 * k + 0] = inbuf[4 * k + 2];
     outbuf[4 * k + 1] = inbuf[4 * k + 1];
@@ -888,7 +888,7 @@ void _clamp_float_to_uint8(const float *const inbuf, uint8_t *const restrict out
   dt_omp_firstprivate(processed_width, processed_height, inbuf, outbuf) \
   schedule(static)
 #endif
-  for(size_t k = 0; k < (size_t)processed_width * processed_height; k++)
+  for(size_t k = 0; k < processed_width * processed_height; k++)
   {
     outbuf[4 * k + 0] = roundf(CLAMP(inbuf[4 * k + 0] * 0xff, 0, 0xff));
     outbuf[4 * k + 1] = roundf(CLAMP(inbuf[4 * k + 1] * 0xff, 0, 0xff));
@@ -904,7 +904,7 @@ void _swap_byteorder_float_to_uint8(const float *const restrict inbuf, uint8_t *
   dt_omp_firstprivate(processed_width, processed_height, inbuf, outbuf) \
   schedule(static)
 #endif
-  for(size_t k = 0; k < (size_t)processed_width * processed_height; k++)
+  for(size_t k = 0; k < processed_width * processed_height; k++)
   {
     outbuf[4 * k + 0] = roundf(CLAMP(inbuf[4 * k + 2] * 0xff, 0, 0xff));
     outbuf[4 * k + 1] = roundf(CLAMP(inbuf[4 * k + 1] * 0xff, 0, 0xff));
@@ -950,14 +950,16 @@ void _export_final_buffer_to_uint16(const float *const restrict inbuf, uint16_t 
     return;
   }
 
+  uint16_t *const restrict out = *outbuf;
+
 #ifdef _OPENMP
 #pragma omp parallel for default(none) \
-  dt_omp_firstprivate(processed_width, processed_height, inbuf, outbuf) \
+  dt_omp_firstprivate(processed_width, processed_height, inbuf, out) \
   schedule(static)
 #endif
-  for(size_t k = 0; k < (size_t)processed_width * processed_height; k++)
+  for(size_t k = 0; k < processed_width * processed_height; k++)
     for_each_channel(c)
-      *outbuf[4 * k + c] = roundf(CLAMP(inbuf[4 * k + c] * 0xffff, 0, 0xffff));
+      out[4 * k + c] = (uint16_t)roundf(CLAMP(inbuf[4 * k + c] * 0xffff, 0, 0xffff));
 }
 
 void _export_apply_lua_actions(const int32_t imgid, const char *filename, dt_imageio_module_format_t *format,
