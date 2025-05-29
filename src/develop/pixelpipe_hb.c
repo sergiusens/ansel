@@ -1383,33 +1383,20 @@ static dt_dev_pixelpipe_iop_t *_last_node_in_pipe(dt_dev_pixelpipe_t *pipe)
 
 #ifdef HAVE_OPENCL
 
-static void *_gpu_init_input(int devid, void *const input, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
+static void *_gpu_init_buffer(int devid, void *const host_ptr, const dt_iop_roi_t *roi, const size_t bpp,
+                              dt_iop_module_t *module, const char *message)
 {
   // Need to use read-write mode because of in-place color space conversions
-  void *cl_mem_input = dt_opencl_alloc_device_use_host_pointer(devid, roi->width, roi->height, bpp, input,
+  void *cl_mem_input = dt_opencl_alloc_device_use_host_pointer(devid, roi->width, roi->height, bpp, host_ptr,
                                                                CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR);
 
   if(cl_mem_input == NULL)
   {
-    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't generate input buffer for module %s\n",
-              module->op);
-    return NULL;
+    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't generate %s buffer for module %s\n", message,
+             module->op);
   }
 
   return cl_mem_input;
-}
-
-
-static void *_gpu_init_output(int devid, void *const output, const dt_iop_roi_t *roi, const size_t bpp, dt_iop_module_t *module)
-{
-  void *cl_mem_output = dt_opencl_alloc_device_use_host_pointer(devid, roi->width, roi->height, bpp, output,
-                                                                CL_MEM_READ_WRITE | CL_MEM_USE_HOST_PTR);
-  if(cl_mem_output == NULL)
-  {
-    dt_print(DT_DEBUG_OPENCL, "[opencl_pixelpipe] couldn't allocate output buffer for module %s\n",
-              module->op);
-  }
-  return cl_mem_output;
 }
 
 
@@ -1504,7 +1491,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     /* input is not on gpu memory -> copy it there */
     if(cl_mem_input == NULL)
     {
-      cl_mem_input = _gpu_init_input(pipe->devid, input, roi_in, in_bpp, module);
+      cl_mem_input = _gpu_init_buffer(pipe->devid, input, roi_in, in_bpp, module, "input");
       if(cl_mem_input == NULL) goto error; // mem alloc failed
 
       void *cl_mem_pinned_input = dt_opencl_map_image(pipe->devid, cl_mem_input, TRUE, CL_MAP_WRITE, roi_in->width,
@@ -1526,7 +1513,7 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     }
 
     // Allocate GPU memory for output
-    *cl_mem_output = _gpu_init_output(pipe->devid, *output, roi_out, bpp, module);
+    *cl_mem_output = _gpu_init_buffer(pipe->devid, *output, roi_out, bpp, module, "output");
     if(*cl_mem_output == NULL) goto error;
 
     // transform to input colorspace if we got our input in a different colorspace
@@ -1632,11 +1619,12 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
     *pixelpipe_flow |= (PIXELPIPE_FLOW_BLENDED_ON_GPU);
     *pixelpipe_flow &= ~(PIXELPIPE_FLOW_BLENDED_ON_CPU);
 
+    // Map/Unmap synchronizes device -> host output pixels if we have a zero-copy buffer.
+    // If we couldn't get a zero-copy buffer, we need to manually copy pixels from device to host.
     void *cl_mem_pinned_output = dt_opencl_map_image(pipe->devid, *cl_mem_output, TRUE, CL_MAP_READ, roi_out->width,
                                                      roi_out->height, bpp);
     dt_opencl_unmap_mem_object(pipe->devid, *cl_mem_output, cl_mem_pinned_output);
 
-    /* write back output into cache for faster re-usal */
     if(!_check_zero_memory(cl_mem_pinned_output, *output, module, "output"))
     {
       cl_int err = dt_opencl_read_host_from_device(pipe->devid, *output, *cl_mem_output, roi_out->width,
