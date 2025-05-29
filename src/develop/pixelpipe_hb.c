@@ -1511,9 +1511,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
                                                       roi_in->height, in_bpp);
       dt_opencl_unmap_mem_object(pipe->devid, cl_mem_input, cl_mem_pinned_input);
 
-      // Wait for memory mapping (aka copy) to finish
-      //dt_opencl_events_wait_for(pipe->devid);
-
       // Map/Unmap synchronizes host -> device input pixels if we have a zero-copy buffer.
       // If we couldn't get a zero-copy buffer, we need to manually copy pixels from host to device
       if(!_check_zero_memory(cl_mem_pinned_input, input, module, "input"))
@@ -1653,10 +1650,6 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
         goto error;
       }
     }
-
-    //dt_opencl_events_flush(pipe->devid, FALSE);
-    //dt_opencl_events_wait_for(pipe->devid);
-    //dt_opencl_finish(pipe->devid);
   }
   else if(piece->process_tiling_ready)
   {
@@ -1734,9 +1727,9 @@ static int pixelpipe_process_on_GPU(dt_dev_pixelpipe_t *pipe, dt_develop_t *dev,
   // clean up OpenCL input memory and resync pipeline
   _gpu_clear_buffer(&cl_mem_input);
 
-  // Wait for the above to complete - we need to synchronize the device and our cache
+  // Wait for kernels and copies to complete before accessing the cache again and releasing the locks
+  dt_opencl_events_wait_for(pipe->devid);
   dt_iop_nap(dt_opencl_micro_nap(pipe->devid));
-  dt_opencl_finish(pipe->devid);
 
   // don't free cl_mem_output here, as it will be the input for the next module
   // the last module in the pipe will need to be freed by the pipeline process function
