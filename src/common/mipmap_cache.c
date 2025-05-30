@@ -674,12 +674,12 @@ void dt_mipmap_cache_init(dt_mipmap_cache_t *cache)
   dt_cache_set_allocate_callback(&cache->mip_thumbs.cache, dt_mipmap_cache_allocate_dynamic, cache);
   dt_cache_set_cleanup_callback(&cache->mip_thumbs.cache, dt_mipmap_cache_deallocate_dynamic, cache);
 
-  dt_cache_init(&cache->mip_full.cache, 0, darktable.num_openmp_threads);
+  dt_cache_init(&cache->mip_full.cache, 0, darktable.num_openmp_threads + DT_CTL_WORKER_RESERVED);
   dt_cache_set_allocate_callback(&cache->mip_full.cache, dt_mipmap_cache_allocate_dynamic, cache);
   dt_cache_set_cleanup_callback(&cache->mip_full.cache, dt_mipmap_cache_deallocate_dynamic, cache);
   cache->buffer_size[DT_MIPMAP_FULL] = 0;
 
-  dt_cache_init(&cache->mip_f.cache, 0, darktable.num_openmp_threads);
+  dt_cache_init(&cache->mip_f.cache, 0, darktable.num_openmp_threads + DT_CTL_WORKER_RESERVED);
   dt_cache_set_allocate_callback(&cache->mip_f.cache, dt_mipmap_cache_allocate_dynamic, cache);
   dt_cache_set_cleanup_callback(&cache->mip_f.cache, dt_mipmap_cache_deallocate_dynamic, cache);
   cache->buffer_size[DT_MIPMAP_F]

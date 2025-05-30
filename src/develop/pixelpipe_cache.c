@@ -196,6 +196,21 @@ static dt_pixel_cache_entry_t *dt_pixel_cache_new_entry(const uint64_t hash, con
                                                         const dt_iop_buffer_dsc_t dsc, const char *name, const int id,
                                                         dt_dev_pixelpipe_cache_t *cache)
 {
+  // Dynamically update the max cache size depending on remaining free memory on system
+  const size_t remaining_mem = dt_get_available_mem();
+  const size_t safety_margin = 4 * dt_get_singlebuffer_mem();
+  if(remaining_mem < safety_margin)
+  {
+    cache->max_memory
+        = MIN(MAX((int64_t)remaining_mem - (int64_t)safety_margin, (int64_t)2 * dt_get_singlebuffer_mem()),
+              remaining_mem);
+    fprintf(stdout, "new pipeline cache size : %lu MiB\n", cache->max_memory / (1024 * 1024));
+    if(cache->max_memory == 2 * dt_get_singlebuffer_mem())
+      dt_control_log(_("Your system RAM is nearly saturated.\n"
+                       "Processing full-resolution images may not "
+                       "possible anymore.\n"));
+  }
+
   // Free up space if needed to match the max memory limit
   // If error, all entries are currently locked or in use, so we cannot free space to allocate a new entry.
   int error = 0;

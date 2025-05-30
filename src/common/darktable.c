@@ -1465,6 +1465,67 @@ void dt_show_times_f(const dt_times_t *start, const char *prefix, const char *su
   }
 }
 
+#if defined(_WIN32)
+#include <windows.h>
+
+size_t get_usable_memory_bytes()
+{
+  MEMORYSTATUSEX status;
+  status.dwLength = sizeof(status);
+  if(GlobalMemoryStatusEx(&status))
+    return (size_t)status.ullAvailPhys; // Includes reclaimable
+  else
+    return 0;
+}
+
+#elif defined(__APPLE__)
+#include <mach/mach.h>
+
+size_t get_usable_memory_bytes()
+{
+  mach_port_t host = mach_host_self();
+  vm_statistics64_data_t vmstat;
+  mach_msg_type_number_t count = HOST_VM_INFO64_COUNT;
+  if(host_statistics64(host, HOST_VM_INFO64, (host_info64_t)&vmstat, &count) != KERN_SUCCESS) return 0;
+
+  size_t page_size;
+  host_page_size(host, &page_size);
+
+  // Free + inactive (reclaimable)
+  return (vmstat.free_count + vmstat.inactive_count) * page_size;
+}
+
+#elif defined(__linux__)
+#include <string.h>
+
+size_t get_usable_memory_bytes()
+{
+  FILE *f = g_fopen("/proc/meminfo", "r");
+  if(!f) return 0;
+
+  char line[256];
+  size_t available_kb = 0;
+
+  while(fgets(line, sizeof(line), f))
+  {
+    if(sscanf(line, "MemAvailable: %zu kB", &available_kb) == 1)
+    {
+      fclose(f);
+      return available_kb * 1024; // kB to bytes
+    }
+  }
+
+  fclose(f);
+  return 0;
+}
+
+#else
+size_t get_usable_memory_bytes()
+{
+  return 0; // Unsupported platform
+}
+#endif
+
 
 int dt_worker_threads()
 {
@@ -1473,12 +1534,20 @@ int dt_worker_threads()
 
 size_t dt_get_available_mem()
 {
-  return darktable.dtresources.buffer_memory * 4;
+  const size_t available_mem = get_usable_memory_bytes();
+  if(available_mem > 0)
+    return available_mem;
+  else
+    return darktable.dtresources.total_memory - darktable.dtresources.headroom_memory
+           - darktable.mipmap_cache->mip_thumbs.cache.cost
+           - darktable.mipmap_cache->mip_f.cache.cost * (1440 * 900 * sizeof(float))
+           - darktable.mipmap_cache->mip_full.cache.cost * darktable.dtresources.buffer_memory
+           - darktable.pixelpipe_cache->current_memory;
 }
 
 size_t dt_get_singlebuffer_mem()
 {
-  return darktable.dtresources.buffer_memory;
+  return darktable.dtresources.buffer_memory * 4;
 }
 
 size_t dt_get_mipmap_mem()
@@ -1526,14 +1595,14 @@ void dt_configure_runtime_performance(dt_sys_resources_t *resources, gboolean in
   else if(g_strcmp0(resolution_str, "150 Mpx") == 0) resolution = 150;
 
   // RAW and half-RAW buffers sizes
-  const size_t raws = darktable.num_openmp_threads * (1440 * 900 + resolution * 1000 * 1000) * sizeof(float);
+  const size_t raws = (darktable.num_openmp_threads + DT_CTL_WORKER_RESERVED) * (1440 * 900 + resolution * 1000 * 1000) * sizeof(float);
 
   // RGBA float32 image:
-  resources->buffer_memory = resolution * 1000 * 1000 * 4 * sizeof(float);
+  resources->buffer_memory = resolution * 1000 * 1000 * sizeof(float);
 
   // 6 temp copies of RGBA float32 at full res
-  const size_t min_pipeline_memory = 6 * resources->buffer_memory;    // wavelets decompositions
-  const size_t min_pipecache_memory = 2.5 * resources->buffer_memory; // in, out, mask
+  const size_t min_pipeline_memory = 6 * 4 * resources->buffer_memory; // RGBa wavelets decompositions
+  const size_t min_pipecache_memory = 9 * resources->buffer_memory; // RGBa in, RGBa out, mask
 
   // Pipeline cache gets the rest. Need to cast as int otherwise, negative values saturate the uint64 to MAX_UINT or something
   resources->pixelpipe_memory = MAX((int64_t)resources->total_memory - (int64_t)resources->mipmap_memory - (int64_t)resources->headroom_memory - (int64_t)min_pipeline_memory - (int64_t)raws, (int64_t)min_pipecache_memory);
@@ -1616,6 +1685,8 @@ void dt_capabilities_cleanup()
 
 void dt_print_mem_usage()
 {
+  fprintf(stdout, "[memory] Currently-free and reclaimable memory detected: %lu MiB\n", get_usable_memory_bytes() / (1024 * 1024));
+
 #if defined(__linux__)
   char *line = NULL;
   size_t len = 128;
