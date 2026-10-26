@@ -3,7 +3,7 @@ version: "0.0.0"
 adopt-info: ansel
 grade: stable
 confinement: strict
-base: core24
+base: core26
 compression: lzo
 
 donation: "https://liberapay.com/aurelienpierre"
@@ -13,7 +13,17 @@ website: "https://ansel.photos"
 lint:
   ignore:
     - library:
-      - usr/lib/$CRAFT_ARCH_TRIPLE_BUILD_FOR/libOpenCL.so.1.0.0
+      # OpenCL ICDs are dlopen()ed by ocl-icd through /etc/OpenCL/vendors, never linked
+      - usr/lib/*/libRusticlOpenCL.so*
+      - usr/lib/*/intel-opencl/libigdrcl.so
+      # ... and so is everything only they need: the linter, skipping them, sees no user
+      - usr/lib/*/libclang-cpp.so*
+      - usr/lib/*/libLLVMSPIRVLib.so*
+      - usr/lib/*/libigc.so*
+      - usr/lib/*/libigdfcl.so*
+      - usr/lib/*/libiga64.so*
+      # src/common/dlopencl.c dlopen()s it
+      - usr/lib/*/libOpenCL.so*
 
 platforms:
   amd64:
@@ -24,19 +34,9 @@ apps:
     command: usr/bin/ansel --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
     environment:
       GTK_USE_PORTAL: 0
+      OCL_ICD_VENDORS: $SNAP/etc/OpenCL/vendors
     extensions: [gnome]
-    plugs:
-      - opengl
-      - home
-      - removable-media
-      - password-manager-service
-      - network
-      - network-bind
-    common-id: photos.ansel.app
-  cli:
-    command: usr/bin/ansel-cli --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
-    extensions: [gnome]
-    plugs:
+    plugs: &ansel-plugs
       - opengl
       - home
       - removable-media
@@ -45,13 +45,29 @@ apps:
       - network-bind
       # https://forum.snapcraft.io/t/help-gdbus-error-this-call-is-not-available-inside-the-sandbox/29969/5
       - network-status
+      # the gnome extension no longer adds it on core26
+      - gsettings
+    common-id: photos.ansel.Ansel
+  cli:
+    command: usr/bin/ansel-cli --datadir $SNAP/usr/share/ansel --moduledir $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/ansel --configdir $SNAP_USER_DATA --localedir $SNAP/usr/share/locale
+    environment:
+      OCL_ICD_VENDORS: $SNAP/etc/OpenCL/vendors
+    extensions: [gnome]
+    plugs: *ansel-plugs
 
+  # Fetches lensfun's newest calibrations into ~/.local/share/lensfun ...
   lensfun-update-data:
     command: usr/bin/lensfun-update-data
     environment:
       PYTHONPATH: $SNAP/usr/lib/python3/dist-packages
     plugs:
       - network
+  # ... and this folds them, and the user's own profiles, into Ansel's lenses.db
+  lens-db-update:
+    command: usr/bin/ansel-lens-db-update --configdir $SNAP_USER_DATA --datadir $SNAP/usr/share/ansel
+    extensions: [gnome]
+    plugs:
+      - home
 
 slots:
   session-dbus-interface:
@@ -60,18 +76,12 @@ slots:
     bus: session
 
 layout:
-  /usr/include/clc:
-    symlink: $SNAP/usr/include/clc
+  # rusticl (mesa-opencl-icd) loads libclc from its build-time path
   /usr/lib/clc:
     symlink: $SNAP/usr/lib/clc
-  /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gallium-pipe:
-    symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/gallium-pipe
+  # intel.icd names its driver by absolute path
   /usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/intel-opencl:
     symlink: $SNAP/usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/intel-opencl
-
-build-packages:
-  - gcc-12
-  - g++-12
 
 parts:
   opencl:
@@ -79,192 +89,111 @@ parts:
     stage-packages:
       - mesa-opencl-icd
       - ocl-icd-libopencl1
-
-  intel-opencl-icd:
-    source: https://github.com/intel/compute-runtime/releases/download/23.22.26516.18/intel-opencl-icd_23.22.26516.18_amd64.deb
-    source-checksum: sha256/934959f815a2692a65a16cfe126b466749d03f14d0184afdf84a6453dba06b04
-    plugin: dump
-
-  libigdgmm12:
-    source: https://github.com/intel/compute-runtime/releases/download/23.22.26516.18/libigdgmm12_22.3.0_amd64.deb
-    source-checksum: sha256/de6ed9333a74506de43993eb14c8e0e0eb23314c42b03af66fe9c3df24a8973d
-    plugin: dump
-
-  intel-level-zero-gpu:
-    source: https://github.com/intel/compute-runtime/releases/download/23.22.26516.18/intel-level-zero-gpu_1.3.26516.18_amd64.deb
-    source-checksum: sha256/3505f1dad479aaeea1f2460cc9288edc031bead47ac924a9f78b3c01fdcf5d3a
-    plugin: dump
-
-  intel-igc-core:
-    source: https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.14062.11/intel-igc-core_1.0.14062.11_amd64.deb
-    source-checksum: sha256/c75dc93b168246f0ac08aea6aef551312f54545771b4637a268de205617d2ab0
-    plugin: dump
+      - on amd64:
+        - intel-opencl-icd
     stage:
+      # clang's sanitizer and profiling runtimes, pulled in through libclc; rusticl needs none
+      - -usr/lib/llvm-*/lib/clang/*/lib
       - -usr/share/doc
-      - -usr/local
-      - -usr/lib/igc
-    organize:
-      usr/local/lib: usr/lib
-
-  intel-igc-opencl:
-    source: https://github.com/intel/intel-graphics-compiler/releases/download/igc-1.0.14062.11/intel-igc-opencl_1.0.14062.11_amd64.deb
-    source-checksum: sha256/cf76d943dbe44d3da2b7bad2a1049b8834030ec03f7cea6270528f5e67251095
-    plugin: dump
-    stage:
-      - -usr/share/doc
-      - -usr/local
-      - -usr/lib/igc
-    organize:
-      usr/local/lib: usr/lib
+    # Libraries the stage-packages drag in that nothing in the snap links, per the
+    # library linter. The first group is provided by gnome-core26 at runtime.
+    prime: &unused-libraries
+      - -usr/lib/*/libatk-1.0.so*
+      - -usr/lib/*/libcairo.so*
+      - -usr/lib/*/libcairo-gobject.so*
+      - -usr/lib/*/libfontconfig.so*
+      - -usr/lib/*/libgdk_pixbuf-2.0.so*
+      - -usr/lib/*/libharfbuzz.so*
+      - -usr/lib/*/libpango-1.0.so*
+      - -usr/lib/*/libpangocairo-1.0.so*
+      - -usr/lib/*/libpangoft2-1.0.so*
+      - -usr/lib/*/libpsl.so*
+      - -usr/lib/*/librsvg-2.so*
+      - -usr/lib/*/libsoup-3.0.so*
+      - -usr/lib/*/libOpenEXRUtil-3_1.so*
+      - -usr/lib/libGraphicsMagickWand-Q16.so*
+      - -usr/lib/*/libabsl_civil_time.so*
+      - -usr/lib/*/libabsl_cordz_sample_token.so*
+      - -usr/lib/*/libabsl_crc_cpu_detect.so*
+      - -usr/lib/*/libabsl_die_if_null.so*
+      - -usr/lib/*/libabsl_failure_signal_handler.so*
+      - -usr/lib/*/libabsl_flags_parse.so*
+      - -usr/lib/*/libabsl_generic_printer_internal.so*
+      - -usr/lib/*/libabsl_hashtable_profiler.so*
+      - -usr/lib/*/libabsl_log_entry.so*
+      - -usr/lib/*/libabsl_log_flags.so*
+      - -usr/lib/*/libabsl_log_initialize.so*
+      - -usr/lib/*/libabsl_log_internal_check_op.so*
+      - -usr/lib/*/libabsl_log_internal_conditions.so*
+      - -usr/lib/*/libabsl_periodic_sampler.so*
+      - -usr/lib/*/libabsl_poison.so*
+      - -usr/lib/*/libabsl_random_distributions.so*
+      - -usr/lib/*/libabsl_random_internal_distribution_test_util.so*
+      - -usr/lib/*/libabsl_random_seed_sequences.so*
+      - -usr/lib/*/libabsl_scoped_set_env.so*
+      - -usr/lib/*/libabsl_statusor.so*
 
   ansel:
+    after: [opencl]
     plugin: cmake
     source: https://github.com/aurelienpierreeng/ansel.git
+    cmake-generator: Ninja
     cmake-parameters:
       - -DCMAKE_BUILD_TYPE=Release
-      # Place the data alongside that coming from stage-packages (e.g. the lensfun database)
+      # Place the data alongside that coming from stage-packages
       - -DCMAKE_INSTALL_PREFIX=/usr
-      # Support Lua scripts by way of internal Lua implementation
-      - -DDONT_USE_INTERNAL_LUA=OFF
       # Don't overly optimize for build CPU-- stay generic
       - -DBINARY_PACKAGE_BUILD=ON
-      - -DCMAKE_FIND_ROOT_PATH="$SNAPCRAFT_STAGE;/snap/gnome-46-2404-sdk/current"
-      - -DCMAKE_VERBOSE_MAKEFILE=ON
-      - -DUSE_LIGHTROOM=ON
       - -DUSE_COLORD=ON
     stage-packages:
-      - libasn1-8-heimdal
       - libavif16
-      - libcurl3-gnutls
-      - libexiv2-27
-      - libgraphicsmagick-q16-3
-      - libgssapi3-heimdal
-      - libhcrypto5t64-heimdal
-      - libheimbase1-heimdal
-      - libheimntlm0-heimdal
-      - libheif1
-      - libhx509-5-heimdal
+      - libcmark0.30.2
+      - libcolord-gtk1t64
+      - libcups2t64
+      - libgraphicsmagick-q16-3t64
       - libimage-exiftool-perl
-      - libkrb5-26-heimdal
-      - libldap2
       - liblensfun-bin
       - liblensfun-data-v1
       - liblensfun1
-      - libnghttp2-14
       - libopenexr-3-1-30
+      - libosmgpsmap-1.0-1
       - libpugixml1v5
-      - libroken19t64-heimdal
-      - librtmp1
-      - libsasl2-2
-      - libsoup-2.4-1
-      - libssh-4
-      - libwind0-heimdal
+      - libsdl2-2.0-0
     build-packages:
+      - g++
+      - gcc
       - intltool
       - libavif-dev
-      - libexiv2-dev
+      - libcmark-dev
+      - libcolord-dev
+      - libcolord-gtk-dev
+      - libcups2-dev
       - libgraphicsmagick1-dev
-      - libheif-dev
       - liblensfun-dev
       - libopenexr-dev
+      - libosmgpsmap-1.0-dev
       - libpugixml-dev
       - libsdl2-dev
-      - libsm-dev
       - libxml2-utils
-      - libxrandr-dev
       - ninja-build
-      - patch
+      - ocl-icd-opencl-dev
+      - opencl-headers
       - pkg-config
+      - python3-jsonschema
       - xsltproc
-      # -- Missing jsonschema, problems in noiseprofiles.json might go unnoticed
-      # -- GMIC not found
-
     build-environment:
-      - LDFLAGS: "-L${CRAFT_STAGE}/usr/lib/${CRAFT_ARCH_TRIPLET_BUILD_FOR} $(pkg-config --libs libheif sdl2 harfbuzz gtk+-3.0 OpenEXR)"
-      # [-Werror=shadow]
-      # :: src/src/gui/guides.c:534:63: error: declaration of ‘free’ shadows a global declaration
-      - CFLAGS: "-O3 $(pkg-config --cflags libheif sdl2 harfbuzz OpenEXR) -Wno-error=type-limits -Wno-error=shadow -Wno-error=unused-value"
-      # [-Werror=shadow]
-      # :: usr/include/OpenEXR/ImfRational.h:48:26: error: declaration of ‘d’ shadows a member of ‘Imf_3_1::Rational’
-      - CXXFLAGS: "-O3 $(pkg-config --cflags libheif sdl2 harfbuzz OpenEXR) -Wno-error=register -Wno-error=shadow"
+      # The SDK ships glibc's headers, and pkg-config hands its usr/include to the compiler
+      # as -isystem, ahead of libstdc++'s. A C++ `#include <math.h>` then finds glibc's
+      # header instead of libstdc++'s wrapper, which is what puts isnan/isfinite in the
+      # global namespace once <cmath> has undefined the C macros. Including the wrapper
+      # first restores what an ordinary build gets. CMake reads CXXFLAGS only on a fresh
+      # configure: after changing this, `snapcraft clean ansel`.
+      - CXXFLAGS: "${CXXFLAGS:-} -include /usr/include/c++/$(g++ -dumpversion)/math.h"
     override-pull: |
       craftctl default
       craftctl set version=$(git describe --tags)
-      patch -p0 < "${SNAPCRAFT_PROJECT_DIR}/snap/local/patches/darktable-math_h.patch"
-      patch -p0 < "${SNAPCRAFT_PROJECT_DIR}/snap/local/patches/darktable-lens_cc.patch"
-    override-build: |
-      snapcraftctl build
-      PYTHONPATH=$SNAPCRAFT_PART_INSTALL/usr/lib/python3/dist-packages $SNAPCRAFT_PART_INSTALL/usr/bin/lensfun-update-data || echo No updates
-      if [ -d /var/lib/lensfun-updates/version_1/]; then
-        cp /var/lib/lensfun-updates/version_1/* $SNAPCRAFT_PART_INSTALL/usr/share/lensfun/version_1/
-      fi
     parse-info:
-      - usr/share/metainfo/photos.ansel.app.appdata.xml
+      - usr/share/metainfo/photos.ansel.Ansel.appdata.xml
     stage:
       - -usr/share/man
-      - -usr/lib/llvm-15
-      - -usr/lib/clang
-    prime:
-      - -usr/lib/libGraphicsMagickWand-Q16.so.2.9.8
-      - -usr/lib/libiga64.so.1.0.14062.11
-      - -usr/lib/libigc.so.1.0.14062.11
-      - -usr/lib/libigdfcl.so.1.0.14062.11
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libOpenEXRUtil-3_1.so.30.5.1
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libRusticlOpenCL.so.1.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_bad_any_cast_impl.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_bad_optional_access.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_bad_variant_access.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_civil_time.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_cordz_sample_token.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_failure_signal_handler.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_flags_parse.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_hashtablez_sampler.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_log_severity.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_periodic_sampler.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_random_distributions.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_random_internal_distribution_test_util.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_random_seed_sequences.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_scoped_set_env.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libabsl_statusor.so.20220623.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libdconf.so.1.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libgssapi.so.3.0.0
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libhwy_contrib.so.1.0.7
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libhwy_test.so.1.0.7
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libicuio.so.74.2
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libicutest.so.74.2
-    after:
-      - colord
-      - osmgpsmap
-
-  colord:
-    source: https://www.freedesktop.org/software/colord/releases/colord-gtk-0.3.0.tar.xz
-    source-checksum: sha256/b9466656d66d9a6ffbc2dd04fa91c8f6af516bf9efaacb69744eec0f56f3c1d0
-    plugin: meson
-    meson-parameters:
-      - --prefix=/usr
-      - -Dman=false
-      - -Ddocs=false
-    build-packages:
-      - meson
-      - libcolord-dev
-    stage:
-      - -usr/lib/$CRAFT_ARCH_TRIPLET_BUILD_FOR/libcolord-gtk4.so.1.0.3
-
-  osmgpsmap:
-    source: https://github.com/nzjrs/osm-gps-map/releases/download/1.2.0/osm-gps-map-1.2.0.tar.gz
-    source-checksum: sha256/ddec11449f37b5dffb4bca134d024623897c6140af1f9981a8acc512dbf6a7a5
-    plugin: autotools
-    autotools-configure-parameters:
-      - --prefix=/usr
-      - --enable-introspection=no
-    build-packages:
-      - libcurl4-gnutls-dev
-      - libssl-dev
-      - libsoup2.4-dev
-    build-environment:
-      - CFLAGS: "-O3"
-      - CXXFLAGS: "-O3"
-      - CC: "/usr/bin/gcc-12"
-      - CXX: "/usr/bin/g++-12"
-    prime:
-      - -usr/include
+    prime: *unused-libraries
