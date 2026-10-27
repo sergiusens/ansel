@@ -191,6 +191,10 @@ parts:
       - CXXFLAGS: "${CXXFLAGS:-} -include /usr/include/c++/$(g++ -dumpversion)/math.h"
     override-pull: |
       craftctl default
+      # Carry PR #1551 (keyboard navigation in the grid updates the selection) until it lands
+      # upstream. -n applies it without committing, so no git identity is needed here.
+      git fetch --quiet https://github.com/sergiusens/ansel.git 173394a45c367b446ae9ebf14840e9d43547f096
+      git cherry-pick -n FETCH_HEAD
       craftctl set version=$(git describe --tags)
     parse-info:
       - usr/share/metainfo/photos.ansel.Ansel.appdata.xml
